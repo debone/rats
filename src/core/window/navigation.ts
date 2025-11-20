@@ -20,6 +20,9 @@ class Navigation {
   /** Current screen being displayed */
   public currentScreen?: AppScreen;
 
+  // TODO: loading? It was on bubbo-bubbo
+  // private loadScreen?: AppScreen;
+
   /** Current popup being displayed */
   public currentPopup?: AppScreen;
 

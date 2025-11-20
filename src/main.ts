@@ -1,13 +1,16 @@
 import { Application } from 'pixi.js';
 
 import { initAssets } from '@/core/assets/assets';
-import { navigation } from '@/core/window/navigation';
-import { storage } from '@/core/storage/storage';
 import { audio } from '@/core/audio/audio';
+import { storage } from '@/core/storage/storage';
+import { navigation } from '@/core/window/navigation';
 import { resize, visibilityChange } from '@/core/window/resize';
-import { getUrlParam } from '@/core/common/url';
+import { LoadScreen } from './screens/LoadScreen';
+import { engine } from 'animejs';
 
 export const app = new Application();
+
+engine.useDefaultMainLoop = false;
 
 /** Setup app and initialise assets */
 async function init() {
@@ -15,6 +18,10 @@ async function init() {
   await app.init({
     resolution: Math.max(window.devicePixelRatio, 2),
     backgroundColor: 0xffffff,
+  });
+
+  app.ticker.add(() => {
+    engine.update();
   });
 
   // Add pixi canvas element (app.canvas) to the document's body
@@ -35,12 +42,12 @@ async function init() {
   storage.readyStorage();
 
   // Add a persisting background shared by all screens
-  // navigation.setBackground(TiledBackground);
+  //navigation.setBackground(TiledBackground);
 
   audio.muted(storage.getStorageItem('muted'));
 
   // Show initial loading screen
-  // await navigation.showScreen(LoadScreen);
+  await navigation.showScreen(LoadScreen);
 
   // Go to one of the screens if a shortcut is present in url params, otherwise go to home screen
   // if (getUrlParam('game') !== null) {
