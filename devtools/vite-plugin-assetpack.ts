@@ -1,13 +1,15 @@
 import { AssetPack, AssetPackConfig } from '@assetpack/core';
 import { pixiPipes } from '@assetpack/core/pixi';
 import { Plugin, ResolvedConfig } from 'vite';
+import { packer } from './packer';
 
 export function assetpackPlugin(): Plugin {
   const apConfig: AssetPackConfig = {
     entry: './assets',
     output: './public/assets/',
-    cache: true,
+    cache: false,
     pipes: [
+      packer(),
       ...pixiPipes({
         cacheBust: false,
         texturePacker: {
@@ -21,6 +23,7 @@ export function assetpackPlugin(): Plugin {
       }),
     ],
   };
+
   let mode: ResolvedConfig['command'];
   let ap: AssetPack | undefined;
 
