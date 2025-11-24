@@ -1,13 +1,9 @@
-import * as fs from 'fs';
-import * as path from 'path';
-
 import { Asset, AssetPipe, checkExt, createNewAssetAt, swapExt } from '@assetpack/core';
+import sharp from 'sharp';
 
 import Aseprite from './lib/ase-parser.ts';
-
 import { extractSprites } from './processors/aseprite.ts';
 import { Atlas } from './processors/atlas.ts';
-import type { PackerOptions } from './types.ts';
 
 /**
  * Generate TypeScript content for atlas config
@@ -55,25 +51,48 @@ function toPascalCase(str: string): string {
     .join('');
 }
 
-interface PackerOptions {}
+interface PackerOptions {
+  resolutionOptions?: {
+    template?: string;
+    resolutions?: Record<string, number>;
+  };
+}
 
-export function packer(): AssetPipe<PackerOptions> {
+export type PackerTags = 'tps' | 'nomip';
+
+export function packer(_options: PackerOptions = {}): AssetPipe<PackerOptions, PackerTags> {
   return {
     name: 'packer',
-    defaultOptions: {},
+    defaultOptions: {
+      resolutionOptions: {
+        template: '@%%x',
+        resolutions: { default: 1, low: 0.5 },
+        ..._options.resolutionOptions,
+      },
+    },
+    tags: {
+      tps: 'tps',
+      nomip: 'nomip',
+    },
     test: (asset) => checkExt(asset.path, '.aseprite'),
-    transform: async (asset) => {
-      //const command = `${asepritePath} -b ${asset.path} -o ${ass}`;
-      const oldFilename = asset.filename;
-      const newFilename = swapExt(oldFilename, '.jsond');
-      return processFile(asset);
+    transform: async (asset, options) => {
+      return processFile(asset, options);
     },
   };
 }
 
-const debug = false;
+/**
+ * Create a name with resolution suffix (matching texturePacker format)
+ */
+function createName(name: string, scale: number, format: string): string {
+  const scaleLabel = scale !== 1 ? `@${scale}x` : '';
+  return `${name}${scaleLabel}.${format}`;
+}
 
-async function processFile(asset: Asset): Promise<Asset[]> {
+/**
+ * Parse Aseprite file and extract sprites
+ */
+async function parseAsepriteFile(asset: Asset) {
   const asepriteFile = new Aseprite(asset.buffer, asset.filename);
   console.log(`Parsing Aseprite data...`);
   asepriteFile.parse();
@@ -81,35 +100,11 @@ async function processFile(asset: Asset): Promise<Asset[]> {
   console.log(`Aseprite file ${asset.filename} parsed successfully`);
   console.log(`Dimensions: ${asepriteFile.width}x${asepriteFile.height}, Layers: ${asepriteFile.layers.length}`);
 
-  if (debug) {
-    console.log(`Debug information:`);
-    console.log(` - Number of frames: ${asepriteFile.frames?.length || 0}`);
-    console.log(` - Number of layers: ${asepriteFile.layers?.length || 0}`);
-    console.log(` - Layer names: ${(asepriteFile.layers || []).map((l) => l.name || 'unnamed').join(', ')}`);
-
-    // Only log header properties if they exist (optional chaining)
-    if (typeof asepriteFile === 'object') {
-      console.log(` - Width: ${asepriteFile.width}`);
-      console.log(` - Height: ${asepriteFile.height}`);
-
-      // Additional header info if available
-      const header = (asepriteFile as any).header;
-      if (header) {
-        console.log(` - Aseprite version: ${header.version || 'unknown'}`);
-        console.log(` - Color depth: ${header.colorDepth || 'unknown'} bits per pixel`);
-        console.log(` - Transparent color index: ${header.transparentColorIndex || 'none'}`);
-      }
-    }
-  }
-
-  // Extract sprites from Aseprite file
-  console.log(`Extracting sprites...`);
-  const { sprites, atlasConfig } = await extractSprites(asepriteFile);
+  const { sprites } = await extractSprites(asepriteFile);
   if (sprites.length === 0) {
     throw new Error('No valid sprites found in the Aseprite file');
   }
 
-  // Count regular layers vs slice layers
   const contentLayers = sprites.filter((s) => !s.name.endsWith('-slices'));
   const sliceLayers = sprites.filter((s) => s.name.endsWith('-slices'));
 
@@ -117,73 +112,84 @@ async function processFile(asset: Asset): Promise<Asset[]> {
   console.log(`- ${contentLayers.length} content layers`);
   console.log(`- ${sliceLayers.length} slice layers`);
 
-  if (debug) {
-    for (const sprite of sprites) {
-      console.log(
-        `  - Sprite "${sprite.name}": ${sprite.width}x${sprite.height}, data size: ${sprite.data.length} bytes`,
-      );
-    }
-  }
+  return sprites;
+}
 
-  // Process the sprites
+/**
+ * Scale atlas buffer to target resolution
+ */
+async function scaleAtlasBuffer(buffer: Buffer, scale: number): Promise<Buffer> {
+  if (scale === 1) return buffer;
+
+  const metadata = await sharp(buffer).metadata();
+  return sharp(buffer)
+    .resize(Math.round(metadata.width! * scale), Math.round(metadata.height! * scale), { kernel: 'lanczos3' })
+    .png()
+    .toBuffer();
+}
+
+/**
+ * Create PNG and JSON assets for a specific resolution
+ */
+function createResolutionAssets(
+  asset: Asset,
+  baseName: string,
+  scaledBuffer: Buffer,
+  atlas: Atlas,
+  resolution: number,
+): [Asset, Asset] {
+  // Create PNG asset
+  const pngName = createName(baseName, resolution, 'png');
+  const pngAsset = createNewAssetAt(asset, pngName);
+  pngAsset.buffer = scaledBuffer;
+  pngAsset.metaData.mIgnore = true; // Don't process this image again
+  pngAsset.metaData.nomip = true; // Already mipmapped
+
+  // Create JSON asset (base .json, texturePackerCompress will create format variants)
+  const jsonName = createName(baseName, resolution, 'json');
+  const jsonAsset = createNewAssetAt(asset, jsonName);
+
+  // Generate metadata with image reference
+  const pngBasename = pngName.split('/').pop() || pngName;
+  const metadata = atlas.metadata(pngBasename);
+  metadata.meta.scale = resolution;
+
+  jsonAsset.buffer = Buffer.from(JSON.stringify(metadata, null, 2));
+  jsonAsset.metaData.tps = true; // Mark for texturePackerCompress
+
+  return [pngAsset, jsonAsset];
+}
+
+/**
+ * Process Aseprite file and generate atlas with multiple resolutions
+ */
+async function processFile(asset: Asset, options: PackerOptions): Promise<Asset[]> {
+  // Parse Aseprite and extract sprites
+  const sprites = await parseAsepriteFile(asset);
+
+  // Build atlas
   console.log(`Adding sprites to atlas...`);
   const atlas = new Atlas();
   atlas.addSprites(sprites);
 
-  // Generate individual image files for each layer
-  console.log(`Generating image files...`);
-  //  const atlasBasePath = path.join(absoluteOutput, `${baseName}.png`);
+  console.log(`Generating atlas...`);
   const atlasBuffer = await atlas.buffer();
 
-  const atlasImageFilename = swapExt(asset.filename, '.png');
-  const atlasImageAsset = createNewAssetAt(asset, atlasImageFilename);
-  atlasImageAsset.buffer = atlasBuffer;
+  // Generate assets for each resolution
+  const { resolutions } = options.resolutionOptions!;
+  const largestResolution = Math.max(...Object.values(resolutions!));
+  const baseName = swapExt(asset.filename, '');
+  const assets: Asset[] = [];
 
-  const atlasJsonFilename = swapExt(asset.filename, '.png.json');
-  const atlasJsonAsset = createNewAssetAt(asset, atlasJsonFilename);
-  atlasJsonAsset.buffer = Buffer.from(JSON.stringify(atlas.metadata(), null, 2));
+  for (const [_resKey, resolution] of Object.entries(resolutions!)) {
+    const scale = resolution / largestResolution;
+    console.log(`Generating ${resolution}x assets (scale: ${scale})...`);
 
-  return [atlasImageAsset, atlasJsonAsset];
-}
+    const scaledBuffer = await scaleAtlasBuffer(atlasBuffer, scale);
+    const [pngAsset, jsonAsset] = createResolutionAssets(asset, baseName, scaledBuffer, atlas, resolution);
 
-/*
-async function processAsepriteFile(options: PackerOptions): Promise<void> {
-
-
-    // Generate and save metadata in MultiAtlas format
-    console.log(`Generating metadata...`);
-    const metadata = atlas.generateMetadata(imagePaths);
-
-    const metadataPath = path.join(absoluteOutput, `${baseName}.json`);
-    await fs.promises.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
-
-    // Generate TypeScript file for atlas config in src/assets
-    const srcAssetsDir = path.resolve('src/assets');
-    await fs.promises.mkdir(srcAssetsDir, { recursive: true });
-
-    const typescriptPath = path.join(srcAssetsDir, `${baseName}-frames.ts`);
-    const typescriptContent = generateTypescriptContent(atlasConfig, baseName);
-    await fs.promises.writeFile(typescriptPath, typescriptContent);
-
-    // Get the actual total frames (excluding slice layers)
-    const totalFrames = metadata.textures.reduce((sum, texture) => sum + texture.frames.length, 0);
-
-    console.log(`MultiAtlas metadata saved to ${metadataPath}`);
-    console.log(`TypeScript frames file saved to ${typescriptPath}`);
-    console.log(`Total frames in metadata: ${totalFrames}`);
-  } catch (error) {
-    console.error('Error processing Aseprite file:', error);
-
-    if (error instanceof Error) {
-      console.error(`Error message: ${error.message}`);
-      console.error(`Error stack: ${error.stack}`);
-    }
-
-    if (options.debug) {
-      console.error('Full error details:', JSON.stringify(error, null, 2));
-    }
-
-    throw error;
+    assets.push(pngAsset, jsonAsset);
   }
+
+  return assets;
 }
-*/

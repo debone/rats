@@ -1,6 +1,6 @@
-import type Aseprite from "../lib/ase-parser.ts";
-import type { AsepriteTypes } from "../lib/ase-parser.ts";
-import type { ExtractedSprite } from "../types.ts";
+import type Aseprite from '../lib/ase-parser.ts';
+import type { AsepriteTypes } from '../lib/ase-parser.ts';
+import type { ExtractedSprite } from '../types.ts';
 
 interface AtlasFrame {
   x: number;
@@ -17,10 +17,10 @@ interface AtlasConfig {
  * Extract sprites from an Aseprite file's frames
  */
 export async function extractSprites(
-  asepriteFile: Aseprite
+  asepriteFile: Aseprite,
 ): Promise<{ sprites: ExtractedSprite[]; atlasConfig: AtlasConfig }> {
   if (asepriteFile.frames.length === 0) {
-    console.warn("No frames found in the Aseprite file");
+    console.warn('No frames found in the Aseprite file');
     return {
       sprites: [],
       atlasConfig: {},
@@ -32,15 +32,9 @@ export async function extractSprites(
   const layerFrames = new Map<number, ExtractedSprite[]>();
 
   // First, extract all frames for each layer
-  for (
-    let frameIndex = 0;
-    frameIndex < asepriteFile.frames.length;
-    frameIndex++
-  ) {
+  for (let frameIndex = 0; frameIndex < asepriteFile.frames.length; frameIndex++) {
     const frame = asepriteFile.frames[frameIndex];
-    const cels = frame.cels
-      .map((cel) => cel)
-      .sort((a, b) => a.layerIndex - b.layerIndex);
+    const cels = frame.cels.map((cel) => cel).sort((a, b) => a.layerIndex - b.layerIndex);
 
     for (const cel of cels) {
       const sprite = await extractSprite(cel, asepriteFile);
@@ -63,10 +57,10 @@ export async function extractSprites(
     if (!layer) continue;
 
     // Skip if layer name starts with _ or is "Layer"
-    if (layer.name.startsWith("_") || layer.name.startsWith("Layer")) continue;
+    if (layer.name.startsWith('_') || layer.name.startsWith('Layer')) continue;
 
     // For slice layers, just use the first frame
-    if (layer.name.endsWith("-slices")) {
+    if (layer.name.endsWith('-slices')) {
       if (frames.length > 0) {
         extractedSprites.push(frames[0]);
       }
@@ -82,8 +76,8 @@ export async function extractSprites(
 
   // Find all slice layers and map them to their corresponding content layer
   extractedSprites.forEach((sprite) => {
-    if (sprite.name.endsWith("-slices")) {
-      const contentLayerName = sprite.name.replace("-slices", "");
+    if (sprite.name.endsWith('-slices')) {
+      const contentLayerName = sprite.name.replace('-slices', '');
       sliceLayers.set(contentLayerName, sprite);
     }
   });
@@ -93,7 +87,7 @@ export async function extractSprites(
   // Process each sprite, generating frames if it has a corresponding slice layer
   for (const sprite of extractedSprites) {
     // Skip slice layers themselves - they're just for defining the slices
-    if (sprite.name.endsWith("-slices")) continue;
+    if (sprite.name.endsWith('-slices')) continue;
 
     // Find matching slice layer for this content layer
     const sliceSprite = sliceLayers.get(sprite.name);
@@ -103,15 +97,12 @@ export async function extractSprites(
       // Just store a reference to the entire slice sprite
       sprite.sliceSprite = sliceSprite;
       console.log(
-        `  Found slice layer "${sprite.name}-slices" for "${sprite.name}" at position (${sliceSprite.x}, ${sliceSprite.y}) with dimensions ${sliceSprite.width}x${sliceSprite.height}`
+        `  Found slice layer "${sprite.name}-slices" for "${sprite.name}" at position (${sliceSprite.x}, ${sliceSprite.y}) with dimensions ${sliceSprite.width}x${sliceSprite.height}`,
       );
     }
 
     // Generate frame name with animation frame index if applicable
-    const frameName =
-      sprite.frameIndex !== undefined
-        ? `${sprite.name}#${sprite.frameIndex}`
-        : sprite.name;
+    const frameName = sprite.frameIndex !== undefined ? `${sprite.name}#${sprite.frameIndex}` : sprite.name;
 
     // Add frame to atlas config
     if (frameName) {
@@ -124,15 +115,82 @@ export async function extractSprites(
     }
   }
 
+  // Extract tiles from tilesets
+  if (asepriteFile.tilesets && asepriteFile.tilesets.length > 0) {
+    console.log(`Found ${asepriteFile.tilesets.length} tileset(s), extracting tiles...`);
+
+    for (const tileset of asepriteFile.tilesets) {
+      if (!tileset.rawTilesetData || tileset.tileCount === 0) {
+        console.log(`  Skipping tileset "${tileset.name}" (no tile data)`);
+        continue;
+      }
+
+      console.log(
+        `  Extracting ${tileset.tileCount} tiles from tileset "${tileset.name}" (${tileset.tileWidth}x${tileset.tileHeight})`,
+      );
+
+      // Extract each tile from the tileset
+      for (let tileIndex = 0; tileIndex < tileset.tileCount; tileIndex++) {
+        const tileData = extractTileFromTileset(tileset, tileIndex);
+
+        if (tileData) {
+          const tileName = `${tileset.name}_tile_${tileIndex}`;
+          const tileSprite: ExtractedSprite = {
+            index: extractedSprites.length,
+            name: tileName,
+            path: '',
+            width: tileset.tileWidth,
+            height: tileset.tileHeight,
+            x: 0,
+            y: 0,
+            data: tileData,
+          };
+
+          extractedSprites.push(tileSprite);
+
+          // Add to atlas config
+          atlasConfig[tileName] = {
+            x: 0,
+            y: 0,
+            w: tileset.tileWidth,
+            h: tileset.tileHeight,
+          };
+        }
+      }
+    }
+  }
+
   console.log(`Generated atlas with ${Object.keys(atlasConfig).length} frames`);
 
   return { sprites: extractedSprites, atlasConfig };
 }
 
-async function extractSprite(
-  cel: AsepriteTypes.Cel,
-  asepriteFile: Aseprite
-): Promise<ExtractedSprite | null> {
+/**
+ * Extract a single tile from a tileset's raw data
+ */
+function extractTileFromTileset(tileset: AsepriteTypes.Tileset, tileIndex: number): Uint8Array | null {
+  if (!tileset.rawTilesetData || tileIndex >= tileset.tileCount) {
+    return null;
+  }
+
+  const tileWidth = tileset.tileWidth;
+  const tileHeight = tileset.tileHeight;
+  const bytesPerPixel = 4; // RGBA
+  const tileSize = tileWidth * tileHeight * bytesPerPixel;
+
+  // Calculate the offset for this tile in the raw tileset data
+  const offset = tileIndex * tileSize;
+
+  // Extract the tile data
+  const tileData = new Uint8Array(tileSize);
+  for (let i = 0; i < tileSize; i++) {
+    tileData[i] = tileset.rawTilesetData[offset + i];
+  }
+
+  return tileData;
+}
+
+async function extractSprite(cel: AsepriteTypes.Cel, asepriteFile: Aseprite): Promise<ExtractedSprite | null> {
   const layer = asepriteFile.layers[cel.layerIndex];
   if (!layer) {
     console.log(`  Skipping cel with invalid layer index ${cel.layerIndex}`);
@@ -141,12 +199,7 @@ async function extractSprite(
 
   const spriteName = layer.name || `sprite_${cel.layerIndex}`;
 
-  if (
-    !cel.rawCelData ||
-    cel.rawCelData.length === 0 ||
-    cel.w === 0 ||
-    cel.h === 0
-  ) {
+  if (!cel.rawCelData || cel.rawCelData.length === 0 || cel.w === 0 || cel.h === 0) {
     console.log(`  Skipping sprite "${spriteName}" (no data)`);
     return null;
   }
@@ -164,19 +217,14 @@ async function extractSprite(
     // Handle array data
     data = new Uint8Array(cel.rawCelData);
   } else {
-    console.error(
-      `Unknown data format for "${spriteName}":`,
-      typeof cel.rawCelData
-    );
+    console.error(`Unknown data format for "${spriteName}":`, typeof cel.rawCelData);
     throw new Error(`Unsupported data format for layer: ${spriteName}`);
   }
 
   // Validate that the data size matches the expected dimensions
   const expectedSize = cel.w * cel.h * 4; // RGBA = 4 bytes per pixel
   if (data.length !== expectedSize) {
-    console.warn(
-      `Data size mismatch for "${spriteName}": expected ${expectedSize} bytes, got ${data.length} bytes`
-    );
+    console.warn(`Data size mismatch for "${spriteName}": expected ${expectedSize} bytes, got ${data.length} bytes`);
 
     // If the data is too small, pad it (this shouldn't happen but just in case)
     if (data.length < expectedSize) {
@@ -192,7 +240,7 @@ async function extractSprite(
   return {
     index: cel.layerIndex,
     name: spriteName,
-    path: "",
+    path: '',
     width: cel.w,
     height: cel.h,
     x: cel.xpos,

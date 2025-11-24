@@ -1,3 +1,5 @@
+import { ASSETS, FRAMES, type BackgroundTextures } from '@/assets';
+import { typedAssets } from '@/core/assets/typed-assets';
 import type { AppScreen } from '@/core/window/types';
 import { CompositeTilemap } from '@pixi/tilemap';
 import { animate } from 'animejs';
@@ -24,12 +26,35 @@ export class LoadScreen extends Container implements AppScreen {
     //const text = new Text('Loading...', { fontSize: 24, fontWeight: 'bold' });
     //this.addChild(text);
 
+    console.log(Assets.get('background.aseprite').textures);
+
     console.log(Assets.get('tiles').textures.grid);
 
     const tilemap = new CompositeTilemap();
 
+    const bg = typedAssets.get<BackgroundTextures>(ASSETS.background).textures;
+    const bgTextures = FRAMES.background;
+
+    const aa_tile_1 = bg[bgTextures['aa_tile_1#0']];
+    const aa_tile_2 = bg[bgTextures['aa_tile_2#0']];
+    const aa_tile_3 = bg[bgTextures['aa_tile_3#0']];
+
     tilemap.tile(Assets.get('tiles').textures.ball, 32, 0);
     tilemap.tile(Assets.get('tiles').textures.ball, 48, 0);
+
+    tilemap.tile(bg['aa_tile_1#0'], 32, 0);
+    tilemap.tile(aa_tile_1, 32, 32);
+    tilemap.tile(aa_tile_1, 32, 64);
+    tilemap.tile(aa_tile_1, 32, 96);
+    tilemap.tile(aa_tile_1, 32, 128);
+    tilemap.tile(aa_tile_1, 32, 160);
+    tilemap.tile(aa_tile_3, 32, 192);
+    tilemap.tile(aa_tile_2, 32, 224);
+    tilemap.tile(aa_tile_2, 32, 256);
+    tilemap.tile(aa_tile_2, 32, 288);
+    tilemap.tile(aa_tile_2, 32, 320);
+    tilemap.tile(aa_tile_2, 32, 352);
+    tilemap.tile(aa_tile_2, 32, 384);
 
     this.addChild(tilemap);
   }

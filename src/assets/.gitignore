@@ -1,0 +1,7 @@
+# Ignore all generated files
+*.ts
+
+# But keep the README and gitignore
+!README.md
+!.gitignore
+
