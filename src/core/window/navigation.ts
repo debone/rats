@@ -50,7 +50,7 @@ class Navigation {
     // Add screen's resize handler, if available
     if (screen.resize) {
       // Trigger a first resize
-      screen.resize(this.width, this.height);
+      this.resize(this.width, this.height);
     }
 
     // Add update function if available
@@ -126,6 +126,28 @@ class Navigation {
   public resize(width: number, height: number) {
     this.width = width;
     this.height = height;
+
+    if (this.currentScreen) {
+      this.currentScreen.layout = {
+        width: width,
+        height: height,
+      };
+    }
+
+    if (this.currentPopup) {
+      this.currentPopup.layout = {
+        width: width,
+        height: height,
+      };
+    }
+
+    if (this.background) {
+      this.background.layout = {
+        width: width,
+        height: height,
+      };
+    }
+
     this.currentScreen?.resize?.(width, height);
     this.currentPopup?.resize?.(width, height);
     this.background?.resize?.(width, height);

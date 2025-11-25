@@ -1,3 +1,4 @@
+import '@pixi/layout';
 import { Application } from 'pixi.js';
 
 import { initAssets } from '@/core/assets/assets';
@@ -10,6 +11,7 @@ import { engine } from 'animejs';
 
 export const app = new Application();
 
+// Disabling animejs own loop
 engine.useDefaultMainLoop = false;
 
 /** Setup app and initialise assets */

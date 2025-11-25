@@ -1,6 +1,8 @@
 import { ASSETS, FRAMES, type BackgroundTextures } from '@/assets';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import type { AppScreen } from '@/core/window/types';
+import { LayoutContainer, LayoutSprite, LayoutText } from '@pixi/layout/components';
 import { CompositeTilemap } from '@pixi/tilemap';
 import { animate } from 'animejs';
 import { Assets, Container, Sprite, Texture, TilingSprite } from 'pixi.js';
@@ -14,6 +16,12 @@ export class LoadScreen extends Container implements AppScreen {
   constructor() {
     super();
 
+    this.layout = {
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'column',
+    };
+
     const tilingSprite = new TilingSprite({ texture: Assets.get('tiles').textures.grid, width: 64, height: 64 });
     this._background = tilingSprite;
     this.addChild(this._background);
@@ -21,7 +29,7 @@ export class LoadScreen extends Container implements AppScreen {
     const texture = Texture.from('vite.svg');
     const sprite = new Sprite(texture);
     this.addChild(sprite);
-    animate(sprite, { x: 1000, duration: 5000, easing: 'easeInOutSine' });
+    animate(sprite, { x: 700, duration: 3000, easing: 'easeInOutSine' });
 
     //const text = new Text('Loading...', { fontSize: 24, fontWeight: 'bold' });
     //this.addChild(text);
@@ -57,7 +65,71 @@ export class LoadScreen extends Container implements AppScreen {
     tilemap.tile(aa_tile_2, 32, 384);
 
     this.addChild(tilemap);
+
+    const background = new LayoutContainer({
+      layout: {
+        width: MIN_WIDTH,
+        height: MIN_HEIGHT,
+        justifyContent: 'center',
+        backgroundColor: 'red',
+        alignItems: 'center',
+      },
+    });
+
+    this.addChild(background);
+
+    const text = new LayoutText({
+      text: 'Loading...',
+      style: { fontSize: 24, fontWeight: 'bold' },
+      layout: { width: 300, height: 300 },
+    });
+    background.addChild(text);
+
+    const defaults = {
+      backgroundColor: `#1e293b`,
+      borderWidth: 1,
+      borderColor: `#fff`,
+    };
+
+    const box = new LayoutContainer({
+      layout: { ...defaults, width: 300, height: 300, justifyContent: 'center', alignItems: 'center' },
+    });
+    background.addChild(box);
+
+    const spr = new LayoutSprite({
+      texture: aa_tile_1,
+      layout: { width: aa_tile_1.width, height: 10 },
+    });
+    box.addChild(spr);
+
+    spr.scale = 10;
+
+    //this.sprite2 = new Sprite(texture);
+    //box.addChild(this.sprite2);
+    //this.box = box;
+
+    console.log(box.layout);
+
+    //this.sprite2.scale = 3;
+    //this.sprite2.anchor.set(0.5, 0.5);
+
+    //background.addChild(new LayoutContainer({ layout: { ...defaults, width: 300, height: 300 } }));
   }
+
+  //private sprite2: Sprite;
+  //private box: LayoutContainer;
+  /*
+  public show(): Promise<void> {
+    const boxWidth = this.box.layout?.computedLayout.width;
+    const boxHeight = this.box.layout?.computedLayout.height;
+    this.sprite2.position.set(boxWidth ?? 0 / 2, boxHeight ?? 0 / 2);
+
+    this.layout?.forceUpdate();
+    this.box.layout?.forceUpdate();
+    console.log(this.box.layout?.computedLayout);
+
+    return Promise.resolve();
+  }*/
 
   public resize(w: number, h: number) {
     // Fit background to screen
