@@ -6,8 +6,9 @@ import { audio } from '@/core/audio/audio';
 import { storage } from '@/core/storage/storage';
 import { navigation } from '@/core/window/navigation';
 import { resize, visibilityChange } from '@/core/window/resize';
-import { LoadScreen } from './screens/LoadScreen';
 import { engine } from 'animejs';
+import { LoadScreen } from './screens/LoadScreen';
+import { GameScreen } from './screens/GameScreen';
 
 export const app = new Application();
 
@@ -59,8 +60,8 @@ async function init() {
   // } else if (getUrlParam('result') !== null) {
   //   await navigation.showScreen(ResultScreen);
   // } else {
-  //   await navigation.showScreen(HomeScreen);
   // }
+  await navigation.showScreen(GameScreen);
 }
 
 // Init everything

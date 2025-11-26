@@ -9,7 +9,7 @@ import { Assets, Container, Sprite, Texture, TilingSprite } from 'pixi.js';
 
 export class LoadScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'load';
-  static readonly assetBundles = ['preload', 'default'];
+  static readonly assetBundles = ['preload', 'ui'];
 
   private readonly _background: TilingSprite;
 
@@ -26,7 +26,7 @@ export class LoadScreen extends Container implements AppScreen {
     this._background = tilingSprite;
     this.addChild(this._background);
 
-    const texture = Texture.from('vite.svg');
+    const texture = Texture.from(ASSETS.vite_vite);
     const sprite = new Sprite(texture);
     this.addChild(sprite);
     animate(sprite, { x: 700, duration: 3000, easing: 'easeInOutSine' });
@@ -36,7 +36,7 @@ export class LoadScreen extends Container implements AppScreen {
 
     console.log(Assets.get('background.aseprite').textures);
 
-    console.log(Assets.get('tiles').textures.grid);
+    console.log(Assets.get(ASSETS.tiles).textures.grid);
 
     const tilemap = new CompositeTilemap();
 
@@ -130,6 +130,11 @@ export class LoadScreen extends Container implements AppScreen {
 
     return Promise.resolve();
   }*/
+
+  public async hide(): Promise<void> {
+    await animate(this, { alpha: 0, duration: 1000, easing: 'easeInOutSine' });
+    return Promise.resolve();
+  }
 
   public resize(w: number, h: number) {
     // Fit background to screen
