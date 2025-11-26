@@ -64,7 +64,7 @@ export class LoadScreen extends Container implements AppScreen {
     tilemap.tile(aa_tile_2, 32, 352);
     tilemap.tile(aa_tile_2, 32, 384);
 
-    this.addChild(tilemap);
+    // this.addChild(tilemap);
 
     const background = new LayoutContainer({
       layout: {
@@ -132,7 +132,7 @@ export class LoadScreen extends Container implements AppScreen {
   }*/
 
   public async hide(): Promise<void> {
-    await animate(this, { alpha: 0, duration: 1000, easing: 'easeInOutSine' });
+    await animate(this, { alpha: 0, duration: 100, easing: 'easeInOutSine' });
     return Promise.resolve();
   }
 

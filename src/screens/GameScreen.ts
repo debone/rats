@@ -1,7 +1,27 @@
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import type { AppScreen } from '@/core/window/types';
 import { LayoutContainer } from '@pixi/layout/components';
-import { Assets, Container, Graphics, TilingSprite } from 'pixi.js';
+import { Assets, Container, Graphics, Ticker, TilingSprite } from 'pixi.js';
+
+import {
+  b2Body_SetAngularVelocity,
+  b2BodyType,
+  b2CreateBody,
+  b2CreatePolygonShape,
+  b2DefaultBodyDef,
+  b2DefaultShapeDef,
+  b2DefaultWorldDef,
+  b2MakeBox,
+  b2MakeRot,
+  b2Vec2,
+  b2World_Draw,
+  b2World_Step,
+  b2WorldId,
+  CreateWorld,
+  SetWorldScale,
+} from 'phaser-box2d';
+
+import { PhaserDebugDraw } from './PhaserDebugDraw';
 
 export class GameScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'game';
@@ -33,6 +53,63 @@ export class GameScreen extends Container implements AppScreen {
     });
 
     this.addChild(background);
+
+    SetWorldScale(20);
+
+    const worldDef = b2DefaultWorldDef();
+    worldDef.gravity = new b2Vec2(0, -10);
+
+    const worldId = CreateWorld({ worldDef }).worldId;
+
+    const bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2BodyType.b2_dynamicBody;
+    bodyDef.position = new b2Vec2(-2.5, -5);
+    bodyDef.rotation = b2MakeRot(0);
+    const dynamicBodyId = b2CreateBody(worldId, bodyDef);
+    //b2Body_SetAngularVelocity(loadedBodies[1], 10);
+
+    const shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 1;
+
+    const shape = b2MakeBox(1, 1);
+    const boxShapeId = b2CreatePolygonShape(dynamicBodyId, shapeDef, shape);
+
+    bodyDef.type = b2BodyType.b2_staticBody;
+    bodyDef.position = new b2Vec2(5, 8);
+    const staticBodyId = b2CreateBody(worldId, bodyDef);
+    b2CreatePolygonShape(staticBodyId, shapeDef, shape);
+
+    bodyDef.type = b2BodyType.b2_kinematicBody;
+    bodyDef.position = new b2Vec2(-2.5, -12);
+    const kinematicBodyId = b2CreateBody(worldId, bodyDef);
+    b2CreatePolygonShape(kinematicBodyId, shapeDef, shape);
+    b2Body_SetAngularVelocity(kinematicBodyId, -10);
+
+    const debug = new Graphics();
+
+    debug.rect(10, 10, 300, 300).fill(0xff0000);
+
+    debug.x = 200;
+    debug.y = 200;
+
+    const worldDraw = new PhaserDebugDraw(debug, MIN_WIDTH, MIN_HEIGHT, 13);
+
+    background.addChild(debug);
+
+    this._worldId = worldId;
+    this._worldDraw = worldDraw;
+    this._debug = debug;
+  }
+
+  private readonly _worldId: b2WorldId;
+  private readonly _worldDraw: PhaserDebugDraw;
+
+  private readonly _debug: Graphics;
+
+  public update(time: Ticker) {
+    this._debug.clear();
+    b2World_Step(this._worldId, 1 / 60, 8);
+    b2World_Draw(this._worldId, this._worldDraw);
   }
 
   public resize(w: number, h: number) {
