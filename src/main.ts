@@ -1,12 +1,13 @@
 import '@pixi/layout';
 import { Application } from 'pixi.js';
+import { engine } from 'animejs';
+import { InputDevice } from 'pixijs-input-devices';
 
 import { initAssets } from '@/core/assets/assets';
 import { audio } from '@/core/audio/audio';
 import { storage } from '@/core/storage/storage';
 import { navigation } from '@/core/window/navigation';
 import { resize, visibilityChange } from '@/core/window/resize';
-import { engine } from 'animejs';
 import { LoadScreen } from './screens/LoadScreen';
 import { GameScreen } from './screens/GameScreen';
 
@@ -25,6 +26,7 @@ async function init() {
 
   app.ticker.add(() => {
     engine.update();
+    InputDevice.update();
   });
 
   // Add pixi canvas element (app.canvas) to the document's body

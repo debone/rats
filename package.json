@@ -38,6 +38,7 @@
     "animejs": "4.2.2",
     "phaser-box2d": "github:phaserjs/phaser-box2d",
     "pixi-filters": "6.1.4",
-    "pixi.js": "8.14.2"
+    "pixi.js": "8.14.2",
+    "pixijs-input-devices": "^0.7.4"
   }
 }
