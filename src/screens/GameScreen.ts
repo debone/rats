@@ -23,14 +23,18 @@ import {
   b2Normalize,
   b2Vec2,
   b2World_Draw,
+  b2World_SetPreSolveCallback,
   b2World_Step,
   b2WorldId,
+  CreateBoxPolygon,
   CreateWorld,
   SetWorldScale,
+  WorldStep,
 } from 'phaser-box2d';
 
 import { InputDevice } from 'pixijs-input-devices';
 import { PhaserDebugDraw } from './PhaserDebugDraw';
+import type { WorldConfig } from 'phaser-box2d/types/physics';
 
 export class GameScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'game';
@@ -178,6 +182,16 @@ export class GameScreen extends Container implements AppScreen {
     const multipliedVelocity = b2MulSV(15, normalizedVelocity);
     b2Body_SetLinearVelocity(this.ballBodyId, multipliedVelocity);
 
+    let brick = CreateBoxPolygon({
+      position: new b2Vec2(0, -3),
+      type: b2BodyType.b2_staticBody,
+      size: new b2Vec2(0.5, 1),
+      density: 10,
+      friction: 0.7,
+      worldId: worldId,
+      userData: { type: 'brick' },
+    });
+
     console.log(velocity);
 
     const debug = new Graphics();
@@ -232,7 +246,9 @@ export class GameScreen extends Container implements AppScreen {
       b2Body_SetLinearVelocity(this._paddleBodyId, new b2Vec2(0, -10));
     }
 
-    b2World_Step(this._worldId, 1 / 60, 8);
+    //b2World_SetPreSolveCallback;
+
+    WorldStep({ worldId: this._worldId, deltaTime: time.deltaTime } as WorldConfig);
     b2World_Draw(this._worldId, this._worldDraw);
 
     const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
