@@ -1,46 +1,20 @@
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import type { AppScreen } from '@/core/window/types';
 import { LayoutContainer } from '@pixi/layout/components';
-import { Assets, Container, Graphics, Ticker, TilingSprite } from 'pixi.js';
-
-import {
-  b2Body_GetLinearVelocity,
-  b2Body_GetTransform,
-  b2Body_SetLinearVelocity,
-  b2Body_SetTransform,
-  b2BodyId,
-  b2BodyType,
-  b2Circle,
-  b2CreateBody,
-  b2CreateCircleShape,
-  b2CreatePolygonShape,
-  b2DefaultBodyDef,
-  b2DefaultShapeDef,
-  b2DefaultWorldDef,
-  b2MakeBox,
-  b2MakeOffsetBox,
-  b2MulSV,
-  b2Normalize,
-  b2Vec2,
-  b2World_Draw,
-  b2World_SetPreSolveCallback,
-  b2World_Step,
-  b2WorldId,
-  CreateBoxPolygon,
-  CreateWorld,
-  SetWorldScale,
-  WorldStep,
-} from 'phaser-box2d';
-
-import { InputDevice } from 'pixijs-input-devices';
-import { PhaserDebugDraw } from './PhaserDebugDraw';
-import type { WorldConfig } from 'phaser-box2d/types/physics';
+import { Assets, Container, Ticker, TilingSprite } from 'pixi.js';
+import { Game } from '@/game/core/Game';
+import { SaveSystem } from '@/game/systems/SaveSystem';
+import { GameEvent, type EventPayload } from '@/data/events';
 
 export class GameScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'game';
   static readonly assetBundles = ['preload', 'default'];
 
   private readonly _background: TilingSprite;
+  private readonly _gameContainer: LayoutContainer;
+
+  /** The game instance - public so levels can access it */
+  public game!: Game;
 
   constructor() {
     super();
@@ -51,11 +25,17 @@ export class GameScreen extends Container implements AppScreen {
       flexDirection: 'column',
     };
 
-    const tilingSprite = new TilingSprite({ texture: Assets.get('tiles').textures.grid, width: 64, height: 64 });
+    // Tiling background
+    const tilingSprite = new TilingSprite({
+      texture: Assets.get('tiles').textures.grid,
+      width: 64,
+      height: 64,
+    });
     this._background = tilingSprite;
     this.addChild(this._background);
 
-    const background = new LayoutContainer({
+    // Game container (black box for the game area)
+    const gameContainer = new LayoutContainer({
       layout: {
         width: MIN_WIDTH,
         height: MIN_HEIGHT,
@@ -64,207 +44,156 @@ export class GameScreen extends Container implements AppScreen {
         alignItems: 'center',
       },
     });
-
-    this.addChild(background);
-
-    SetWorldScale(20);
-
-    const worldDef = b2DefaultWorldDef();
-    worldDef.gravity = new b2Vec2(0, 0);
-    worldDef.restitutionThreshold = 0;
-
-    const worldId = CreateWorld({ worldDef }).worldId;
-
-    const bodyDef = b2DefaultBodyDef();
-    bodyDef.type = b2BodyType.b2_dynamicBody;
-    bodyDef.position = new b2Vec2(-2.5, -50);
-
-    const dynamicBodyId = b2CreateBody(worldId, bodyDef);
-    this._dynamicBodyId = dynamicBodyId;
-    //b2Body_SetAngularVelocity(loadedBodies[1], 10);
-
-    const shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 10;
-    shapeDef.restitution = 1;
-    shapeDef.friction = 0;
-
-    const shape = b2MakeBox(4, 1);
-    const boxShapeId = b2CreatePolygonShape(dynamicBodyId, shapeDef, shape);
-
-    const wallShapeDef = b2DefaultShapeDef();
-    wallShapeDef.density = 10;
-    wallShapeDef.restitution = 1;
-    wallShapeDef.friction = 0;
-    // Create a static body to serve as the parent for the 4 walls
-    const wallsBodyDef = b2DefaultBodyDef();
-    wallsBodyDef.type = b2BodyType.b2_staticBody;
-    wallsBodyDef.position = new b2Vec2(0, 0);
-    const staticBodyId = b2CreateBody(worldId, wallsBodyDef);
-    this._staticBodyId = staticBodyId;
-
-    // Wall shape properties
-    const wallThickness = 1;
-    const arenaWidth = 35;
-    const arenaHeight = 66;
-
-    // Bottom wall
-    let wall = b2MakeOffsetBox(
-      arenaWidth * 0.5,
-      wallThickness * 0.5,
-      new b2Vec2(0, -arenaHeight * 0.5 + wallThickness * 0.5),
-      0,
-    );
-    b2CreatePolygonShape(staticBodyId, wallShapeDef, wall);
-
-    // Top wall
-    wall = b2MakeOffsetBox(
-      arenaWidth * 0.5,
-      wallThickness * 0.5,
-      new b2Vec2(0, arenaHeight * 0.5 - wallThickness * 0.5),
-      0,
-    );
-    b2CreatePolygonShape(staticBodyId, wallShapeDef, wall);
-
-    // Left wall
-    wall = b2MakeOffsetBox(
-      wallThickness * 0.5,
-      arenaHeight * 0.5,
-      new b2Vec2(-arenaWidth * 0.5 + wallThickness * 0.5, 0),
-      0,
-    );
-    b2CreatePolygonShape(staticBodyId, wallShapeDef, wall);
-
-    // Right wall
-    wall = b2MakeOffsetBox(
-      wallThickness * 0.5,
-      arenaHeight * 0.5,
-      new b2Vec2(arenaWidth * 0.5 - wallThickness * 0.5, 0),
-      0,
-    );
-    b2CreatePolygonShape(staticBodyId, wallShapeDef, wall);
-
-    const paddleBodyDef = b2DefaultBodyDef();
-    paddleBodyDef.type = b2BodyType.b2_kinematicBody;
-    paddleBodyDef.position = new b2Vec2(0, -20);
-    paddleBodyDef.enableSleep = false;
-    //paddleBodyDef.linearDamping = 0;
-    //paddleBodyDef.angularDamping = 0;
-    const paddleShape = b2MakeBox(4, 1);
-    const paddleShapeDef = b2DefaultShapeDef();
-    paddleShapeDef.density = 10;
-    paddleShapeDef.restitution = 1;
-    paddleShapeDef.friction = 0.5;
-    const paddleBodyId = b2CreateBody(worldId, paddleBodyDef);
-    this._paddleBodyId = paddleBodyId;
-    b2CreatePolygonShape(paddleBodyId, paddleShapeDef, paddleShape);
-    //b2Body_SetAngularVelocity(kinematicBodyId, -10);
-
-    const ballShapeDef = b2DefaultShapeDef();
-    ballShapeDef.density = 10;
-    ballShapeDef.restitution = 1;
-    ballShapeDef.friction = 0.5;
-    const ballBodyDef = b2DefaultBodyDef();
-    ballBodyDef.type = b2BodyType.b2_dynamicBody;
-    ballBodyDef.position = new b2Vec2(0, -18);
-    ballBodyDef.enableSleep = false; // Prevent ball from sleeping
-    //ballBodyDef.linearDamping = 0; // No velocity damping
-    //ballBodyDef.angularDamping = 0; // No rotation damping
-    //ballBodyDef.fixedRotation = true;
-    this.ballBodyId = b2CreateBody(worldId, ballBodyDef);
-    //this._dynamicBodyId2 = dynamicBodyId;
-    const circle = new b2Circle();
-    circle.center = new b2Vec2(0.0, 0.0);
-    circle.radius = 0.5;
-    b2CreateCircleShape(this.ballBodyId, ballShapeDef, circle);
-    b2Body_SetLinearVelocity(this.ballBodyId, new b2Vec2(0, 5));
-    const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
-    const normalizedVelocity = b2Normalize(velocity);
-    const multipliedVelocity = b2MulSV(15, normalizedVelocity);
-    b2Body_SetLinearVelocity(this.ballBodyId, multipliedVelocity);
-
-    let brick = CreateBoxPolygon({
-      position: new b2Vec2(0, -3),
-      type: b2BodyType.b2_staticBody,
-      size: new b2Vec2(0.5, 1),
-      density: 10,
-      friction: 0.7,
-      worldId: worldId,
-      userData: { type: 'brick' },
-    });
-
-    console.log(velocity);
-
-    const debug = new Graphics();
-
-    debug.x = MIN_WIDTH / 2;
-    debug.y = MIN_HEIGHT / 2;
-
-    const worldDraw = new PhaserDebugDraw(debug, MIN_WIDTH, MIN_HEIGHT, 13);
-
-    background.addChild(debug);
-
-    this._worldId = worldId;
-    this._worldDraw = worldDraw;
-    this._debug = debug;
+    this._gameContainer = gameContainer;
+    this.addChild(gameContainer);
   }
 
-  private readonly _dynamicBodyId: b2BodyId;
-  private readonly _staticBodyId: b2BodyId;
-  private readonly _paddleBodyId: b2BodyId;
+  /**
+   * Prepare is called before show
+   * Initialize the game here
+   */
+  async prepare() {
+    console.log('[GameScreen] Preparing...');
 
-  private readonly ballBodyId: b2BodyId;
+    // Create game instance
+    this.game = new Game(this, this._gameContainer);
 
-  private readonly _worldId: b2WorldId;
-  private readonly _worldDraw: PhaserDebugDraw;
+    // Initialize game (load systems, meta state)
+    await this.game.init();
 
-  private readonly _debug: Graphics;
+    // Setup event listeners for game events
+    this.setupEventListeners();
 
-  public update(time: Ticker) {
-    this._debug.clear();
-
-    // Set paddle velocity BEFORE physics step
-    b2Body_SetLinearVelocity(this._paddleBodyId, new b2Vec2(0, 0));
-    const transform = b2Body_GetTransform(this._paddleBodyId);
-    transform.q.s = 0;
-    b2Body_SetTransform(this._paddleBodyId, transform.p, transform.q);
-    if (InputDevice.keyboard.key.ArrowLeft) {
-      transform.q.s = -0.1;
-      b2Body_SetTransform(this._paddleBodyId, transform.p, transform.q);
-
-      b2Body_SetLinearVelocity(this._paddleBodyId, new b2Vec2(-10, 0));
-    }
-    if (InputDevice.keyboard.key.ArrowRight) {
-      transform.q.s = 0.1;
-      b2Body_SetTransform(this._paddleBodyId, transform.p, transform.q);
-
-      b2Body_SetLinearVelocity(this._paddleBodyId, new b2Vec2(10, 0));
-    }
-    if (InputDevice.keyboard.key.ArrowUp) {
-      b2Body_SetLinearVelocity(this._paddleBodyId, new b2Vec2(0, 10));
-    }
-    if (InputDevice.keyboard.key.ArrowDown) {
-      b2Body_SetLinearVelocity(this._paddleBodyId, new b2Vec2(0, -10));
-    }
-
-    //b2World_SetPreSolveCallback;
-
-    WorldStep({ worldId: this._worldId, deltaTime: time.deltaTime } as WorldConfig);
-    b2World_Draw(this._worldId, this._worldDraw);
-
-    const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
-    const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-
-    // Only normalize and reset if speed is not already at target (within tolerance)
-    if (Math.abs(speed - 10) > 0.1) {
-      const normalizedVelocity = b2Normalize(velocity);
-      const multipliedVelocity = b2MulSV(10, normalizedVelocity);
-      b2Body_SetLinearVelocity(this.ballBodyId, multipliedVelocity);
-    }
+    console.log('[GameScreen] Prepared');
   }
 
-  public resize(w: number, h: number) {
+  /**
+   * Show is called when the screen is displayed
+   * Start or resume the game here
+   */
+  async show() {
+    console.log('[GameScreen] Showing...');
+
+    // Check if there's a saved run to resume
+    const saveSystem = this.game.context.systems.get(SaveSystem);
+    const savedRun = await saveSystem.loadRun();
+
+    if (savedRun) {
+      // Resume existing run
+      console.log('[GameScreen] Resuming saved game');
+      await this.game.resumeRun();
+    } else {
+      // Start new run
+      console.log('[GameScreen] Starting new game');
+      await this.game.startNewRun('level-1');
+    }
+
+    console.log('[GameScreen] Shown');
+  }
+
+  /**
+   * Update is called every frame
+   */
+  update(time: Ticker) {
+    this.game.update(time.deltaMS);
+  }
+
+  /**
+   * Resize is called when the screen size changes
+   */
+  resize(w: number, h: number) {
     // Fit background to screen
     this._background.width = w;
     this._background.height = h;
+
+    // Resize game
+    this.game.resize(w, h);
+  }
+
+  /**
+   * Pause is called when the screen loses focus
+   */
+  async pause() {
+    console.log('[GameScreen] Pausing...');
+    this.game.pause();
+  }
+
+  /**
+   * Resume is called when the screen regains focus
+   */
+  async resume() {
+    console.log('[GameScreen] Resuming...');
+    this.game.resume();
+  }
+
+  /**
+   * Setup event listeners for game events
+   */
+  private setupEventListeners() {
+    const { events } = this.game.context;
+
+    // Listen for map screen request
+    events.on(GameEvent.GAME_SHOW_MAP, (data) => {
+      this.handleShowMap(data);
+    });
+
+    // Listen for game over
+    events.on(GameEvent.GAME_SHOW_GAME_OVER, (data) => {
+      this.handleShowGameOver(data);
+    });
+
+    // Listen for quit request
+    events.on(GameEvent.GAME_QUIT, () => {
+      this.handleQuit();
+    });
+  }
+
+  /**
+   * Handle showing the map screen
+   * For now, just auto-select the next level
+   */
+  private handleShowMap(data: EventPayload<typeof GameEvent.GAME_SHOW_MAP>) {
+    console.log('[GameScreen] Show map requested:', data);
+
+    // TODO: Actually show map screen UI
+    // For now, just auto-progress to next level
+    setTimeout(() => {
+      // Auto-select level-1 (for testing)
+      this.game.context.events.emit(GameEvent.MAP_LEVEL_SELECTED, { levelId: 'level-1' });
+    }, 1000);
+  }
+
+  /**
+   * Handle showing game over screen
+   */
+  private handleShowGameOver(data: EventPayload<typeof GameEvent.GAME_SHOW_GAME_OVER>) {
+    console.log('[GameScreen] Game over:', data);
+
+    // TODO: Show actual game over UI
+    // For now, just auto-restart after delay
+    setTimeout(() => {
+      this.game.context.events.emit(GameEvent.GAME_OVER_ACTION, 'restart');
+    }, 2000);
+  }
+
+  /**
+   * Handle quit to main menu
+   */
+  private handleQuit() {
+    console.log('[GameScreen] Quit requested');
+
+    // TODO: Navigate back to main menu
+    // navigation.showScreen(MainMenuScreen);
+  }
+
+  /**
+   * Reset is called when the screen is removed
+   */
+  reset() {
+    console.log('[GameScreen] Resetting...');
+
+    if (this.game) {
+      this.game.destroy();
+    }
   }
 }

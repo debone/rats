@@ -54,11 +54,63 @@ export const storage = {
     return data[key];
   },
   /**
+   * Removes a specific value from the storage data.
+   * @param key - The key of the value to remove.
+   * @returns The removed value.
+   */
+  removeStorageItem<T extends keyof StorageData>(key: T): StorageData[T] | undefined {
+    const data = this.getStorage()!;
+
+    if (data && key in data) {
+      const value = data[key];
+      delete data[key];
+      this.setStorage(data);
+      return value;
+    }
+
+    return undefined;
+  },
+  /**
    * Sets the entire storage data.
    * @param data - The data to set.
    * @returns The set data.
    */
   setStorage(data: StorageData) {
     return localStorage.setItem(STORAGE_ID, JSON.stringify(data, undefined, 2));
+  },
+
+  /**
+   * Retrieves a specific value from the storage data.
+   * @param key - The key of the value to retrieve.
+   * @returns The retrieved value.
+   */
+  get<T extends keyof StorageData>(key: T): StorageData[T] {
+    return this.getStorageItem(key);
+  },
+  /**
+   * Retrieves a specific value from the storage data.
+   * @param key - The key of the value to retrieve.
+   * @param defaultValue - The default value to return if the value is not found.
+   * @returns The retrieved value.
+   */
+  getOrDefault<T extends keyof StorageData>(key: T, defaultValue: StorageData[T]): StorageData[T] {
+    return this.getStorageItem(key) ?? defaultValue;
+  },
+  /**
+   * Sets a specific value in the storage data.
+   * @param key - The key of the value to set.
+   * @param value - The value to set.
+   * @returns The set value.
+   */
+  set<T extends keyof StorageData>(key: T, value: StorageData[T]) {
+    this.setStorageItem(key, value);
+  },
+  /**
+   * Removes a specific value from the storage data.
+   * @param key - The key of the value to remove.
+   * @returns The removed value.
+   */
+  remove<T extends keyof StorageData>(key: T) {
+    return this.removeStorageItem(key);
   },
 };

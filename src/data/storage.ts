@@ -1,3 +1,9 @@
+import { createDefaultMetaState, createDefaultRunState } from './game-state';
+import type { MetaGameState, RunState } from './game-state';
+
+export const META_SAVE_KEY = 'game_meta';
+export const RUN_SAVE_KEY = 'game_run';
+
 export const DEFAULT_STORAGE = {
   /**
    * Indicates if the audio is muted
@@ -6,5 +12,6 @@ export const DEFAULT_STORAGE = {
   /**
    * The highest score achieved by the player
    */
-  highscore: 0,
+  [META_SAVE_KEY]: createDefaultMetaState() as MetaGameState,
+  [RUN_SAVE_KEY]: createDefaultRunState() as RunState,
 };
