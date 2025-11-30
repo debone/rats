@@ -114,8 +114,9 @@ export class PhaserDebugDraw {
     const transformedCenterX = scale * cX + cX;
     const transformedCenterY = -(scale * cY + cY);
 
-    graphics.lineStyle(1, col, 1);
-    graphics.strokeCircle(transformedCenterX, transformedCenterY, rad * scale);
+    graphics.circle(transformedCenterX, transformedCenterY, rad * scale);
+    //graphics.fill(col);
+    graphics.stroke({ width: 1, color: col });
   }
 
   DrawSolidCircle(xf: b2Transform, rad: number, col: number, graphics: Graphics) {
@@ -129,11 +130,10 @@ export class PhaserDebugDraw {
 
     const scaledRadius = rad * scale;
 
-    graphics.fillStyle(col, 0.5);
-    graphics.fillCircle(transformedCenterX, transformedCenterY, scaledRadius);
-
-    graphics.lineStyle(1, col, 1);
-    graphics.strokeCircle(transformedCenterX, transformedCenterY, scaledRadius);
+    graphics
+      .circle(transformedCenterX, transformedCenterY, scaledRadius)
+      .fill({ color: col, alpha: 0.5 })
+      .stroke({ width: 1, color: col });
   }
 
   DrawSolidCapsule(p1: b2Vec2, p2: b2Vec2, radius: number, col: number, graphics: Graphics) {
