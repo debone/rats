@@ -1,4 +1,4 @@
-import type { GameEventName, GameEventPayload } from '@/data/events';
+import { GameEvent, type GameEventName, type GameEventPayload } from '@/data/events';
 
 /**
  * Typed event emitter for game events.
@@ -61,6 +61,23 @@ export class EventEmitter {
     });
   }
 
+  waitForPayload<K extends GameEventName>(
+    event: K,
+    matchingPayload?: GameEventPayload<K>,
+  ): Promise<GameEventPayload<K>> {
+    return new Promise((resolve) => {
+      this.once(event, (payload) => {
+        // Use JSON.stringify for deep comparison (native JS, safest coverage)
+        // IMPROVE: if you find yourself face palming here on your first bug, convert to a EVENT:{ID} approach where you can make the second part open (and I think it's still typeable to TS)
+        // also... sorry from 2025-11
+        if (matchingPayload && JSON.stringify(payload) !== JSON.stringify(matchingPayload)) {
+          return;
+        }
+        resolve(payload);
+      });
+    });
+  }
+
   /**
    * Remove all listeners
    */
@@ -108,13 +125,20 @@ export class EventContext {
     event: K,
     ...args: GameEventPayload<K> extends void ? [] : [GameEventPayload<K>]
   ): void {
+    if (event === GameEvent.SHOW_SCREEN) {
+      debugger;
+    }
+    console.log('[EventContext] Emitting event:', event, args);
     this.#emitter.emit(event, ...args);
   }
 
   /**
    * Wait for an event
    */
-  wait<K extends GameEventName>(event: K): Promise<GameEventPayload<K>> {
+  wait<K extends GameEventName>(event: K, matchingPayload?: GameEventPayload<K>): Promise<GameEventPayload<K>> {
+    if (matchingPayload) {
+      return this.#emitter.waitForPayload(event, matchingPayload);
+    }
     return this.#emitter.wait(event);
   }
 }

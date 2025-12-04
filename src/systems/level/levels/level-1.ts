@@ -1,3 +1,4 @@
+import { GameEvent } from '@/data/events';
 import {
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
@@ -9,26 +10,24 @@ import {
   b2Body_SetUserData,
   b2BodyId,
   b2BodyType,
-  b2Circle,
-  b2CreateBody,
-  b2CreateCircleShape,
   b2CreatePolygonShape,
   b2DefaultBodyDef,
   b2DefaultShapeDef,
   b2DestroyBody,
   b2MakeBox,
-  b2MakeOffsetBox,
   b2MulSV,
   b2Normalize,
   b2Shape_GetBody,
   b2Vec2,
   b2World_GetContactEvents,
+  b2WorldId,
   CreateBoxPolygon,
   CreateCircle,
 } from 'phaser-box2d';
 import { InputDevice } from 'pixijs-input-devices';
-import { Level } from './Level';
-import { GameEvent } from '@/data/events';
+import { Level } from '../Level';
+import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
+import { execute } from '@/core/game/Command';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -39,7 +38,6 @@ export default class Level1 extends Level {
 
   private paddleBodyId!: b2BodyId;
   private ballBodyId!: b2BodyId;
-  private brickBodyId!: b2BodyId;
 
   constructor() {
     super({
@@ -56,8 +54,6 @@ export default class Level1 extends Level {
 
   async load(): Promise<void> {
     console.log('[Level1] Loading...');
-
-    const worldId = this.context.worldId;
 
     // Create walls
     this.createWalls();
@@ -76,6 +72,7 @@ export default class Level1 extends Level {
 
   private createWalls(): void {
     const worldId = this.context.worldId;
+    console.log('[Level1] Creating walls...', worldId);
     const { width: arenaWidth, height: arenaHeight } = this.config.arena;
 
     // Create a static body for all walls
@@ -185,7 +182,7 @@ export default class Level1 extends Level {
     const worldId = this.context.worldId;
 
     // Create a test brick
-    const { bodyId } = CreateBoxPolygon({
+    CreateBoxPolygon({
       position: new b2Vec2(0, -3),
       type: b2BodyType.b2_staticBody,
       size: new b2Vec2(0.5, 1),
@@ -194,8 +191,6 @@ export default class Level1 extends Level {
       worldId: worldId,
       userData: { type: 'brick' },
     });
-
-    this.brickBodyId = bodyId;
 
     console.log('[Level1] Brick created');
   }
@@ -209,11 +204,11 @@ export default class Level1 extends Level {
     // Maintain constant ball speed
     this.maintainBallSpeed();
 
-    this.checkCollisions();
+    this.checkCollisions(this.context.worldId!);
   }
 
-  private checkCollisions() {
-    const contactEvents = b2World_GetContactEvents(this.context.worldId);
+  private checkCollisions(worldId: b2WorldId) {
+    const contactEvents = b2World_GetContactEvents(worldId);
 
     if (contactEvents.beginCount > 0) {
       const events = contactEvents.beginEvents;
@@ -229,8 +224,8 @@ export default class Level1 extends Level {
 
         if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
 
-        const userDataA = b2Body_GetUserData(bodyIdA);
-        const userDataB = b2Body_GetUserData(bodyIdB);
+        const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
+        const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
 
         console.log(userDataA, userDataB);
 
@@ -242,29 +237,24 @@ export default class Level1 extends Level {
             const position = b2Body_GetPosition(bodyIdA);
             b2DestroyBody(bodyIdA);
 
+            // Emit notification (fire and forget)
             this.context.events.emit(GameEvent.BRICK_DESTROYED, {
-              brickId: bodyIdA,
+              brickId: String(bodyIdA),
               position: { x: position.x, y: position.y },
               score: 100,
             });
-          }
-          /*
-            if (userDataA.type === 'asteroid') {
-              destroyAsteroid(bodyIdA);
-            } else if (userDataA.type === 'bullet') {
-              destroyBullet(bodyIdA);
-            } else {
-              destroyShip();
-            }
 
-            if (userDataB.type === 'asteroid') {
-              destroyAsteroid(bodyIdB);
-            } else if (userDataB.type === 'bullet') {
-              destroyBullet(bodyIdB);
-            } else {
-              destroyShip();
-            }
-          */
+            // Execute command for control flow
+            execute(LevelFinishedCommand, {
+              success: true,
+              result: {
+                success: true,
+                score: 100,
+                boonsEarned: [],
+                timeElapsed: this.context.level?.elapsedTime || 0,
+              },
+            });
+          }
         }
       }
     }

@@ -6,6 +6,8 @@ import { LayoutContainer, LayoutSprite, LayoutText } from '@pixi/layout/componen
 import { CompositeTilemap } from '@pixi/tilemap';
 import { animate } from 'animejs';
 import { Assets, Container, Sprite, Texture, TilingSprite } from 'pixi.js';
+import { hasGameContext, getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 
 export class LoadScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'load';
@@ -35,7 +37,6 @@ export class LoadScreen extends Container implements AppScreen {
     //this.addChild(text);
 
     console.log(Assets.get('background.aseprite').textures);
-
     console.log(Assets.get(ASSETS.tiles).textures.grid);
 
     const tilemap = new CompositeTilemap();
@@ -130,6 +131,23 @@ export class LoadScreen extends Container implements AppScreen {
 
     return Promise.resolve();
   }*/
+
+  /**
+   * Show the load screen and begin loading assets.
+   * Emits ASSETS_LOADED when done.
+   */
+  public async show(): Promise<void> {
+    console.log('[LoadScreen] Loading assets...');
+
+    // Load all default bundles
+    await Assets.loadBundle('default');
+    console.log('[LoadScreen] Assets loaded');
+
+    // Emit assets loaded event
+    if (hasGameContext()) {
+      getGameContext().events.emit(GameEvent.ASSETS_LOADED);
+    }
+  }
 
   public async hide(): Promise<void> {
     await animate(this, { alpha: 0, duration: 100, easing: 'easeInOutSine' });

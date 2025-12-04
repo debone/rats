@@ -1,20 +1,25 @@
-import type { System } from './System';
-import type { Game } from '../core/Game';
+/**
+ * Save System
+ *
+ * Handles saving and loading game state.
+ * This is a core system that is always active.
+ */
+
+import type { System } from '@/core/game/System';
+import type { GameContext } from '@/data/game-context';
 import type { MetaGameState, RunState } from '@/data/game-state';
 import { storage } from '@/core/storage/storage';
 import { META_SAVE_KEY, RUN_SAVE_KEY } from '@/data/storage';
+import { GameEvent } from '@/data/events';
 
-/**
- * SaveSystem handles saving and loading game state
- */
 export class SaveSystem implements System {
   static SYSTEM_ID = 'save';
 
-  game?: Game;
-
+  private context!: GameContext;
   private autoSaveInterval?: number;
 
-  init() {
+  init(context: GameContext) {
+    this.context = context;
     console.log('[SaveSystem] Initializing...');
 
     // Auto-save every 30 seconds
@@ -22,9 +27,9 @@ export class SaveSystem implements System {
       this.autoSave();
     }, 30000);
 
-    // Save on important events
-    this.game!.context.events.on('level:complete', () => this.save());
-    this.game!.context.events.on('boon:acquired', () => this.save());
+    // Save on important events (notifications)
+    context.events.on(GameEvent.LEVEL_WON, () => this.save());
+    context.events.on(GameEvent.BOON_ACQUIRED, () => this.save());
   }
 
   /**
@@ -39,7 +44,7 @@ export class SaveSystem implements System {
    * Save meta state
    */
   async saveMeta() {
-    const { meta } = this.game!.context;
+    const { meta } = this.context;
     await storage.set(META_SAVE_KEY, meta);
   }
 
@@ -47,7 +52,7 @@ export class SaveSystem implements System {
    * Save current run state
    */
   async saveRun() {
-    const { run } = this.game!.context;
+    const { run } = this.context;
     if (run) {
       await storage.set(RUN_SAVE_KEY, run);
     }
@@ -56,14 +61,14 @@ export class SaveSystem implements System {
   /**
    * Load meta state
    */
-  async loadMeta(): Promise<MetaGameState> {
+  async loadMeta(): Promise<MetaGameState | null> {
     return await storage.get(META_SAVE_KEY);
   }
 
   /**
    * Load run state
    */
-  async loadRun(): Promise<RunState> {
+  async loadRun(): Promise<RunState | null> {
     return await storage.get(RUN_SAVE_KEY);
   }
 
@@ -78,7 +83,7 @@ export class SaveSystem implements System {
    * Auto-save during gameplay
    */
   private async autoSave() {
-    const { phase } = this.game!.context;
+    const { phase } = this.context;
 
     // Only auto-save during level gameplay
     if (phase === 'level') {

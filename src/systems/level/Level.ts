@@ -1,5 +1,8 @@
-import type { GameContext } from '../core/types';
-import type { LevelState, LevelResult, Boon } from '@/data/game-state';
+import type { GameContext } from '@/data/game-context';
+import type { LevelState, Boon, LevelResult } from '@/data/game-state';
+import { GameEvent } from '@/data/events';
+import { execute } from '@/core/game/Command';
+import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -137,13 +140,8 @@ export abstract class Level {
     // Prevent multiple calls
     this.context.level = null;
 
-    // Notify game
-    this.context.events.emit('level:won', result);
-
-    // Let Game handle the rest
-    if (this.context.screen.game) {
-      this.context.screen.game.onLevelComplete(result);
-    }
+    this.context.events.emit(GameEvent.LEVEL_WON, result);
+    execute(LevelFinishedCommand, { success: true, result });
   }
 
   /**
@@ -160,13 +158,8 @@ export abstract class Level {
     // Prevent multiple calls
     this.context.level = null;
 
-    // Notify game
-    this.context.events.emit('level:lost', result);
-
-    // Let Game handle the rest
-    if (this.context.screen.game) {
-      this.context.screen.game.onLevelComplete(result);
-    }
+    this.context.events.emit(GameEvent.LEVEL_LOST, result);
+    execute(LevelFinishedCommand, { success: false, result });
   }
 
   /**

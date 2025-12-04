@@ -1,3 +1,10 @@
+/**
+ * Physics System
+ *
+ * Manages the Box2D physics world.
+ * This system is added dynamically when starting a new run and removed on game over.
+ */
+
 import {
   b2DefaultWorldDef,
   b2Vec2,
@@ -5,28 +12,32 @@ import {
   b2World_Draw,
   CreateWorld,
   SetWorldScale,
-  type b2WorldId,
+  b2DestroyWorld,
 } from 'phaser-box2d';
-import type { System } from './System';
-import type { Game } from '../core/Game';
+import type { System } from '@/core/game/System';
+import type { GameContext } from '@/data/game-context';
 import { Graphics } from 'pixi.js';
 import { PhaserDebugDraw } from '@/screens/PhaserDebugDraw';
 import { MIN_WIDTH, MIN_HEIGHT } from '@/consts';
+import { assert } from '@/core/common/assert';
 
-/**
- * PhysicsSystem manages the Box2D physics world
- */
 export class PhysicsSystem implements System {
   static SYSTEM_ID = 'physics';
 
-  game?: Game;
-
+  private context!: GameContext;
   private debugGraphics?: Graphics;
   private debugDraw?: PhaserDebugDraw;
   private enableDebug = true;
 
-  init() {
+  private updateHandler = this.update.bind(this);
+
+  init(context: GameContext) {
+    this.context = context;
     console.log('[PhysicsSystem] Initializing...');
+  }
+
+  createWorld(start: boolean) {
+    console.log('[PhysicsSystem] Creating world...');
 
     // Set world scale (pixels per meter)
     SetWorldScale(20);
@@ -37,18 +48,43 @@ export class PhysicsSystem implements System {
     worldDef.restitutionThreshold = 0;
 
     const { worldId } = CreateWorld({ worldDef });
-    this.game!.context.worldId = worldId;
+    this.context.worldId = worldId;
 
     // Setup debug draw if enabled
     if (this.enableDebug) {
       this.setupDebugDraw();
     }
 
+    // Self-schedule for update
+    if (start) {
+      this.start();
+    }
+
     console.log('[PhysicsSystem] World created:', worldId);
   }
 
-  update(delta: number) {
-    const worldId = this.game!.context.worldId;
+  stop() {
+    console.log('[PhysicsSystem] Stopping current world...');
+    assert(this.context.worldId, 'World ID is not set');
+    this.context.systems.unregister('update', this.updateHandler);
+  }
+
+  start() {
+    console.log('[PhysicsSystem] Starting current world...');
+    assert(this.context.worldId, 'World ID is not set');
+    this.context.systems.register('update', this.updateHandler);
+  }
+
+  destroyWorld() {
+    console.log('[PhysicsSystem] Destroying world...');
+    assert(this.context.worldId, 'World ID is not set');
+    b2DestroyWorld(this.context.worldId);
+    this.context.worldId = null;
+  }
+
+  private update(delta: number) {
+    const worldId = this.context.worldId;
+    if (!worldId) return;
 
     // Clear debug graphics
     if (this.debugGraphics && this.enableDebug) {
@@ -65,7 +101,8 @@ export class PhysicsSystem implements System {
   }
 
   private setupDebugDraw() {
-    const { container } = this.game!.context;
+    const { container } = this.context;
+    if (!container) return;
 
     // Create debug graphics
     this.debugGraphics = new Graphics();
@@ -81,8 +118,15 @@ export class PhysicsSystem implements System {
   }
 
   destroy() {
+    // Unregister from scheduler
+    this.context.systems.unregister('update', this.updateHandler);
+
+    // Cleanup debug graphics
     if (this.debugGraphics) {
       this.debugGraphics.destroy();
+      this.debugGraphics = undefined;
     }
+
+    this.destroyWorld();
   }
 }

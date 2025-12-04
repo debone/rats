@@ -1,15 +1,27 @@
 import '@pixi/layout';
-import { Application } from 'pixi.js';
 import { engine } from 'animejs';
+import { Application } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 
 import { initAssets } from '@/core/assets/assets';
 import { audio } from '@/core/audio/audio';
 import { storage } from '@/core/storage/storage';
-import { navigation } from '@/core/window/navigation';
 import { resize, visibilityChange } from '@/core/window/resize';
-import { LoadScreen } from './screens/LoadScreen';
-import { GameScreen } from './screens/GameScreen';
+
+// Game Core
+import { SystemRunner } from '@/core/game/SystemRunner';
+import { EventEmitter, EventContext } from '@/core/game/EventEmitter';
+import { execute } from '@/core/game/Command';
+import { createDefaultMetaState } from '@/data/game-state';
+import { setGameContext } from '@/data/game-context';
+import type { GameContext } from '@/data/game-context';
+
+// Systems
+import { NavigationSystem } from '@/systems/navigation/system';
+import { SaveSystem } from '@/systems/save/system';
+
+// Commands
+import { AppStartCommand } from '@/systems/app/commands/AppStartCommand';
 
 export const app = new Application();
 
@@ -24,46 +36,63 @@ async function init() {
     backgroundColor: 0xffffff,
   });
 
-  app.ticker.add(() => {
-    engine.update();
-    InputDevice.update();
-  });
-
   // Add pixi canvas element (app.canvas) to the document's body
   document.body.appendChild(app.canvas);
 
-  // Whenever the window resizes, call the 'resize' function
-  window.addEventListener('resize', () => resize(app));
+  // Create game context
+  const emitter = new EventEmitter();
+  const events = new EventContext(emitter);
 
-  // Trigger the first resize
-  resize(app);
+  const context: GameContext = {
+    app,
+    worldId: null,
+    container: null,
+    meta: createDefaultMetaState(),
+    run: null,
+    level: null,
+    phase: 'idle',
+    systems: new SystemRunner(),
+    events,
+  };
 
-  // Add a visibility listener, so the app can pause sounds and screens
-  document.addEventListener('visibilitychange', visibilityChange);
+  // Make context globally accessible
+  setGameContext(context);
 
-  // Setup assets bundles (see assets.ts) and start up loading everything in background
+  context.systems.add(NavigationSystem);
+  context.systems.add(SaveSystem);
+
+  // Initialize all systems
+  context.systems.init(context);
+
+  // Setup assets bundles and start loading
   await initAssets();
-
   storage.readyStorage();
-
-  // Add a persisting background shared by all screens
-  //navigation.setBackground(TiledBackground);
-
   audio.muted(storage.getStorageItem('muted'));
 
-  // Show initial loading screen
-  await navigation.showScreen(LoadScreen);
+  // Load meta state
+  const savedMeta = await context.systems.get(SaveSystem).loadMeta();
+  if (savedMeta) {
+    context.meta = savedMeta;
+  }
 
-  // Go to one of the screens if a shortcut is present in url params, otherwise go to home screen
-  // if (getUrlParam('game') !== null) {
-  // await navigation.showScreen(GameScreen);
-  // } else if (getUrlParam('load') !== null) {
-  //   await navigation.showScreen(LoadScreen);
-  // } else if (getUrlParam('result') !== null) {
-  //   await navigation.showScreen(ResultScreen);
-  // } else {
-  // }
-  await navigation.showScreen(GameScreen);
+  // Main loop
+  app.ticker.add((time) => {
+    engine.update();
+    InputDevice.update();
+
+    // Update all scheduled systems
+    context.systems.update(time.deltaMS);
+  });
+
+  // Resize handler
+  window.addEventListener('resize', () => resize(app, context));
+  resize(app, context); // Initial resize
+
+  // Visibility change handler
+  document.addEventListener('visibilitychange', visibilityChange);
+
+  // Start the app via command
+  execute(AppStartCommand);
 }
 
 // Init everything

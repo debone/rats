@@ -3,6 +3,8 @@ import { areBundlesLoaded } from '@/core/assets/assets';
 import { app } from '@/main';
 import { pool } from '@/core/common/pool';
 import type { AppScreen, AppScreenConstructor } from './types';
+import type { GameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 
 class Navigation {
   /** Container for screens */
@@ -19,6 +21,13 @@ class Navigation {
 
   /** Current screen being displayed */
   public currentScreen?: AppScreen;
+
+  /** Game context */
+  public context!: GameContext;
+
+  setContext(context: GameContext) {
+    this.context = context;
+  }
 
   // TODO: loading? It was on bubbo-bubbo
   // private loadScreen?: AppScreen;
@@ -58,6 +67,8 @@ class Navigation {
       app.ticker.add(screen.update, screen);
     }
 
+    this.context.events.emit(GameEvent.SCREEN_READY, { screenId: (screen as any).SCREEN_ID });
+
     // Show the new screen
     if (screen.show) {
       screen.interactiveChildren = false;
@@ -90,6 +101,8 @@ class Navigation {
     if (screen.reset) {
       screen.reset();
     }
+
+    this.context.events.emit(GameEvent.SCREEN_UNLOADED, { screenId: (screen as any).SCREEN_ID });
   }
 
   /**

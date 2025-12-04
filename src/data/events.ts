@@ -8,6 +8,7 @@
  */
 
 import type { LevelResult, MapSelection } from './game-state';
+import type { AppScreenConstructor } from '@/core/window/types';
 
 /**
  * Event name constants - use these for cmd+click navigation
@@ -17,18 +18,44 @@ import type { LevelResult, MapSelection } from './game-state';
  * events.on(GameEvent.LEVEL_WON, (result) => { ... });
  */
 export const GameEvent = {
+  // App lifecycle
+  APP_START: 'app:start',
+  ASSETS_LOADED: 'assets:loaded',
+
+  // Screen navigation
+  SHOW_SCREEN: 'screen:show',
+  UNLOAD_SCREEN: 'screen:unload',
+  SCREEN_READY: 'screen:ready',
+  SCREEN_UNLOADED: 'screen:unloaded',
+  SHOW_POPUP: 'popup:show',
+  DISMISS_POPUP: 'popup:dismiss',
+
+  // Run lifecycle
+  START_NEW_RUN: 'run:start-new',
+  RESUME_RUN: 'run:resume',
+
   // Level events
+  START_LEVEL: 'level:start',
   LEVEL_STARTED: 'level:started',
   LEVEL_WON: 'level:won',
   LEVEL_LOST: 'level:lost',
-  LEVEL_COMPLETE: 'level:complete',
+  LEVEL_COMPLETED: 'level:completed',
+  LEVEL_FAILED: 'level:failed',
+  UNLOAD_LEVEL: 'level:unload',
 
   // Game flow events
   GAME_SHOW_MAP: 'game:show-map',
   MAP_LEVEL_SELECTED: 'map:level-selected',
   GAME_SHOW_GAME_OVER: 'game:show-game-over',
+  GAME_OVER: 'game:over',
   GAME_OVER_ACTION: 'game-over:action',
+  GAME_OVER_DATA: 'game-over:data',
   GAME_QUIT: 'game:quit',
+
+  // Shop events
+  ENTER_SHOP: 'shop:enter',
+  SHOW_SHOP: 'shop:show',
+  SHOP_CLOSED: 'shop:closed',
 
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
@@ -49,24 +76,59 @@ type GameEventKeys = keyof typeof GameEvent;
 type EnsureAllGameEventKeys<T extends Record<GameEventKeys, any>> = T;
 
 export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
+  // App lifecycle
+  [GameEvent.APP_START]: void;
+  [GameEvent.ASSETS_LOADED]: void;
+
+  // Screen navigation
+  [GameEvent.SHOW_SCREEN]: { screen: AppScreenConstructor };
+  [GameEvent.SCREEN_READY]: { screenId: string };
+  [GameEvent.UNLOAD_SCREEN]: { screen: AppScreenConstructor };
+  [GameEvent.SCREEN_UNLOADED]: { screenId: string };
+  [GameEvent.SHOW_POPUP]: { popup: AppScreenConstructor };
+  [GameEvent.DISMISS_POPUP]: void;
+
+  // Run lifecycle
+  [GameEvent.START_NEW_RUN]: { startingLevelId: string };
+  [GameEvent.RESUME_RUN]: { run: import('./game-state').RunState };
+
   // Level events
+  [GameEvent.START_LEVEL]: { levelId: string };
   [GameEvent.LEVEL_STARTED]: { levelId: string };
   [GameEvent.LEVEL_WON]: LevelResult;
   [GameEvent.LEVEL_LOST]: LevelResult;
-  [GameEvent.LEVEL_COMPLETE]: LevelResult;
+  [GameEvent.LEVEL_COMPLETED]: LevelResult;
+  [GameEvent.LEVEL_FAILED]: LevelResult;
+  [GameEvent.UNLOAD_LEVEL]: void;
 
   // Game flow events
   [GameEvent.GAME_SHOW_MAP]: {
-    completedLevel: string;
-    result: LevelResult;
+    completedLevel: string | null;
+    result: LevelResult | null;
   };
   [GameEvent.MAP_LEVEL_SELECTED]: MapSelection;
   [GameEvent.GAME_SHOW_GAME_OVER]: {
     score: number;
     levelsCompleted: number;
   };
+  [GameEvent.GAME_OVER]: {
+    score: number;
+    levelsCompleted: number;
+  };
   [GameEvent.GAME_OVER_ACTION]: 'restart' | 'quit';
+  [GameEvent.GAME_OVER_DATA]: {
+    score: number;
+    levelsCompleted: number;
+  };
   [GameEvent.GAME_QUIT]: void;
+
+  // Shop events
+  [GameEvent.ENTER_SHOP]: { shopId: string };
+  [GameEvent.SHOW_SHOP]: { shopId: string };
+  [GameEvent.SHOP_CLOSED]: {
+    purchases: string[];
+    nextAction: 'continue' | 'map';
+  };
 
   // Gameplay events
   [GameEvent.BRICK_DESTROYED]: {

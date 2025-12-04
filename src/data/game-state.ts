@@ -17,6 +17,7 @@ export interface Boon {
 /** Persistent meta-game state - survives across sessions */
 export interface MetaGameState {
   // Progression
+  runs: number;
   unlockedLevels: string[];
   completedLevels: string[];
   highScores: Record<string, number>;
@@ -73,6 +74,7 @@ export interface MapSelection {
 /** Create a default meta state */
 export function createDefaultMetaState(): MetaGameState {
   return {
+    runs: 0,
     unlockedLevels: ['level-1'],
     completedLevels: [],
     highScores: {},

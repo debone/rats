@@ -3,9 +3,10 @@ import type { Application } from 'pixi.js';
 
 import { navigation } from './navigation';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import type { GameContext } from '@/data/game-context';
 
 /** Set up a resize function for the app */
-export function resize(app: Application) {
+export function resize(app: Application, context: GameContext) {
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
   const minWidth = MIN_WIDTH;
@@ -26,6 +27,7 @@ export function resize(app: Application) {
   // Update renderer  and navigation screens dimensions
   app.renderer.resize(width, height);
   navigation.resize(width, height);
+  context.systems.resize(width, height);
 }
 
 /** Fire when document visibility changes - lose or regain focus */
