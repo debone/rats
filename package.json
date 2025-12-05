@@ -34,7 +34,7 @@
     "@pixi/layout": "3.2.0",
     "@pixi/sound": "6.0.1",
     "@pixi/tilemap": "5.0.2",
-    "@pixi/ui": "2.3.0",
+    "@pixi/ui": "^2.3.2",
     "animejs": "4.2.2",
     "phaser-box2d": "github:phaserjs/phaser-box2d",
     "pixi-filters": "6.1.4",

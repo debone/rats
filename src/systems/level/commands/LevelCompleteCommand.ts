@@ -45,6 +45,8 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     // Wait for player selection
     // TODO: Replace with actual map screen interaction
     //yield delay(2000);
+
+    /*
     let selection;
     if (this.context.meta.runs % 2 === 0) {
       selection = { levelId: 'level-1' };
@@ -59,5 +61,6 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     yield execute(ShowScreenCommand, { screen: GameScreen });
     this.context.run.currentLevelId = selection.levelId;
     yield execute(LoadLevelCommand, { levelId: selection.levelId });
+    */
   }
 }
