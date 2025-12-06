@@ -4,7 +4,7 @@
  * Manages level lifecycle - loading, updating, and unloading levels.
  */
 
-import type { Coroutine } from '@/core/game/Coroutine';
+import { assert } from '@/core/common/assert';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import type { Level } from './Level';
@@ -48,15 +48,21 @@ export class LevelSystem implements System {
    * Unload the current level
    */
   async unloadLevel(): Promise<void> {
-    if (!this.currentLevel) return;
+    assert(this.currentLevel, 'Current level is not set');
+
+    const currentLevel = this.currentLevel;
 
     console.log('[LevelSystem] Unloading level');
+
+    currentLevel.bodies.forEach((bodyId) => {
+      currentLevel.removeBody(bodyId);
+    });
 
     this.context.systems.unregister('update', this.updateHandler);
     this.context.systems.unregister('resize', this.resizeHandler);
 
     // Cleanup level
-    await this.currentLevel.unload();
+    await currentLevel.unload();
     this.currentLevel = undefined;
     this.context.level = null;
   }

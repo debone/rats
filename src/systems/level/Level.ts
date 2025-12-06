@@ -1,7 +1,8 @@
-import type { GameContext } from '@/data/game-context';
-import type { LevelState, Boon, LevelResult } from '@/data/game-state';
-import { GameEvent } from '@/data/events';
 import { execute } from '@/core/game/Command';
+import { GameEvent } from '@/data/events';
+import type { GameContext } from '@/data/game-context';
+import type { Boon, LevelResult, LevelState } from '@/data/game-state';
+import { b2Body_IsValid, b2DestroyBody, type b2BodyId } from 'phaser-box2d';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 
 /** Configuration for a level */
@@ -29,8 +30,25 @@ export abstract class Level {
   /** Level configuration */
   protected config: LevelConfig;
 
+  public bodies: b2BodyId[] = [];
+
   constructor(config: LevelConfig) {
     this.config = config;
+  }
+
+  addBody(bodyId: b2BodyId): void {
+    this.bodies.push(bodyId);
+  }
+
+  removeBody(bodyId: b2BodyId): void {
+    this.bodies = this.bodies.filter((id) => {
+      if (id === bodyId && b2Body_IsValid(id)) {
+        b2DestroyBody(id);
+        console.log('[Level] Removed body ', id);
+        return false;
+      }
+      return true;
+    });
   }
 
   /**

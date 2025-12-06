@@ -4,6 +4,7 @@ import { LayoutContainer } from '@pixi/layout/components';
 import { Assets, Container, Ticker, TilingSprite } from 'pixi.js';
 import { getGameContext } from '@/data/game-context';
 import { GameEvent, type EventPayload } from '@/data/events';
+import { PhysicsSystem } from '@/systems/physics/system';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -49,6 +50,10 @@ export class GameScreen extends Container implements AppScreen {
     });
     this._gameContainer = gameContainer;
     this.addChild(gameContainer);
+
+    const context = getGameContext();
+    const physicsSystem = context.systems.get(PhysicsSystem);
+    physicsSystem.setupDebugDraw(gameContainer);
   }
 
   /**

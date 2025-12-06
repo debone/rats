@@ -5,6 +5,8 @@ import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { StartNewRunCommand } from './StartNewRunCommand';
 import { ResumeRunCommand } from './ResumeRunCommand';
 import { LoadScreen } from '@/screens/LoadScreen';
+import { LevelSystem } from '@/systems/level/system';
+import { PhysicsSystem } from '@/systems/physics/system';
 
 export class AppStartCommand extends Command {
   *execute(): Coroutine {
@@ -16,6 +18,10 @@ export class AppStartCommand extends Command {
     // Check for saved run
     const savedRun = yield this.context.systems.get(SaveSystem).loadRun();
 
+    // Add game-specific systems dynamically
+    this.context.systems.add(PhysicsSystem);
+    this.context.systems.add(LevelSystem);
+
     if (savedRun) {
       yield execute(ResumeRunCommand, { run: savedRun });
     } else {
@@ -23,4 +29,3 @@ export class AppStartCommand extends Command {
     }
   }
 }
-

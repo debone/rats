@@ -95,7 +95,7 @@ export default class Level1 extends Level {
     };
 
     // Top wall
-    CreateBoxPolygon({
+    const { bodyId: topWallBodyId } = CreateBoxPolygon({
       ...wallOptions,
       position: new b2Vec2(0, arenaHeight * 0.5 - wallThickness * 0.5),
       size: new b2Vec2(arenaWidth * 0.5, wallThickness * 0.5),
@@ -103,7 +103,7 @@ export default class Level1 extends Level {
     });
 
     // Bottom wall
-    CreateBoxPolygon({
+    const { bodyId: bottomWallBodyId } = CreateBoxPolygon({
       ...wallOptions,
       position: new b2Vec2(0, -arenaHeight * 0.5 + wallThickness * 0.5),
       size: new b2Vec2(arenaWidth * 0.5, wallThickness * 0.5),
@@ -111,7 +111,7 @@ export default class Level1 extends Level {
     });
 
     // Left wall
-    CreateBoxPolygon({
+    const { bodyId: leftWallBodyId } = CreateBoxPolygon({
       ...wallOptions,
       position: new b2Vec2(-arenaWidth * 0.5 + wallThickness * 0.5, 0),
       size: new b2Vec2(wallThickness * 0.5, arenaHeight * 0.5),
@@ -119,12 +119,17 @@ export default class Level1 extends Level {
     });
 
     // Right wall
-    CreateBoxPolygon({
+    const { bodyId: rightWallBodyId } = CreateBoxPolygon({
       ...wallOptions,
       position: new b2Vec2(arenaWidth * 0.5 - wallThickness * 0.5, 0),
       size: new b2Vec2(wallThickness * 0.5, arenaHeight * 0.5),
       userData: { type: 'right-wall' },
     });
+
+    this.addBody(topWallBodyId);
+    this.addBody(bottomWallBodyId);
+    this.addBody(leftWallBodyId);
+    this.addBody(rightWallBodyId);
 
     console.log('[Level1] Walls created');
   }
@@ -143,6 +148,7 @@ export default class Level1 extends Level {
       userData: { type: 'paddle' },
     });
 
+    this.addBody(bodyId);
     this.paddleBodyId = bodyId;
 
     console.log('[Level1] Paddle created');
@@ -173,6 +179,7 @@ export default class Level1 extends Level {
     b2Body_SetUserData(bodyId, { type: 'ball' });
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 5));
 
+    this.addBody(bodyId);
     this.ballBodyId = bodyId;
 
     console.log('[Level1] Ball created');
@@ -182,15 +189,17 @@ export default class Level1 extends Level {
     const worldId = this.context.worldId;
 
     // Create a test brick
-    CreateBoxPolygon({
+    const { bodyId } = CreateBoxPolygon({
       position: new b2Vec2(0, -3),
       type: b2BodyType.b2_staticBody,
       size: new b2Vec2(0.5, 1),
       density: 10,
       friction: 0.7,
-      worldId: worldId,
+      worldId,
       userData: { type: 'brick' },
     });
+
+    this.addBody(bodyId);
 
     console.log('[Level1] Brick created');
   }

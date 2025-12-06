@@ -60,7 +60,7 @@ export class MapScreen extends Container implements AppScreen {
     // Fade in the gameContainer when the screen is shown using animejs
     if (this.gameContainer) {
       this.gameContainer.alpha = 0;
-      await animate(this.gameContainer, { alpha: 1, duration: 2500, easing: 'easeOutQuad' });
+      await animate(this.gameContainer, { alpha: 1, duration: 250, easing: 'easeOutQuad' });
     }
   }
 

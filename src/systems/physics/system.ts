@@ -5,21 +5,21 @@
  * This system is added dynamically when starting a new run and removed on game over.
  */
 
-import {
-  b2DefaultWorldDef,
-  b2Vec2,
-  b2World_Step,
-  b2World_Draw,
-  CreateWorld,
-  SetWorldScale,
-  b2DestroyWorld,
-} from 'phaser-box2d';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { assert } from '@/core/common/assert';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
-import { Graphics } from 'pixi.js';
 import { PhaserDebugDraw } from '@/screens/PhaserDebugDraw';
-import { MIN_WIDTH, MIN_HEIGHT } from '@/consts';
-import { assert } from '@/core/common/assert';
+import {
+  b2DefaultWorldDef,
+  b2DestroyWorld,
+  b2Vec2,
+  b2World_Draw,
+  b2World_Step,
+  CreateWorld,
+  SetWorldScale,
+} from 'phaser-box2d';
+import { Container, Graphics } from 'pixi.js';
 
 export class PhysicsSystem implements System {
   static SYSTEM_ID = 'physics';
@@ -49,11 +49,6 @@ export class PhysicsSystem implements System {
 
     const { worldId } = CreateWorld({ worldDef });
     this.context.worldId = worldId;
-
-    // Setup debug draw if enabled
-    if (this.enableDebug) {
-      this.setupDebugDraw();
-    }
 
     // Self-schedule for update
     if (start) {
@@ -100,10 +95,12 @@ export class PhysicsSystem implements System {
     }
   }
 
-  private setupDebugDraw() {
-    const { container } = this.context;
-    if (!container) return;
-
+  setupDebugDraw(container: Container) {
+    if (this.debugGraphics) {
+      console.log('[PhysicsSystem] Replacing existing debug graphics');
+      container.addChild(this.debugGraphics);
+      return;
+    }
     // Create debug graphics
     this.debugGraphics = new Graphics();
     this.debugGraphics.x = MIN_WIDTH / 2;
