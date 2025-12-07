@@ -1,4 +1,7 @@
+import { ASSETS } from '@/assets';
+import { execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
+import { loadSceneIntoWorld } from '@/lib/loadrube';
 import {
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
@@ -24,10 +27,10 @@ import {
   CreateBoxPolygon,
   CreateCircle,
 } from 'phaser-box2d';
+import { Assets } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { Level } from '../Level';
 import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
-import { execute } from '@/core/game/Command';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -66,6 +69,15 @@ export default class Level1 extends Level {
 
     // Create a test brick
     this.createBrick();
+
+    // Load the world from the RUBE file
+    const { loadedBodies } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);
+
+    loadedBodies.forEach((bodyId) => {
+      this.addBody(bodyId);
+    });
+
+    console.log('[Level1] World loaded');
 
     console.log('[Level1] Loaded');
   }

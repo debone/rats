@@ -51,6 +51,8 @@ export class MapScreen extends Container implements AppScreen {
     button.onPress.connect(() => execute(LevelSelectedCommand, { levelId: 'level-1' }));
 
     gameContainer.addChild(button.view!);
+
+    execute(LevelSelectedCommand, { levelId: 'level-1' });
   }
 
   gameContainer: LayoutContainer;

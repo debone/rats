@@ -6,6 +6,7 @@ import { packer } from './packer';
 import { generateAtlasTypes } from './packer/processors/typescript';
 import { generateManifestTypes } from './packer/processors/manifest-types';
 import * as fs from 'fs';
+import { rube } from './rube';
 
 const pixis = pixiPipes({
   cacheBust: false,
@@ -27,7 +28,7 @@ export function assetpackPlugin(): Plugin {
     entry: './assets',
     output: './public/assets/',
     cache: false,
-    pipes: [packer(), ...pxPipes],
+    pipes: [packer(), rube(), ...pxPipes],
   };
 
   let mode: ResolvedConfig['command'];
