@@ -2,12 +2,11 @@ import { ASSETS } from '@/assets';
 import { execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
+import { type CollisionPair } from '@/systems/physics/collision-handler';
 import {
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_GetTransform,
-  b2Body_GetUserData,
-  b2Body_IsValid,
   b2Body_SetLinearVelocity,
   b2Body_SetTransform,
   b2Body_SetUserData,
@@ -16,21 +15,17 @@ import {
   b2CreatePolygonShape,
   b2DefaultBodyDef,
   b2DefaultShapeDef,
-  b2DestroyBody,
   b2MakeBox,
   b2MulSV,
   b2Normalize,
-  b2Shape_GetBody,
   b2Vec2,
-  b2World_GetContactEvents,
-  b2WorldId,
   CreateBoxPolygon,
   CreateCircle,
 } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
-import { Level } from '../Level';
 import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
+import { Level } from '../Level';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -58,6 +53,9 @@ export default class Level1 extends Level {
   async load(): Promise<void> {
     console.log('[Level1] Loading...');
 
+    // Setup collision handlers
+    this.setupCollisionHandlers();
+
     // Create walls
     this.createWalls();
 
@@ -77,9 +75,55 @@ export default class Level1 extends Level {
       this.addBody(bodyId);
     });
 
-    console.log('[Level1] World loaded');
-
     console.log('[Level1] Loaded');
+  }
+
+  /**
+   * Setup collision handlers for this level.
+   * Handlers are registered with type pairs - the pair is normalized alphabetically.
+   */
+  private setupCollisionHandlers(): void {
+    // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
+    this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
+      const brickBody = pair.bodyB;
+      const position = b2Body_GetPosition(brickBody);
+
+      // Queue destruction (don't destroy during iteration)
+      this.collisions.queueDestruction(brickBody);
+
+      // Emit notification (fire and forget)
+      this.context.events.emit(GameEvent.BRICK_DESTROYED, {
+        brickId: String(brickBody),
+        position: { x: position.x, y: position.y },
+        score: 100,
+      });
+    });
+
+    this.collisions.register('ball', 'top-wall', () => {
+      console.log('Ball hit top wall');
+      execute(LevelFinishedCommand, {
+        success: true,
+        result: {
+          success: true,
+          score: 100,
+          boonsEarned: [],
+          timeElapsed: this.context.level?.elapsedTime || 0,
+        },
+      });
+    });
+
+    this.collisions.register('ball', 'bottom-wall', () => {
+      console.log('Ball hit bottom wall');
+      execute(LevelFinishedCommand, {
+        success: false,
+        result: {
+          success: false,
+          score: 0,
+          boonsEarned: [],
+          timeElapsed: this.context.level?.elapsedTime || 0,
+        },
+      });
+    });
   }
 
   private createWalls(): void {
@@ -224,61 +268,6 @@ export default class Level1 extends Level {
 
     // Maintain constant ball speed
     this.maintainBallSpeed();
-
-    this.checkCollisions(this.context.worldId!);
-  }
-
-  private checkCollisions(worldId: b2WorldId) {
-    const contactEvents = b2World_GetContactEvents(worldId);
-
-    if (contactEvents.beginCount > 0) {
-      const events = contactEvents.beginEvents;
-
-      for (let i = 0; i < contactEvents.beginCount; i++) {
-        const event = events[i];
-        if (!event) continue;
-
-        const shapeIdA = event.shapeIdA;
-        const shapeIdB = event.shapeIdB;
-        const bodyIdA = b2Shape_GetBody(shapeIdA);
-        const bodyIdB = b2Shape_GetBody(shapeIdB);
-
-        if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
-
-        const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
-        const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
-
-        console.log(userDataA, userDataB);
-
-        if (userDataA && userDataB) {
-          console.log('Collision detected between', userDataA.type, 'and', userDataB.type);
-          if (userDataB.type === 'ball' && userDataA.type === 'brick') {
-            console.log('Ball hit brick');
-
-            const position = b2Body_GetPosition(bodyIdA);
-            b2DestroyBody(bodyIdA);
-
-            // Emit notification (fire and forget)
-            this.context.events.emit(GameEvent.BRICK_DESTROYED, {
-              brickId: String(bodyIdA),
-              position: { x: position.x, y: position.y },
-              score: 100,
-            });
-
-            // Execute command for control flow
-            execute(LevelFinishedCommand, {
-              success: true,
-              result: {
-                success: true,
-                score: 100,
-                boonsEarned: [],
-                timeElapsed: this.context.level?.elapsedTime || 0,
-              },
-            });
-          }
-        }
-      }
-    }
   }
 
   private updatePaddleInput(): void {
@@ -347,6 +336,7 @@ export default class Level1 extends Level {
 
   async unload(): Promise<void> {
     console.log('[Level1] Unloading...');
+    this.collisions.clear();
     // TODO: Destroy physics bodies
     // For now, bodies will be cleaned up when world is destroyed
   }
