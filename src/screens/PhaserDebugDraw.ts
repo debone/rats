@@ -1,5 +1,5 @@
 import { b2AABB, b2Transform, b2Vec2 } from 'phaser-box2d';
-import type { Graphics, Point } from 'pixi.js';
+import type { Graphics } from 'pixi.js';
 
 export class PhaserDebugDraw {
   scale: number;
@@ -72,7 +72,7 @@ export class PhaserDebugDraw {
       points.push({ x, y });
     }
 
-    //graphics.lineStyle(1, col, 1);
+    graphics.lineStyle(1, col, 1);
 
     //graphics.lineStyle(1, col, 1);
     //graphics.strokePoints(points as Phaser.Math.Vector2[], false, true);
@@ -185,8 +185,9 @@ export class PhaserDebugDraw {
     const v2X = scale * p2.x + cX;
     const v2Y = scale * -p2.y + cY;
 
-    graphics.lineStyle(1, col, 1);
-    graphics.lineBetween(v1X, v1Y, v2X, v2Y);
+    graphics.moveTo(v1X, v1Y);
+    graphics.lineTo(v2X, v2Y);
+    graphics.stroke({ width: scale * 0.1, color: col });
   }
 
   DrawPoint(x: number, y: number, radius: number, col: number, graphics: Graphics) {

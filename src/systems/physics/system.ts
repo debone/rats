@@ -110,6 +110,7 @@ export class PhysicsSystem implements System {
 
     // Create debug draw instance
     this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH, MIN_HEIGHT, 13);
+    this.debugDraw.drawJoints = true;
 
     console.log('[PhysicsSystem] Debug draw enabled');
   }

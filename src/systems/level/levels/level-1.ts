@@ -13,7 +13,9 @@ import {
   b2BodyId,
   b2BodyType,
   b2CreatePolygonShape,
+  b2CreatePrismaticJoint,
   b2DefaultBodyDef,
+  b2DefaultPrismaticJointDef,
   b2DefaultShapeDef,
   b2MakeBox,
   b2MulSV,
@@ -45,7 +47,7 @@ export default class Level1 extends Level {
         width: 35,
         height: 66,
       },
-      ballSpeed: 10,
+      ballSpeed: 15,
       ballCount: 3,
     });
   }
@@ -150,6 +152,7 @@ export default class Level1 extends Level {
       bodyDef: wallsBodyDef,
     };
 
+    /*
     // Top wall
     const { bodyId: topWallBodyId } = CreateBoxPolygon({
       ...wallOptions,
@@ -186,16 +189,27 @@ export default class Level1 extends Level {
     this.addBody(bottomWallBodyId);
     this.addBody(leftWallBodyId);
     this.addBody(rightWallBodyId);
-
+*/
     console.log('[Level1] Walls created');
   }
 
   private createPaddle(): void {
     const worldId = this.context.worldId;
 
+    const { bodyId: anchorBodyId } = CreateBoxPolygon({
+      position: new b2Vec2(0, -33),
+      type: b2BodyType.b2_staticBody,
+      size: new b2Vec2(0.5, 0.5),
+      density: 10,
+      friction: 0.5,
+      restitution: 1,
+      worldId: worldId,
+      userData: { type: 'anchor' },
+    });
+
     const { bodyId } = CreateBoxPolygon({
-      position: new b2Vec2(0, -20),
-      type: b2BodyType.b2_kinematicBody,
+      position: new b2Vec2(0, -30),
+      type: b2BodyType.b2_dynamicBody,
       size: new b2Vec2(4, 1),
       density: 10,
       friction: 0.5,
@@ -203,6 +217,16 @@ export default class Level1 extends Level {
       worldId: worldId,
       userData: { type: 'paddle' },
     });
+
+    const prismaticJointDef2 = b2DefaultPrismaticJointDef();
+    prismaticJointDef2.bodyIdA = anchorBodyId;
+    prismaticJointDef2.bodyIdB = bodyId;
+    prismaticJointDef2.collideConnected = false;
+    prismaticJointDef2.localAnchorA = new b2Vec2(0, 3);
+    prismaticJointDef2.enableLimit = true;
+    prismaticJointDef2.lowerTranslation = -12;
+    prismaticJointDef2.upperTranslation = 12;
+    b2CreatePrismaticJoint(worldId, prismaticJointDef2);
 
     this.addBody(bodyId);
     this.paddleBodyId = bodyId;
@@ -304,12 +328,38 @@ export default class Level1 extends Level {
     const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
     const targetSpeed = this.config.ballSpeed || 10;
 
-    // Only adjust if speed has drifted significantly
-    if (Math.abs(speed - targetSpeed) > 0.1) {
-      const normalizedVelocity = b2Normalize(velocity);
-      const correctedVelocity = b2MulSV(targetSpeed, normalizedVelocity);
-      b2Body_SetLinearVelocity(this.ballBodyId, correctedVelocity);
+    // Calculate current angle from horizon (in radians, between 0 and PI)
+    // (angle from horizontal axis, so angle = atan2(abs(y), abs(x)))
+    const absVx = Math.abs(velocity.x);
+    const absVy = Math.abs(velocity.y);
+
+    // Prevent perfectly vertical ball: minimum angle from horizon = 20deg (in radians)
+    const minAngleRad = (20 * Math.PI) / 180;
+
+    let newVelocity = { x: velocity.x, y: velocity.y };
+
+    // If the ball is too horizontal (the angle from the x-axis to the velocity is less than minAngleRad)
+    if (speed > 0.0001 && absVy / speed < Math.sin(minAngleRad)) {
+      // Clamp the direction to minAngleRad from the horizon
+      // Keep the sign of x and y the same as original velocity
+      const signX = Math.sign(velocity.x) || 1;
+      const signY = Math.sign(velocity.y) || 1;
+
+      // Calculate new velocity components with the constrained angle
+      // vx = speed * cos(minAngleRad)
+      // vy = speed * sin(minAngleRad)
+      const clampedVx = Math.cos(minAngleRad) * speed * signX;
+      const clampedVy = Math.sin(minAngleRad) * speed * signY;
+
+      newVelocity = { x: clampedVx, y: clampedVy };
+    } else {
+      // Optionally adjust to targetSpeed as original
+      if (Math.abs(speed - targetSpeed) > 0.1) {
+        const normalizedVelocity = b2Normalize(velocity);
+        newVelocity = b2MulSV(targetSpeed, normalizedVelocity);
+      }
     }
+    b2Body_SetLinearVelocity(this.ballBodyId, new b2Vec2(newVelocity.x, newVelocity.y));
   }
 
   protected checkWinCondition(): boolean {
