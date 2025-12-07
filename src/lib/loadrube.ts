@@ -70,20 +70,32 @@ function loadBodyFromRUBE(bodyJson: any, world: b2WorldId) {
 
   if (bodyJson.hasOwnProperty('angle')) {
     bd.rotation = b2MakeRot(bodyJson.angle);
+  } else {
+    bd.rotation = b2MakeRot(0);
   }
+
   if (bodyJson.hasOwnProperty('angularVelocity')) {
     bd.angularVelocity = bodyJson.angularVelocity;
+  } else {
+    bd.angularVelocity = 0;
   }
+
   if (bodyJson.hasOwnProperty('active')) {
     bd.isAwake = bodyJson.active;
+  } else {
+    bd.isAwake = false;
   }
+
   if (bodyJson.hasOwnProperty('fixedRotation')) {
     bd.fixedRotation = bodyJson.fixedRotation;
+  } else {
+    bd.fixedRotation = false;
   }
 
   if (bodyJson.hasOwnProperty('linearVelocity') && bodyJson.linearVelocity instanceof Object) {
     bd.linearVelocity = bodyJson.linearVelocity;
   }
+
   if (bodyJson.hasOwnProperty('position') && bodyJson.position instanceof Object) {
     bd.position.copy(bodyJson.position);
   }
@@ -100,10 +112,6 @@ function loadBodyFromRUBE(bodyJson: any, world: b2WorldId) {
 
   if (bodyJson.hasOwnProperty('bullet')) {
     bd.isBullet = bodyJson.bullet;
-  }
-
-  if (bodyJson.hasOwnProperty('fixedRotation')) {
-    bd.fixedRotation = bodyJson.fixedRotation;
   }
 
   const bodyId = b2CreateBody(world, bd);
@@ -126,22 +134,34 @@ function loadBodyFromRUBE(bodyJson: any, world: b2WorldId) {
 }
 
 export function loadFixtureFromRUBE(bodyId: b2BodyId, fixtureJson: any) {
-  //console.log(fixtureJson);
+  console.log(fixtureJson);
 
   const fd = b2DefaultShapeDef();
 
   if (fixtureJson.hasOwnProperty('friction')) {
     fd.friction = fixtureJson.friction;
+  } else {
+    fd.friction = 0;
   }
+
   if (fixtureJson.hasOwnProperty('density')) {
     fd.density = fixtureJson.density;
+  } else {
+    fd.density = 0;
   }
+
   if (fixtureJson.hasOwnProperty('restitution')) {
     fd.restitution = fixtureJson.restitution;
+  } else {
+    fd.restitution = 0;
   }
+
   if (fixtureJson.hasOwnProperty('sensor')) {
     fd.isSensor = fixtureJson.sensor;
+  } else {
+    fd.isSensor = false;
   }
+
   if (fixtureJson.hasOwnProperty('filter-categoryBits')) {
     fd.filter.categoryBits = fixtureJson['filter-categoryBits'];
   }
