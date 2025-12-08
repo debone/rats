@@ -18,10 +18,7 @@ import { CollisionHandlerRegistry } from '../physics/collision-handler';
 export interface LevelConfig {
   id: string;
   name: string;
-  arena: {
-    width: number;
-    height: number;
-  };
+  arena: {};
   ballSpeed?: number;
   ballCount?: number;
 }

@@ -17,9 +17,18 @@ import {
   b2DefaultBodyDef,
   b2DefaultPrismaticJointDef,
   b2DefaultShapeDef,
+  b2DestroyBody,
+  b2DestroyJoint,
+  b2Joint_GetBodyA,
+  b2Joint_GetBodyB,
+  b2Joint_GetLocalAnchorA,
+  b2Joint_GetLocalAnchorB,
+  b2JointId,
   b2MakeBox,
   b2MulSV,
   b2Normalize,
+  b2PrismaticJoint_GetLowerLimit,
+  b2PrismaticJoint_GetUpperLimit,
   b2Vec2,
   CreateBoxPolygon,
   CreateCircle,
@@ -43,10 +52,7 @@ export default class Level1 extends Level {
     super({
       id: 'level-1',
       name: 'First Level',
-      arena: {
-        width: 35,
-        height: 66,
-      },
+      arena: {},
       ballSpeed: 15,
       ballCount: 3,
     });
@@ -58,20 +64,16 @@ export default class Level1 extends Level {
     // Setup collision handlers
     this.setupCollisionHandlers();
 
-    // Create walls
-    this.createWalls();
-
-    // Create paddle (kinematic body controlled by player)
-    this.createPaddle();
-
     // Create ball
     this.createBall();
 
-    // Create a test brick
-    this.createBrick();
-
     // Load the world from the RUBE file
-    const { loadedBodies } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);
+    const { loadedBodies, loadedJoints } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);
+
+    const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
+
+    // Create paddle (kinematic body controlled by player)
+    this.createPaddle(paddleJoint!);
 
     loadedBodies.forEach((bodyId) => {
       this.addBody(bodyId);
@@ -128,87 +130,14 @@ export default class Level1 extends Level {
     });
   }
 
-  private createWalls(): void {
-    const worldId = this.context.worldId;
-    console.log('[Level1] Creating walls...', worldId);
-    const { width: arenaWidth, height: arenaHeight } = this.config.arena;
-
-    // Create a static body for all walls
-    const wallsBodyDef = b2DefaultBodyDef();
-    wallsBodyDef.type = b2BodyType.b2_staticBody;
-    wallsBodyDef.position = new b2Vec2(0, 0);
-
-    // Wall properties
-    const wallShapeDef = b2DefaultShapeDef();
-    wallShapeDef.density = 10;
-    wallShapeDef.restitution = 1;
-    wallShapeDef.friction = 0;
-
-    const wallThickness = 1;
-
-    const wallOptions = {
-      worldId: worldId,
-      shapeDef: wallShapeDef,
-      bodyDef: wallsBodyDef,
-    };
-
-    /*
-    // Top wall
-    const { bodyId: topWallBodyId } = CreateBoxPolygon({
-      ...wallOptions,
-      position: new b2Vec2(0, arenaHeight * 0.5 - wallThickness * 0.5),
-      size: new b2Vec2(arenaWidth * 0.5, wallThickness * 0.5),
-      userData: { type: 'top-wall' },
-    });
-
-    // Bottom wall
-    const { bodyId: bottomWallBodyId } = CreateBoxPolygon({
-      ...wallOptions,
-      position: new b2Vec2(0, -arenaHeight * 0.5 + wallThickness * 0.5),
-      size: new b2Vec2(arenaWidth * 0.5, wallThickness * 0.5),
-      userData: { type: 'bottom-wall' },
-    });
-
-    // Left wall
-    const { bodyId: leftWallBodyId } = CreateBoxPolygon({
-      ...wallOptions,
-      position: new b2Vec2(-arenaWidth * 0.5 + wallThickness * 0.5, 0),
-      size: new b2Vec2(wallThickness * 0.5, arenaHeight * 0.5),
-      userData: { type: 'left-wall' },
-    });
-
-    // Right wall
-    const { bodyId: rightWallBodyId } = CreateBoxPolygon({
-      ...wallOptions,
-      position: new b2Vec2(arenaWidth * 0.5 - wallThickness * 0.5, 0),
-      size: new b2Vec2(wallThickness * 0.5, arenaHeight * 0.5),
-      userData: { type: 'right-wall' },
-    });
-
-    this.addBody(topWallBodyId);
-    this.addBody(bottomWallBodyId);
-    this.addBody(leftWallBodyId);
-    this.addBody(rightWallBodyId);
-*/
-    console.log('[Level1] Walls created');
-  }
-
-  private createPaddle(): void {
+  private createPaddle(jointId: b2JointId): void {
     const worldId = this.context.worldId;
 
-    const { bodyId: anchorBodyId } = CreateBoxPolygon({
-      position: new b2Vec2(0, -33),
-      type: b2BodyType.b2_staticBody,
-      size: new b2Vec2(0.5, 0.5),
-      density: 10,
-      friction: 0.5,
-      restitution: 1,
-      worldId: worldId,
-      userData: { type: 'anchor' },
-    });
+    const anchorBodyId = b2Joint_GetBodyA(jointId);
+    const tempBodyId = b2Joint_GetBodyB(jointId);
 
     const { bodyId } = CreateBoxPolygon({
-      position: new b2Vec2(0, -30),
+      position: b2Body_GetPosition(tempBodyId).clone(),
       type: b2BodyType.b2_dynamicBody,
       size: new b2Vec2(4, 1),
       density: 10,
@@ -222,11 +151,15 @@ export default class Level1 extends Level {
     prismaticJointDef2.bodyIdA = anchorBodyId;
     prismaticJointDef2.bodyIdB = bodyId;
     prismaticJointDef2.collideConnected = false;
-    prismaticJointDef2.localAnchorA = new b2Vec2(0, 3);
+    prismaticJointDef2.localAnchorA = b2Joint_GetLocalAnchorA(jointId).clone();
+    prismaticJointDef2.localAnchorB = b2Joint_GetLocalAnchorB(jointId).clone();
     prismaticJointDef2.enableLimit = true;
-    prismaticJointDef2.lowerTranslation = -12;
-    prismaticJointDef2.upperTranslation = 12;
+    prismaticJointDef2.lowerTranslation = b2PrismaticJoint_GetLowerLimit(jointId);
+    prismaticJointDef2.upperTranslation = b2PrismaticJoint_GetUpperLimit(jointId);
     b2CreatePrismaticJoint(worldId, prismaticJointDef2);
+
+    b2DestroyJoint(jointId);
+    b2DestroyBody(tempBodyId);
 
     this.addBody(bodyId);
     this.paddleBodyId = bodyId;
@@ -240,7 +173,7 @@ export default class Level1 extends Level {
     const { bodyId } = CreateCircle({
       worldId: worldId,
       type: b2BodyType.b2_dynamicBody,
-      position: new b2Vec2(0, -18),
+      position: new b2Vec2(0, -15),
       radius: 0.5,
       density: 10,
       friction: 0.5,
@@ -263,25 +196,6 @@ export default class Level1 extends Level {
     this.ballBodyId = bodyId;
 
     console.log('[Level1] Ball created');
-  }
-
-  private createBrick(): void {
-    const worldId = this.context.worldId;
-
-    // Create a test brick
-    const { bodyId } = CreateBoxPolygon({
-      position: new b2Vec2(0, -3),
-      type: b2BodyType.b2_staticBody,
-      size: new b2Vec2(0.5, 1),
-      density: 10,
-      friction: 0.7,
-      worldId,
-      userData: { type: 'brick' },
-    });
-
-    this.addBody(bodyId);
-
-    console.log('[Level1] Brick created');
   }
 
   update(delta: number): void {
