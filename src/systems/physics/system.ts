@@ -106,6 +106,8 @@ export class PhysicsSystem implements System {
     this.debugGraphics.x = MIN_WIDTH / 2;
     this.debugGraphics.y = MIN_HEIGHT / 2;
 
+    this.debugGraphics.zIndex = 10;
+
     container.addChild(this.debugGraphics);
 
     // Create debug draw instance

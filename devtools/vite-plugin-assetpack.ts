@@ -1,15 +1,16 @@
-import { AssetPack, AssetPackConfig } from '@assetpack/core';
+import { AssetPack, type AssetPackConfig } from '@assetpack/core';
 import { pixiPipes } from '@assetpack/core/pixi';
-import { texturePackerCompress } from '@assetpack/core/texture-packer';
-import { Plugin, ResolvedConfig } from 'vite';
-import { packer } from './packer';
-import { generateAtlasTypes } from './packer/processors/typescript';
-import { generateManifestTypes } from './packer/processors/manifest-types';
 import * as fs from 'fs';
+import type { Plugin, ResolvedConfig } from 'vite';
+import { packer } from './packer';
+import { generateManifestTypes } from './packer/processors/manifest-types';
+import { generateTiledTypes } from './packer/processors/tiled-types';
+import { generateAtlasTypes } from './packer/processors/typescript';
 import { rube } from './rube';
+import { tiled } from './tiled';
 
 const pixis = pixiPipes({
-  cacheBust: false,
+  cacheBust: true,
   texturePacker: {
     texturePacker: {
       removeFileExtension: true,
@@ -21,14 +22,14 @@ const pixis = pixiPipes({
   },
 });
 
-const pxPipes = pixis.filter((pipe) => pipe.name !== 'json');
+const pxPipes = pixis.filter((pipe) => pipe.name !== 'jasdasdson');
 
 export function assetpackPlugin(): Plugin {
   const apConfig: AssetPackConfig = {
     entry: './assets',
     output: './public/assets/',
-    cache: false,
-    pipes: [packer(), rube(), ...pxPipes],
+    ignore: ['**/*.tiled-project', '**/*.tiled-session'],
+    pipes: [packer(), rube(), tiled(), ...pxPipes],
   };
 
   let mode: ResolvedConfig['command'];
@@ -42,6 +43,7 @@ export function assetpackPlugin(): Plugin {
     console.log('Generating TypeScript definitions...');
     generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
     generateAtlasTypes('./public/assets/', './src/assets/');
+    generateTiledTypes('./public/assets/', './src/assets/tiled.ts');
   }
 
   return {
@@ -59,18 +61,8 @@ export function assetpackPlugin(): Plugin {
         ap = new AssetPack(apConfig);
 
         // Start watching and generate types on first run
-        void ap.watch().then(() => {
+        void ap.watch(() => {
           generateTypeDefinitions();
-
-          // Watch the manifest file for changes and regenerate types
-          manifestWatcher = fs.watch('./public/assets/assets-manifest.json', (eventType) => {
-            if (eventType === 'change') {
-              console.log('Assets changed, regenerating types...');
-              setTimeout(() => {
-                generateTypeDefinitions();
-              }, 100); // Small delay to ensure files are written
-            }
-          });
         });
       } else {
         await new AssetPack(apConfig).run();

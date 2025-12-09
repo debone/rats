@@ -1,5 +1,6 @@
-import { ASSETS } from '@/assets';
+import { ASSETS, FRAMES, TILED_MAPS, type BackgroundTextures } from '@/assets';
 import { execute } from '@/core/game/Command';
+import { TiledResource } from '@/core/tiled';
 import { GameEvent } from '@/data/events';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
@@ -14,7 +15,6 @@ import {
   b2BodyType,
   b2CreatePolygonShape,
   b2CreatePrismaticJoint,
-  b2DefaultBodyDef,
   b2DefaultPrismaticJointDef,
   b2DefaultShapeDef,
   b2DestroyBody,
@@ -33,10 +33,12 @@ import {
   CreateBoxPolygon,
   CreateCircle,
 } from 'phaser-box2d';
-import { Assets } from 'pixi.js';
+import { Assets, Graphics, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
 import { Level } from '../Level';
+import { typedAssets } from '@/core/assets/typed-assets';
+import { CompositeTilemap } from '@pixi/tilemap';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -79,7 +81,28 @@ export default class Level1 extends Level {
       this.addBody(bodyId);
     });
 
+    this.createBackground();
+
     console.log('[Level1] Loaded');
+  }
+
+  private createBackground(): void {
+    const bg = typedAssets.get<BackgroundTextures>(ASSETS.background).textures;
+
+    const map = new TiledResource({
+      map: TILED_MAPS.backgrounds_level_1,
+      tilesetTextures: {
+        tiles: {
+          textures: bg,
+          tileIdToFrame: (id) => `aa_tile_${id}#0`,
+        },
+      },
+    });
+    map.load();
+
+    map.container.zIndex = -1;
+
+    this.context.container!.addChild(map.container);
   }
 
   /**

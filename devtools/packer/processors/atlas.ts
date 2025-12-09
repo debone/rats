@@ -191,7 +191,7 @@ export class Atlas {
       // Handle case where there's no visible content
       if (left > right || top > bottom) {
         console.log(`  No visible content in layer "${sprite.name}", skipping`);
-        continue;
+        // continue;
       }
 
       const width = right - left + 1;

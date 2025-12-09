@@ -1,7 +1,7 @@
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import type { AppScreen } from '@/core/window/types';
 import { LayoutContainer } from '@pixi/layout/components';
-import { Assets, Container, Ticker, TilingSprite } from 'pixi.js';
+import { Assets, Container, Graphics, Ticker, TilingSprite } from 'pixi.js';
 import { getGameContext } from '@/data/game-context';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { PhysicsSystem } from '@/systems/physics/system';
@@ -43,8 +43,8 @@ export class GameScreen extends Container implements AppScreen {
       layout: {
         width: MIN_WIDTH,
         height: MIN_HEIGHT,
-        justifyContent: 'center',
         backgroundColor: 'black',
+        justifyContent: 'center',
         alignItems: 'center',
       },
     });

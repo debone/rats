@@ -149,8 +149,11 @@ export function generateAtlasTypes(assetsDir: string, outputDir: string): void {
         }
 
         // Extract the base name (remove extensions, keep path)
-        // e.g., "ui/background-wololo.png.json" -> "ui/background-wololo"
-        const baseNameWithPath = file.relativePath.replace(/\.(png|webp)\.json$/, '').replace(/\.json$/, '');
+        // e.g., "ui/background-wololo.png.json" -> "ui/background-wolol"
+        const baseNameWithPath = file.relativePath
+          .replace(/\.(png|webp)\.json$/, '')
+          .replace(/\.json$/, '')
+          .slice(0, -7);
 
         // Sanitize for use as object key (convert slashes to underscores)
         const sanitizedKey = sanitizeAtlasKey(baseNameWithPath);
@@ -206,6 +209,7 @@ function generateIndexFile(): string {
 
   content += `export * from './manifest';\n`;
   content += `export * from './frames';\n`;
+  content += `export * from './tiled';\n`;
 
   return content;
 }

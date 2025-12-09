@@ -16,7 +16,10 @@ export class AppStartCommand extends Command {
     yield execute(ShowScreenCommand, { screen: LoadScreen });
 
     // Check for saved run
-    const savedRun = yield this.context.systems.get(SaveSystem).loadRun();
+    let savedRun = yield this.context.systems.get(SaveSystem).loadRun();
+
+    // TODO remove this
+    savedRun = null;
 
     // Add game-specific systems dynamically
     this.context.systems.add(PhysicsSystem);
