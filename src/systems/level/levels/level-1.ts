@@ -1,4 +1,11 @@
-import { ASSETS, FRAMES, TILED_MAPS, type BackgroundTextures } from '@/assets';
+import {
+  ASSETS,
+  FRAMES,
+  TILED_MAPS,
+  type BackgroundTextures,
+  type Entities_blocTextures,
+  type Entities_bricksTextures,
+} from '@/assets';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
 import { GameEvent } from '@/data/events';
@@ -103,6 +110,22 @@ export default class Level1 extends Level {
     map.container.zIndex = -1;
 
     this.context.container!.addChild(map.container);
+
+    const tilemap = new CompositeTilemap();
+
+    const bricks = typedAssets.get<Entities_bricksTextures>(ASSETS.entities_bricks).textures;
+    const bricksTextures = FRAMES.entities_bricks;
+
+    const bricks_tile_1 = bricks[bricksTextures['bricks_tile_1#0']];
+    const bricks_tile_2 = bricks[bricksTextures['bricks_tile_2#0']];
+    const bricks_tile_3 = bricks[bricksTextures['bricks_tile_3#0']];
+    const bricks_tile_4 = bricks[bricksTextures['bricks_tile_4#0']];
+
+    tilemap.tile(bricks_tile_1, 32, 32);
+    tilemap.tile(bricks_tile_2, 32, 64);
+    tilemap.tile(bricks_tile_3, 32, 96);
+    tilemap.tile(bricks_tile_4, 32, 128);
+    this.context.container!.addChild(tilemap);
   }
 
   /**

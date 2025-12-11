@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "vite --config devtools/config.dev.mjs",
-    "clean": "rimraf dist/* public/*",
+    "clean": "rimraf dist/* public/* .assetpack/*",
     "prebuild": "run-s clean format:check lint types",
     "build": "vite build --config devtools/config.build.mjs",
     "prepreview": "run-s build",

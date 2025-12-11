@@ -5,7 +5,7 @@
  * This system is added dynamically when starting a new run and removed on game over.
  */
 
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { MIN_HEIGHT, MIN_WIDTH, PXM } from '@/consts';
 import { assert } from '@/core/common/assert';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
@@ -40,7 +40,7 @@ export class PhysicsSystem implements System {
     console.log('[PhysicsSystem] Creating world...');
 
     // Set world scale (pixels per meter)
-    SetWorldScale(20);
+    SetWorldScale(PXM);
 
     // Create Box2D world
     const worldDef = b2DefaultWorldDef();
@@ -87,6 +87,7 @@ export class PhysicsSystem implements System {
     }
 
     // Step the physics world (delta is in milliseconds, convert to seconds)
+    // TODO: fix the loop
     b2World_Step(worldId, delta / 1000, 4);
 
     // Draw debug visualization
@@ -111,7 +112,7 @@ export class PhysicsSystem implements System {
     container.addChild(this.debugGraphics);
 
     // Create debug draw instance
-    this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH, MIN_HEIGHT, 13);
+    this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH, MIN_HEIGHT, PXM);
     this.debugDraw.drawJoints = true;
 
     console.log('[PhysicsSystem] Debug draw enabled');
