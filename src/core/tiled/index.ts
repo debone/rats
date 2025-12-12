@@ -25,8 +25,11 @@ export {
   type TiledResourceOptions,
   type TiledMapDefinition,
   type TilesetTextureConfig,
+  type Layer,
 } from './tiled-resource';
 export { TileLayer, type TileLayerOptions } from './tile-layer';
+export { ObjectLayer, type ObjectLayerOptions, type ParsedObject } from './object-layer';
+export { ImageLayer, type ImageLayerOptions } from './image-layer';
 export { Tileset, type TilesetOptions, type TexturesRecord, type TileIdToFrameName } from './tileset';
 export { mapProperties, getProperty, type PropertyMap } from './properties';
 export {

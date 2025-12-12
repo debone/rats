@@ -17,5 +17,6 @@
     "project": "backgrounds.tiled-project",
     "recentFiles": [
     ],
+    "resizeMap.removeObjects": false,
     "tileset.lastUsedFormat": "tsx"
 }

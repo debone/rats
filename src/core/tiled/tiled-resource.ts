@@ -1,9 +1,11 @@
 import { Assets, Container } from 'pixi.js';
+import { ImageLayer } from './image-layer';
+import { ObjectLayer, type ParsedObject } from './object-layer';
 import { mapProperties, type PropertyMap } from './properties';
 import { TileLayer } from './tile-layer';
 import { Tileset, type TexturesRecord, type TileIdToFrameName } from './tileset';
 import type { TiledMap, TiledTilesetFile } from './types';
-import { isTileLayer } from './types';
+import { isImageLayer, isObjectLayer, isTileLayer } from './types';
 
 /**
  * Typed map definition from generated tiled.ts
@@ -27,6 +29,28 @@ export interface TiledMapDefinition<
   tilesets: TTilesets;
   properties?: Record<string, any>;
 }
+
+/**
+ * Union type for all layer types
+ */
+export type Layer = TileLayer | ObjectLayer | ImageLayer;
+
+/**
+ * Maps Tiled layer type strings to runtime layer classes
+ */
+type LayerTypeMap = {
+  tilelayer: TileLayer;
+  objectgroup: ObjectLayer;
+  imagelayer: ImageLayer;
+};
+
+/**
+ * Infer the layer class type from the map definition
+ */
+type InferLayerType<
+  T extends TiledMapDefinition,
+  K extends keyof T['layers'],
+> = T['layers'][K]['type'] extends keyof LayerTypeMap ? LayerTypeMap[T['layers'][K]['type']] : Layer;
 
 /**
  * Configuration for how to load a tileset's textures
@@ -81,8 +105,17 @@ export class TiledResource<T extends TiledMapDefinition = TiledMapDefinition> {
   /** Loaded tilesets */
   tilesets: Tileset[] = [];
 
-  /** Loaded tile layers */
+  /** All layers in z-order (as they appear in Tiled) */
+  layers: Layer[] = [];
+
+  /** Tile layers only */
   tileLayers: TileLayer[] = [];
+
+  /** Object layers only */
+  objectLayers: ObjectLayer[] = [];
+
+  /** Image layers only */
+  imageLayers: ImageLayer[] = [];
 
   /** Map properties */
   properties!: PropertyMap;
@@ -167,11 +200,27 @@ export class TiledResource<T extends TiledMapDefinition = TiledMapDefinition> {
         });
 
         tileLayer.tilemap.zIndex = zIndex;
+        this.layers.push(tileLayer);
         this.tileLayers.push(tileLayer);
         this.container.addChild(tileLayer.tilemap);
+      } else if (isObjectLayer(layer)) {
+        const objectLayer = new ObjectLayer({ layer });
+        this.layers.push(objectLayer);
+        this.objectLayers.push(objectLayer);
+        // Object layers don't have a visual by default
+        // Use objectLayer.createDebugGraphics() to visualize
+      } else if (isImageLayer(layer)) {
+        const imageLayer = new ImageLayer({
+          layer,
+          basePath: this.basePath,
+        });
+
+        imageLayer.container.zIndex = zIndex;
+        this.layers.push(imageLayer);
+        this.imageLayers.push(imageLayer);
+        this.container.addChild(imageLayer.container);
       }
 
-      // TODO: Add object layer and image layer support
       zIndex++;
     }
   }
@@ -189,24 +238,25 @@ export class TiledResource<T extends TiledMapDefinition = TiledMapDefinition> {
   }
 
   /**
-   * Get a layer by name (case insensitive)
+   * Get any layer by name (case insensitive)
    */
-  getLayerByName(name: string): TileLayer | undefined {
-    return this.tileLayers.find((l) => l.name.toLowerCase() === name.toLowerCase());
+  getLayerByName(name: string): Layer | undefined {
+    return this.layers.find((l) => l.name.toLowerCase() === name.toLowerCase());
   }
 
   /**
-   * Get a layer by its typed key from the map definition
+   * Get a layer by its typed key from the map definition.
+   * Returns the correctly typed layer based on the layer type in the definition.
    */
-  getLayer<K extends keyof T['layers']>(key: K): TileLayer | undefined {
+  getLayer<K extends keyof T['layers']>(key: K): InferLayerType<T, K> | undefined {
     const layerDef = this.mapDef.layers[key as string];
     if (!layerDef) return undefined;
 
-    return this.tileLayers.find((l) => l.id === layerDef.id);
+    return this.layers.find((l) => l.id === layerDef.id) as InferLayerType<T, K> | undefined;
   }
 
   /**
-   * Get all layers matching a property
+   * Get all tile layers matching a property
    */
   getLayersByProperty(name: string, value?: unknown): TileLayer[] {
     return this.tileLayers.filter((l) => {
@@ -215,6 +265,56 @@ export class TiledResource<T extends TiledMapDefinition = TiledMapDefinition> {
       if (value === undefined) return true;
       return prop === value;
     });
+  }
+
+  // ==================== Object Layer Methods ====================
+
+  /**
+   * Get an object layer by name (case insensitive)
+   */
+  getObjectLayerByName(name: string): ObjectLayer | undefined {
+    return this.objectLayers.find((l) => l.name.toLowerCase() === name.toLowerCase());
+  }
+
+  /**
+   * Get all objects from all object layers by type/class
+   */
+  getObjectsByType(type: string): ParsedObject[] {
+    return this.objectLayers.flatMap((l) => l.getObjectsByType(type));
+  }
+
+  /**
+   * Get all objects from all object layers by name
+   */
+  getObjectsByName(name: string): ParsedObject[] {
+    return this.objectLayers.flatMap((l) => l.getObjectsByName(name));
+  }
+
+  /**
+   * Get all objects from all object layers with a specific property
+   */
+  getObjectsByProperty(name: string, value?: unknown): ParsedObject[] {
+    return this.objectLayers.flatMap((l) => l.getObjectsByProperty(name, value));
+  }
+
+  /**
+   * Get a single object by ID (searches all object layers)
+   */
+  getObjectById(id: number): ParsedObject | undefined {
+    for (const layer of this.objectLayers) {
+      const obj = layer.getObjectById(id);
+      if (obj) return obj;
+    }
+    return undefined;
+  }
+
+  // ==================== Image Layer Methods ====================
+
+  /**
+   * Get an image layer by name (case insensitive)
+   */
+  getImageLayerByName(name: string): ImageLayer | undefined {
+    return this.imageLayers.find((l) => l.name.toLowerCase() === name.toLowerCase());
   }
 
   /**

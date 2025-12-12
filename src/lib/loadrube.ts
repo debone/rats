@@ -134,7 +134,7 @@ function loadBodyFromRUBE(bodyJson: any, world: b2WorldId) {
 }
 
 export function loadFixtureFromRUBE(bodyId: b2BodyId, fixtureJson: any) {
-  console.log(fixtureJson);
+  // console.log(fixtureJson);
 
   const fd = b2DefaultShapeDef();
 

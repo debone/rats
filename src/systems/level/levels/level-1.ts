@@ -10,6 +10,7 @@ import {
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_GetTransform,
+  b2Body_GetUserData,
   b2Body_SetLinearVelocity,
   b2Body_SetTransform,
   b2Body_SetUserData,
@@ -78,11 +79,14 @@ export default class Level1 extends Level {
     this.createPaddle(paddleJoint!);
 
     loadedBodies.forEach((bodyId) => {
-      const sprite = new Sprite(Assets.get(ASSETS.entities_bricks).textures['bricks_tile_1#0']);
-      sprite.anchor.set(0.5, 0.5);
-      this.context.container!.addChild(sprite);
-      AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
-      this.addBody(bodyId);
+      const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
+      if (userData?.type === 'brick') {
+        const sprite = new Sprite(Assets.get(ASSETS.entities_bricks).textures['bricks_tile_1#0']);
+        sprite.anchor.set(0.5, 0.5);
+        this.context.container!.addChild(sprite);
+        AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
+        this.addBody(bodyId);
+      }
     });
 
     this.createBackground();
@@ -103,6 +107,13 @@ export default class Level1 extends Level {
       },
     });
     map.load();
+
+    const origin = map.getLayer('meta')?.getObjectsByName('origin')[0];
+
+    if (origin) {
+      map.container.x = -origin.x;
+      map.container.y = -origin.y;
+    }
 
     map.container.zIndex = -1;
 
@@ -130,7 +141,7 @@ export default class Level1 extends Level {
       });
     });
 
-    this.collisions.register('ball', 'top-wall', () => {
+    /*this.collisions.register('ball', 'top-wall', () => {
       console.log('Ball hit top wall');
       execute(LevelFinishedCommand, {
         success: true,
@@ -141,7 +152,7 @@ export default class Level1 extends Level {
           timeElapsed: this.context.level?.elapsedTime || 0,
         },
       });
-    });
+    });*/
 
     this.collisions.register('ball', 'bottom-wall', () => {
       console.log('Ball hit bottom wall');

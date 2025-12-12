@@ -86,6 +86,8 @@ export interface TiledImageLayer {
   parallaxx?: number;
   parallaxy?: number;
   tintcolor?: string;
+  repeatx?: boolean;
+  repeaty?: boolean;
   class?: string;
   properties?: TiledProperty[];
 }
