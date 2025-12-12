@@ -94,7 +94,7 @@ export abstract class Level {
     if (this.context.level) {
       this.context.level.elapsedTime += delta;
     }
-    /*
+
     this.checkCollisions(this.context.worldId!);
 
     // Check win/lose conditions
@@ -102,7 +102,7 @@ export abstract class Level {
       this.onWin();
     } else if (this.checkLoseCondition()) {
       this.onLose();
-    }*/
+    }
   }
 
   protected checkCollisions(worldId: b2WorldId): void {

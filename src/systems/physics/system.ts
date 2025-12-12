@@ -20,6 +20,7 @@ import {
   SetWorldScale,
 } from 'phaser-box2d';
 import { Container, Graphics } from 'pixi.js';
+import { DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
 
 export class PhysicsSystem implements System {
   static SYSTEM_ID = 'physics';
@@ -27,7 +28,9 @@ export class PhysicsSystem implements System {
   private context!: GameContext;
   private debugGraphics?: Graphics;
   private debugDraw?: PhaserDebugDraw;
-  private enableDebug = true;
+
+  // TODO: devtools option?
+  private enableDebug = false;
 
   private updateHandler = this.update.bind(this);
 
@@ -73,6 +76,10 @@ export class PhysicsSystem implements System {
   destroyWorld() {
     console.log('[PhysicsSystem] Destroying world...');
     assert(this.context.worldId, 'World ID is not set');
+
+    // Clean up sprite associations before destroying the world
+    DestroyWorldSprites(this.context.worldId);
+
     b2DestroyWorld(this.context.worldId);
     this.context.worldId = null;
   }
@@ -89,6 +96,9 @@ export class PhysicsSystem implements System {
     // Step the physics world (delta is in milliseconds, convert to seconds)
     // TODO: fix the loop
     b2World_Step(worldId, delta / 1000, 4);
+
+    // Update sprite positions from physics bodies
+    UpdateWorldSprites(worldId);
 
     // Draw debug visualization
     if (this.debugDraw && this.enableDebug) {

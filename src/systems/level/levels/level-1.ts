@@ -1,16 +1,11 @@
-import {
-  ASSETS,
-  FRAMES,
-  TILED_MAPS,
-  type BackgroundTextures,
-  type Entities_blocTextures,
-  type Entities_bricksTextures,
-} from '@/assets';
+import { ASSETS, TILED_MAPS, type BackgroundTextures } from '@/assets';
+import { typedAssets } from '@/core/assets/typed-assets';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
 import { GameEvent } from '@/data/events';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
+import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
 import {
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
@@ -40,12 +35,10 @@ import {
   CreateBoxPolygon,
   CreateCircle,
 } from 'phaser-box2d';
-import { Assets, Graphics, Sprite } from 'pixi.js';
+import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
 import { Level } from '../Level';
-import { typedAssets } from '@/core/assets/typed-assets';
-import { CompositeTilemap } from '@pixi/tilemap';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -85,6 +78,10 @@ export default class Level1 extends Level {
     this.createPaddle(paddleJoint!);
 
     loadedBodies.forEach((bodyId) => {
+      const sprite = new Sprite(Assets.get(ASSETS.entities_bricks).textures['bricks_tile_1#0']);
+      sprite.anchor.set(0.5, 0.5);
+      this.context.container!.addChild(sprite);
+      AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
       this.addBody(bodyId);
     });
 
@@ -110,22 +107,6 @@ export default class Level1 extends Level {
     map.container.zIndex = -1;
 
     this.context.container!.addChild(map.container);
-
-    const tilemap = new CompositeTilemap();
-
-    const bricks = typedAssets.get<Entities_bricksTextures>(ASSETS.entities_bricks).textures;
-    const bricksTextures = FRAMES.entities_bricks;
-
-    const bricks_tile_1 = bricks[bricksTextures['bricks_tile_1#0']];
-    const bricks_tile_2 = bricks[bricksTextures['bricks_tile_2#0']];
-    const bricks_tile_3 = bricks[bricksTextures['bricks_tile_3#0']];
-    const bricks_tile_4 = bricks[bricksTextures['bricks_tile_4#0']];
-
-    tilemap.tile(bricks_tile_1, 32, 32);
-    tilemap.tile(bricks_tile_2, 32, 64);
-    tilemap.tile(bricks_tile_3, 32, 96);
-    tilemap.tile(bricks_tile_4, 32, 128);
-    this.context.container!.addChild(tilemap);
   }
 
   /**
@@ -207,6 +188,12 @@ export default class Level1 extends Level {
     b2DestroyJoint(jointId);
     b2DestroyBody(tempBodyId);
 
+    const paddleSprite = new Sprite(Assets.get(ASSETS.entities_rats).textures['rat-boat#0']);
+    paddleSprite.anchor.set(0.5, 0.5);
+    paddleSprite.scale.set(2, 2);
+    this.context.container!.addChild(paddleSprite);
+    AddSpriteToWorld(this.context.worldId!, paddleSprite, bodyId, 0, -34);
+
     this.addBody(bodyId);
     this.paddleBodyId = bodyId;
 
@@ -237,6 +224,11 @@ export default class Level1 extends Level {
 
     b2Body_SetUserData(bodyId, { type: 'ball' });
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 5));
+
+    const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
+    ballSprite.anchor.set(0.5, 0.5);
+    this.context.container!.addChild(ballSprite);
+    AddSpriteToWorld(this.context.worldId!, ballSprite, bodyId, 0, 0);
 
     this.addBody(bodyId);
     this.ballBodyId = bodyId;
