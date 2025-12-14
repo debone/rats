@@ -142,12 +142,17 @@ export class TileLayer {
       // Add tile to tilemap
       if (rotation !== 0 || scaleX !== 1 || scaleY !== 1) {
         this.tilemap.tile(texture, x + offsetX, y + offsetY, {
+          u: texture.frame.x - (texture.trim?.x || 0),
+          v: texture.frame.y - (texture.trim?.y || 0),
           rotate: rotation,
           scaleX,
           scaleY,
         } as any);
       } else {
-        this.tilemap.tile(texture, x, y);
+        this.tilemap.tile(texture, x, y, {
+          u: texture.frame.x - (texture.trim?.x || 0),
+          v: texture.frame.y - (texture.trim?.y || 0),
+        });
       }
     }
   }

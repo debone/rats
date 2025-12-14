@@ -4,7 +4,7 @@ export const GAME_ID = 'rats';
 export const PXM = 16;
 
 export const WORLD_WIDTH = 30;
-export const WORLD_HEIGHT = 60;
+export const WORLD_HEIGHT = 40;
 
 export const MIN_WIDTH = WORLD_WIDTH * PXM;
 export const MIN_HEIGHT = WORLD_HEIGHT * PXM;

@@ -1,4 +1,4 @@
-import { ASSETS, TILED_MAPS, type BackgroundTextures } from '@/assets';
+import { ASSETS, TILED_MAPS, type BackgroundTextures, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
@@ -78,10 +78,12 @@ export default class Level1 extends Level {
     // Create paddle (kinematic body controlled by player)
     this.createPaddle(paddleJoint!);
 
+    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
+
     loadedBodies.forEach((bodyId) => {
       const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
       if (userData?.type === 'brick') {
-        const sprite = new Sprite(Assets.get(ASSETS.entities_bricks).textures['bricks_tile_1#0']);
+        const sprite = new Sprite(bg['bricks_tile_1#0']);
         sprite.anchor.set(0.5, 0.5);
         this.context.container!.addChild(sprite);
         AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
@@ -95,14 +97,18 @@ export default class Level1 extends Level {
   }
 
   private createBackground(): void {
-    const bg = typedAssets.get<BackgroundTextures>(ASSETS.background).textures;
+    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
 
     const map = new TiledResource({
-      map: TILED_MAPS.backgrounds_level_1,
+      map: TILED_MAPS.backgrounds_prototype_1,
       tilesetTextures: {
-        tiles: {
+        broad_bg: {
           textures: bg,
-          tileIdToFrame: (id) => `aa_tile_${id}#0`,
+          tileIdToFrame: (id) => `prototype_spritesheet_${id}#0`,
+        },
+        bricks_test: {
+          textures: bg,
+          tileIdToFrame: (id) => `bricks_tile_${id + 1}#0`,
         },
       },
     });
@@ -152,7 +158,7 @@ export default class Level1 extends Level {
           timeElapsed: this.context.level?.elapsedTime || 0,
         },
       });
-    });*/
+    });
 
     this.collisions.register('ball', 'bottom-wall', () => {
       console.log('Ball hit bottom wall');
@@ -165,7 +171,7 @@ export default class Level1 extends Level {
           timeElapsed: this.context.level?.elapsedTime || 0,
         },
       });
-    });
+    });*/
   }
 
   private createPaddle(jointId: b2JointId): void {
@@ -201,7 +207,7 @@ export default class Level1 extends Level {
 
     const paddleSprite = new Sprite(Assets.get(ASSETS.entities_rats).textures['rat-boat#0']);
     paddleSprite.anchor.set(0.5, 0.5);
-    paddleSprite.scale.set(2, 2);
+    paddleSprite.scale.set(1, 1);
     this.context.container!.addChild(paddleSprite);
     AddSpriteToWorld(this.context.worldId!, paddleSprite, bodyId, 0, -34);
 

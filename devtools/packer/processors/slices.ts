@@ -1,16 +1,47 @@
-import type { ExtractedSprite } from "../types.ts";
+import type { ExtractedSprite } from '../types.ts';
+
+/**
+ * Generate spritesheet slices based on a fixed grid size (ss = spritesheet size)
+ * This divides the sprite into a grid of cells of the given size
+ */
+export function generateSpritesheetSlices(
+  sprite: ExtractedSprite,
+  gridSize: number,
+): { x: number; y: number; w: number; h: number }[] {
+  const frames: { x: number; y: number; w: number; h: number }[] = [];
+
+  // Calculate the number of columns and rows based on sprite dimensions
+  const cols = Math.ceil(sprite.width / gridSize);
+  const rows = Math.ceil(sprite.height / gridSize);
+
+  console.log(`Generating spritesheet slices for ${sprite.name}: ${cols}x${rows} grid (cell size: ${gridSize}px)`);
+
+  // Generate frames for each cell in the grid
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = col * gridSize;
+      const y = row * gridSize;
+
+      // Calculate actual width/height (handle edge cases where sprite doesn't divide evenly)
+      const w = Math.min(gridSize, sprite.width - x);
+      const h = Math.min(gridSize, sprite.height - y);
+
+      // Only add frame if it has valid dimensions
+      if (w > 0 && h > 0) {
+        frames.push({ x, y, w, h });
+      }
+    }
+  }
+
+  console.log(`Generated ${frames.length} spritesheet frames for ${sprite.name}`);
+  return frames;
+}
 
 /**
  * A cross marker is a pixel that has non-transparent pixels
  * in all four directions (up, down, left, right)
  */
-function isSliceMarker(
-  data: Uint8Array,
-  width: number,
-  height: number,
-  x: number,
-  y: number
-): boolean {
+function isSliceMarker(data: Uint8Array, width: number, height: number, x: number, y: number): boolean {
   // Validate input parameters
   if (!data || data.length < 4 || width <= 0 || height <= 0) {
     return false;
@@ -66,9 +97,7 @@ function isSliceMarker(
 /**
  * Find all slices in a sprite layer using marker crosses
  */
-export function generateFrames(
-  baseSprite: ExtractedSprite
-): { x: number; y: number; w: number; h: number }[] {
+export function generateFrames(baseSprite: ExtractedSprite): { x: number; y: number; w: number; h: number }[] {
   console.log(`Generating frames for ${baseSprite.name}...`);
 
   // Check if we have a slice sprite
@@ -83,13 +112,9 @@ export function generateFrames(
   const sliceOffsetX = sliceSprite.x - baseSprite.x;
   const sliceOffsetY = sliceSprite.y - baseSprite.y;
 
-  console.log(
-    `Base sprite dimensions: ${baseSprite.width}x${baseSprite.height}`
-  );
+  console.log(`Base sprite dimensions: ${baseSprite.width}x${baseSprite.height}`);
   console.log(`Base sprite position: (${baseSprite.x}, ${baseSprite.y})`);
-  console.log(
-    `Slice sprite dimensions: ${sliceSprite.width}x${sliceSprite.height}`
-  );
+  console.log(`Slice sprite dimensions: ${sliceSprite.width}x${sliceSprite.height}`);
   console.log(`Slice sprite position: (${sliceSprite.x}, ${sliceSprite.y})`);
   console.log(`Slice offset: (${sliceOffsetX}, ${sliceOffsetY})`);
 
@@ -121,9 +146,7 @@ export function generateFrames(
   const contentWidth = contentRight - contentLeft + 1;
   const contentHeight = contentBottom - contentTop + 1;
 
-  console.log(
-    `Content bounds: (${contentLeft}, ${contentTop}) to (${contentRight}, ${contentBottom})`
-  );
+  console.log(`Content bounds: (${contentLeft}, ${contentTop}) to (${contentRight}, ${contentBottom})`);
   console.log(`Content dimensions: ${contentWidth}x${contentHeight}`);
 
   // Find all slice markers in the slice data
@@ -140,15 +163,7 @@ export function generateFrames(
   // Find all cross markers in the slice sprite's local space
   for (let y = 0; y < sliceSprite.height; y++) {
     for (let x = 0; x < sliceSprite.width; x++) {
-      if (
-        isSliceMarker(
-          sliceSprite.data,
-          sliceSprite.width,
-          sliceSprite.height,
-          x,
-          y
-        )
-      ) {
+      if (isSliceMarker(sliceSprite.data, sliceSprite.width, sliceSprite.height, x, y)) {
         // Transform marker position to global space
         const globalX = sliceSprite.x + x;
         const globalY = sliceSprite.y + y;
@@ -156,30 +171,22 @@ export function generateFrames(
         slicePositionsX.add(globalX);
         slicePositionsY.add(globalY);
 
-        console.log(
-          `Found slice marker at local (${x},${y}), global (${globalX},${globalY})`
-        );
+        console.log(`Found slice marker at local (${x},${y}), global (${globalX},${globalY})`);
       }
     }
   }
 
   // Filter slice positions to only include those that intersect with content area in global space
   const validSlicePositionsX = Array.from(slicePositionsX)
-    .filter(
-      (x) =>
-        x >= baseSprite.x + contentLeft && x <= baseSprite.x + contentRight + 1
-    )
+    .filter((x) => x >= baseSprite.x + contentLeft && x <= baseSprite.x + contentRight + 1)
     .sort((a, b) => a - b);
 
   const validSlicePositionsY = Array.from(slicePositionsY)
-    .filter(
-      (y) =>
-        y >= baseSprite.y + contentTop && y <= baseSprite.y + contentBottom + 1
-    )
+    .filter((y) => y >= baseSprite.y + contentTop && y <= baseSprite.y + contentBottom + 1)
     .sort((a, b) => a - b);
 
-  console.log("Valid slice positions X:", validSlicePositionsX);
-  console.log("Valid slice positions Y:", validSlicePositionsY);
+  console.log('Valid slice positions X:', validSlicePositionsX);
+  console.log('Valid slice positions Y:', validSlicePositionsY);
 
   // If there are no valid slices, return a single frame for the content area
   if (validSlicePositionsX.length <= 1 || validSlicePositionsY.length <= 1) {
@@ -212,7 +219,7 @@ export function generateFrames(
 
       console.log(
         `Creating frame: global (${globalX1},${globalY1}) to (${globalX2},${globalY2})`,
-        `\n  local (${localX},${localY}) ${w}x${h}`
+        `\n  local (${localX},${localY}) ${w}x${h}`,
       );
 
       frames.push({
@@ -226,9 +233,7 @@ export function generateFrames(
 
   console.log(`Generated ${frames.length} frames for ${baseSprite.name}`);
   frames.forEach((frame, index) => {
-    console.log(
-      `Frame ${index}: (${frame.x},${frame.y}) ${frame.w}x${frame.h}`
-    );
+    console.log(`Frame ${index}: (${frame.x},${frame.y}) ${frame.w}x${frame.h}`);
   });
 
   return frames;

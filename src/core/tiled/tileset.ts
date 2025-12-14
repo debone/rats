@@ -94,7 +94,7 @@ export class Tileset {
    * Get the texture for a tile by its GID.
    * Returns undefined if the texture isn't found.
    */
-  getTextureForGid(gid: number): Texture | undefined {
+  getTextureForGid(gid: number): Texture {
     const localId = this.getLocalId(gid);
     const frameName = this._tileIdToFrame(localId);
 

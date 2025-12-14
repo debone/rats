@@ -100,17 +100,31 @@ async function parseAsepriteFile(asset: Asset) {
   console.log(`Aseprite file ${asset.filename} parsed successfully`);
   console.log(`Dimensions: ${asepriteFile.width}x${asepriteFile.height}, Layers: ${asepriteFile.layers.length}`);
 
-  const { sprites } = await extractSprites(asepriteFile);
+  // Get spritesheet size from metadata and base name for composite sprite
+  const spritesheetSize = asset.metaData?.ss as number | undefined;
+  // Strip metadata tags like {ss=32} from the base name
+  const rawBaseName = swapExt(asset.filename, '').split('/').pop() || 'sprite';
+  const baseName = rawBaseName.replace(/\{[^}]*\}/g, '');
+
+  const { sprites } = await extractSprites(asepriteFile, {
+    spritesheetSize,
+    baseName,
+  });
+
   if (sprites.length === 0) {
     throw new Error('No valid sprites found in the Aseprite file');
   }
 
-  const contentLayers = sprites.filter((s) => !s.name.endsWith('-slices'));
+  const contentLayers = sprites.filter((s) => !s.name.endsWith('-slices') && !s.name.endsWith('_spritesheet'));
   const sliceLayers = sprites.filter((s) => s.name.endsWith('-slices'));
+  const spritesheetLayers = sprites.filter((s) => s.name.endsWith('_spritesheet'));
 
-  console.log(`Found ${sprites.length} total layers:`);
+  console.log(`Found ${sprites.length} total sprites:`);
   console.log(`- ${contentLayers.length} content layers`);
   console.log(`- ${sliceLayers.length} slice layers`);
+  if (spritesheetLayers.length > 0) {
+    console.log(`- ${spritesheetLayers.length} spritesheet composite frames (ss=${spritesheetSize})`);
+  }
 
   return sprites;
 }

@@ -2,7 +2,7 @@ import * as path from 'path';
 import sharp from 'sharp';
 
 import type { AtlasFrame, AtlasMetadata, ExtractedSprite, SpritesheetData, SpritesheetFrameData } from '../types.ts';
-import { generateFrames } from './slices.ts';
+import { generateFrames, generateSpritesheetSlices } from './slices.ts';
 
 interface TrimInfo {
   left: number;
@@ -348,6 +348,69 @@ export class Atlas {
                 y: 0,
                 w: slice.w,
                 h: slice.h,
+              },
+              sourceSize: {
+                w: slice.w,
+                h: slice.h,
+              },
+            };
+          });
+        }
+
+        // If we have spritesheet size (ss metadata), generate grid-based slices
+        // The full sprite is packed as-is, and we create separate namespace entries for each tile
+        if (box.sprite.spritesheetSize) {
+          const gridSize = box.sprite.spritesheetSize;
+          const spritesheetFrames = generateSpritesheetSlices(box.sprite, gridSize);
+
+          // Create individual frames for each cell in the grid with separate namespace
+          spritesheetFrames.forEach((slice, sliceIndex) => {
+            // Check if this cell intersects with the trimmed content area
+            const trimRight = trimInfo.left + trimInfo.width;
+            const trimBottom = trimInfo.top + trimInfo.height;
+            const sliceRight = slice.x + slice.w;
+            const sliceBottom = slice.y + slice.h;
+
+            // Skip cells that don't intersect with trimmed content
+            if (
+              slice.x >= trimRight ||
+              sliceRight <= trimInfo.left ||
+              slice.y >= trimBottom ||
+              sliceBottom <= trimInfo.top
+            ) {
+              return;
+            }
+
+            // Calculate the intersection of the slice with the trimmed area
+            const intersectX = Math.max(slice.x, trimInfo.left);
+            const intersectY = Math.max(slice.y, trimInfo.top);
+            const intersectRight = Math.min(sliceRight, trimRight);
+            const intersectBottom = Math.min(sliceBottom, trimBottom);
+            const intersectW = intersectRight - intersectX;
+            const intersectH = intersectBottom - intersectY;
+
+            // Use separate namespace: spriteName_sliceIndex#frameIndex
+            // (spriteName already ends with _spritesheet from the composite sprite)
+            const sliceFrameName = `${spriteName}_${sliceIndex}#${frameIndex}`;
+
+            // Adjust coordinates relative to the packed position in the atlas
+            const adjustedX = box.x + BLEED_MARGIN + (intersectX - trimInfo.left);
+            const adjustedY = box.y + BLEED_MARGIN + (intersectY - trimInfo.top);
+
+            frames[sliceFrameName] = {
+              frame: {
+                x: adjustedX,
+                y: adjustedY,
+                w: intersectW,
+                h: intersectH,
+              },
+              rotated: false,
+              trimmed: intersectW !== slice.w || intersectH !== slice.h,
+              spriteSourceSize: {
+                x: intersectX - slice.x,
+                y: intersectY - slice.y,
+                w: intersectW,
+                h: intersectH,
               },
               sourceSize: {
                 w: slice.w,

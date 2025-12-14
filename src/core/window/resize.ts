@@ -13,8 +13,8 @@ export function resize(app: Application, context: GameContext) {
   const minHeight = MIN_HEIGHT;
 
   // Calculate renderer and canvas sizes based on current dimensions
-  const scaleX = windowWidth < minWidth ? minWidth / windowWidth : 1;
-  const scaleY = windowHeight < minHeight ? minHeight / windowHeight : 1;
+  const scaleX = windowWidth * 0.75 < minWidth ? minWidth / windowWidth : 0.75;
+  const scaleY = windowHeight * 0.75 < minHeight ? minHeight / windowHeight : 0.75;
   const scale = scaleX > scaleY ? scaleX : scaleY;
   const width = windowWidth * scale;
   const height = windowHeight * scale;

@@ -16,6 +16,7 @@ export interface ExtractedSprite {
   data: Uint8Array;
   sliceSprite?: ExtractedSprite; // Reference to the slice layer sprite if it exists
   frameIndex?: number; // The frame index in the animation sequence
+  spritesheetSize?: number; // Grid size for automatic spritesheet slicing (ss metadata)
 }
 
 // Modified for Phaser 3 MultiAtlas format

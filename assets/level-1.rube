@@ -367,7 +367,7 @@
         ],
         "id" : 6,
         "linearVelocity" : 0,
-        "name" : "body0",
+        "name" : "🌟",
         "position" : 
         {
           "x" : 2.498205661773682,
@@ -2784,6 +2784,26 @@
           "y" : -24.56896209716797
         },
         "type" : "dynamic"
+      }
+    ],
+    "metaimage" : 
+    [
+      
+      {
+        "aspectScale" : 1,
+        "body" : 7,
+        "center" : 
+        {
+          "x" : -0.06185960769653320,
+          "y" : -0.02506780624389648
+        },
+        "file" : "../../../Pictures/warthog.png",
+        "filter" : 1,
+        "flip" : false,
+        "id" : 1,
+        "name" : "image0",
+        "opacity" : 0.5,
+        "scale" : 0.9184290170669556
       }
     ],
     "metajoint" : 

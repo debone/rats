@@ -1,10 +1,13 @@
+import { ASSETS } from '@/assets';
+import type { PrototypeTextures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { typedAssets } from '@/core/assets/typed-assets';
 import type { AppScreen } from '@/core/window/types';
-import { LayoutContainer } from '@pixi/layout/components';
-import { Assets, Container, Graphics, Ticker, TilingSprite } from 'pixi.js';
-import { getGameContext } from '@/data/game-context';
 import { GameEvent, type EventPayload } from '@/data/events';
+import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
+import { LayoutContainer } from '@pixi/layout/components';
+import { Container, Ticker, TilingSprite } from 'pixi.js';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -31,9 +34,9 @@ export class GameScreen extends Container implements AppScreen {
 
     // Tiling background
     const tilingSprite = new TilingSprite({
-      texture: Assets.get('tiles').textures.grid,
-      width: 64,
-      height: 64,
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['prototype_spritesheet_60#0'],
+      width: 32,
+      height: 32,
     });
     this._background = tilingSprite;
     this.addChild(this._background);

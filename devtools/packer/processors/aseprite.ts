@@ -14,10 +14,228 @@ interface AtlasConfig {
 }
 
 /**
+ * Blend a source pixel onto a destination pixel with alpha blending
+ */
+function blendPixel(
+  compositeData: Uint8Array,
+  dstIdx: number,
+  srcR: number,
+  srcG: number,
+  srcB: number,
+  srcA: number,
+): void {
+  if (srcA === 0) return; // Skip fully transparent pixels
+
+  const dstA = compositeData[dstIdx + 3];
+
+  if (srcA === 255 || dstA === 0) {
+    // Source is opaque or destination is transparent - direct copy
+    compositeData[dstIdx] = srcR;
+    compositeData[dstIdx + 1] = srcG;
+    compositeData[dstIdx + 2] = srcB;
+    compositeData[dstIdx + 3] = srcA;
+  } else {
+    // Alpha blending
+    const srcAlpha = srcA / 255;
+    const dstAlpha = dstA / 255;
+    const outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+
+    if (outAlpha > 0) {
+      compositeData[dstIdx] = Math.round(
+        (srcR * srcAlpha + compositeData[dstIdx] * dstAlpha * (1 - srcAlpha)) / outAlpha,
+      );
+      compositeData[dstIdx + 1] = Math.round(
+        (srcG * srcAlpha + compositeData[dstIdx + 1] * dstAlpha * (1 - srcAlpha)) / outAlpha,
+      );
+      compositeData[dstIdx + 2] = Math.round(
+        (srcB * srcAlpha + compositeData[dstIdx + 2] * dstAlpha * (1 - srcAlpha)) / outAlpha,
+      );
+      compositeData[dstIdx + 3] = Math.round(outAlpha * 255);
+    }
+  }
+}
+
+/**
+ * Render a tilemap cel onto the composite buffer
+ */
+function renderTilemapCel(
+  cel: AsepriteTypes.Cel,
+  tileset: AsepriteTypes.Tileset,
+  compositeData: Uint8Array,
+  canvasWidth: number,
+  canvasHeight: number,
+): void {
+  if (!cel.tilemapMetadata || !tileset.rawTilesetData) return;
+
+  const { bitsPerTile, bitmaskForTileId, bitmaskForXFlip, bitmaskForYFlip, bitmaskFor90CWRotation } =
+    cel.tilemapMetadata;
+  const bytesPerTile = bitsPerTile / 8;
+  const tileWidth = tileset.tileWidth;
+  const tileHeight = tileset.tileHeight;
+  const tilesetData = tileset.rawTilesetData;
+
+  // cel.w and cel.h are in tiles, not pixels for tilemaps
+  const tilemapWidth = cel.w;
+  const tilemapHeight = cel.h;
+
+  const celData = cel.rawCelData instanceof Uint8Array ? cel.rawCelData : new Uint8Array(cel.rawCelData);
+
+  for (let tileY = 0; tileY < tilemapHeight; tileY++) {
+    for (let tileX = 0; tileX < tilemapWidth; tileX++) {
+      const tileIndex = tileY * tilemapWidth + tileX;
+      const tileDataOffset = tileIndex * bytesPerTile;
+
+      // Read tile value (handle different byte sizes)
+      let tileValue = 0;
+      for (let b = 0; b < bytesPerTile; b++) {
+        tileValue |= celData[tileDataOffset + b] << (b * 8);
+      }
+
+      // Extract tile ID and flags using bitmasks
+      const tileId = tileValue & bitmaskForTileId;
+      const xFlip = (tileValue & bitmaskForXFlip) !== 0;
+      const yFlip = (tileValue & bitmaskForYFlip) !== 0;
+      const rotate90 = (tileValue & bitmaskFor90CWRotation) !== 0;
+
+      // Get tile pixel data from tileset (tile IDs are 0-indexed)
+      const tilePixelOffset = tileId * tileWidth * tileHeight * 4;
+
+      // Calculate destination position in pixels
+      const destBaseX = cel.xpos + tileX * tileWidth;
+      const destBaseY = cel.ypos + tileY * tileHeight;
+
+      // Render tile pixels
+      for (let py = 0; py < tileHeight; py++) {
+        for (let px = 0; px < tileWidth; px++) {
+          // Apply transformations to source coordinates
+          let srcPx = px;
+          let srcPy = py;
+
+          if (rotate90) {
+            // 90° clockwise rotation: (x, y) -> (tileHeight - 1 - y, x)
+            const temp = srcPx;
+            srcPx = tileHeight - 1 - srcPy;
+            srcPy = temp;
+          }
+
+          if (xFlip) srcPx = tileWidth - 1 - srcPx;
+          if (yFlip) srcPy = tileHeight - 1 - srcPy;
+
+          const srcIdx = tilePixelOffset + (srcPy * tileWidth + srcPx) * 4;
+          const destX = destBaseX + px;
+          const destY = destBaseY + py;
+
+          // Skip if outside canvas bounds
+          if (destX < 0 || destX >= canvasWidth || destY < 0 || destY >= canvasHeight) continue;
+
+          const dstIdx = (destY * canvasWidth + destX) * 4;
+
+          const srcR = tilesetData[srcIdx];
+          const srcG = tilesetData[srcIdx + 1];
+          const srcB = tilesetData[srcIdx + 2];
+          const srcA = tilesetData[srcIdx + 3];
+
+          blendPixel(compositeData, dstIdx, srcR, srcG, srcB, srcA);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Create a composite sprite by flattening all visible layers for a frame
+ */
+function createCompositeSprite(
+  asepriteFile: Aseprite,
+  frameIndex: number,
+  baseName: string,
+  spritesheetSize: number,
+): ExtractedSprite | null {
+  const frame = asepriteFile.frames[frameIndex];
+  if (!frame) return null;
+
+  const width = asepriteFile.width;
+  const height = asepriteFile.height;
+
+  // Create a buffer for the composite image (RGBA)
+  const compositeData = new Uint8Array(width * height * 4);
+
+  // Sort cels by layer index (bottom to top)
+  const cels = [...frame.cels].sort((a, b) => a.layerIndex - b.layerIndex);
+
+  // Composite each cel onto the buffer
+  for (const cel of cels) {
+    const layer = asepriteFile.layers[cel.layerIndex];
+    if (!layer) continue;
+
+    // Skip invisible layers, slice layers, and layers starting with _ or "Layer"
+    if (layer.name.startsWith('_') || layer.name.startsWith('Layer') || layer.name.endsWith('-slices')) {
+      continue;
+    }
+
+    // Skip if layer is not visible (check flags)
+    if (layer.flags && !layer.flags.visible) continue;
+
+    if (!cel.rawCelData || cel.rawCelData.length === 0 || cel.w === 0 || cel.h === 0) {
+      continue;
+    }
+
+    // Handle tilemap layers
+    if (cel.tilemapMetadata && layer.tilesetIndex !== undefined) {
+      const tileset = asepriteFile.tilesets[layer.tilesetIndex];
+      if (tileset && tileset.rawTilesetData) {
+        renderTilemapCel(cel, tileset, compositeData, width, height);
+      }
+      continue;
+    }
+
+    // Handle regular image layers
+    const celData = cel.rawCelData instanceof Uint8Array ? cel.rawCelData : new Uint8Array(cel.rawCelData);
+
+    // Composite the cel onto the buffer with alpha blending
+    for (let y = 0; y < cel.h; y++) {
+      for (let x = 0; x < cel.w; x++) {
+        const destX = cel.xpos + x;
+        const destY = cel.ypos + y;
+
+        // Skip if outside bounds
+        if (destX < 0 || destX >= width || destY < 0 || destY >= height) continue;
+
+        const srcIdx = (y * cel.w + x) * 4;
+        const dstIdx = (destY * width + destX) * 4;
+
+        const srcR = celData[srcIdx];
+        const srcG = celData[srcIdx + 1];
+        const srcB = celData[srcIdx + 2];
+        const srcA = celData[srcIdx + 3];
+
+        blendPixel(compositeData, dstIdx, srcR, srcG, srcB, srcA);
+      }
+    }
+  }
+
+  console.log(`  Created composite sprite "${baseName}_spritesheet" (${width}x${height}) with ss=${spritesheetSize}`);
+
+  return {
+    index: -1, // Special index for composite
+    name: `${baseName}_spritesheet`,
+    path: '',
+    width,
+    height,
+    x: 0,
+    y: 0,
+    data: compositeData,
+    frameIndex,
+    spritesheetSize,
+  };
+}
+
+/**
  * Extract sprites from an Aseprite file's frames
  */
 export async function extractSprites(
   asepriteFile: Aseprite,
+  options?: { spritesheetSize?: number; baseName?: string },
 ): Promise<{ sprites: ExtractedSprite[]; atlasConfig: AtlasConfig }> {
   if (asepriteFile.frames.length === 0) {
     console.warn('No frames found in the Aseprite file');
@@ -156,6 +374,33 @@ export async function extractSprites(
             h: tileset.tileHeight,
           };
         }
+      }
+    }
+  }
+
+  // Create composite sprites for spritesheet if ss option is provided
+  if (options?.spritesheetSize && options?.baseName) {
+    console.log(`Creating composite sprites for spritesheet (ss=${options.spritesheetSize})...`);
+
+    for (let frameIndex = 0; frameIndex < asepriteFile.frames.length; frameIndex++) {
+      const compositeSprite = createCompositeSprite(
+        asepriteFile,
+        frameIndex,
+        options.baseName,
+        options.spritesheetSize,
+      );
+
+      if (compositeSprite) {
+        extractedSprites.push(compositeSprite);
+
+        // Add to atlas config
+        const frameName = `${compositeSprite.name}#${frameIndex}`;
+        atlasConfig[frameName] = {
+          x: 0,
+          y: 0,
+          w: compositeSprite.width,
+          h: compositeSprite.height,
+        };
       }
     }
   }

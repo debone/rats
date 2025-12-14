@@ -8,12 +8,30 @@
         "."
     ],
     "fileStates": {
+        "broad-bg.tsx": {
+            "scaleInDock": 1.6641,
+            "scaleInEditor": 1
+        },
         "level-1.tmx": {
-            "scale": 0.7091,
-            "selectedLayer": 1,
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 0.9596,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 482.30150895501345,
-                "y": 534.4803271752926
+                "x": 357.44060025010424,
+                "y": 383.49312213422263
+            }
+        },
+        "prototype-1.tmx": {
+            "expandedObjectLayers": [
+                2
+            ],
+            "scale": 0.9768,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 294.8402948402948,
+                "y": 527.2317772317772
             }
         },
         "tiles.tsx": {
@@ -21,19 +39,25 @@
             "scaleInEditor": 1
         }
     },
-    "last.imagePath": "/Users/debone/Sources/rats-pixi/assets",
-    "map.height": 30,
+    "last.imagePath": "/Users/debone/Sources/rats-pixi/assets/entities",
+    "map.height": 33,
     "map.lastUsedFormat": "tmx",
-    "map.width": 20,
+    "map.width": 18,
     "openFiles": [
         "level-1.tmx",
         "tiles.tsx"
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [
+        "broad-bg.tsx",
         "tiles.tsx",
+        "prototype-1.tmx",
         "level-1.tmx"
     ],
     "resizeMap.removeObjects": false,
-    "tileset.lastUsedFormat": "tsx"
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 32
+    }
 }
