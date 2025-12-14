@@ -1,4 +1,4 @@
-import { Asset, AssetPipe, checkExt, createNewAssetAt, swapExt } from '@assetpack/core';
+import { type Asset, type AssetPipe, checkExt, createNewAssetAt, swapExt } from '@assetpack/core';
 import sharp from 'sharp';
 
 import Aseprite from './lib/ase-parser.ts';

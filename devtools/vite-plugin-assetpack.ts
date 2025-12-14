@@ -16,6 +16,19 @@ const pixis = pixiPipes({
       removeFileExtension: true,
     },
   },
+  compression: {
+    webp: {
+      lossless: true,
+      quality: 100,
+    },
+    jpg: {
+      quality: 100,
+    },
+    png: {
+      quality: 100,
+      compressionLevel: 9,
+    },
+  },
   manifest: {
     output: './public/assets/assets-manifest.json',
     createShortcuts: false, // Don't create flat aliases for nested assets

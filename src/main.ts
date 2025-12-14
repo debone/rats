@@ -1,6 +1,6 @@
 import '@pixi/layout';
 import { engine } from 'animejs';
-import { Application } from 'pixi.js';
+import { Application, TextureStyle } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 
 import { initAssets } from '@/core/assets/assets';
@@ -30,9 +30,14 @@ engine.useDefaultMainLoop = false;
 
 /** Setup app and initialise assets */
 async function init() {
+  TextureStyle.defaultOptions.scaleMode = 'nearest';
+  TextureStyle.defaultOptions.mipmapFilter = 'nearest';
   // Initialize app
   await app.init({
+    autoDensity: false,
     resolution: Math.max(window.devicePixelRatio, 2),
+    roundPixels: false,
+    antialias: false,
     backgroundColor: 0xffffff,
   });
 
