@@ -23,6 +23,12 @@ import { SaveSystem } from '@/systems/save/system';
 // Commands
 import { AppStartCommand } from '@/systems/app/commands/AppStartCommand';
 
+import { CRTFilter } from 'pixi-filters/crt';
+import { BloomFilter } from 'pixi-filters/bloom';
+import { GlowFilter } from 'pixi-filters/glow';
+import { CRT2Filter } from './lib/CRT/CRT';
+import { ReflectionFilter } from 'pixi-filters';
+
 export const app = new Application();
 
 // Disabling animejs own loop
@@ -40,6 +46,29 @@ async function init() {
     antialias: false,
     backgroundColor: 0xffffff,
   });
+
+  const mirror = new ReflectionFilter({
+    boundary: 0.875,
+    alpha: [0.6, 1],
+  });
+
+  const c = new CRT2Filter({
+    curvature: 0,
+    lineWidth: 1,
+    lineContrast: 1,
+    noise: 0.2,
+    vignetting: 0,
+  });
+
+  const bloom = new BloomFilter({
+    quality: 4,
+    strength: 0,
+  });
+
+  //app.stage.filters = [bloom, c];
+  //app.stage.filters = [c, c, bloom];
+  //app.stage.filters = [c, bloom, mirror];
+  //app.stage.filters = [c, bloom, glow];
 
   // Add pixi canvas element (app.canvas) to the document's body
   document.body.appendChild(app.canvas);
@@ -87,6 +116,9 @@ async function init() {
 
     // Update all scheduled systems
     context.systems.update(time.deltaMS);
+
+    c.time += time.deltaMS / 1000;
+    mirror.time += time.deltaMS / 100;
   });
 
   // Resize handler

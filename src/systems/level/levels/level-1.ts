@@ -40,6 +40,7 @@ import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
 import { Level } from '../Level';
+import { GlowFilter } from 'pixi-filters';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -80,10 +81,19 @@ export default class Level1 extends Level {
 
     const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
 
+    const glow = new GlowFilter({
+      distance: 1,
+      outerStrength: 0.5,
+      innerStrength: 0,
+      color: 0xffffaa,
+      quality: 0.5,
+    });
+
     loadedBodies.forEach((bodyId) => {
       const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
       if (userData?.type === 'brick') {
         const sprite = new Sprite(bg['bricks_tile_1#0']);
+        //sprite.filters = [glow];
         sprite.anchor.set(0.5, 0.5);
         this.context.container!.addChild(sprite);
         AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
@@ -183,7 +193,7 @@ export default class Level1 extends Level {
     const { bodyId } = CreateBoxPolygon({
       position: b2Body_GetPosition(tempBodyId).clone(),
       type: b2BodyType.b2_dynamicBody,
-      size: new b2Vec2(4, 1),
+      size: new b2Vec2(2, 0.5),
       density: 10,
       friction: 0.5,
       restitution: 1,
@@ -206,8 +216,7 @@ export default class Level1 extends Level {
     b2DestroyBody(tempBodyId);
 
     const paddleSprite = new Sprite(Assets.get(ASSETS.entities_rats).textures['rat-boat#0']);
-    paddleSprite.anchor.set(0.5, 0.5);
-    paddleSprite.scale.set(1, 1);
+    paddleSprite.anchor.set(0.5, 0);
     this.context.container!.addChild(paddleSprite);
     AddSpriteToWorld(this.context.worldId!, paddleSprite, bodyId, 0, -34);
 
@@ -224,26 +233,18 @@ export default class Level1 extends Level {
       worldId: worldId,
       type: b2BodyType.b2_dynamicBody,
       position: new b2Vec2(0, -15),
-      radius: 0.5,
+      radius: 0.25,
       density: 10,
       friction: 0.5,
       restitution: 1,
     });
 
-    // Wall properties
-    const wallShapeDef = b2DefaultShapeDef();
-    wallShapeDef.density = 0;
-    wallShapeDef.restitution = 0;
-    wallShapeDef.friction = 0;
-
-    b2CreatePolygonShape(bodyId, wallShapeDef, b2MakeBox(0.1, 0.4));
-    b2CreatePolygonShape(bodyId, wallShapeDef, b2MakeBox(0.4, 0.1));
-
     b2Body_SetUserData(bodyId, { type: 'ball' });
-    b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 5));
+    b2Body_SetLinearVelocity(bodyId, new b2Vec2(1.5, 5));
 
     const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
     ballSprite.anchor.set(0.5, 0.5);
+    ballSprite.scale.set(0.75, 0.75);
     this.context.container!.addChild(ballSprite);
     AddSpriteToWorld(this.context.worldId!, ballSprite, bodyId, 0, 0);
 
