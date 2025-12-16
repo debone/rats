@@ -1,0 +1,22 @@
+
+  1. This software is provided 'as-is', without any express or implied warranty. In no event will
+     the author be held liable for any damages arising from the use of this software.
+  2. Permission is granted to the purchaser to use this software for any purpose, including
+     commercial applications.
+  3. All future updates and additions to the software will be made available to the purchaser at no
+     extra cost, but there is no guarantee that any updates will actually be made. Any planned
+     features mentioned on this website are to be treated as speculation only.
+  4. Permission is granted for the purchaser to supply the software to a maximum of two other
+     persons for the purpose of collaboration on projects. The other persons do not have permission
+     to further supply the software.
+  5. The software is individually compiled for each user and contains reliable watermarks to trace
+     the origin of the purchaser. If the software is made publicly available in any form the
+     purchaser will become ineligible for further updates and the promise of (3) is made void.
+  6. If the software is purchased on behalf of Rovio Entertainment Ltd. of Espoo, Finland and used
+     in a commercial application, mention must be made of this fact in some way, however small, in
+     order that the author can ascertain so.
+  7. The purchaser's email address will be recorded and used as the login username on this website
+     to access the software, and for occasional notifications about software updates.
+  8. If the purchaser is not completely satisfied with the software the purchase price will be
+     refunded in full, until 30 days from the purchase date.
+

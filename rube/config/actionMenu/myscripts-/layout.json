@@ -1,0 +1,25 @@
+{
+	"children": [
+		{
+			"type": "menu",
+			"name": "&My scripts",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Script 1",
+					"file": "script1",
+					"desc": "script1",
+					"minFixtures": 1
+				},
+				{
+					"type": "action",
+					"name": "&Radial copy",
+					"file": "radialCopy",
+					"desc": "radial copy",
+					"minFixtures": 1
+				}
+			]
+		}
+	]
+}
+

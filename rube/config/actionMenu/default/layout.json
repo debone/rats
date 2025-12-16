@@ -1,0 +1,435 @@
+{
+	"children": [
+		{
+			"type": "menu",
+			"name": "&Add",
+			"children": [
+				{
+					"type": "menu",
+					"name": "Add &body",
+					"children": [
+						{
+							"type": "action",
+							"name": "Add &body with no fixtures",
+							"file": "addBodyAtCursor",
+							"desc": "add body with no fixtures"
+						},
+						{
+							"type": "action",
+							"name": "Add body with &circle fixture",
+							"file": "addBodyAtCursor_Circle",
+							"desc": "add body with circle fixture"
+						},
+						{
+							"type": "action",
+							"name": "Add body with &square fixture",
+							"file": "addBodyAtCursor_Square",
+							"desc": "add body with square fixture"
+						},
+						{
+							"type": "action",
+							"name": "Add body with &n-sided polygon fixture",
+							"file": "addBodyAtCursor_NSidedPolygon",
+							"desc": "add body with n-sided polygon fixture"
+						},
+						{
+							"type": "action",
+							"name": "Add body with &edge fixture",
+							"file": "addBodyAtCursor_Edge",
+							"desc": "add body with edge fixture"
+						}
+					]
+				},
+				{
+					"type": "menu",
+					"name": "Add &fixture",
+					"children": [
+						{
+							"type": "action",
+							"name": "&Circle",
+							"file": "addFixtureAtCursor_Circle",
+							"desc": "add circle fixture",
+							"minBodies": 1
+						},
+						{
+							"type": "action",
+							"name": "&Square",
+							"file": "addFixtureAtCursor_Square",
+							"desc": "add square fixture",
+							"minBodies": 1
+						},
+						{
+							"type": "action",
+							"name": "&n-sided polygon",
+							"file": "addFixtureAtCursor_NSidedPolygon",
+							"desc": "add n-sided polygon fixture",
+							"minBodies": 1
+						},
+						{
+							"type": "action",
+							"name": "&Edge",
+							"file": "addFixtureAtCursor_Edge",
+							"desc": "add edge fixture",
+							"minBodies": 1
+						}
+					]
+				},
+				{
+					"type": "menu",
+					"name": "Add &joint",
+					"children": [
+						{
+							"type": "action",
+							"name": "&Revolute",
+							"file": "addJointAtCursor_Revolute",
+							"desc": "add revolute joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "&Prismatic",
+							"file": "addJointAtCursor_Prismatic",
+							"desc": "add prismatic joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "&Distance",
+							"file": "addJointAtCursor_Distance",
+							"desc": "add distance joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "&Wheel",
+							"file": "addJointAtCursor_Wheel",
+							"desc": "add wheel joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "R&ope",
+							"file": "addJointAtCursor_Rope",
+							"desc": "add rope joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "W&eld",
+							"file": "addJointAtCursor_Weld",
+							"desc": "add weld joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "&Friction",
+							"file": "addJointAtCursor_Friction",
+							"desc": "add friction joint",
+							"minBodies": 2
+						},
+						{
+							"type": "action",
+							"name": "&Motor",
+							"file": "addJointAtCursor_Motor",
+							"desc": "add motor joint",
+							"minBodies": 2
+						}
+					]
+		        	},
+				{
+					"type": "action",
+					"name": "Add &image",
+					"file": "addImageAtCursor",
+					"desc": "add image"
+		        	},
+				{
+					"type": "action",
+					"name": "Add &object",
+					"file": "addObjectAtCursor",
+					"desc": "add object"
+		        	},
+				{
+					"type": "action",
+					"name": "Add &sampler",
+					"file": "addSamplerAtCursor",
+					"desc": "add sampler"
+		        	}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Select",
+			"children": [
+				{
+					"type": "action",
+					"name": "All &fixtures of selected bodies",
+					"file": "selectAllFixturesOfSelectedBodies",
+					"desc": "select all fixtures of selected bodies",
+					"minBodies": 1
+				},
+				{
+					"type": "action",
+					"name": "All &bodies of selected fixtures",
+					"file": "selectAllBodiesOfSelectedFixtures",
+					"desc": "select all bodies of selected fixtures",
+					"minFixtures": 1
+				},
+				{
+					"type": "action",
+					"name": "All &vertices of selected fixtures",
+					"file": "selectAllVerticesOfSelectedFixtures",
+					"desc": "select all vertices of selected fixtures",
+					"minFixtures": 1
+				},
+				{
+					"type": "action",
+					"name": "All &bodies in same island",
+					"file": "selectBodiesInIsland",
+					"desc": "select all bodies in same island",
+					"minBodies": 1
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Construct",
+			"children": [
+				{
+					"type": "action",
+					"name": "Make &chain",
+					"file": "makeChainFromTwoBodies",
+					"desc": "make chain",
+					"minBodies": 2
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Refine",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Smooth line",
+					"file": "smoothLine",
+					"desc": "smooth line",
+					"minVertices": 1
+				},
+				{
+					"type": "action",
+					"name": "&Remove redundant vertices",
+					"file": "removeRedundantVertices",
+					"desc": "remove redundant vertices",
+					"minVertices": 1
+				},
+				{
+					"type": "action",
+					"name": "&Bevel corners",
+					"file": "bevelCorners",
+					"desc": "bevel corners",
+					"minVertices": 1
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Fixture",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Reverse vertex winding",
+					"file": "reverseFixtureWinding",
+					"desc": "reverse fixture winding",
+					"minFixtures": 1
+				},
+				{
+					"type": "action",
+					"name": "&Split fixture (polygon)",
+					"file": "splitFixture",
+					"desc": "split fixture (polygon)",
+					"minFixtures": 1,
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "&Split fixture (line)",
+					"file": "splitFixture_line",
+					"desc": "split fixture (line)",
+					"minFixtures": 1,
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "&Join two fixtures",
+					"file": "joinFixtures",
+					"desc": "join two fixtures",
+					"minFixtures": 1,
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "&Convex hull",
+					"file": "convexHull",
+					"desc": "convex hull",
+					"minFixtures": 1
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Vertex",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Subdivide edges",
+					"file": "splitSelectedEdges",
+					"desc": "split edges",
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "Align &left",
+					"file": "alignVertices_left",
+					"desc": "align vertices left",
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "Align &right",
+					"file": "alignVertices_right",
+					"desc": "align vertices right",
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "Align &top",
+					"file": "alignVertices_top",
+					"desc": "align vertices top",
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "Align &bottom",
+					"file": "alignVertices_bottom",
+					"desc": "align vertices bottom",
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "Align &X to cursor",
+					"file": "alignXToCursor",
+					"desc": "X align vertices to cursor",
+					"minVertices": 1
+				},
+				{
+					"type": "action",
+					"name": "Align &Y to cursor",
+					"file": "alignYToCursor",
+					"desc": "Y align vertices to cursor",
+					"minVertices": 1
+				},
+				{
+					"type": "action",
+					"name": "&Weld (change position only)",
+					"file": "weldVertices",
+					"desc": "weld vertices",
+					"minVertices": 2
+				},
+				{
+					"type": "action",
+					"name": "&Merge (one will be deleted)",
+					"file": "mergeVertices",
+					"desc": "merge vertices",
+					"minVertices": 2
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Joint",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Switch bodyA/bodyB",
+					"file": "switchJointBodies",
+					"desc": "switch joint bodies",
+					"minJoints": 1
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Image",
+			"children": [
+				{
+					"type": "action",
+					"name": "Move to &front",
+					"file": "moveSelectedImagesToFront",
+					"desc": "move selected images to front",
+					"minImages": 1
+				},
+				{
+					"type": "action",
+					"name": "Move to &back",
+					"file": "moveSelectedImagesToBack",
+					"desc": "move selected images to back",
+					"minImages": 1
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "&Sampler",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Write sampler output to file",
+					"file": "writeSelectedSamplersToFile",
+					"desc": "write sampler output to file",
+					"minSamplers": 1
+				},
+				{
+					"type": "action",
+					"name": "&Create fixture from sampler",
+					"file": "createFixtureFromSampler",
+					"desc": "create fixture from sampler",
+					"minSamplers": 1,
+					"minBodies": 1
+				},
+				{
+					"type": "action",
+					"name": "&Create sampler from image",
+					"file": "createSamplerFromImage",
+					"desc": "create sampler from image",
+					"minImages": 1
+				},
+				{
+					"type": "action",
+					"name": "&Create body+fixture from image",
+					"file": "createBodyAndFixtureFromImage",
+					"desc": "create body and fixture from image",
+					"minImages": 1
+				}
+			]
+		},
+		{
+			"type": "menu",
+			"name": "Simulation",
+			"children": [
+				{
+					"type": "action",
+					"name": "&Step selected bodies",
+					"file": "stepSelectedBodies",
+					"desc": "step selected bodies",
+					"minBodies": 1
+				},
+				{
+					"type": "action",
+					"name": "&Step all bodies",
+					"file": "stepAllBodies",
+					"desc": "step all bodies"
+				}
+			]
+		}
+	]
+}
+

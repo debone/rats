@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
+<plist version="0.9">
+<dict>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleName</key>
+	<string>R.U.B.E</string>
+	<key>CFBundleVersion</key>
+    <string>1.8.0</string>
+	<key>CFBundleShortVersionString</key>
+    <string>1.8.0</string>
+	<key>CFBundleIconFile</key>
+	<string>launchiconmac.icns</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleExecutable</key>
+	<string>rube</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.iforce2d.rube</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>    
+</dict>
+</plist>
