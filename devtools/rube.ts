@@ -1,4 +1,4 @@
-import { AssetPipe, checkExt, createNewAssetAt, swapExt } from '@assetpack/core';
+import { type AssetPipe, checkExt, createNewAssetAt, swapExt } from '@assetpack/core';
 import { execSync } from 'child_process';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
@@ -11,7 +11,7 @@ interface RubeOptions {
 type RubeTags = 'rube';
 
 export function rube(
-  _options: RubeOptions = { executable: '/Users/debone/Sources/rube/R.U.B.E.app/Contents/MacOS/rube' },
+  _options: RubeOptions = { executable: './rube/R.U.B.E.app/Contents/MacOS/rube' },
 ): AssetPipe<RubeOptions, RubeTags> {
   return {
     name: 'rube',

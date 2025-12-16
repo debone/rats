@@ -39,7 +39,7 @@
             "scaleInEditor": 1
         }
     },
-    "last.imagePath": "/Users/debone/Sources/rats-pixi/assets/entities",
+    "last.imagePath": "../entities",
     "map.height": 33,
     "map.lastUsedFormat": "tmx",
     "map.width": 18,
