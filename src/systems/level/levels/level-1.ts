@@ -107,18 +107,14 @@ export default class Level1 extends Level {
   }
 
   private createBackground(): void {
-    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
+    const bg = typedAssets.get<PrototypeTextures>(ASSETS.levels_level_1).textures;
 
     const map = new TiledResource({
-      map: TILED_MAPS.backgrounds_prototype_1,
+      map: TILED_MAPS.backgrounds_level_1,
       tilesetTextures: {
-        broad_bg: {
+        level_1_tileset: {
           textures: bg,
-          tileIdToFrame: (id) => `prototype_spritesheet_${id}#0`,
-        },
-        bricks_test: {
-          textures: bg,
-          tileIdToFrame: (id) => `bricks_tile_${id + 1}#0`,
+          tileIdToFrame: (id) => `level-1_spritesheet_${id}#0`,
         },
       },
     });
