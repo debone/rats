@@ -1,5 +1,5 @@
 import { CompositeTilemap } from '@pixi/tilemap';
-import { getCanonicalGid, isFlippedDiagonally, isFlippedHorizontally, isFlippedVertically } from './gid';
+import { getCanonicalGid, getPixiRotationFromGid } from './gid';
 import { mapProperties, type PropertyMap } from './properties';
 import type { Tileset } from './tileset';
 import type { TiledTileLayer } from './types';
@@ -98,62 +98,13 @@ export class TileLayer {
 
       const texture = tileset.getTextureForGid(gid);
 
-      // Handle flipping
-      const flipH = isFlippedHorizontally(gid);
-      const flipV = isFlippedVertically(gid);
-      const flipD = isFlippedDiagonally(gid);
+      const rotate = getPixiRotationFromGid(gid);
 
-      // Calculate transform for flipped tiles
-      // @pixi/tilemap supports rotation and scale
-      let rotation = 0;
-      let scaleX = 1;
-      let scaleY = 1;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (flipD) {
-        // Diagonal flip = rotate -90° and flip horizontally
-        rotation = -Math.PI / 2;
-        scaleX = -1;
-        offsetX = this._tileWidth;
-      }
-      if (flipH) {
-        if (flipD) {
-          scaleX = 1;
-          scaleY = -1;
-          offsetY = this._tileHeight;
-        } else {
-          scaleX = -1;
-          offsetX = this._tileWidth;
-        }
-      }
-      if (flipV) {
-        if (flipD) {
-          scaleX = -1;
-          scaleY = 1;
-          offsetX = this._tileWidth;
-          offsetY = 0;
-        } else {
-          scaleY = -1;
-          offsetY = this._tileHeight;
-        }
-      }
-
-      // Add tile to tilemap
-      if (rotation !== 0 || scaleX !== 1 || scaleY !== 1) {
-        this.tilemap.tile(texture, x + offsetX, y + offsetY, {
-          u: texture.frame.x - (texture.trim?.x || 0),
-          v: texture.frame.y - (texture.trim?.y || 0),
-          rotate: rotation,
-          scaleX,
-          scaleY,
-        } as any);
-      } else {
-        this.tilemap.tile(texture, x, y, {
-          u: texture.frame.x - (texture.trim?.x || 0),
-          v: texture.frame.y - (texture.trim?.y || 0),
-        });
-      }
+      this.tilemap.tile(texture, x, y, {
+        u: texture.frame.x - (texture.trim?.x || 0),
+        v: texture.frame.y - (texture.trim?.y || 0),
+        rotate,
+      });
     }
   }
 
