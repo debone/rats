@@ -1,12 +1,10 @@
 import { Command, execute } from '@/core/game/Command';
 import { delay, type Coroutine } from '@/core/game/Coroutine';
 import type { LevelResult } from '@/data/game-state';
-import { SaveSystem } from '../../save/system';
-import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
-import { GameScreen } from '@/screens/GameScreen';
 import { MapScreen } from '@/screens/MapScreen';
-import { LoadLevelCommand } from './LoadLevelCommand';
 import { PhysicsSystem } from '@/systems/physics/system';
+import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
+import { SaveSystem } from '../../save/system';
 
 export class LevelCompleteCommand extends Command<LevelResult> {
   *execute(result: LevelResult): Coroutine {

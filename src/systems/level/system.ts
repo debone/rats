@@ -55,7 +55,7 @@ export class LevelSystem implements System {
     console.log('[LevelSystem] Unloading level');
 
     currentLevel.bodies.forEach((bodyId) => {
-      currentLevel.removeBody(bodyId);
+      currentLevel.unregisterBody(bodyId);
     });
 
     this.context.systems.unregister('update', this.updateHandler);

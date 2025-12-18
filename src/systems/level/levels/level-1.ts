@@ -1,4 +1,4 @@
-import { ASSETS, TILED_MAPS, type BackgroundTextures, type PrototypeTextures } from '@/assets';
+import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
@@ -16,10 +16,8 @@ import {
   b2Body_SetUserData,
   b2BodyId,
   b2BodyType,
-  b2CreatePolygonShape,
   b2CreatePrismaticJoint,
   b2DefaultPrismaticJointDef,
-  b2DefaultShapeDef,
   b2DestroyBody,
   b2DestroyJoint,
   b2Joint_GetBodyA,
@@ -27,7 +25,6 @@ import {
   b2Joint_GetLocalAnchorA,
   b2Joint_GetLocalAnchorB,
   b2JointId,
-  b2MakeBox,
   b2MulSV,
   b2Normalize,
   b2PrismaticJoint_GetLowerLimit,
@@ -36,11 +33,11 @@ import {
   CreateBoxPolygon,
   CreateCircle,
 } from 'phaser-box2d';
-import { Assets, Sprite } from 'pixi.js';
-import { InputDevice } from 'pixijs-input-devices';
-import { LevelFinishedCommand } from '../commands/LevelFinishedCommand';
-import { Level } from '../Level';
 import { GlowFilter } from 'pixi-filters';
+import { Assets, Sprite, Texture } from 'pixi.js';
+import { InputDevice } from 'pixijs-input-devices';
+import { Level } from '../Level';
+import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -51,6 +48,8 @@ export default class Level1 extends Level {
 
   private paddleBodyId!: b2BodyId;
   private ballBodyId!: b2BodyId;
+
+  private debug_mode = true;
 
   constructor() {
     super({
@@ -89,21 +88,55 @@ export default class Level1 extends Level {
       quality: 0.5,
     });
 
+    let i = 0;
+
     loadedBodies.forEach((bodyId) => {
       const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
       if (userData?.type === 'brick') {
-        const sprite = new Sprite(bg['bricks_tile_1#0']);
+        if (this.debug_mode && i > 4) {
+          this.collisions.queueDestruction(bodyId);
+          return;
+        }
+
+        this.addBrick(bg[`bricks_tile_1#0`], bodyId);
+
         //sprite.filters = [glow];
-        sprite.anchor.set(0.5, 0.5);
-        this.context.container!.addChild(sprite);
-        AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
-        this.addBody(bodyId);
       }
+
+      i++;
     });
 
     this.createBackground();
 
     console.log('[Level1] Loaded');
+  }
+
+  private bricksCount = 0;
+  // TODO: bricks count by type
+
+  private addBrick(texture: Texture, bodyId: b2BodyId): void {
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5, 0.5);
+    this.context.container!.addChild(sprite);
+    AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
+    this.registerBody(bodyId);
+    this.bricksCount++;
+  }
+
+  private removeBrick(bodyId: b2BodyId): void {
+    const position = b2Body_GetPosition(bodyId);
+
+    // Emit notification (fire and forget)
+    this.context.events.emit(GameEvent.BRICK_DESTROYED, {
+      brickId: String(bodyId),
+      position: { x: position.x, y: position.y },
+      score: 100,
+    });
+
+    // Queue destruction (don't destroy during iteration)
+    this.collisions.queueDestruction(bodyId);
+    this.unregisterBody(bodyId);
+    this.bricksCount--;
   }
 
   private createBackground(): void {
@@ -140,17 +173,15 @@ export default class Level1 extends Level {
     // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
     this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
       const brickBody = pair.bodyB;
-      const position = b2Body_GetPosition(brickBody);
+      // Remove the brick
+      this.removeBrick(brickBody);
 
-      // Queue destruction (don't destroy during iteration)
-      this.collisions.queueDestruction(brickBody);
-
-      // Emit notification (fire and forget)
-      this.context.events.emit(GameEvent.BRICK_DESTROYED, {
-        brickId: String(brickBody),
-        position: { x: position.x, y: position.y },
-        score: 100,
-      });
+      if (this.checkWinCondition()) {
+        // Level completed
+        console.log('[Level1] Level completed!');
+        //this.onWin();
+        execute(Level_1_DoorOpenCommand, null);
+      }
     });
 
     /*this.collisions.register('ball', 'top-wall', () => {
@@ -216,7 +247,7 @@ export default class Level1 extends Level {
     this.context.container!.addChild(paddleSprite);
     AddSpriteToWorld(this.context.worldId!, paddleSprite, bodyId, 0, -34);
 
-    this.addBody(bodyId);
+    this.registerBody(bodyId);
     this.paddleBodyId = bodyId;
 
     console.log('[Level1] Paddle created');
@@ -236,7 +267,7 @@ export default class Level1 extends Level {
     });
 
     b2Body_SetUserData(bodyId, { type: 'ball' });
-    b2Body_SetLinearVelocity(bodyId, new b2Vec2(1.5, 5));
+    b2Body_SetLinearVelocity(bodyId, new b2Vec2(2, 5));
 
     const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
     ballSprite.anchor.set(0.5, 0.5);
@@ -244,7 +275,7 @@ export default class Level1 extends Level {
     this.context.container!.addChild(ballSprite);
     AddSpriteToWorld(this.context.worldId!, ballSprite, bodyId, 0, 0);
 
-    this.addBody(bodyId);
+    this.registerBody(bodyId);
     this.ballBodyId = bodyId;
 
     console.log('[Level1] Ball created');
@@ -299,7 +330,7 @@ export default class Level1 extends Level {
     const absVx = Math.abs(velocity.x);
     const absVy = Math.abs(velocity.y);
 
-    // Prevent perfectly vertical ball: minimum angle from horizon = 20deg (in radians)
+    // Prevent perfectly vertical ball: minddimum angle from horizon = 20deg (in radians)
     const minAngleRad = (20 * Math.PI) / 180;
 
     let newVelocity = { x: velocity.x, y: velocity.y };
@@ -329,9 +360,7 @@ export default class Level1 extends Level {
   }
 
   protected checkWinCondition(): boolean {
-    // For now, simple test: destroy the brick to win
-    // TODO: Implement proper brick destruction detection
-    return false; // Placeholder
+    return this.bricksCount <= 0;
   }
 
   protected checkLoseCondition(): boolean {

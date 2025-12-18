@@ -44,19 +44,12 @@ export abstract class Level {
     this.config = config;
   }
 
-  addBody(bodyId: b2BodyId): void {
+  registerBody(bodyId: b2BodyId): void {
     this.bodies.push(bodyId);
   }
 
-  removeBody(bodyId: b2BodyId): void {
-    this.bodies = this.bodies.filter((id) => {
-      if (id === bodyId && b2Body_IsValid(id)) {
-        b2DestroyBody(id);
-        console.log('[Level] Removed body ', id);
-        return false;
-      }
-      return true;
-    });
+  unregisterBody(bodyId: b2BodyId): void {
+    this.bodies = this.bodies.filter((id) => id !== bodyId);
   }
 
   /**
@@ -96,13 +89,6 @@ export abstract class Level {
     }
 
     this.checkCollisions(this.context.worldId!);
-
-    // Check win/lose conditions
-    if (this.checkWinCondition()) {
-      this.onWin();
-    } else if (this.checkLoseCondition()) {
-      this.onLose();
-    }
   }
 
   protected checkCollisions(worldId: b2WorldId): void {
