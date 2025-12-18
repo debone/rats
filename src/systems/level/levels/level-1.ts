@@ -38,6 +38,7 @@ import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { Level } from '../Level';
 import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
+import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -196,19 +197,11 @@ export default class Level1 extends Level {
         },
       });
     });
-
+*/
     this.collisions.register('ball', 'bottom-wall', () => {
       console.log('Ball hit bottom wall');
-      execute(LevelFinishedCommand, {
-        success: false,
-        result: {
-          success: false,
-          score: 0,
-          boonsEarned: [],
-          timeElapsed: this.context.level?.elapsedTime || 0,
-        },
-      });
-    });*/
+      execute(Level_1_LoseBallCommand);
+    });
   }
 
   private createPaddle(jointId: b2JointId): void {

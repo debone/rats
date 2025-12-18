@@ -14,6 +14,7 @@ export class Level_1_DoorOpenCommand extends Command<void> {
     const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
     const sprite = new Sprite(bg[`bricks_tile_1#0`]);
     sprite.alpha = 0;
+    sprite.tint = 0x9999ff;
     sprite.anchor.set(0.5, 0.5);
     sprite.position.set(400, 300);
     sprite.scale.set(4, 4);
