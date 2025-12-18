@@ -3,10 +3,15 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
 import { animate } from 'animejs';
+import { b2Body_GetPosition, b2Body_SetTransform, b2Rot, b2Vec2, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export class Level_1_DoorOpenCommand extends Command<void> {
-  *execute() {
+type DoorOpenCommandResult = {
+  doors: b2BodyId[];
+};
+
+export class Level_1_DoorOpenCommand extends Command<DoorOpenCommandResult> {
+  *execute({ doors }: DoorOpenCommandResult) {
     // Wait for player selection
     // TODO: Replace with actual map screen interaction
     yield delay(300);
@@ -25,6 +30,24 @@ export class Level_1_DoorOpenCommand extends Command<void> {
     yield delay(200);
 
     animate(sprite, { rotation: Math.PI, duration: 1000, easing: 'linear' });
+
+    for (const door of doors) {
+      // Open the door by applying an impulse or changing its position
+      // This is a placeholder; actual implementation may vary
+      // For example, you might want to set the door to a "open" state
+      const pos = b2Body_GetPosition(door);
+      const doorPos = pos.clone();
+      const rot = new b2Rot(1, 0);
+
+      animate(doorPos, {
+        x: pos.x - 8,
+        duration: 500,
+        easing: 'easeInOutQuad',
+        onUpdate: () => {
+          b2Body_SetTransform(door, doorPos, rot);
+        },
+      });
+    }
 
     /*
     let selection;

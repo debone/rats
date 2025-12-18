@@ -104,12 +104,26 @@ export default class Level1 extends Level {
         //sprite.filters = [glow];
       }
 
+      if (userData?.type === 'door') {
+        this.addDoor(bg[`bricks_tile_2#0`], bodyId);
+      }
+
       i++;
     });
 
     this.createBackground();
 
     console.log('[Level1] Loaded');
+  }
+
+  private doors: b2BodyId[] = [];
+  private addDoor(texture: Texture, bodyId: b2BodyId): void {
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5, 0.5);
+    this.context.container!.addChild(sprite);
+    AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
+    this.registerBody(bodyId);
+    this.doors.push(bodyId);
   }
 
   private bricksCount = 0;
@@ -181,7 +195,7 @@ export default class Level1 extends Level {
         // Level completed
         console.log('[Level1] Level completed!');
         //this.onWin();
-        execute(Level_1_DoorOpenCommand, null);
+        execute(Level_1_DoorOpenCommand, { doors: this.doors });
       }
     });
 
@@ -210,8 +224,10 @@ export default class Level1 extends Level {
     const anchorBodyId = b2Joint_GetBodyA(jointId);
     const tempBodyId = b2Joint_GetBodyB(jointId);
 
+    const pos = b2Body_GetPosition(tempBodyId);
+
     const { bodyId } = CreateBoxPolygon({
-      position: b2Body_GetPosition(tempBodyId).clone(),
+      position: new b2Vec2(pos.x + 5, pos.y),
       type: b2BodyType.b2_dynamicBody,
       size: new b2Vec2(2, 0.5),
       density: 10,
