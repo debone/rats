@@ -11,6 +11,7 @@ import {
   b2Body_GetPosition,
   b2Body_GetTransform,
   b2Body_GetUserData,
+  b2Body_IsValid,
   b2Body_SetLinearVelocity,
   b2Body_SetTransform,
   b2Body_SetUserData,
@@ -37,6 +38,7 @@ import { GlowFilter } from 'pixi-filters';
 import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { Level } from '../Level';
+import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
 import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
 
@@ -92,9 +94,10 @@ export default class Level1 extends Level {
     let i = 0;
 
     loadedBodies.forEach((bodyId) => {
+      if (!b2Body_IsValid(bodyId)) return;
       const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
       if (userData?.type === 'brick') {
-        if (this.debug_mode && i > 4) {
+        if (this.debug_mode && i > 0) {
           this.collisions.queueDestruction(bodyId);
           return;
         }
@@ -102,13 +105,12 @@ export default class Level1 extends Level {
         this.addBrick(bg[`bricks_tile_1#0`], bodyId);
 
         //sprite.filters = [glow];
+        i++;
       }
 
       if (userData?.type === 'door') {
         this.addDoor(bg[`bricks_tile_2#0`], bodyId);
       }
-
-      i++;
     });
 
     this.createBackground();
@@ -197,6 +199,10 @@ export default class Level1 extends Level {
         //this.onWin();
         execute(Level_1_DoorOpenCommand, { doors: this.doors });
       }
+    });
+
+    this.collisions.register('ball', 'exit', (pair: CollisionPair) => {
+      execute(Level_1_BallExitedCommand);
     });
 
     /*this.collisions.register('ball', 'top-wall', () => {

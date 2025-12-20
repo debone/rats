@@ -5,14 +5,14 @@ import type { Boon, LevelResult, LevelState } from '@/data/game-state';
 import {
   b2Body_GetUserData,
   b2Body_IsValid,
-  b2DestroyBody,
   b2Shape_GetBody,
   b2World_GetContactEvents,
+  b2World_GetSensorEvents,
   b2WorldId,
   type b2BodyId,
 } from 'phaser-box2d';
-import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 import { CollisionHandlerRegistry } from '../physics/collision-handler';
+import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -100,6 +100,27 @@ export abstract class Level {
 
       const bodyIdA = b2Shape_GetBody(event.shapeIdA);
       const bodyIdB = b2Shape_GetBody(event.shapeIdB);
+
+      if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
+
+      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
+      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
+
+      if (userDataA?.type && userDataB?.type) {
+        this.collisions.handle({ bodyA: bodyIdA, bodyB: bodyIdB, userDataA, userDataB }, this.context);
+      }
+    }
+
+    // TODO: Do I care sensors go into the same bag?
+
+    const sensorEvents = b2World_GetSensorEvents(worldId);
+
+    for (let i = 0; i < sensorEvents.beginCount; i++) {
+      const event = sensorEvents.beginEvents[i];
+      if (!event) continue;
+
+      const bodyIdA = b2Shape_GetBody(event.visitorShapeId);
+      const bodyIdB = b2Shape_GetBody(event.sensorShapeId);
 
       if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
 
