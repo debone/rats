@@ -11,7 +11,10 @@ import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import { PhaserDebugDraw } from '@/screens/PhaserDebugDraw';
 import {
+  b2Body_IsValid,
+  b2BodyId,
   b2DefaultWorldDef,
+  b2DestroyBody,
   b2DestroyWorld,
   b2Vec2,
   b2World_Draw,
@@ -33,6 +36,8 @@ export class PhysicsSystem implements System {
   private enableDebug = false;
 
   private updateHandler = this.update.bind(this);
+
+  private pendingDestructions: b2BodyId[] = [];
 
   init(context: GameContext) {
     this.context = context;
@@ -104,6 +109,30 @@ export class PhysicsSystem implements System {
     if (this.debugDraw && this.enableDebug) {
       b2World_Draw(worldId, this.debugDraw);
     }
+
+    this.flushDestructions();
+  }
+
+  /**
+   * Queue a body for destruction.
+   * Use this instead of destroying bodies directly during collision handling
+   * to avoid modifying the physics world during iteration.
+   */
+  queueDestruction(bodyId: b2BodyId): void {
+    this.pendingDestructions.push(bodyId);
+  }
+
+  /**
+   * Destroy all queued bodies.
+   * Call this after processing all collisions for the frame.
+   */
+  flushDestructions(): void {
+    for (const bodyId of this.pendingDestructions) {
+      if (b2Body_IsValid(bodyId)) {
+        b2DestroyBody(bodyId);
+      }
+    }
+    this.pendingDestructions = [];
   }
 
   setupDebugDraw(container: Container) {
@@ -131,6 +160,8 @@ export class PhysicsSystem implements System {
   destroy() {
     // Unregister from scheduler
     this.context.systems.unregister('update', this.updateHandler);
+
+    this.pendingDestructions = [];
 
     // Cleanup debug graphics
     if (this.debugGraphics) {

@@ -5,6 +5,7 @@ import { TiledResource } from '@/core/tiled';
 import { GameEvent } from '@/data/events';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
+import { PhysicsSystem } from '@/systems/physics/system';
 import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
 import {
   b2Body_GetLinearVelocity,
@@ -39,7 +40,6 @@ import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { Level } from '../Level';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
-import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
 
 /**
@@ -98,7 +98,7 @@ export default class Level1 extends Level {
       const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
       if (userData?.type === 'brick') {
         if (this.debug_mode && i > 0) {
-          this.collisions.queueDestruction(bodyId);
+          this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
           return;
         }
 
@@ -106,11 +106,11 @@ export default class Level1 extends Level {
 
         //sprite.filters = [glow];
         i++;
-      }
-
-      if (userData?.type === 'door') {
+      } else if (userData?.type === 'door') {
         this.addDoor(bg[`bricks_tile_2#0`], bodyId);
       }
+
+      this.registerBody(bodyId);
     });
 
     this.createBackground();
@@ -151,7 +151,7 @@ export default class Level1 extends Level {
     });
 
     // Queue destruction (don't destroy during iteration)
-    this.collisions.queueDestruction(bodyId);
+    this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
     this.unregisterBody(bodyId);
     this.bricksCount--;
   }
@@ -196,13 +196,13 @@ export default class Level1 extends Level {
       if (this.checkWinCondition()) {
         // Level completed
         console.log('[Level1] Level completed!');
-        //this.onWin();
-        execute(Level_1_DoorOpenCommand, { doors: this.doors });
+        //execute(Level_1_DoorOpenCommand, { doors: this.doors });
+        execute(Level_1_BallExitedCommand, { level: this });
       }
     });
 
     this.collisions.register('ball', 'exit', (pair: CollisionPair) => {
-      execute(Level_1_BallExitedCommand);
+      execute(Level_1_BallExitedCommand, { level: this });
     });
 
     /*this.collisions.register('ball', 'top-wall', () => {
@@ -342,7 +342,7 @@ export default class Level1 extends Level {
 
     // Calculate current angle from horizon (in radians, between 0 and PI)
     // (angle from horizontal axis, so angle = atan2(abs(y), abs(x)))
-    const absVx = Math.abs(velocity.x);
+    // unused const absVx = Math.abs(velocity.x);
     const absVy = Math.abs(velocity.y);
 
     // Prevent perfectly vertical ball: minddimum angle from horizon = 20deg (in radians)
@@ -397,7 +397,8 @@ export default class Level1 extends Level {
   async unload(): Promise<void> {
     console.log('[Level1] Unloading...');
     this.collisions.clear();
-    // TODO: Destroy physics bodies
+    // TODO: Destroy physics
+
     // For now, bodies will be cleaned up when world is destroyed
   }
 }

@@ -1,5 +1,5 @@
 import type { GameContext } from '@/data/game-context';
-import { b2Body_IsValid, b2DestroyBody, type b2BodyId } from 'phaser-box2d';
+import { type b2BodyId } from 'phaser-box2d';
 
 /**
  * Represents a collision between two bodies with their user data
@@ -49,7 +49,6 @@ export type CollisionHandler = (pair: CollisionPair, context: GameContext) => vo
  */
 export class CollisionHandlerRegistry {
   private handlers = new Map<string, CollisionHandler>();
-  private pendingDestructions: b2BodyId[] = [];
 
   /**
    * Creates a normalized key for a type pair.
@@ -116,28 +115,6 @@ export class CollisionHandlerRegistry {
   }
 
   /**
-   * Queue a body for destruction.
-   * Use this instead of destroying bodies directly during collision handling
-   * to avoid modifying the physics world during iteration.
-   */
-  queueDestruction(bodyId: b2BodyId): void {
-    this.pendingDestructions.push(bodyId);
-  }
-
-  /**
-   * Destroy all queued bodies.
-   * Call this after processing all collisions for the frame.
-   */
-  flushDestructions(): void {
-    for (const bodyId of this.pendingDestructions) {
-      if (b2Body_IsValid(bodyId)) {
-        b2DestroyBody(bodyId);
-      }
-    }
-    this.pendingDestructions = [];
-  }
-
-  /**
    * Check if a handler is registered for a type pair.
    */
   hasHandler(typeA: string, typeB: string): boolean {
@@ -149,6 +126,5 @@ export class CollisionHandlerRegistry {
    */
   clear(): void {
     this.handlers.clear();
-    this.pendingDestructions = [];
   }
 }

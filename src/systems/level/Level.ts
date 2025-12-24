@@ -36,6 +36,7 @@ export abstract class Level {
   /** Level configuration */
   protected config: LevelConfig;
 
+  public bodiesIds: Set<b2BodyId> = new Set();
   public bodies: b2BodyId[] = [];
 
   protected collisions = new CollisionHandlerRegistry();
@@ -44,12 +45,16 @@ export abstract class Level {
     this.config = config;
   }
 
+  protected a = 0;
+
   registerBody(bodyId: b2BodyId): void {
     this.bodies.push(bodyId);
+    this.bodiesIds.add(bodyId);
   }
 
   unregisterBody(bodyId: b2BodyId): void {
     this.bodies = this.bodies.filter((id) => id !== bodyId);
+    this.bodiesIds.delete(bodyId);
   }
 
   /**
@@ -131,9 +136,6 @@ export abstract class Level {
         this.collisions.handle({ bodyA: bodyIdA, bodyB: bodyIdB, userDataA, userDataB }, this.context);
       }
     }
-
-    // Destroy queued bodies after iteration
-    this.collisions.flushDestructions();
   }
 
   /**
@@ -187,7 +189,7 @@ export abstract class Level {
   /**
    * Called when the level is won
    */
-  protected onWin(): void {
+  public onWin(): void {
     const result: LevelResult = {
       success: true,
       score: this.calculateScore(),

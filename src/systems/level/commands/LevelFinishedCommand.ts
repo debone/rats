@@ -1,6 +1,8 @@
-import { Command } from '@/core/game/Command';
+import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import type { LevelResult } from '@/data/game-state';
+import { LevelCompleteCommand } from './LevelCompleteCommand';
+import { LevelFailureCommand } from './LevelFailureCommand';
 
 interface Payload {
   success: boolean;
@@ -13,12 +15,10 @@ export class LevelFinishedCommand extends Command<Payload> {
 
     if (!this.context.run) return;
 
-    return;
-    /*
     if (success) {
       yield execute(LevelCompleteCommand, result);
     } else {
       yield execute(LevelFailureCommand, result);
-    }*/
+    }
   }
 }

@@ -1,27 +1,53 @@
-import { type PrototypeTextures, ASSETS } from '@/assets';
-import { typedAssets } from '@/core/assets/typed-assets';
 import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
+import { PhysicsSystem } from '@/systems/physics/system';
+import { LayoutContainer } from '@pixi/layout/components';
 import { animate } from 'animejs';
-import { Sprite } from 'pixi.js';
+import { Graphics, Text } from 'pixi.js';
+import type { Level } from '../../Level';
 
-export class Level_1_BallExitedCommand extends Command<void> {
-  *execute() {
+type BallExitedCommandResult = {
+  level: Level;
+};
+
+export class Level_1_BallExitedCommand extends Command<BallExitedCommandResult> {
+  *execute({ level }: BallExitedCommandResult) {
+    const exitOverlay = new LayoutContainer({
+      layout: {
+        width: '100%',
+        height: '100%',
+      },
+    });
+    this.context.container!.addChild(exitOverlay);
+
     yield delay(300);
 
-    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
-    const sprite = new Sprite(bg[`bricks_tile_1#0`]);
-    sprite.alpha = 0;
-    sprite.tint = 0x00ff00;
-    sprite.anchor.set(0.5, 0.5);
-    sprite.position.set(200, 300);
-    sprite.scale.set(4, 4);
-    this.context.container!.addChild(sprite);
+    const dark = new Graphics();
+    dark.rect(-100, -100, exitOverlay.width + 200, exitOverlay.height + 200);
+    dark.fill(0x322947);
+    dark.alpha = 0;
+    exitOverlay.addChild(dark);
 
-    animate(sprite, { alpha: 1, duration: 200, easing: 'linear' });
+    yield animate(dark, { alpha: 0.5, duration: 500, easing: 'linear' });
 
-    yield delay(200);
+    const endLevel = new Text({
+      text: 'Level Complete!',
+      style: {
+        fontFamily: 'Georgia',
+        fontSize: 48,
+        fill: 0xffffff,
+      },
+      layout: {
+        width: '100%',
+        height: 'auto',
+      },
+    });
 
-    animate(sprite, { rotation: Math.PI, duration: 1000, easing: 'linear' });
+    exitOverlay.addChild(endLevel);
+
+    this.context.systems.get(PhysicsSystem).stop();
+    yield delay(1000);
+
+    level.onWin();
   }
 }

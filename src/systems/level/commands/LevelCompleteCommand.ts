@@ -5,6 +5,7 @@ import { MapScreen } from '@/screens/MapScreen';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { SaveSystem } from '../../save/system';
+import { UnloadLevelCommand } from './UnloadLevelCommand';
 
 export class LevelCompleteCommand extends Command<LevelResult> {
   *execute(result: LevelResult): Coroutine {
@@ -33,7 +34,9 @@ export class LevelCompleteCommand extends Command<LevelResult> {
 
     // Cutscene phase
     this.context.phase = 'cutscene';
+    yield execute(UnloadLevelCommand);
     yield delay(500);
+
     physicsSystem.stop();
 
     // Show map screen
