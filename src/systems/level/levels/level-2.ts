@@ -207,7 +207,7 @@ export default class Level1 extends Level {
     this.checkCollisions(this.context.worldId!);
   }
 
-  private checkCollisions(worldId: b2WorldId) {
+  checkCollisions(worldId: b2WorldId) {
     const contactEvents = b2World_GetContactEvents(worldId);
 
     if (contactEvents.beginCount > 0) {

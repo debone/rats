@@ -1,9 +1,11 @@
-import type { Application, Container } from 'pixi.js';
 import type { b2WorldId } from 'phaser-box2d';
+import { Container, type Application } from 'pixi.js';
 
-import type { SystemRunner } from '@/core/game/SystemRunner';
 import type { EventContext } from '@/core/game/EventEmitter';
-import type { MetaGameState, RunState, LevelState, LevelResult } from '@/data/game-state';
+import type { SystemRunner } from '@/core/game/SystemRunner';
+import type { LayerName } from '@/core/window/types';
+import type { LevelState, MetaGameState, RunState } from '@/data/game-state';
+import { LayoutContainer } from '@pixi/layout/components';
 
 /**
  * Core Game Types
@@ -15,6 +17,23 @@ import type { MetaGameState, RunState, LevelState, LevelResult } from '@/data/ga
 /** Current phase of the game */
 export type GamePhase = 'idle' | 'map' | 'level' | 'cutscene' | 'transition' | 'paused' | 'shop';
 
+/** Z-ordered rendering layers - all layers always exist, fully typed */
+export interface GameLayers {
+  /** Background layer (lowest z-index) */
+  background: LayoutContainer;
+  /** Main game layer for gameplay objects */
+  game: LayoutContainer;
+  /** Effects layer for particles, trails */
+  effects: LayoutContainer;
+  /** UI overlay layer for HUD, dialogs */
+  ui: LayoutContainer;
+  /** Debug layer (highest z-index) */
+  debug: LayoutContainer;
+}
+
+/** Layer z-order (lowest to highest) */
+export const LAYER_ORDER: LayerName[] = ['background', 'game', 'effects', 'ui', 'debug'];
+
 /** Shared context passed throughout the game */
 export interface GameContext {
   /** The Pixi application */
@@ -23,7 +42,10 @@ export interface GameContext {
   /** The Box2D world ID (set by PhysicsSystem when active) */
   worldId: b2WorldId | null;
 
-  /** Main game container for rendering */
+  /** Z-ordered rendering layers (set by NavigationSystem) */
+  layers: GameLayers | null;
+
+  /** Current screen's game container (set by GameScreen when active) */
   container: Container | null;
 
   // State management

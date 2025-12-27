@@ -23,7 +23,7 @@ import {
   SetWorldScale,
 } from 'phaser-box2d';
 import { Container, Graphics } from 'pixi.js';
-import { DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
+import { ClearWorldSprites, DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
 
 export class PhysicsSystem implements System {
   static SYSTEM_ID = 'physics';
@@ -33,7 +33,7 @@ export class PhysicsSystem implements System {
   private debugDraw?: PhaserDebugDraw;
 
   // TODO: devtools option?
-  private enableDebug = false;
+  private enableDebug = true;
 
   private updateHandler = this.update.bind(this);
 
@@ -135,26 +135,47 @@ export class PhysicsSystem implements System {
     this.pendingDestructions = [];
   }
 
-  setupDebugDraw(container: Container) {
-    if (this.debugGraphics) {
-      console.log('[PhysicsSystem] Replacing existing debug graphics');
-      container.addChild(this.debugGraphics);
-      return;
+  /**
+   * Clear all sprite associations without destroying the world.
+   * Call this when resetting a level/screen.
+   */
+  clearSprites() {
+    if (this.context.worldId) {
+      ClearWorldSprites(this.context.worldId);
     }
+  }
+
+  /**
+   * Clean up debug graphics (call before setting up new ones)
+   */
+  cleanupDebugDraw() {
+    if (this.debugGraphics) {
+      this.debugGraphics.destroy();
+      this.debugGraphics = undefined;
+      this.debugDraw = undefined;
+    }
+  }
+
+  setupDebugDraw(container: Container) {
+    // Clean up existing debug graphics first
+    this.cleanupDebugDraw();
+
     // Create debug graphics
-    this.debugGraphics = new Graphics();
-    this.debugGraphics.x = MIN_WIDTH / 2;
-    this.debugGraphics.y = MIN_HEIGHT / 2;
+    this.debugGraphics = new Graphics({
+      layout: {
+        marginTop: -87,
+      },
+    });
 
-    this.debugGraphics.zIndex = 10;
-
+    this.debugGraphics.x = container.width;
+    this.debugGraphics.y = container.height;
     container.addChild(this.debugGraphics);
 
     // Create debug draw instance
     this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH, MIN_HEIGHT, PXM);
     this.debugDraw.drawJoints = true;
 
-    console.log('[PhysicsSystem] Debug draw enabled');
+    console.log('[PhysicsSystem] Debug draw setup');
   }
 
   destroy() {

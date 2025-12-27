@@ -5,6 +5,7 @@ import type { Boon, LevelResult, LevelState } from '@/data/game-state';
 import {
   b2Body_GetUserData,
   b2Body_IsValid,
+  b2DestroyBody,
   b2Shape_GetBody,
   b2World_GetContactEvents,
   b2World_GetSensorEvents,
@@ -143,7 +144,18 @@ export abstract class Level {
    */
   async unload(): Promise<void> {
     console.log(`[Level] Unloading level: ${this.config.id}`);
-    // Override to clean up physics bodies, entities, etc.
+
+    // Destroy all registered physics bodies
+    for (const bodyId of this.bodies) {
+      if (b2Body_IsValid(bodyId)) {
+        b2DestroyBody(bodyId);
+      }
+    }
+    this.bodies = [];
+    this.bodiesIds.clear();
+
+    // Clear collision handlers
+    this.collisions.clear();
   }
 
   /**

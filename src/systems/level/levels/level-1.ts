@@ -40,6 +40,7 @@ import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { Level } from '../Level';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
+import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
 
 /**
@@ -114,6 +115,8 @@ export default class Level1 extends Level {
     });
 
     this.createBackground();
+
+    await execute(Level_1_LevelStartCommand);
 
     console.log('[Level1] Loaded');
   }
@@ -392,13 +395,5 @@ export default class Level1 extends Level {
     }
 
     return false;
-  }
-
-  async unload(): Promise<void> {
-    console.log('[Level1] Unloading...');
-    this.collisions.clear();
-    // TODO: Destroy physics
-
-    // For now, bodies will be cleaned up when world is destroyed
   }
 }

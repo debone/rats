@@ -1,13 +1,14 @@
-import { Assets, Container } from 'pixi.js';
 import { areBundlesLoaded } from '@/core/assets/assets';
-import { app } from '@/main';
 import { pool } from '@/core/common/pool';
-import type { AppScreen, AppScreenConstructor } from './types';
-import type { GameContext } from '@/data/game-context';
 import { GameEvent } from '@/data/events';
+import type { GameContext } from '@/data/game-context';
+import { createGameLayers, destroyGameLayers } from './layers';
+import { app } from '@/main';
+import { Assets, Container } from 'pixi.js';
+import type { AppScreen, AppScreenConstructor, LayerName } from './types';
 
 class Navigation {
-  /** Container for screens */
+  /** Container for screens and layers */
   public container = new Container();
 
   /** Application width */
@@ -15,9 +16,6 @@ class Navigation {
 
   /** Application height */
   public height = 0;
-
-  /** Constant background view for all screens */
-  public background?: AppScreen;
 
   /** Current screen being displayed */
   public currentScreen?: AppScreen;
@@ -29,26 +27,21 @@ class Navigation {
     this.context = context;
   }
 
-  // TODO: loading? It was on bubbo-bubbo
-  // private loadScreen?: AppScreen;
-
-  /** Current popup being displayed */
-  public currentPopup?: AppScreen;
-
-  /** Set the default load screen */
-  public setBackground(ctor: AppScreenConstructor) {
-    this.background = new ctor();
-    this.addAndShowScreen(this.background);
-  }
-
   /** Add screen to the stage, link update & resize functions */
-  private async addAndShowScreen(screen: AppScreen) {
+  private async addAndShowScreen(screen: AppScreen, layerNames?: LayerName[]) {
     // Add navigation container to stage if it does not have a parent yet
     if (!this.container.parent) {
       app.stage.addChild(this.container);
     }
 
-    // Add screen to stage
+    // Create layers for this screen (if specified)
+    if (layerNames && layerNames.length > 0) {
+      this.context.layers = createGameLayers(this.container, layerNames);
+    } else {
+      this.context.layers = null;
+    }
+
+    // Add screen to stage (after layers so screen is on top)
     this.container.addChild(screen);
 
     // Setup things and pre-organise screen before showing
@@ -92,9 +85,15 @@ class Navigation {
       app.ticker.remove(screen.update, screen);
     }
 
-    // Remove screen from its parent (usually app.stage, if not changed)
+    // Remove screen from its parent
     if (screen.parent) {
       screen.parent.removeChild(screen);
+    }
+
+    // Destroy layers for this screen
+    if (this.context.layers) {
+      destroyGameLayers(this.context.layers);
+      this.context.layers = null;
     }
 
     // Clean up the screen so that instance can be reused again later
@@ -128,7 +127,7 @@ class Navigation {
 
     // Create the new screen and add that to the stage
     this.currentScreen = pool.get(ctor);
-    await this.addAndShowScreen(this.currentScreen);
+    await this.addAndShowScreen(this.currentScreen, ctor.screenLayers);
   }
 
   /**
@@ -140,79 +139,28 @@ class Navigation {
     this.width = width;
     this.height = height;
 
+    // Resize screen
     if (this.currentScreen) {
-      this.currentScreen.layout = {
-        width: width,
-        height: height,
-      };
+      this.currentScreen.layout = { width, height };
+      this.currentScreen.resize?.(width, height);
     }
 
-    if (this.currentPopup) {
-      this.currentPopup.layout = {
-        width: width,
-        height: height,
-      };
-    }
-
-    if (this.background) {
-      this.background.layout = {
-        width: width,
-        height: height,
-      };
-    }
-
-    this.currentScreen?.resize?.(width, height);
-    this.currentPopup?.resize?.(width, height);
-    this.background?.resize?.(width, height);
-  }
-
-  /**
-   * Show up a popup over current screen
-   */
-  public async presentPopup(ctor: AppScreenConstructor) {
-    if (this.currentScreen) {
-      this.currentScreen.interactiveChildren = false;
-      await this.currentScreen.pause?.();
-    }
-
-    if (this.currentPopup) {
-      await this.hideAndRemoveScreen(this.currentPopup);
-    }
-
-    this.currentPopup = new ctor();
-    await this.addAndShowScreen(this.currentPopup);
-  }
-
-  /**
-   * Dismiss current popup, if there is one
-   */
-  public async dismissPopup() {
-    if (!this.currentPopup) return;
-    const popup = this.currentPopup;
-    this.currentPopup = undefined;
-    await this.hideAndRemoveScreen(popup);
-    if (this.currentScreen) {
-      this.currentScreen.interactiveChildren = true;
-      this.currentScreen.resume?.();
+    // Resize all layers
+    if (this.context.layers) {
+      for (const layer of Object.values(this.context.layers)) {
+        layer.layout = { width, height };
+      }
     }
   }
 
-  /**
-   * Blur screens when lose focus
-   */
+  /** Blur screen when window loses focus */
   public blur() {
     this.currentScreen?.blur?.();
-    this.currentPopup?.blur?.();
-    this.background?.blur?.();
   }
 
-  /**
-   * Focus screens
-   */
+  /** Focus screen when window gains focus */
   public focus() {
     this.currentScreen?.focus?.();
-    this.currentPopup?.focus?.();
-    this.background?.focus?.();
   }
 }
 

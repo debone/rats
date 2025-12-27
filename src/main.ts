@@ -9,12 +9,12 @@ import { storage } from '@/core/storage/storage';
 import { resize, visibilityChange } from '@/core/window/resize';
 
 // Game Core
-import { SystemRunner } from '@/core/game/SystemRunner';
-import { EventEmitter, EventContext } from '@/core/game/EventEmitter';
 import { execute } from '@/core/game/Command';
-import { createDefaultMetaState } from '@/data/game-state';
-import { setGameContext } from '@/data/game-context';
+import { EventContext, EventEmitter } from '@/core/game/EventEmitter';
+import { SystemRunner } from '@/core/game/SystemRunner';
 import type { GameContext } from '@/data/game-context';
+import { setGameContext } from '@/data/game-context';
+import { createDefaultMetaState } from '@/data/game-state';
 
 // Systems
 import { NavigationSystem } from '@/systems/navigation/system';
@@ -23,11 +23,9 @@ import { SaveSystem } from '@/systems/save/system';
 // Commands
 import { AppStartCommand } from '@/systems/app/commands/AppStartCommand';
 
-import { CRTFilter } from 'pixi-filters/crt';
-import { BloomFilter } from 'pixi-filters/bloom';
-import { GlowFilter } from 'pixi-filters/glow';
-import { CRT2Filter } from './lib/CRT/CRT';
 import { ReflectionFilter } from 'pixi-filters';
+import { BloomFilter } from 'pixi-filters/bloom';
+import { CRT2Filter } from './lib/CRT/CRT';
 
 export const app = new Application();
 
@@ -80,6 +78,7 @@ async function init() {
   const context: GameContext = {
     app,
     worldId: null,
+    layers: null,
     container: null,
     meta: createDefaultMetaState(),
     run: null,

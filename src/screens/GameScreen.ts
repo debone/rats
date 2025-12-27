@@ -2,7 +2,7 @@ import { ASSETS } from '@/assets';
 import type { PrototypeTextures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
-import type { AppScreen } from '@/core/window/types';
+import type { AppScreen, LayerName } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
@@ -19,27 +19,27 @@ import { Container, Ticker, TilingSprite } from 'pixi.js';
 export class GameScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'game';
   static readonly assetBundles = ['preload', 'default'];
+  static readonly screenLayers: LayerName[] = ['background', 'game', 'ui', 'debug'];
 
-  private readonly _background: TilingSprite;
-  private readonly _gameContainer: LayoutContainer;
+  private _background?: TilingSprite;
+  private _gameContainer?: LayoutContainer;
 
   constructor() {
     super();
+  }
+
+  /**
+   * Prepare is called before show.
+   * Set up layers and game container reference in context.
+   */
+  async prepare() {
+    console.log('[GameScreen] Preparing...');
 
     this.layout = {
       justifyContent: 'center',
       alignItems: 'center',
       flexDirection: 'column',
     };
-
-    // Tiling background
-    const tilingSprite = new TilingSprite({
-      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['prototype_spritesheet_60#0'],
-      width: 32,
-      height: 32,
-    });
-    this._background = tilingSprite;
-    this.addChild(this._background);
 
     // Game container (black box for the game area)
     const gameContainer = new LayoutContainer({
@@ -52,23 +52,28 @@ export class GameScreen extends Container implements AppScreen {
       },
     });
     this._gameContainer = gameContainer;
-    this.addChild(gameContainer);
+
+    // Tiling background
+    const tilingSprite = new TilingSprite({
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['prototype_spritesheet_60#0'],
+      width: 32,
+      height: 32,
+    });
+    this._background = tilingSprite;
 
     const context = getGameContext();
-    const physicsSystem = context.systems.get(PhysicsSystem);
-    physicsSystem.setupDebugDraw(gameContainer);
-  }
+    const layers = context.layers!; // Layers are guaranteed to exist in prepare()
 
-  /**
-   * Prepare is called before show.
-   * Set up the game container reference in context.
-   */
-  async prepare() {
-    console.log('[GameScreen] Preparing...');
+    // Add content to layers
+    layers.background.addChild(this._background);
+    layers.game.addChild(this._gameContainer);
 
     // Set the container on the context so systems can use it
-    const context = getGameContext();
     context.container = this._gameContainer;
+
+    // Setup physics debug draw on debug layer
+    const physicsSystem = context.systems.get(PhysicsSystem);
+    physicsSystem.setupDebugDraw(layers.debug);
 
     // Setup event listeners for UI events
     this.setupEventListeners();
@@ -100,24 +105,24 @@ export class GameScreen extends Container implements AppScreen {
    */
   resize(w: number, h: number) {
     // Fit background to screen
-    this._background.width = w;
-    this._background.height = h;
+    this._background!.width = w;
+    this._background!.height = h;
   }
 
   /**
-   * Pause is called when the screen loses focus.
+   * Called when window loses focus.
    */
-  async pause() {
-    console.log('[GameScreen] Pausing...');
+  blur() {
+    console.log('[GameScreen] Blurring...');
     const context = getGameContext();
     context.phase = 'paused';
   }
 
   /**
-   * Resume is called when the screen regains focus.
+   * Called when window gains focus.
    */
-  async resume() {
-    console.log('[GameScreen] Resuming...');
+  focus() {
+    console.log('[GameScreen] Focusing...');
     const context = getGameContext();
     if (context.phase === 'paused') {
       context.phase = 'level';
@@ -181,8 +186,19 @@ export class GameScreen extends Container implements AppScreen {
   reset() {
     console.log('[GameScreen] Resetting...');
 
-    // Clear container reference
     const context = getGameContext();
+
+    // Clear physics sprite associations (world stays alive)
+    const physicsSystem = context.systems.get(PhysicsSystem);
+    physicsSystem.clearSprites();
+    physicsSystem.cleanupDebugDraw();
+
+    // Destroy containers
+    this._gameContainer?.destroy({ children: true });
+    this._background?.destroy();
+    this._gameContainer = undefined;
+    this._background = undefined;
+
     context.container = null;
 
     context.events.off(GameEvent.GAME_SHOW_MAP, this.handleShowMap);
