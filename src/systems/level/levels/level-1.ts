@@ -53,7 +53,7 @@ export default class Level1 extends Level {
   private paddleBodyId!: b2BodyId;
   private ballBodyId!: b2BodyId;
 
-  private debug_mode = true;
+  private debug_mode = false;
 
   constructor() {
     super({

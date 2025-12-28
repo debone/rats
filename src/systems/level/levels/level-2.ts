@@ -95,8 +95,14 @@ export default class Level2 extends Level {
 
         i++;
       } else if (userData?.type === 'strong-brick') {
+        if (this.debug_mode && i > 0) {
+          this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+          return;
+        }
+
         b2Body_SetUserData(bodyId, { type: 'strong-brick', life: 2 });
         this.addBrick(bg[`bricks_tile_3#0`], bodyId, 2);
+        i++;
       } else if (userData?.type === 'door') {
         this.addDoor(bg[`bricks_tile_2#0`], bodyId);
       }

@@ -1,10 +1,11 @@
 import { Command, execute } from '@/core/game/Command';
 import { delay, type Coroutine } from '@/core/game/Coroutine';
 import type { LevelResult } from '@/data/game-state';
-import { MapScreen } from '@/screens/MapScreen';
+import { GameScreen } from '@/screens/GameScreen';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { SaveSystem } from '../../save/system';
+import { LoadLevelCommand } from './LoadLevelCommand';
 import { UnloadLevelCommand } from './UnloadLevelCommand';
 
 export class LevelCompleteCommand extends Command<LevelResult> {
@@ -40,12 +41,16 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     physicsSystem.stop();
 
     // Show map screen
-    this.context.phase = 'map';
-    yield execute(ShowScreenCommand, { screen: MapScreen });
+    //this.context.phase = 'map';
+    //yield execute(ShowScreenCommand, { screen: MapScreen });
 
     // Wait for player selection
     // TODO: Replace with actual map screen interaction
     //yield delay(2000);
+
+    yield execute(ShowScreenCommand, { screen: GameScreen });
+    this.context.run.currentLevelId = 'level-2';
+    yield execute(LoadLevelCommand, { levelId: 'level-2' });
 
     /*
     let selection;

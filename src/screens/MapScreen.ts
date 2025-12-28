@@ -1,11 +1,11 @@
-import type { AppScreen } from '@/core/window/types';
-import { Container, Graphics, Text } from 'pixi.js';
-import { Button } from '@pixi/ui';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
-import { LayoutContainer } from '@pixi/layout/components';
 import { execute } from '@/core/game/Command';
+import type { AppScreen } from '@/core/window/types';
 import { LevelSelectedCommand } from '@/systems/app/commands/LevelSelectedCommand';
+import { LayoutContainer } from '@pixi/layout/components';
+import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
+import { Container, Graphics, Text } from 'pixi.js';
 
 /**
  * MapScreen - Placeholder for level selection map
@@ -52,7 +52,7 @@ export class MapScreen extends Container implements AppScreen {
 
     gameContainer.addChild(button.view!);
 
-    execute(LevelSelectedCommand, { levelId: 'level-2' });
+    execute(LevelSelectedCommand, { levelId: 'level-1' });
   }
 
   gameContainer: LayoutContainer;
