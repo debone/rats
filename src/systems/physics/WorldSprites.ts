@@ -153,7 +153,8 @@ export function GetSpriteFromBody(worldId: b2WorldId, bodyId: b2BodyId): SpriteO
   if (!WorldSprites.has(worldId)) return null;
 
   for (const [sprite, entry] of WorldSprites.get(worldId)!) {
-    if (entry.bodyId === bodyId) {
+    // TODO: hi Victor from future, I'm sorry if this comparison is not correct
+    if (entry.bodyId.index1 === bodyId.index1) {
       return sprite;
     }
   }

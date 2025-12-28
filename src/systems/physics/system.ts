@@ -33,7 +33,7 @@ export class PhysicsSystem implements System {
   private debugDraw?: PhaserDebugDraw;
 
   // TODO: devtools option?
-  private enableDebug = true;
+  private enableDebug = false;
 
   private updateHandler = this.update.bind(this);
 

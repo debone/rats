@@ -52,7 +52,7 @@ export class MapScreen extends Container implements AppScreen {
 
     gameContainer.addChild(button.view!);
 
-    execute(LevelSelectedCommand, { levelId: 'level-1' });
+    execute(LevelSelectedCommand, { levelId: 'level-2' });
   }
 
   gameContainer: LayoutContainer;
