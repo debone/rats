@@ -15,7 +15,10 @@ import {
   b2BodyId,
   b2DefaultWorldDef,
   b2DestroyBody,
+  b2DestroyJoint,
   b2DestroyWorld,
+  b2Joint_IsValid,
+  b2JointId,
   b2Vec2,
   b2World_Draw,
   b2World_Step,
@@ -38,6 +41,7 @@ export class PhysicsSystem implements System {
   private updateHandler = this.update.bind(this);
 
   private pendingDestructions: b2BodyId[] = [];
+  private pendingJointDestructions: b2JointId[] = [];
 
   init(context: GameContext) {
     this.context = context;
@@ -122,6 +126,10 @@ export class PhysicsSystem implements System {
     this.pendingDestructions.push(bodyId);
   }
 
+  queueJointDestruction(jointId: b2JointId): void {
+    this.pendingJointDestructions.push(jointId);
+  }
+
   /**
    * Destroy all queued bodies.
    * Call this after processing all collisions for the frame.
@@ -133,6 +141,13 @@ export class PhysicsSystem implements System {
       }
     }
     this.pendingDestructions = [];
+
+    for (const jointId of this.pendingJointDestructions) {
+      if (b2Joint_IsValid(jointId)) {
+        b2DestroyJoint(jointId);
+      }
+    }
+    this.pendingJointDestructions = [];
   }
 
   /**

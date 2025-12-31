@@ -34,6 +34,7 @@ import {
   b2Vec2,
   CreateBoxPolygon,
   CreateCircle,
+  CreatePrismaticJoint,
 } from 'phaser-box2d';
 import { GlowFilter } from 'pixi-filters';
 import { Assets, Sprite, Texture } from 'pixi.js';
@@ -268,8 +269,22 @@ export default class Level1 extends Level {
     this.registerBody(bodyId);
     this.paddleBodyId = bodyId;
 
+    this.ballPrismaticJointId = CreatePrismaticJoint({
+      worldId: worldId,
+      bodyIdA: this.paddleBodyId,
+      bodyIdB: this.ballBodyId,
+      anchorA: new b2Vec2(0, 1),
+      anchorB: new b2Vec2(0, 0),
+      axis: new b2Vec2(1, 0),
+      enableLimit: true,
+      lowerTranslation: -2,
+      upperTranslation: 2,
+    }).jointId;
+
     console.log('[Level1] Paddle created');
   }
+
+  private ballPrismaticJointId!: b2JointId;
 
   private createBall(): void {
     const worldId = this.context.worldId;
@@ -306,7 +321,10 @@ export default class Level1 extends Level {
     this.updatePaddleInput();
 
     // Maintain constant ball speed
-    this.maintainBallSpeed();
+    // TODO: this should be a method swap
+    if (this.shouldMaintainBallSpeed) {
+      this.maintainBallSpeed();
+    }
   }
 
   private updatePaddleInput(): void {
@@ -336,7 +354,14 @@ export default class Level1 extends Level {
     if (InputDevice.keyboard.key.ArrowDown) {
       b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(0, -10));
     }
+
+    if (InputDevice.keyboard.key.Space && !this.shouldMaintainBallSpeed) {
+      this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
+      this.shouldMaintainBallSpeed = true;
+    }
   }
+
+  shouldMaintainBallSpeed: boolean = false;
 
   private maintainBallSpeed(): void {
     const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
