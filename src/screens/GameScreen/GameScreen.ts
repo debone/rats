@@ -8,6 +8,7 @@ import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Container, Ticker, TilingSprite } from 'pixi.js';
+import { BallCounter } from './ui/BallCounter';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -78,6 +79,8 @@ export class GameScreen extends Container implements AppScreen {
     // Setup event listeners for UI events
     this.setupEventListeners();
 
+    this.addChild(new BallCounter(0, 0));
+
     console.log('[GameScreen] Prepared');
   }
 
@@ -87,6 +90,7 @@ export class GameScreen extends Container implements AppScreen {
   async show() {
     console.log('[GameScreen] Showing...');
     // The game is already running via systems
+
     // We just need to display the visuals
     console.log('[GameScreen] Shown');
   }

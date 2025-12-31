@@ -8,6 +8,9 @@ import { animate } from 'animejs';
 import { Assets, Container, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { hasGameContext, getGameContext } from '@/data/game-context';
 import { GameEvent } from '@/data/events';
+import { createRef, type Ref } from '@/core/reactivity/refs/ref';
+import { createRefCollection, createRefs } from '@/core/reactivity/refs/ref-collection';
+import { signal } from '@/core/reactivity/signals/signals';
 
 export class LoadScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'load';
@@ -115,6 +118,67 @@ export class LoadScreen extends Container implements AppScreen {
     //this.sprite2.anchor.set(0.5, 0.5);
 
     //background.addChild(new LayoutContainer({ layout: { ...defaults, width: 300, height: 300 } }));
+
+    /**
+
+    const ballsUI = createRefCollection(
+      'balls',
+      ({ x, y }: Ref<{ x: number; y: number }>) => {
+        const sprite = new LayoutSprite({
+          texture: aa_tile_1,
+          layout: { width: aa_tile_1.width, height: aa_tile_1.height },
+        });
+        return sprite;
+      },
+      [],
+      this,
+    );
+
+    ballsUI.data.push({ x: 10, y: 0 });
+    ballsUI.data.push({ x: 30, y: 0 });
+    // ballsUI.data.push({ x: 100, y: 550 });
+    // ballsUI.data.push({ x: 100, y: 650 });
+    setTimeout(() => {
+      ballsUI.data.remove(1);
+    }, 1000);
+
+    /**/
+
+    const ballsUI = createRefs(
+      'balls',
+      () => {
+        const sprite = new Sprite({
+          texture: aa_tile_1,
+          layout: { width: aa_tile_1.width, height: aa_tile_1.height },
+        });
+        return sprite;
+      },
+      signal(2),
+      this,
+    );
+
+    //ballsUI.data.push({ x: 100, y: 650 });
+    setTimeout(() => {
+      ballsUI.size.set(1);
+    }, 1000);
+
+    setTimeout(() => {
+      ballsUI.size.set(5);
+    }, 2000);
+
+    setTimeout(() => {
+      ballsUI.size.set(1);
+    }, 3000);
+
+    setTimeout(() => {
+      ballsUI.size.set(0);
+    }, 4000);
+
+    setTimeout(() => {
+      ballsUI.size.set(10);
+    }, 5000);
+
+    /**/
   }
 
   //private sprite2: Sprite;

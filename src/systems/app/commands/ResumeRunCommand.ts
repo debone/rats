@@ -5,7 +5,7 @@ import { PhysicsSystem } from '../../physics/system';
 import { LevelSystem } from '../../level/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { LoadLevelCommand } from '../../level/commands/LoadLevelCommand';
-import { GameScreen } from '@/screens/GameScreen';
+import { GameScreen } from '@/screens/GameScreen/GameScreen';
 
 export class ResumeRunCommand extends Command<{ run: RunState }> {
   *execute({ run }: { run: RunState }): Coroutine {
@@ -25,4 +25,3 @@ export class ResumeRunCommand extends Command<{ run: RunState }> {
     yield execute(LoadLevelCommand, { levelId: run.currentLevelId });
   }
 }
-

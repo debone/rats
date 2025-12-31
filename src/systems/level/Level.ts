@@ -14,6 +14,7 @@ import {
 } from 'phaser-box2d';
 import { CollisionHandlerRegistry } from '../physics/collision-handler';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
+import { signal } from '@/core/reactivity/signals/signals';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -71,10 +72,10 @@ export abstract class Level {
    */
   createInitialState(): LevelState {
     return {
-      ballsRemaining: this.config.ballCount || 3,
-      bricksDestroyed: 0,
-      powerupsCollected: [],
-      elapsedTime: 0,
+      ballsRemaining: signal(this.config.ballCount || 3),
+      //bricksDestroyed: 0,
+      //powerupsCollected: [],
+      //elapsedTime: 0,
     };
   }
 
@@ -88,11 +89,14 @@ export abstract class Level {
    * Update level logic
    * Called every frame while the level is active
    */
-  update(delta: number): void {
+  update(_delta: number): void {
     // Update elapsed time
-    if (this.context.level) {
+    // [STATE] TODO: not sure what would be the way here
+    /*
+    if (this.context.state.level) {
       this.context.level.elapsedTime += delta;
     }
+    */
 
     this.checkCollisions(this.context.worldId!);
   }
@@ -194,8 +198,9 @@ export abstract class Level {
    */
   protected checkLoseCondition(): boolean {
     // Default: no balls remaining
-    const levelState = this.context.level;
-    return levelState ? levelState.ballsRemaining <= 0 : false;
+    // [STATE] TODO: make it a method
+    const levelState = this.context.state.level;
+    return levelState ? levelState.ballsRemaining.get() <= 0 : false;
   }
 
   /**
@@ -204,14 +209,15 @@ export abstract class Level {
   public onWin(): void {
     const result: LevelResult = {
       success: true,
-      score: this.calculateScore(),
-      boonsEarned: this.selectBoons(),
-      timeElapsed: this.context.level?.elapsedTime || 0,
-      perfectClear: this.checkPerfectClear(),
+      //score: this.calculateScore(),
+      //boonsEarned: this.selectBoons(),
+      //timeElapsed: this.context.level?.elapsedTime || 0,
+      //perfectClear: this.checkPerfectClear(),
     };
 
     // Prevent multiple calls
-    this.context.level = null;
+    // [STATE] TODO: make it a method
+    this.context.state.level = null;
 
     this.context.events.emit(GameEvent.LEVEL_WON, result);
     execute(LevelFinishedCommand, { success: true, result });
@@ -223,13 +229,14 @@ export abstract class Level {
   protected onLose(): void {
     const result: LevelResult = {
       success: false,
-      score: this.calculateScore(),
-      boonsEarned: [],
-      timeElapsed: this.context.level?.elapsedTime || 0,
+      //score: this.calculateScore(),
+      //boonsEarned: [],
+      //timeElapsed: this.context.level?.elapsedTime || 0,
     };
 
     // Prevent multiple calls
-    this.context.level = null;
+    // [STATE] TODO: make it a method
+    this.context.state.level = null;
 
     this.context.events.emit(GameEvent.LEVEL_LOST, result);
     execute(LevelFinishedCommand, { success: false, result });
@@ -240,16 +247,17 @@ export abstract class Level {
    * Override for custom scoring
    */
   protected calculateScore(): number {
-    const levelState = this.context.level;
+    // [STATE] TODO: make it a method
+    const levelState = this.context.state.level;
     if (!levelState) return 0;
 
     let score = 0;
-    score += levelState.bricksDestroyed * 100;
-    score += levelState.powerupsCollected.length * 500;
+    //score += levelState.bricksDestroyed * 100;
+    //score += levelState.powerupsCollected.length * 500;
 
     // Time bonus (faster = more points)
-    const timeBonus = Math.max(0, 60000 - levelState.elapsedTime) / 100;
-    score += Math.floor(timeBonus);
+    // const timeBonus = Math.max(0, 60000 - levelState.elapsedTime) / 100;
+    //score += Math.floor(timeBonus);
 
     return score;
   }
@@ -267,18 +275,21 @@ export abstract class Level {
    * Check if the level was cleared perfectly
    */
   protected checkPerfectClear(): boolean {
-    const levelState = this.context.level;
+    // [STATE] TODO: make it a method
+    const levelState = this.context.state.level;
     if (!levelState) return false;
 
     // Perfect clear: no balls lost
-    return levelState.ballsRemaining === (this.config.ballCount || 3);
+    return levelState.ballsRemaining.get() === (this.config.ballCount || 3);
   }
 
   /**
    * Helper: Access active boons from run state
    */
   protected get activeBoons(): Boon[] {
-    return this.context.run?.activeBoons || [];
+    // [STATE] TODO: make it a method
+    const runState = this.context.state.run;
+    return runState ? runState.activeBoons : [];
   }
 
   /**

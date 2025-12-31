@@ -14,6 +14,7 @@ export class AppStartCommand extends Command {
 
     // Show load screen
     yield execute(ShowScreenCommand, { screen: LoadScreen });
+    /**/
 
     // Check for saved run
     let savedRun = yield this.context.systems.get(SaveSystem).loadRun();
@@ -30,5 +31,6 @@ export class AppStartCommand extends Command {
     } else {
       yield execute(StartNewRunCommand, { startingLevelId: 'level-1' });
     }
+    /**/
   }
 }

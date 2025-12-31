@@ -5,6 +5,15 @@
  * These are pure data definitions without implementation logic.
  */
 
+import { signal } from '@/core/reactivity/signals/signals';
+import type { Signal } from '@/core/reactivity/signals/types';
+
+export interface GameState {
+  meta: MetaGameState;
+  run: RunState | null;
+  level: LevelState | null;
+}
+
 /** Boon/powerup that carries across levels */
 export interface Boon {
   id: string;
@@ -51,19 +60,19 @@ export interface RunState {
 
 /** In-level state - specific to current level instance */
 export interface LevelState {
-  ballsRemaining: number;
-  bricksDestroyed: number;
-  powerupsCollected: string[];
-  elapsedTime: number;
+  ballsRemaining: Signal<number>;
+  //bricksDestroyed: number;
+  //powerupsCollected: string[];
+  //elapsedTime: number;
 }
 
 /** Result of completing a level */
 export interface LevelResult {
   success: boolean;
-  score: number;
-  boonsEarned: Boon[];
-  timeElapsed: number;
-  perfectClear?: boolean;
+  //score: number;
+  //boonsEarned: Boon[];
+  //timeElapsed: number;
+  //perfectClear?: boolean;
 }
 
 /** Map selection from player */
@@ -100,9 +109,9 @@ export function createDefaultRunState(): RunState {
 /** Create a default level state */
 export function createDefaultLevelState(): LevelState {
   return {
-    ballsRemaining: 3,
-    bricksDestroyed: 0,
-    powerupsCollected: [],
-    elapsedTime: 0,
+    ballsRemaining: signal(3),
+    //bricksDestroyed: 0,
+    //powerupsCollected: [],
+    //elapsedTime: 0,
   };
 }

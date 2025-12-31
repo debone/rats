@@ -199,8 +199,8 @@ export default class Level1 extends Level {
       if (this.checkWinCondition()) {
         // Level completed
         console.log('[Level1] Level completed!');
-        //execute(Level_1_DoorOpenCommand, { doors: this.doors });
-        execute(Level_1_BallExitedCommand, { level: this });
+        execute(Level_1_DoorOpenCommand, { doors: this.doors });
+        //execute(Level_1_BallExitedCommand, { level: this });
       }
     });
 
@@ -383,16 +383,6 @@ export default class Level1 extends Level {
 
   protected checkLoseCondition(): boolean {
     // Check if ball fell below paddle
-    const ballTransform = b2Body_GetTransform(this.ballBodyId);
-    const ballY = ballTransform.p.y;
-
-    if (ballY < -35) {
-      // Ball fell off screen
-      if (this.context.level) {
-        this.context.level.ballsRemaining--;
-      }
-      return this.context.level ? this.context.level.ballsRemaining <= 0 : true;
-    }
 
     return false;
   }

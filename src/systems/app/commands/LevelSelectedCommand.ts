@@ -1,6 +1,6 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
-import { GameScreen } from '@/screens/GameScreen';
+import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { LoadLevelCommand } from '@/systems/level/commands/LoadLevelCommand';
 import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';
 

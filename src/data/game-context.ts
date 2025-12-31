@@ -4,7 +4,7 @@ import { Container, type Application } from 'pixi.js';
 import type { EventContext } from '@/core/game/EventEmitter';
 import type { SystemRunner } from '@/core/game/SystemRunner';
 import type { LayerName } from '@/core/window/types';
-import type { LevelState, MetaGameState, RunState } from '@/data/game-state';
+import type { GameState, LevelState, MetaGameState, RunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
 
 /**
@@ -49,9 +49,7 @@ export interface GameContext {
   container: Container | null;
 
   // State management
-  meta: MetaGameState;
-  run: RunState | null;
-  level: LevelState | null;
+  state: GameState;
 
   // Systems
   systems: SystemRunner;

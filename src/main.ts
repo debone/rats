@@ -14,7 +14,7 @@ import { EventContext, EventEmitter } from '@/core/game/EventEmitter';
 import { SystemRunner } from '@/core/game/SystemRunner';
 import type { GameContext } from '@/data/game-context';
 import { setGameContext } from '@/data/game-context';
-import { createDefaultMetaState } from '@/data/game-state';
+import { createDefaultLevelState, createDefaultMetaState } from '@/data/game-state';
 
 // Systems
 import { NavigationSystem } from '@/systems/navigation/system';
@@ -80,12 +80,14 @@ async function init() {
     worldId: null,
     layers: null,
     container: null,
-    meta: createDefaultMetaState(),
-    run: null,
-    level: null,
     phase: 'idle',
     systems: new SystemRunner(),
     events,
+    state: {
+      meta: createDefaultMetaState(),
+      run: null,
+      level: createDefaultLevelState(),
+    },
   };
 
   // Make context globally accessible
@@ -105,7 +107,7 @@ async function init() {
   // Load meta state
   const savedMeta = await context.systems.get(SaveSystem).loadMeta();
   if (savedMeta) {
-    context.meta = savedMeta;
+    context.state.meta = savedMeta;
   }
 
   // Main loop

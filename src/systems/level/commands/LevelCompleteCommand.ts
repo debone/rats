@@ -1,7 +1,7 @@
 import { Command, execute } from '@/core/game/Command';
 import { delay, type Coroutine } from '@/core/game/Coroutine';
 import type { LevelResult } from '@/data/game-state';
-import { GameScreen } from '@/screens/GameScreen';
+import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { SaveSystem } from '../../save/system';
