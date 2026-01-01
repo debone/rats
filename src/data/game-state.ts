@@ -10,8 +10,8 @@ import type { Signal } from '@/core/reactivity/signals/types';
 
 export interface GameState {
   meta: MetaGameState;
-  run: RunState | null;
-  level: LevelState | null;
+  run: RunState;
+  level: LevelState;
 }
 
 /** Boon/powerup that carries across levels */
@@ -48,18 +48,19 @@ export interface RunState {
   levelsCompleted: string[];
 
   // Run-specific state
-  activeBoons: Boon[];
-  temporaryUpgrades: string[];
-  lives: number;
-  score: number;
+  // activeBoons: Boon[];
+  // temporaryUpgrades: string[];
+  // lives: number;
+  // score: number;
 
   // Any other run-scoped data
-  difficulty: number;
-  seed?: string;
+  // difficulty: number;
+  // seed?: string;
 }
 
 /** In-level state - specific to current level instance */
 export interface LevelState {
+  levelId: string;
   ballsRemaining: Signal<number>;
   //bricksDestroyed: number;
   //powerupsCollected: string[];
@@ -96,19 +97,20 @@ export function createDefaultMetaState(): MetaGameState {
 /** Create a default run state */
 export function createDefaultRunState(): RunState {
   return {
-    currentLevelId: 'level-1',
+    currentLevelId: '',
     levelsCompleted: [],
-    activeBoons: [],
-    temporaryUpgrades: [],
-    lives: 3,
-    score: 0,
-    difficulty: 1,
+    // activeBoons: [],
+    // temporaryUpgrades: [],
+    // lives: 3,
+    // score: 0,
+    // difficulty: 1,
   };
 }
 
 /** Create a default level state */
 export function createDefaultLevelState(): LevelState {
   return {
+    levelId: '',
     ballsRemaining: signal(3),
     //bricksDestroyed: 0,
     //powerupsCollected: [],

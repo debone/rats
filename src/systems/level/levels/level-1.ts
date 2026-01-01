@@ -43,6 +43,7 @@ import { Level } from '../Level';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
 import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
+import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -54,7 +55,7 @@ export default class Level1 extends Level {
   private paddleBodyId!: b2BodyId;
   private ballBodyId!: b2BodyId;
 
-  private debug_mode = false;
+  private debug_mode = true;
 
   constructor() {
     super({
@@ -222,9 +223,15 @@ export default class Level1 extends Level {
       });
     });
 */
-    this.collisions.register('ball', 'bottom-wall', () => {
+    this.collisions.register('ball', 'bottom-wall', async () => {
       console.log('Ball hit bottom wall');
-      execute(Level_1_LoseBallCommand);
+
+      this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
+      this.shouldMaintainBallSpeed = false;
+
+      await execute(Level_1_LoseBallCommand);
+
+      this.createBall();
     });
   }
 
@@ -237,7 +244,7 @@ export default class Level1 extends Level {
     const pos = b2Body_GetPosition(tempBodyId);
 
     const { bodyId } = CreateBoxPolygon({
-      position: new b2Vec2(pos.x + 5, pos.y),
+      position: new b2Vec2(pos.x, pos.y),
       type: b2BodyType.b2_dynamicBody,
       size: new b2Vec2(2, 0.5),
       density: 10,
@@ -300,7 +307,7 @@ export default class Level1 extends Level {
     });
 
     b2Body_SetUserData(bodyId, { type: 'ball' });
-    b2Body_SetLinearVelocity(bodyId, new b2Vec2(2, 5));
+    //b2Body_SetLinearVelocity(bodyId, new b2Vec2(2, 5));
 
     const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
     ballSprite.anchor.set(0.5, 0.5);
@@ -365,7 +372,7 @@ export default class Level1 extends Level {
 
   private maintainBallSpeed(): void {
     const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
-    const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    const speed = Math.max(0.1, Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y));
     const targetSpeed = this.config.ballSpeed || 10;
 
     // Calculate current angle from horizon (in radians, between 0 and PI)

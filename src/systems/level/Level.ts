@@ -72,6 +72,7 @@ export abstract class Level {
    */
   createInitialState(): LevelState {
     return {
+      levelId: this.config.id,
       ballsRemaining: signal(this.config.ballCount || 3),
       //bricksDestroyed: 0,
       //powerupsCollected: [],
@@ -289,7 +290,8 @@ export abstract class Level {
   protected get activeBoons(): Boon[] {
     // [STATE] TODO: make it a method
     const runState = this.context.state.run;
-    return runState ? runState.activeBoons : [];
+    // return runState ? runState.activeBoons : [];
+    return [];
   }
 
   /**

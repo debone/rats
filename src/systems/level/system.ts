@@ -9,6 +9,7 @@ import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import { PhysicsSystem } from '../physics/system';
 import type { Level } from './Level';
+import { createDefaultLevelState } from '@/data/game-state';
 
 export class LevelSystem implements System {
   static SYSTEM_ID = 'level';
@@ -38,7 +39,7 @@ export class LevelSystem implements System {
     this.currentLevel = level;
     level.init(this.context);
 
-    this.context.level = level.createInitialState();
+    this.context.state.level = level.createInitialState();
 
     await level.load();
 
@@ -66,7 +67,7 @@ export class LevelSystem implements System {
     // Cleanup level
     await currentLevel.unload();
     this.currentLevel = undefined;
-    this.context.level = null;
+    this.context.state.level = createDefaultLevelState();
   }
 
   private updateLevel(delta: number) {

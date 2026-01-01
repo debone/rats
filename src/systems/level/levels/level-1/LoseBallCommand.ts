@@ -24,8 +24,8 @@ export class Level_1_LoseBallCommand extends Command<void> {
 
     animate(sprite, { alpha: 1, duration: 200, easing: 'linear' });
 
-    yield delay(200);
+    yield animate(sprite, { rotation: Math.PI, duration: 1000, easing: 'linear' });
 
-    animate(sprite, { rotation: Math.PI, duration: 1000, easing: 'linear' });
+    sprite.destroy();
   }
 }

@@ -14,7 +14,7 @@ import { EventContext, EventEmitter } from '@/core/game/EventEmitter';
 import { SystemRunner } from '@/core/game/SystemRunner';
 import type { GameContext } from '@/data/game-context';
 import { setGameContext } from '@/data/game-context';
-import { createDefaultLevelState, createDefaultMetaState } from '@/data/game-state';
+import { createDefaultLevelState, createDefaultMetaState, createDefaultRunState } from '@/data/game-state';
 
 // Systems
 import { NavigationSystem } from '@/systems/navigation/system';
@@ -85,7 +85,7 @@ async function init() {
     events,
     state: {
       meta: createDefaultMetaState(),
-      run: null,
+      run: createDefaultRunState(),
       level: createDefaultLevelState(),
     },
   };

@@ -16,12 +16,16 @@
             "scaleInDock": 1.6641,
             "scaleInEditor": 2.4991
         },
+        "level-1-tileset.tsx": {
+            "scaleInDock": 2.8803,
+            "scaleInEditor": 1
+        },
         "level-1.tmx": {
-            "scale": 2.0811,
+            "scale": 1.9997,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 214.30974004132426,
-                "y": 173.4659555043006
+                "x": 276.54148122218334,
+                "y": 220.0330049507426
             }
         },
         "prototype-1.tmx": {
@@ -45,13 +49,15 @@
     "map.lastUsedFormat": "tmx",
     "map.width": 18,
     "openFiles": [
+        "prototype-1.tmx",
         "level-1.tmx",
-        "tiles.tsx"
+        "level-1-tileset.tsx"
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [
-        "level-1.tmx",
         "prototype-1.tmx",
+        "level-1-tileset.tsx",
+        "level-1.tmx",
         "broad-bg.tsx",
         "bricks-test.tsx",
         "tiles.tsx"

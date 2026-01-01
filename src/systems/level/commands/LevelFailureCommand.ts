@@ -1,27 +1,27 @@
-import { Command, execute } from '@/core/game/Command';
+import { assert } from '@/core/common/assert';
+import { Command } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import type { LevelResult } from '@/data/game-state';
-import { GameOverCommand } from '../../app/commands/GameOverCommand';
-import { LoadLevelCommand } from './LoadLevelCommand';
 
 export class LevelFailureCommand extends Command<LevelResult> {
   *execute(_result: LevelResult): Coroutine {
     console.log('[Command] Level Failure');
 
-    if (!this.context.run) return;
+    assert(false, 'Level failure command not implemented');
 
-    this.context.run.lives--;
+    /*
+    this.context.state.run.lives--;
 
-    if (this.context.run.lives <= 0) {
+    if (this.context.state.run.lives <= 0) {
       yield execute(GameOverCommand, {
-        score: this.context.run.score,
-        levelsCompleted: this.context.run.levelsCompleted.length,
+        score: this.context.state.run.score,
+        levelsCompleted: this.context.state.run.levelsCompleted.length,
       });
     } else {
       yield execute(LoadLevelCommand, {
-        levelId: this.context.run.currentLevelId,
+        levelId: this.context.state.run.currentLevelId,
       });
     }
+      */
   }
 }
-

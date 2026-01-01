@@ -13,8 +13,6 @@ export class LevelFinishedCommand extends Command<Payload> {
   *execute({ success, result }: Payload): Coroutine {
     console.log(`[Command] Level Finished: ${success ? 'WIN' : 'LOSE'}`, result);
 
-    if (!this.context.run) return;
-
     if (success) {
       yield execute(LevelCompleteCommand, result);
     } else {

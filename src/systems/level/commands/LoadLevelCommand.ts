@@ -11,7 +11,7 @@ export class LoadLevelCommand extends Command<{ levelId: string }> {
     const levelSystem = this.context.systems.get(LevelSystem);
 
     // Unload previous level if exists
-    if (this.context.level) {
+    if (this.context.state.run.currentLevelId !== '') {
       yield execute(UnloadLevelCommand);
     }
 
