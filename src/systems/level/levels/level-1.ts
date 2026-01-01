@@ -8,6 +8,8 @@ import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
 import {
+  b2Body_ApplyLinearImpulse,
+  b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_GetTransform,
@@ -41,9 +43,9 @@ import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { Level } from '../Level';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
+import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
-import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -52,10 +54,17 @@ import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 export default class Level1 extends Level {
   static id = 'level-1';
 
-  private paddleBodyId!: b2BodyId;
-  private ballBodyId!: b2BodyId;
-
   private debug_mode = true;
+
+  private doors: b2BodyId[] = [];
+  private bricksCount = 0;
+
+  private paddleBodyId!: b2BodyId;
+
+  private ballBodyId!: b2BodyId;
+  private ballPrismaticJointId!: b2JointId;
+
+  private shouldMaintainBallSpeed: boolean = false;
 
   constructor() {
     super({
@@ -73,9 +82,6 @@ export default class Level1 extends Level {
     // Setup collision handlers
     this.setupCollisionHandlers();
 
-    // Create ball
-    this.createBall();
-
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);
 
@@ -83,6 +89,9 @@ export default class Level1 extends Level {
 
     // Create paddle (kinematic body controlled by player)
     this.createPaddle(paddleJoint!);
+
+    // Create ball
+    this.createBall();
 
     const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
 
@@ -123,7 +132,50 @@ export default class Level1 extends Level {
     console.log('[Level1] Loaded');
   }
 
-  private doors: b2BodyId[] = [];
+  private setupCollisionHandlers(): void {
+    // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
+    this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
+      const brickBody = pair.bodyB;
+      // Remove the brick
+      this.removeBrick(brickBody);
+
+      if (this.checkWinCondition()) {
+        // Level completed
+        console.log('[Level1] Level completed!');
+        execute(Level_1_DoorOpenCommand, { doors: this.doors });
+        //execute(Level_1_BallExitedCommand, { level: this });
+      }
+    });
+
+    this.collisions.register('ball', 'exit', (pair: CollisionPair) => {
+      execute(Level_1_BallExitedCommand, { level: this });
+    });
+
+    /*this.collisions.register('ball', 'top-wall', () => {
+      console.log('Ball hit top wall');
+      execute(LevelFinishedCommand, {
+        success: true,
+        result: {
+          success: true,
+          score: 100,
+          boonsEarned: [],
+          timeElapsed: this.context.level?.elapsedTime || 0,
+        },
+      });
+    });
+*/
+    this.collisions.register('ball', 'bottom-wall', async () => {
+      console.log('Ball hit bottom wall');
+
+      this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
+      this.shouldMaintainBallSpeed = false;
+
+      await execute(Level_1_LoseBallCommand);
+
+      this.createBall();
+    });
+  }
+
   private addDoor(texture: Texture, bodyId: b2BodyId): void {
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5, 0.5);
@@ -132,9 +184,6 @@ export default class Level1 extends Level {
     this.registerBody(bodyId);
     this.doors.push(bodyId);
   }
-
-  private bricksCount = 0;
-  // TODO: bricks count by type
 
   private addBrick(texture: Texture, bodyId: b2BodyId): void {
     const sprite = new Sprite(texture);
@@ -187,54 +236,6 @@ export default class Level1 extends Level {
     this.context.container!.addChild(map.container);
   }
 
-  /**
-   * Setup collision handlers for this level.
-   * Handlers are registered with type pairs - the pair is normalized alphabetically.
-   */
-  private setupCollisionHandlers(): void {
-    // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
-    this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
-      const brickBody = pair.bodyB;
-      // Remove the brick
-      this.removeBrick(brickBody);
-
-      if (this.checkWinCondition()) {
-        // Level completed
-        console.log('[Level1] Level completed!');
-        execute(Level_1_DoorOpenCommand, { doors: this.doors });
-        //execute(Level_1_BallExitedCommand, { level: this });
-      }
-    });
-
-    this.collisions.register('ball', 'exit', (pair: CollisionPair) => {
-      execute(Level_1_BallExitedCommand, { level: this });
-    });
-
-    /*this.collisions.register('ball', 'top-wall', () => {
-      console.log('Ball hit top wall');
-      execute(LevelFinishedCommand, {
-        success: true,
-        result: {
-          success: true,
-          score: 100,
-          boonsEarned: [],
-          timeElapsed: this.context.level?.elapsedTime || 0,
-        },
-      });
-    });
-*/
-    this.collisions.register('ball', 'bottom-wall', async () => {
-      console.log('Ball hit bottom wall');
-
-      this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
-      this.shouldMaintainBallSpeed = false;
-
-      await execute(Level_1_LoseBallCommand);
-
-      this.createBall();
-    });
-  }
-
   private createPaddle(jointId: b2JointId): void {
     const worldId = this.context.worldId;
 
@@ -276,30 +277,18 @@ export default class Level1 extends Level {
     this.registerBody(bodyId);
     this.paddleBodyId = bodyId;
 
-    this.ballPrismaticJointId = CreatePrismaticJoint({
-      worldId: worldId,
-      bodyIdA: this.paddleBodyId,
-      bodyIdB: this.ballBodyId,
-      anchorA: new b2Vec2(0, 1),
-      anchorB: new b2Vec2(0, 0),
-      axis: new b2Vec2(1, 0),
-      enableLimit: true,
-      lowerTranslation: -2,
-      upperTranslation: 2,
-    }).jointId;
-
     console.log('[Level1] Paddle created');
   }
-
-  private ballPrismaticJointId!: b2JointId;
 
   private createBall(): void {
     const worldId = this.context.worldId;
 
+    const paddlePosition = b2Body_GetPosition(this.paddleBodyId);
+
     const { bodyId } = CreateCircle({
       worldId: worldId,
       type: b2BodyType.b2_dynamicBody,
-      position: new b2Vec2(0, -15),
+      position: new b2Vec2(paddlePosition.x, paddlePosition.y + 1),
       radius: 0.25,
       density: 10,
       friction: 0.5,
@@ -317,6 +306,18 @@ export default class Level1 extends Level {
 
     this.registerBody(bodyId);
     this.ballBodyId = bodyId;
+
+    this.ballPrismaticJointId = CreatePrismaticJoint({
+      worldId: worldId,
+      bodyIdA: this.paddleBodyId,
+      bodyIdB: this.ballBodyId,
+      anchorA: new b2Vec2(0, 0.7),
+      anchorB: new b2Vec2(0, 0),
+      axis: new b2Vec2(1, 0),
+      enableLimit: true,
+      lowerTranslation: -1.75,
+      upperTranslation: 1.75,
+    }).jointId;
 
     console.log('[Level1] Ball created');
   }
@@ -364,11 +365,10 @@ export default class Level1 extends Level {
 
     if (InputDevice.keyboard.key.Space && !this.shouldMaintainBallSpeed) {
       this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
+      b2Body_ApplyLinearImpulseToCenter(this.ballBodyId, new b2Vec2(0, 1), true);
       this.shouldMaintainBallSpeed = true;
     }
   }
-
-  shouldMaintainBallSpeed: boolean = false;
 
   private maintainBallSpeed(): void {
     const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
