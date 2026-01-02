@@ -1,4 +1,5 @@
 import { ASSETS } from '@/assets';
+import { GameEvent } from '@/data/events';
 import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
@@ -30,9 +31,8 @@ import {
 import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { PhysicsSystem } from '../physics/system';
-import { Level } from './Level';
 import { AddSpriteToWorld } from '../physics/WorldSprites';
-import { GameEvent } from '@/data/events';
+import { Level } from './Level';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -220,8 +220,18 @@ export abstract class StartingLevels extends Level {
 
     if (InputDevice.keyboard.key.Space && !this.shouldMaintainBallSpeed) {
       this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
-      b2Body_ApplyLinearImpulseToCenter(this.ballBodyId, new b2Vec2(0, 1), true);
-      this.shouldMaintainBallSpeed = true;
+      const ball_position = b2Body_GetPosition(this.ballBodyId);
+      const paddle_position = b2Body_GetPosition(this.paddleBodyId);
+      const force = 10;
+
+      b2Body_ApplyLinearImpulseToCenter(
+        this.ballBodyId,
+        new b2Vec2(force * (ball_position.x - paddle_position.x), force * (ball_position.y - paddle_position.y)),
+        true,
+      );
+      setTimeout(() => {
+        this.shouldMaintainBallSpeed = true;
+      }, 100);
     }
   }
 
@@ -235,7 +245,7 @@ export abstract class StartingLevels extends Level {
     // unused const absVx = Math.abs(velocity.x);
     const absVy = Math.abs(velocity.y);
 
-    // Prevent perfectly vertical ball: minddimum angle from horizon = 20deg (in radians)
+    // Prevent perfectly horizontal ball: minddimum angle from horizon = 20deg (in radians)
     const minAngleRad = (20 * Math.PI) / 180;
 
     let newVelocity = { x: velocity.x, y: velocity.y };
