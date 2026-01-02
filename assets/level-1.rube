@@ -43,16 +43,16 @@
     
     {
       "class" : "body",
-      "displayName" : "Type",
-      "name" : "type",
-      "type" : "string"
+      "displayName" : "size",
+      "name" : "size",
+      "type" : "int"
     },
     
     {
       "class" : "body",
-      "displayName" : "size",
-      "name" : "size",
-      "type" : "int"
+      "displayName" : "Type",
+      "name" : "type",
+      "type" : "string"
     }
   ],
   "metaworld" : 
@@ -105,6 +105,7 @@
             "friction" : 0.2,
             "id" : 2,
             "name" : "fixture0",
+            "sensor" : true,
             "shapes" : 
             [
               

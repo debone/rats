@@ -105,6 +105,7 @@
             "friction" : 0.2,
             "id" : 2,
             "name" : "fixture0",
+            "sensor" : true,
             "shapes" : 
             [
               

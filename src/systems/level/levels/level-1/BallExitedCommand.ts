@@ -4,14 +4,9 @@ import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
-import type { Level } from '../../Level';
 
-type BallExitedCommandResult = {
-  level: Level;
-};
-
-export class Level_1_BallExitedCommand extends Command<BallExitedCommandResult> {
-  *execute({ level }: BallExitedCommandResult) {
+export class Level_1_BallExitedCommand extends Command<void> {
+  *execute() {
     const exitOverlay = new LayoutContainer({
       layout: {
         width: '100%',
@@ -47,7 +42,5 @@ export class Level_1_BallExitedCommand extends Command<BallExitedCommandResult> 
 
     this.context.systems.get(PhysicsSystem).stop();
     yield delay(1000);
-
-    level.onWin();
   }
 }
