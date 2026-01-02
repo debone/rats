@@ -1,4 +1,5 @@
 import { execute } from '@/core/game/Command';
+import { signal } from '@/core/reactivity/signals/signals';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
 import type { Boon, LevelResult, LevelState } from '@/data/game-state';
@@ -14,7 +15,6 @@ import {
 } from 'phaser-box2d';
 import { CollisionHandlerRegistry } from '../physics/collision-handler';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
-import { signal } from '@/core/reactivity/signals/signals';
 
 /** Configuration for a level */
 export interface LevelConfig {

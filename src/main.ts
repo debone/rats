@@ -27,7 +27,15 @@ import { ReflectionFilter } from 'pixi-filters';
 import { BloomFilter } from 'pixi-filters/bloom';
 import { CRT2Filter } from './lib/CRT/CRT';
 
+import { initDevtools } from '@pixi/devtools';
+import { DebugPanel } from './core/devtools/debug-panel';
+
 export const app = new Application();
+
+if (import.meta.env.DEV) {
+  initDevtools({ app });
+  DebugPanel.init();
+}
 
 // Disabling animejs own loop
 engine.useDefaultMainLoop = false;

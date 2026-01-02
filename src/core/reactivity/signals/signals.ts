@@ -1,3 +1,4 @@
+import { registerSignalForDebug, type SignalDebugOptions } from './debug-signals';
 import type { Cleanup, Effect, MutableSignal, Signal, SignalValue, Subscriber } from './types';
 
 /**
@@ -18,8 +19,7 @@ import type { Cleanup, Effect, MutableSignal, Signal, SignalValue, Subscriber } 
  */
 
 export class SignalImpl<T> implements Signal<T> {
-  // TODO: debug mode
-  // displayName: string;
+  displayName?: string;
   _value: T;
   computeFn?: () => T;
 
@@ -119,8 +119,7 @@ export class SignalImpl<T> implements Signal<T> {
   }
 
   protected getDebugInfo(): string {
-    // TODO: debug mode
-    // const name = this.displayName || "unnamed signal";
+    const name = this.displayName || 'unnamed signal';
     const value = typeof this._value === 'object' ? JSON.stringify(this._value) : String(this._value);
     const type = this.computeFn ? 'computed' : 'signal';
     return `[${type}:${name}] (current value: ${value})`;
@@ -248,32 +247,24 @@ class EventSignal<T> extends SignalImpl<T> {
 
 // Helper functions
 
-export function signal<T>(
-  initialValue: T,
-  // TODO: debug mode
-  //debugOptions?: SignalDebugOptions
-): Signal<T> {
+export function signal<T>(initialValue: T, debugOptions?: SignalDebugOptions): Signal<T> {
   const instance = new SignalImpl(initialValue);
-  /*
-  if (import.meta.env.VITE_DEBUG && debugOptions) {
+
+  if (import.meta.env.DEV && debugOptions) {
     registerSignalForDebug(instance, debugOptions);
   }
-  */
+
   return instance;
 }
 
-export function computed<T>(
-  computeFn: () => T,
-  // TODO: debug mode
-  //debugOptions?: SignalDebugOptions
-): Signal<T> {
+export function computed<T>(computeFn: () => T, debugOptions?: SignalDebugOptions): Signal<T> {
   const instance = new SignalImpl(computeFn);
-  /*
-  if (import.meta.env.VITE_DEBUG && debugOptions) {
+
+  if (import.meta.env.DEV && debugOptions) {
     const finalDebugOptions = { ...debugOptions, readOnly: true };
     registerSignalForDebug(instance, finalDebugOptions);
   }
-  */
+
   return instance;
 }
 
@@ -283,28 +274,19 @@ export function computed<T>(
  * This allows for the user to "mutate" a signal value and decide if the subscribers should or not be notified
  */
 
-export function mutable<T>(
-  initialValue: T,
-  // TODO: debug mode
-  // debugOptions?: SignalDebugOptions
-): MutableSignal<T> {
+export function mutable<T>(initialValue: T, debugOptions?: SignalDebugOptions): MutableSignal<T> {
   const instance = new MutableSignalImpl(initialValue);
-  /*
-  if (import.meta.env.VITE_DEBUG && debugOptions) {
+
+  if (import.meta.env.DEV && debugOptions) {
     registerSignalForDebug(instance, debugOptions);
   }
-  */
+
   return instance;
 }
 
-export function effect(
-  fn: Effect,
-  // TODO: debug mode
-  // _displayName: string = ''
-): Cleanup {
+export function effect(fn: Effect, _displayName: string = ''): Cleanup {
   const signal = new EffectSignal(fn);
-  // TODO: debug mode
-  // signal.displayName = displayName;
+  signal.displayName = _displayName;
   return () => signal.dispose();
 }
 

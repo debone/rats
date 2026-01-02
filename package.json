@@ -34,14 +34,17 @@
     "zod": "^4.1.13"
   },
   "dependencies": {
+    "@pixi/devtools": "^2.0.1",
     "@pixi/layout": "3.2.0",
     "@pixi/sound": "6.0.1",
     "@pixi/tilemap": "5.0.2",
     "@pixi/ui": "^2.3.2",
+    "@tweakpane/core": "^2.0.5",
     "animejs": "4.2.2",
     "phaser-box2d": "github:phaserjs/phaser-box2d",
     "pixi-filters": "^6.1.4",
     "pixi.js": "8.14.2",
-    "pixijs-input-devices": "^0.7.4"
+    "pixijs-input-devices": "^0.7.4",
+    "tweakpane": "^4.0.5"
   }
 }
