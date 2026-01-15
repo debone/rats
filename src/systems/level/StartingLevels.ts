@@ -1,4 +1,5 @@
 import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import { GameEvent } from '@/data/events';
 import {
   b2Body_ApplyLinearImpulseToCenter,
@@ -128,6 +129,7 @@ export abstract class StartingLevels extends Level {
     this.registerBody(bodyId);
     this.ballBodyId = bodyId;
 
+    /**/
     this.ballPrismaticJointId = CreatePrismaticJoint({
       worldId: worldId,
       bodyIdA: this.paddleBodyId,
@@ -139,6 +141,7 @@ export abstract class StartingLevels extends Level {
       lowerTranslation: -1.75,
       upperTranslation: 1.75,
     }).jointId;
+    /**/
 
     console.log('[Level1] Ball created');
   }
@@ -222,7 +225,9 @@ export abstract class StartingLevels extends Level {
       this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
       const ball_position = b2Body_GetPosition(this.ballBodyId);
       const paddle_position = b2Body_GetPosition(this.paddleBodyId);
-      const force = 10;
+      const force = 1;
+
+      sfx.play(ASSETS.sounds_Rat_Squeak_A);
 
       b2Body_ApplyLinearImpulseToCenter(
         this.ballBodyId,

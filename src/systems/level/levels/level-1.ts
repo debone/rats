@@ -2,19 +2,17 @@ import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
-import { GameEvent } from '@/data/events';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
-import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2BodyId, b2JointId } from 'phaser-box2d';
-import { GlowFilter } from 'pixi-filters';
-import { Assets, Sprite, Texture } from 'pixi.js';
+import { b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
+import { Assets } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
 import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
+import { bgm, sfx } from '@/core/audio/audio';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -40,6 +38,17 @@ export default class Level1 extends StartingLevels {
 
     // Setup collision handlers
     this.setupCollisionHandlers();
+
+    setTimeout(() => {
+      console.log('[sound]');
+
+      //bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
+      //sfx.playPitched(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
+    }, 1000);
+
+    setTimeout(() => {
+      sfx.play(ASSETS.sounds_Rat_Squeak_A);
+    }, 4000);
 
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);
@@ -85,6 +94,12 @@ export default class Level1 extends StartingLevels {
   private setupCollisionHandlers(): void {
     // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
     this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
+      if (Math.random() < 0.5) {
+        sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10);
+      } else {
+        sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
+      }
+
       const brickBody = pair.bodyB;
       // Remove the brick
       this.removeBrick(brickBody);
@@ -101,8 +116,14 @@ export default class Level1 extends StartingLevels {
       this.onWin();
     });
 
+    this.collisions.register('ball', 'paddle', async () => {
+      sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A);
+    });
+
     this.collisions.register('ball', 'bottom-wall', async () => {
       console.log('Ball hit bottom wall');
+
+      sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
 
       this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
       this.shouldMaintainBallSpeed = false;

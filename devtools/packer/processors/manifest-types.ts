@@ -63,9 +63,9 @@ export function generateManifestTypes(manifestPath: string, outputPath: string):
     const seenKeys = new Set<string>();
     for (const alias of Array.from(assetAliases).sort()) {
       // Remove common extensions from the key, then sanitize
-      const withoutExt = alias.replace(/\.(aseprite|png|jpg|jpeg|webp|svg|json)$/i, '');
+      const withoutExt = alias.replace(/\.(aseprite|png|jpg|jpeg|webp|svg|json|wav|mp3|ogg)$/i, '');
       // Replace slashes, dots, and dashes with underscores, prefix numbers with underscore
-      let safeKey = withoutExt.replace(/[\/.-]/g, '_').replace(/^(\d)/, '_$1');
+      let safeKey = withoutExt.replace(/[\/.\s-]/g, '_').replace(/^(\d)/, '_$1');
 
       // Handle collisions by appending a number
       let finalKey = safeKey;

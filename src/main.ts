@@ -4,7 +4,7 @@ import { Application, TextureStyle } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 
 import { initAssets } from '@/core/assets/assets';
-import { audio } from '@/core/audio/audio';
+import { audio, initTone } from '@/core/audio/audio';
 import { storage } from '@/core/storage/storage';
 import { resize, visibilityChange } from '@/core/window/resize';
 
@@ -52,6 +52,8 @@ async function init() {
     antialias: false,
     backgroundColor: 0xffffff,
   });
+
+  await initTone();
 
   const mirror = new ReflectionFilter({
     boundary: 0.875,

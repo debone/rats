@@ -30,21 +30,22 @@
     "sharp": "0.34.5",
     "typescript": "5.9.3",
     "vite": "7.2.2",
-    "xml-js": "^1.6.11",
-    "zod": "^4.1.13"
+    "xml-js": "1.6.11",
+    "zod": "4.1.13"
   },
   "dependencies": {
-    "@pixi/devtools": "^2.0.1",
+    "@pixi/devtools": "2.0.1",
     "@pixi/layout": "3.2.0",
     "@pixi/sound": "6.0.1",
     "@pixi/tilemap": "5.0.2",
-    "@pixi/ui": "^2.3.2",
-    "@tweakpane/core": "^2.0.5",
+    "@pixi/ui": "2.3.2",
+    "@tweakpane/core": "2.0.5",
     "animejs": "4.2.2",
     "phaser-box2d": "github:phaserjs/phaser-box2d",
-    "pixi-filters": "^6.1.4",
+    "pixi-filters": "6.1.4",
     "pixi.js": "8.14.2",
-    "pixijs-input-devices": "^0.7.4",
-    "tweakpane": "^4.0.5"
+    "pixijs-input-devices": "0.7.4",
+    "tone": "15.1.22",
+    "tweakpane": "4.0.5"
   }
 }
