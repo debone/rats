@@ -96,7 +96,7 @@ export async function initTone() {
   Tone.setContext(new Tone.Context(audioContext));
 
   // Resume audio context (required after user interaction)
-  await Tone.start();
+  Tone.start();
   _toneInitialized = true;
 }
 
@@ -206,6 +206,18 @@ class SFX {
   /** A global volume that affects all sfx sounds. */
   private _volume = 0.5;
 
+  /** A map of last played time for each sound effect. */
+  private lastPlayed: Map<string, number> = new Map();
+
+  private playSound(alias: string, volume: number, options?: PlayOptions) {
+    const now = Date.now();
+    const lastPlayed = this.lastPlayed.get(alias) ?? 0;
+    if (now - lastPlayed < 100) return;
+    this.lastPlayed.set(alias, now);
+
+    sound.play(alias, { ...options, volume });
+  }
+
   /**
    * Play sound effects.
    * @param alias - Name of the audio file.
@@ -213,14 +225,13 @@ class SFX {
    */
   public play(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
-
-    sound.play(alias, { ...options, volume });
+    this.playSound(alias, volume, options);
   }
 
   public playPitched(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
     const randomPitch = Math.random() * 0.6 - 0.2;
-    sound.play(alias, { ...options, volume, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
+    this.playSound(alias, volume, { ...options, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
   }
 
   /**
