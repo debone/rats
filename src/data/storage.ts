@@ -6,6 +6,6 @@ export const DEFAULT_STORAGE = {
    * Indicates if the audio is muted
    */
   muted: false,
-  //  [META_SAVE_KEY]: createDefaultMetaState() as MetaGameState,
-  //  [RUN_SAVE_KEY]: createDefaultRunState() as RunState,
+  [META_SAVE_KEY]: {},
+  [RUN_SAVE_KEY]: {},
 };

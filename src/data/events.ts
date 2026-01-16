@@ -118,7 +118,7 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.GAME_OVER_ACTION]: 'restart' | 'quit';
   [GameEvent.GAME_OVER_DATA]: {
     score: number;
-    levelsCompleted: number;
+    levelsCompleted: string[];
   };
   [GameEvent.GAME_QUIT]: void;
 

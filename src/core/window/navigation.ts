@@ -72,6 +72,7 @@ class Navigation {
 
   /** Remove screen from the stage, unlink update & resize functions */
   private async hideAndRemoveScreen(screen: AppScreen) {
+    console.log('[Navigation] Hiding and removing screen', screen.constructor.name);
     // Prevent interaction in the screen
     screen.interactiveChildren = false;
 

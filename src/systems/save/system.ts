@@ -6,11 +6,11 @@
  */
 
 import type { System } from '@/core/game/System';
-import type { GameContext } from '@/data/game-context';
-import type { MetaGameState, RunState } from '@/data/game-state';
 import { storage } from '@/core/storage/storage';
-import { META_SAVE_KEY, RUN_SAVE_KEY } from '@/data/storage';
 import { GameEvent } from '@/data/events';
+import type { GameContext } from '@/data/game-context';
+import { getMetaState, getRunState, type MetaGameState, type RunState } from '@/data/game-state';
+import { META_SAVE_KEY, RUN_SAVE_KEY } from '@/data/storage';
 
 export class SaveSystem implements System {
   static SYSTEM_ID = 'save';
@@ -44,7 +44,7 @@ export class SaveSystem implements System {
    * Save meta state
    */
   async saveMeta() {
-    const { meta } = this.context;
+    const meta = getMetaState();
     await storage.set(META_SAVE_KEY, meta);
   }
 
@@ -52,24 +52,22 @@ export class SaveSystem implements System {
    * Save current run state
    */
   async saveRun() {
-    const { run } = this.context;
-    if (run) {
-      await storage.set(RUN_SAVE_KEY, run);
-    }
+    const run = getRunState();
+    await storage.set(RUN_SAVE_KEY, run);
   }
 
   /**
    * Load meta state
    */
   async loadMeta(): Promise<MetaGameState | null> {
-    return await storage.get(META_SAVE_KEY);
+    return (await storage.get(META_SAVE_KEY)) as MetaGameState;
   }
 
   /**
    * Load run state
    */
   async loadRun(): Promise<RunState | null> {
-    return await storage.get(RUN_SAVE_KEY);
+    return (await storage.get(RUN_SAVE_KEY)) as RunState;
   }
 
   /**

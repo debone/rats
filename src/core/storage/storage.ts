@@ -29,10 +29,10 @@ export const storage = {
    * @param key - The key of the value to retrieve.
    * @returns The retrieved value.
    */
-  getStorageItem<T extends keyof StorageData>(key: T): StorageData[T] {
-    const data = this.getStorage()!;
+  getStorageItem<T extends keyof StorageData>(key: T): StorageData[T] | undefined {
+    const data = this.getStorage();
 
-    return data[key];
+    return data ? data[key] : undefined;
   },
   /**
    * Sets a specific value in the storage data.
@@ -84,7 +84,7 @@ export const storage = {
    * @param key - The key of the value to retrieve.
    * @returns The retrieved value.
    */
-  get<T extends keyof StorageData>(key: T): StorageData[T] {
+  get<T extends keyof StorageData>(key: T): StorageData[T] | undefined {
     return this.getStorageItem(key);
   },
   /**

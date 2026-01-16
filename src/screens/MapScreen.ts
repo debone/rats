@@ -69,4 +69,10 @@ export class MapScreen extends Container implements AppScreen {
   resize(_w: number, _h: number) {
     // TODO: Implement resize
   }
+
+  reset() {
+    console.log('[MapScreen] Resetting...');
+    this.gameContainer.removeChildren();
+    this.gameContainer.destroy({ children: true });
+  }
 }

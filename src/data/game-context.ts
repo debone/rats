@@ -4,8 +4,8 @@ import { Container, type Application } from 'pixi.js';
 import type { EventContext } from '@/core/game/EventEmitter';
 import type { SystemRunner } from '@/core/game/SystemRunner';
 import type { LayerName } from '@/core/window/types';
-import type { GameState, LevelState, MetaGameState, RunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
+import { getRunState } from './game-state';
 
 /**
  * Core Game Types
@@ -48,9 +48,6 @@ export interface GameContext {
   /** Current screen's game container (set by GameScreen when active) */
   container: Container | null;
 
-  // State management
-  state: GameState;
-
   // Systems
   systems: SystemRunner;
 
@@ -62,6 +59,18 @@ export interface GameContext {
 }
 
 let gameContext: GameContext | null = null;
+
+export function createGameContext(app: Application, events: EventContext, systems: SystemRunner): GameContext {
+  return {
+    app,
+    events,
+    systems,
+    worldId: null,
+    layers: null,
+    container: null,
+    phase: 'idle',
+  };
+}
 
 /**
  * Set the global game context (called once at bootstrap)

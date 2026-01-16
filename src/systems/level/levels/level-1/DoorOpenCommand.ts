@@ -1,10 +1,7 @@
-import { ASSETS, type PrototypeTextures } from '@/assets';
-import { typedAssets } from '@/core/assets/typed-assets';
 import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
 import { animate } from 'animejs';
-import { b2Body_GetPosition, b2Body_SetTransform, b2Rot, b2Vec2, type b2BodyId } from 'phaser-box2d';
-import { Sprite } from 'pixi.js';
+import { b2Body_GetPosition, b2Body_SetTransform, b2Rot, type b2BodyId } from 'phaser-box2d';
 
 type DoorOpenCommandResult = {
   doors: b2BodyId[];

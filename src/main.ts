@@ -13,8 +13,8 @@ import { execute } from '@/core/game/Command';
 import { EventContext, EventEmitter } from '@/core/game/EventEmitter';
 import { SystemRunner } from '@/core/game/SystemRunner';
 import type { GameContext } from '@/data/game-context';
-import { setGameContext } from '@/data/game-context';
-import { createDefaultLevelState, createDefaultMetaState, createDefaultRunState } from '@/data/game-state';
+import { createGameContext, setGameContext } from '@/data/game-context';
+import { createGameState, type GameState, setGameState, setMetaState } from '@/data/game-state';
 
 // Systems
 import { NavigationSystem } from '@/systems/navigation/system';
@@ -84,24 +84,13 @@ async function init() {
   // Create game context
   const emitter = new EventEmitter();
   const events = new EventContext(emitter);
+  const systems = new SystemRunner();
 
-  const context: GameContext = {
-    app,
-    worldId: null,
-    layers: null,
-    container: null,
-    phase: 'idle',
-    systems: new SystemRunner(),
-    events,
-    state: {
-      meta: createDefaultMetaState(),
-      run: createDefaultRunState(),
-      level: createDefaultLevelState(),
-    },
-  };
-
-  // Make context globally accessible
+  const context: GameContext = createGameContext(app, events, systems);
   setGameContext(context);
+
+  const state: GameState = createGameState();
+  setGameState(state);
 
   context.systems.add(NavigationSystem);
   context.systems.add(SaveSystem);
@@ -117,7 +106,7 @@ async function init() {
   // Load meta state
   const savedMeta = await context.systems.get(SaveSystem).loadMeta();
   if (savedMeta) {
-    context.state.meta = savedMeta;
+    setMetaState(savedMeta);
   }
 
   // Main loop

@@ -1,5 +1,6 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
+import { bgm, sfx } from '@/core/audio/audio';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
@@ -12,7 +13,7 @@ import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
 import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
-import { bgm, sfx } from '@/core/audio/audio';
+import { getRunState } from '@/data/game-state';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -21,7 +22,7 @@ import { bgm, sfx } from '@/core/audio/audio';
 export default class Level1 extends StartingLevels {
   static id = 'level-1';
 
-  private debug_mode = true;
+  private debug_mode = false;
 
   constructor() {
     super({
@@ -42,7 +43,7 @@ export default class Level1 extends StartingLevels {
     setTimeout(() => {
       console.log('[sound]');
 
-      //bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
+      bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
       //sfx.playPitched(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
     }, 1000);
 
@@ -68,8 +69,9 @@ export default class Level1 extends StartingLevels {
       if (!b2Body_IsValid(bodyId)) return;
       const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
       if (userData?.type === 'brick') {
-        if (this.debug_mode && i > 0) {
+        if (this.debug_mode && i !== 9) {
           this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+          i++;
           return;
         }
 
@@ -111,7 +113,7 @@ export default class Level1 extends StartingLevels {
       }
     });
 
-    this.collisions.register('ball', 'exit', (pair: CollisionPair) => {
+    this.collisions.register('ball', 'exit', () => {
       execute(Level_1_BallExitedCommand);
       this.onWin();
     });
@@ -128,7 +130,14 @@ export default class Level1 extends StartingLevels {
       this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
       this.shouldMaintainBallSpeed = false;
 
+      // TODO: migrate the state to the run state and then make it work here.
+
       await execute(Level_1_LoseBallCommand);
+
+      if (this.checkLoseCondition()) {
+        this.onLose();
+        return;
+      }
 
       this.createBall();
     });
@@ -165,8 +174,6 @@ export default class Level1 extends StartingLevels {
   }
 
   protected checkLoseCondition(): boolean {
-    // Check if ball fell below paddle
-
-    return false;
+    return getRunState().ballsRemaining.get() <= 0;
   }
 }

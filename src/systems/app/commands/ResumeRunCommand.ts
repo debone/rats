@@ -12,7 +12,7 @@ export class ResumeRunCommand extends Command<{ run: RunState }> {
     console.log('[Command] Resume Run');
 
     // Restore run state
-    this.context.run = run;
+    //this.context.run = run;
 
     // Show game screen
     yield execute(ShowScreenCommand, { screen: GameScreen });

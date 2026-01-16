@@ -2,8 +2,8 @@ import { ASSETS } from '@/assets';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { assert } from '@/core/common/assert';
 import { createRefs, type RefCountable } from '@/core/reactivity/refs/ref-collection';
-import { signal } from '@/core/reactivity/signals/signals';
 import { getGameContext } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Assets, Sprite } from 'pixi.js';
 
@@ -12,10 +12,6 @@ export class BallCounter extends LayoutContainer {
 
   constructor(x: number, y: number) {
     super();
-
-    const context = getGameContext();
-    const levelState = context.state.level;
-    assert(levelState, 'Level state is required');
 
     this.x = x;
     this.y = y;
@@ -54,7 +50,7 @@ export class BallCounter extends LayoutContainer {
         };
         return ballSprite;
       },
-      levelState.ballsRemaining,
+      getRunState().ballsRemaining,
       ballsContainer,
     );
   }

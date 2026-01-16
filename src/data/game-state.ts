@@ -28,7 +28,7 @@ export interface MetaGameState {
   // Progression
   runs: number;
   unlockedLevels: string[];
-  completedLevels: string[];
+  completedLevels: Set<string>;
   highScores: Record<string, number>;
 
   // Meta progression
@@ -46,6 +46,7 @@ export interface RunState {
   // What level you're on
   currentLevelId: string;
   levelsCompleted: string[];
+  ballsRemaining: Signal<number>;
 
   // Run-specific state
   // activeBoons: Boon[];
@@ -61,7 +62,6 @@ export interface RunState {
 /** In-level state - specific to current level instance */
 export interface LevelState {
   levelId: string;
-  ballsRemaining: Signal<number>;
   //bricksDestroyed: number;
   //powerupsCollected: string[];
   //elapsedTime: number;
@@ -69,6 +69,7 @@ export interface LevelState {
 
 /** Result of completing a level */
 export interface LevelResult {
+  levelId: string;
   success: boolean;
   //score: number;
   //boonsEarned: Boon[];
@@ -81,39 +82,95 @@ export interface MapSelection {
   levelId: string;
 }
 
-/** Create a default meta state */
-export function createDefaultMetaState(): MetaGameState {
+let gameState: GameState | null = null;
+
+function getGameState(): GameState {
+  return gameState!;
+}
+
+export function setGameState(state: GameState): void {
+  gameState = state;
+}
+
+export function createGameState(): GameState {
   return {
-    runs: 0,
-    unlockedLevels: ['level-1'],
-    completedLevels: [],
-    highScores: {},
-    permanentUpgrades: [],
-    totalCoins: 0,
-    achievements: [],
+    meta: {
+      runs: 0,
+      unlockedLevels: ['level-1'],
+      completedLevels: new Set(),
+      highScores: {},
+      permanentUpgrades: [],
+      totalCoins: 0,
+      achievements: [],
+    },
+    run: {
+      currentLevelId: '',
+      levelsCompleted: [],
+      ballsRemaining: signal(1, { label: 'ballsRemaining' }),
+      // activeBoons: [],
+      // temporaryUpgrades: [],
+      // lives: 3,
+      // score: 0,
+      // difficulty: 1,
+    },
+    level: {
+      levelId: '',
+      //bricksDestroyed: 0,
+      //powerupsCollected: [],
+      //elapsedTime: 0,
+    },
   };
 }
 
-/** Create a default run state */
-export function createDefaultRunState(): RunState {
-  return {
-    currentLevelId: '',
-    levelsCompleted: [],
-    // activeBoons: [],
-    // temporaryUpgrades: [],
-    // lives: 3,
-    // score: 0,
-    // difficulty: 1,
-  };
+export function setMetaState(state: MetaGameState): void {
+  getGameState().meta = state;
 }
 
-/** Create a default level state */
-export function createDefaultLevelState(): LevelState {
-  return {
-    levelId: '',
-    ballsRemaining: signal(3),
-    //bricksDestroyed: 0,
-    //powerupsCollected: [],
-    //elapsedTime: 0,
-  };
+export function getMetaState(): MetaGameState {
+  return getGameState().meta;
+}
+
+export function getRunState(): RunState {
+  return getGameState().run;
+}
+
+export function getLevelState(): LevelState {
+  return getGameState().level;
+}
+
+export function setLevelState(state: LevelState): void {
+  getGameState().level = state;
+}
+
+export function addCompletedLevel(levelId: string): void {
+  const metaState = getMetaState();
+  const runState = getRunState();
+
+  runState.levelsCompleted.push(levelId);
+  // this.context.state.run.score += result.score;
+  // this.context.state.run.activeBoons.push(...result.boonsEarned);
+
+  // Update meta state
+  metaState.completedLevels.add(levelId);
+}
+
+export function setCurrentLevelId(levelId: string): void {
+  const runState = getRunState();
+  runState.currentLevelId = levelId;
+}
+
+export function getCurrentLevelId(): string {
+  return getRunState().currentLevelId;
+}
+
+export function addBallToRun(count: number): void {
+  getRunState().ballsRemaining.update((value) => value + count);
+}
+
+export function removeBallFromRun(count: number): void {
+  getRunState().ballsRemaining.update((value) => value - count);
+}
+
+export function setBallsRemaining(count: number): void {
+  getRunState().ballsRemaining.set(count);
 }

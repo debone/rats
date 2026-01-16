@@ -8,3 +8,5 @@ export const WORLD_HEIGHT = 40;
 
 export const MIN_WIDTH = WORLD_WIDTH * PXM;
 export const MIN_HEIGHT = WORLD_HEIGHT * PXM;
+
+export const STARTING_BALLS = 3;

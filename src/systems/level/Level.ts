@@ -1,8 +1,7 @@
 import { execute } from '@/core/game/Command';
-import { signal } from '@/core/reactivity/signals/signals';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
-import type { Boon, LevelResult, LevelState } from '@/data/game-state';
+import { getLevelState, getRunState, type Boon, type LevelResult, type LevelState } from '@/data/game-state';
 import {
   b2Body_GetUserData,
   b2Body_IsValid,
@@ -73,7 +72,6 @@ export abstract class Level {
   createInitialState(): LevelState {
     return {
       levelId: this.config.id,
-      ballsRemaining: signal(this.config.ballCount || 3),
       //bricksDestroyed: 0,
       //powerupsCollected: [],
       //elapsedTime: 0,
@@ -200,8 +198,8 @@ export abstract class Level {
   protected checkLoseCondition(): boolean {
     // Default: no balls remaining
     // [STATE] TODO: make it a method
-    const levelState = this.context.state.level;
-    return levelState ? levelState.ballsRemaining.get() <= 0 : false;
+    const runState = getRunState();
+    return runState ? runState.ballsRemaining.get() <= 0 : false;
   }
 
   /**
@@ -209,6 +207,7 @@ export abstract class Level {
    */
   public onWin(): void {
     const result: LevelResult = {
+      levelId: this.config.id,
       success: true,
       //score: this.calculateScore(),
       //boonsEarned: this.selectBoons(),
@@ -216,12 +215,8 @@ export abstract class Level {
       //perfectClear: this.checkPerfectClear(),
     };
 
-    // Prevent multiple calls
-    // [STATE] TODO: make it a method
-    this.context.state.level = null;
-
     this.context.events.emit(GameEvent.LEVEL_WON, result);
-    execute(LevelFinishedCommand, { success: true, result });
+    execute(LevelFinishedCommand, result);
   }
 
   /**
@@ -229,6 +224,7 @@ export abstract class Level {
    */
   protected onLose(): void {
     const result: LevelResult = {
+      levelId: this.config.id,
       success: false,
       //score: this.calculateScore(),
       //boonsEarned: [],
@@ -236,11 +232,8 @@ export abstract class Level {
     };
 
     // Prevent multiple calls
-    // [STATE] TODO: make it a method
-    this.context.state.level = null;
-
     this.context.events.emit(GameEvent.LEVEL_LOST, result);
-    execute(LevelFinishedCommand, { success: false, result });
+    execute(LevelFinishedCommand, result);
   }
 
   /**
@@ -248,8 +241,7 @@ export abstract class Level {
    * Override for custom scoring
    */
   protected calculateScore(): number {
-    // [STATE] TODO: make it a method
-    const levelState = this.context.state.level;
+    const levelState = getLevelState();
     if (!levelState) return 0;
 
     let score = 0;
@@ -276,20 +268,15 @@ export abstract class Level {
    * Check if the level was cleared perfectly
    */
   protected checkPerfectClear(): boolean {
-    // [STATE] TODO: make it a method
-    const levelState = this.context.state.level;
-    if (!levelState) return false;
-
     // Perfect clear: no balls lost
-    return levelState.ballsRemaining.get() === (this.config.ballCount || 3);
+    return getRunState().ballsRemaining.get() === (this.config.ballCount || 3);
   }
 
   /**
    * Helper: Access active boons from run state
    */
   protected get activeBoons(): Boon[] {
-    // [STATE] TODO: make it a method
-    const runState = this.context.state.run;
+    // const runState = getRunState();
     // return runState ? runState.activeBoons : [];
     return [];
   }

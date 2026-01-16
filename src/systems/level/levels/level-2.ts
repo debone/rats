@@ -6,13 +6,14 @@ import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { GetSpriteFromBody } from '@/systems/physics/WorldSprites';
-import { b2Body_GetTransform, b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
+import { b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_2_BallExitedCommand } from './level-2/BallExitedCommand';
+import { Level_2_DoorOpenCommand } from './level-2/DoorOpenCommand';
 import { Level_2_LevelStartCommand } from './level-2/LevelStartCommand';
 import { Level_2_LoseBallCommand } from './level-2/LoseBallCommand';
-import { Level_2_DoorOpenCommand } from './level-2/DoorOpenCommand';
+import { getRunState } from '@/data/game-state';
 
 export default class Level2 extends StartingLevels {
   static id = 'level-2';
@@ -165,6 +166,11 @@ export default class Level2 extends StartingLevels {
 
       await execute(Level_2_LoseBallCommand);
 
+      if (this.checkLoseCondition()) {
+        this.onLose();
+        return;
+      }
+
       this.createBall();
     });
   }
@@ -174,7 +180,6 @@ export default class Level2 extends StartingLevels {
   }
 
   protected checkLoseCondition(): boolean {
-    // Check if ball fell below paddle
-    return false;
+    return getRunState().ballsRemaining.get() <= 0;
   }
 }

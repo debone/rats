@@ -1,27 +1,26 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { GameEvent } from '@/data/events';
-import { SaveSystem } from '../../save/system';
+import { getRunState } from '@/data/game-state';
 import { PhysicsSystem } from '../../physics/system';
-import { LevelSystem } from '../../level/system';
 import { StartNewRunCommand } from './StartNewRunCommand';
+import { UnloadLevelCommand } from '@/systems/level/commands/UnloadLevelCommand';
 
-interface Payload {
-  score: number;
-  levelsCompleted: number;
-}
-
-export class GameOverCommand extends Command<Payload> {
-  *execute({ score, levelsCompleted }: Payload): Coroutine {
-    console.log('[Command] Game Over', { score, levelsCompleted });
+export class GameOverCommand extends Command {
+  *execute(): Coroutine {
+    console.log('[Command] Game Over');
 
     // Remove game-specific systems
-    this.context.systems.remove(LevelSystem);
-    this.context.systems.remove(PhysicsSystem);
+    const physicsSystem = this.context.systems.get(PhysicsSystem);
+    physicsSystem.stop();
+    yield execute(UnloadLevelCommand);
 
     // Clear run state
-    this.context.run = null;
-    yield this.context.systems.get(SaveSystem).clearRun();
+    // this.context.state.run = createDefaultRunState();
+    // yield this.context.systems.get(SaveSystem).clearRun();
+
+    const score = getRunState().levelsCompleted.length;
+    const levelsCompleted = getRunState().levelsCompleted;
 
     // Emit data for UI
     this.context.events.emit(GameEvent.GAME_OVER_DATA, { score, levelsCompleted });
@@ -36,4 +35,3 @@ export class GameOverCommand extends Command<Payload> {
     }
   }
 }
-

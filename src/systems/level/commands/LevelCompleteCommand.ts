@@ -1,34 +1,20 @@
 import { Command, execute } from '@/core/game/Command';
 import { delay, type Coroutine } from '@/core/game/Coroutine';
-import type { LevelResult } from '@/data/game-state';
+import { addCompletedLevel, setCurrentLevelId, type LevelResult } from '@/data/game-state';
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
-import { SaveSystem } from '../../save/system';
 import { LoadLevelCommand } from './LoadLevelCommand';
+import { UnloadLevelCommand } from './UnloadLevelCommand';
 
 export class LevelCompleteCommand extends Command<LevelResult> {
   *execute(result: LevelResult): Coroutine {
     console.log('[Command] Level Complete', result);
 
-    const saveSystem = this.context.systems.get(SaveSystem);
     const physicsSystem = this.context.systems.get(PhysicsSystem);
 
     // Update run state
-    this.context.state.run.levelsCompleted.push(this.context.state.run.currentLevelId);
-    // this.context.state.run.score += result.score;
-    // this.context.state.run.activeBoons.push(...result.boonsEarned);
-
-    // Update meta state
-    if (!this.context.state.meta.completedLevels.includes(this.context.state.run.currentLevelId)) {
-      this.context.state.meta.completedLevels.push(this.context.state.run.currentLevelId);
-    }
-
-    // Update meta state
-    this.context.state.meta.runs++;
-
-    // Save progress
-    yield saveSystem.save();
+    addCompletedLevel(result.levelId);
 
     // Cutscene phase
     this.context.phase = 'cutscene';
@@ -36,6 +22,7 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     yield delay(500);
 
     physicsSystem.stop();
+    yield execute(UnloadLevelCommand);
 
     // Show map screen
     //this.context.phase = 'map';
@@ -46,8 +33,10 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     //yield delay(2000);
 
     yield execute(ShowScreenCommand, { screen: GameScreen });
-    this.context.state.run.currentLevelId = 'level-2';
-    yield execute(LoadLevelCommand, { levelId: 'level-2' });
+
+    const nextLevelId = 'level-2';
+    setCurrentLevelId(nextLevelId);
+    yield execute(LoadLevelCommand, { levelId: nextLevelId });
 
     /*
     let selection;
