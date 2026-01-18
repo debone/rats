@@ -51,7 +51,13 @@ async function init() {
     roundPixels: false,
     antialias: false,
     backgroundColor: 0xffffff,
+    sharedTicker: true,
   });
+
+  // Connect debug panel to ticker for FPS monitoring
+  if (import.meta.env.DEV) {
+    DebugPanel.connectTicker(app);
+  }
 
   await initTone();
 
@@ -101,7 +107,8 @@ async function init() {
   // Setup assets bundles and start loading
   await initAssets();
   storage.readyStorage();
-  audio.muted(storage.getStorageItem('muted'));
+  //audio.muted(storage.getStorageItem('muted'));
+  audio.muted(true);
 
   // Load meta state
   const savedMeta = await context.systems.get(SaveSystem).loadMeta();

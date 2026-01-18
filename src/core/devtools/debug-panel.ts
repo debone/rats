@@ -1,3 +1,5 @@
+import type { Application, Ticker } from 'pixi.js';
+import { UPDATE_PRIORITY } from 'pixi.js';
 import type { b2Vec2 } from 'phaser-box2d';
 import { FolderApi, Pane } from 'tweakpane';
 
@@ -41,12 +43,19 @@ export const DebugParameters: any = {
 
 export class DebugPanel {
   private static readonly EXPANDED_STATE_KEY = 'debug_panel_expanded';
+  private static readonly FPS_SMOOTHING = 0.9; // Higher = smoother (0-1)
 
   static pane: Pane | null = null;
   static tabApi: any;
   static jsxTab: any;
   static i = 0;
   static signalsFolder: FolderApi | null = null;
+
+  // FPS smoothing
+  private static smoothedFps = 60;
+
+  // Frame budget measurement
+  private static frameStartTime = 0;
 
   static async initPane() {
     // Load expanded state from localStorage
@@ -75,28 +84,74 @@ export class DebugPanel {
     });
 
     DebugParameters.fps = 0;
-    DebugPanel.tabApi.pages[0].addBinding(DebugParameters, 'frameBudget', {
-      readonly: true,
-      format: (v: number) => v.toFixed(6),
-    });
-
     DebugPanel.tabApi.pages[0].addBinding(DebugParameters, 'fps', {
       readonly: true,
-      format: (v: number) => v.toFixed(0),
+      format: (v: number) => v.toFixed(1),
     });
 
     DebugPanel.tabApi.pages[0].addBinding(DebugParameters, 'fps', {
       label: '',
       readonly: true,
       view: 'graph',
-      min: 55,
-      max: 65,
+      min: 0,
+      max: 125,
+    });
+
+    // Frame budget: actual execution time in ms (16.67ms = 100% at 60fps)
+    DebugPanel.tabApi.pages[0].addBinding(DebugParameters, 'frameBudget', {
+      label: 'frame ms',
+      readonly: true,
+      format: (v: number) => `${v.toFixed(2)}ms`,
+    });
+
+    DebugPanel.tabApi.pages[0].addBinding(DebugParameters, 'frameBudget', {
+      label: '',
+      readonly: true,
+      view: 'graph',
+      min: 0,
+      max: 33.33, // 60fps budget
     });
 
     DebugPanel.signalsFolder = DebugPanel.tabApi.pages[0].addFolder({
       title: 'Signals',
       expanded: true,
     });
+  }
+
+  /**
+   * Connect the debug panel to the PixiJS application ticker for FPS updates.
+   * Call this after app.init() completes.
+   */
+  static connectTicker(app: Application) {
+    if (!import.meta.env.DEV) return;
+
+    // High priority: mark frame start time (runs first)
+    app.ticker.add(this.onFrameStart, this, UPDATE_PRIORITY.INTERACTION);
+
+    // Low priority: measure frame budget and update display (runs last, after rendering)
+    app.ticker.add(this.onFrameEnd, this, UPDATE_PRIORITY.UTILITY);
+  }
+
+  private static onFrameStart() {
+    this.frameStartTime = performance.now();
+  }
+
+  private static onFrameEnd(ticker: Ticker) {
+    // Calculate frame execution time (time spent doing work)
+    const frameTime = performance.now() - this.frameStartTime;
+    DebugParameters.frameBudget = frameTime;
+
+    // Smooth FPS using exponential moving average
+    const rawFps = ticker.FPS;
+    this.smoothedFps = this.smoothedFps * this.FPS_SMOOTHING + rawFps * (1 - this.FPS_SMOOTHING);
+    DebugParameters.fps = this.smoothedFps;
+
+    // Refresh pane periodically (not every frame for performance)
+    this.i++;
+    if (this.i >= 10) {
+      this.i = 0;
+      this.pane?.refresh();
+    }
   }
 
   static add(key: string) {
@@ -117,15 +172,6 @@ export class DebugPanel {
     });
 
     DebugParameters[key] = value;
-  }
-
-  static update() {
-    DebugPanel.i++;
-    if (DebugPanel.i > 10) {
-      DebugPanel.i = 0;
-      // Only update FPS here
-      DebugPanel.pane!.refresh();
-    }
   }
 
   private static collapseAllFolders(folder: any) {
