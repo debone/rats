@@ -200,6 +200,12 @@ export abstract class StartingLevels extends Level {
     transform.q.s = 0;
     b2Body_SetTransform(this.paddleBodyId, transform.p, transform.q);
 
+    if (InputDevice.gamepads[0] !== undefined) {
+      transform.q.s = 0.1 * InputDevice.gamepads[0]?.leftJoystick.x;
+      b2Body_SetTransform(this.paddleBodyId, transform.p, transform.q);
+      b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(15 * InputDevice.gamepads[0]?.leftJoystick.x, 0));
+    }
+
     // Handle arrow key input
     if (InputDevice.keyboard.key.ArrowLeft) {
       transform.q.s = -0.1;
@@ -221,7 +227,7 @@ export abstract class StartingLevels extends Level {
       b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(0, -10));
     }
 
-    if (InputDevice.keyboard.key.Space && !this.shouldMaintainBallSpeed) {
+    if ((InputDevice.gamepads[0]?.button.Face1 || InputDevice.keyboard.key.Space) && !this.shouldMaintainBallSpeed) {
       this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
       const ball_position = b2Body_GetPosition(this.ballBodyId);
       const paddle_position = b2Body_GetPosition(this.paddleBodyId);
@@ -251,7 +257,7 @@ export abstract class StartingLevels extends Level {
     const absVy = Math.abs(velocity.y);
 
     // Prevent perfectly horizontal ball: minddimum angle from horizon = 20deg (in radians)
-    const minAngleRad = (20 * Math.PI) / 180;
+    const minAngleRad = (30 * Math.PI) / 180;
 
     let newVelocity = { x: velocity.x, y: velocity.y };
 
