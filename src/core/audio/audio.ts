@@ -212,7 +212,7 @@ class SFX {
   private playSound(alias: string, volume: number, options?: PlayOptions) {
     const now = Date.now();
     const lastPlayed = this.lastPlayed.get(alias) ?? 0;
-    if (now - lastPlayed < 100) return;
+    if (now - lastPlayed < 16) return;
     this.lastPlayed.set(alias, now);
 
     sound.play(alias, { ...options, volume });
