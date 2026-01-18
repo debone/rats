@@ -1,19 +1,22 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { bgm, sfx } from '@/core/audio/audio';
 import { execute } from '@/core/game/Command';
+import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { TiledResource } from '@/core/tiled';
+import { getRunState } from '@/data/game-state';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
+import { WorldToScreen } from '@/systems/physics/WorldSprites';
+import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
 import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
 import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
 import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
-import { getRunState } from '@/data/game-state';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -23,13 +26,14 @@ export default class Level1 extends StartingLevels {
   static id = 'level-1';
 
   private debug_mode = false;
+  private brickDebrisEmitter?: ParticleEmitter;
 
   constructor() {
     super({
       id: 'level-1',
       name: 'First Level',
       arena: {},
-      ballSpeed: 15,
+      ballSpeed: 13,
       ballCount: 3,
     });
   }
@@ -87,10 +91,31 @@ export default class Level1 extends StartingLevels {
     });
 
     this.createBackground();
+    this.createParticleEmitters();
 
     await execute(Level_1_LevelStartCommand);
 
     console.log('[Level1] Loaded');
+  }
+
+  private createParticleEmitters(): void {
+    const textures = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
+
+    // Brick debris particle emitter
+    this.brickDebrisEmitter = new ParticleEmitter({
+      texture: textures['bricks_tile_1#0'],
+      maxParticles: 100,
+      lifespan: { min: 200, max: 300 },
+      speed: { min: 40, max: 80 },
+      angle: { min: -450, max: 225 },
+      scale: { start: { min: 0.3, max: 0.6 }, end: 0.2 },
+      gravityY: 400,
+      rotate: { min: -180, max: 180 },
+      x: { min: -16, max: 16 },
+      y: { min: -8, max: 8 },
+    });
+
+    this.context.container!.addChild(this.brickDebrisEmitter.container);
   }
 
   private setupCollisionHandlers(): void {
@@ -103,6 +128,14 @@ export default class Level1 extends StartingLevels {
       }
 
       const brickBody = pair.bodyB;
+
+      // Spawn debris particles at brick position
+      if (this.brickDebrisEmitter) {
+        const pos = b2Body_GetPosition(brickBody);
+        const { x, y } = WorldToScreen(pos.x, pos.y);
+        this.brickDebrisEmitter.explode(8, x + MIN_WIDTH / 2, y + MIN_HEIGHT / 2);
+      }
+
       // Remove the brick
       this.removeBrick(brickBody);
 
@@ -175,5 +208,13 @@ export default class Level1 extends StartingLevels {
 
   protected checkLoseCondition(): boolean {
     return getRunState().ballsRemaining.get() <= 0;
+  }
+
+  async unload(): Promise<void> {
+    await super.unload();
+
+    // Cleanup particle emitters
+    this.brickDebrisEmitter?.destroy();
+    this.brickDebrisEmitter = undefined;
   }
 }

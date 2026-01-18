@@ -34,6 +34,14 @@ const WorldSprites = new Map<b2WorldId, Map<SpriteObject, SpriteEntry>>();
 /** Coordinate origin offset - configurable per world */
 const WorldOrigins = new Map<b2WorldId, { x: number; y: number }>();
 
+export function WorldToScreen(worldX: number, worldY: number): { x: number; y: number } {
+  return { x: worldX * PXM, y: -worldY * PXM };
+}
+
+export function ScreenToWorld(screenX: number, screenY: number): { x: number; y: number } {
+  return { x: screenX / PXM, y: -screenY / PXM };
+}
+
 /**
  * Sets the coordinate origin for a world.
  * Default is center of MIN_WIDTH x MIN_HEIGHT viewport.
@@ -210,9 +218,11 @@ export function BodyToSprite(
 ): void {
   const transform = b2Body_GetTransform(bodyId);
 
+  const { x, y } = WorldToScreen(transform.p.x, transform.p.y);
+
   // Convert position: scale and flip Y axis
-  sprite.x = transform.p.x * PXM + origin.x + offsetX;
-  sprite.y = -transform.p.y * PXM + origin.y + offsetY;
+  sprite.x = x + origin.x + offsetX;
+  sprite.y = y + origin.y + offsetY;
 
   // Convert rotation: negate because Y is flipped
   sprite.rotation = -Math.atan2(transform.q.s, transform.q.c);
