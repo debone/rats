@@ -22,7 +22,12 @@ export class PhaserDebugDraw {
   context: any;
 
   constructor(graphics: Graphics, width: number, height: number, scale: number) {
-    this.scale = scale;
+    // Sorry for the manual changes here
+    // I wanted to make the scale to fit the whole graphics in the screen
+    // for maps larger than the screen, but not yet.
+    //  this.SetPosition(width, 0);
+    this.scale = scale / 2;
+
     this.width = width;
     this.height = height;
 
@@ -43,8 +48,6 @@ export class PhaserDebugDraw {
     this.drawFrictionImpulses = false;
 
     this.context = graphics;
-
-    this.SetPosition(width, 0);
   }
 
   b2TransformPointOut(t: b2Transform, p: b2Vec2, out: b2Vec2) {
@@ -201,8 +204,8 @@ export class PhaserDebugDraw {
 
   SetPosition(x: number, y: number) {
     // use half width and height to make the virtual 'camera' look at (x, y)
-    this.positionOffset.x = this.width / 2 - x;
-    this.positionOffset.y = y - this.height / 2;
+    this.positionOffset.x = x - this.width / 2;
+    this.positionOffset.y = this.height / 2 - y;
   }
 
   DrawImagePolygon(xf: b2Transform, shape: any, ctx: any) {

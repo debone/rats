@@ -8,9 +8,12 @@
 import { MIN_HEIGHT, MIN_WIDTH, PXM } from '@/consts';
 import { assert } from '@/core/common/assert';
 import type { System } from '@/core/game/System';
+import { signal } from '@/core/reactivity/signals/signals';
 import type { GameContext } from '@/data/game-context';
 import { PhaserDebugDraw } from '@/screens/PhaserDebugDraw';
 import {
+  b2Body_ApplyForceToCenter,
+  b2Body_GetMass,
   b2Body_IsValid,
   b2BodyId,
   b2DefaultWorldDef,
@@ -36,12 +39,14 @@ export class PhysicsSystem implements System {
   private debugDraw?: PhaserDebugDraw;
 
   // TODO: devtools option?
-  private enableDebug = false;
+  private enableDebug = signal(false, { label: 'enableDebug' });
 
   private updateHandler = this.update.bind(this);
 
   private pendingDestructions: b2BodyId[] = [];
   private pendingJointDestructions: b2JointId[] = [];
+
+  private gravityEnabled: b2BodyId[] = [];
 
   init(context: GameContext) {
     this.context = context;
@@ -93,13 +98,27 @@ export class PhysicsSystem implements System {
     this.context.worldId = null;
   }
 
+  enableGravity(bodyId: b2BodyId): void {
+    this.gravityEnabled.push(bodyId);
+  }
+
+  disableGravity(bodyId: b2BodyId): void {
+    this.gravityEnabled = this.gravityEnabled.filter((id) => id !== bodyId);
+  }
+
   private update(delta: number) {
     const worldId = this.context.worldId;
     if (!worldId) return;
 
     // Clear debug graphics
-    if (this.debugGraphics && this.enableDebug) {
+    if (this.debugGraphics) {
       this.debugGraphics.clear();
+    }
+
+    for (const bodyId of this.gravityEnabled) {
+      if (b2Body_IsValid(bodyId)) {
+        b2Body_ApplyForceToCenter(bodyId, new b2Vec2(0, -10 * b2Body_GetMass(bodyId)), true);
+      }
     }
 
     // Step the physics world (delta is in milliseconds, convert to seconds)
@@ -110,7 +129,7 @@ export class PhysicsSystem implements System {
     UpdateWorldSprites(worldId);
 
     // Draw debug visualization
-    if (this.debugDraw && this.enableDebug) {
+    if (this.debugDraw && this.enableDebug.get()) {
       b2World_Draw(worldId, this.debugDraw);
     }
 
@@ -176,14 +195,8 @@ export class PhysicsSystem implements System {
     this.cleanupDebugDraw();
 
     // Create debug graphics
-    this.debugGraphics = new Graphics({
-      layout: {
-        marginTop: -87,
-      },
-    });
+    this.debugGraphics = new Graphics();
 
-    this.debugGraphics.x = container.width;
-    this.debugGraphics.y = container.height;
     container.addChild(this.debugGraphics);
 
     // Create debug draw instance

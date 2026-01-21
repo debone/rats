@@ -1,4 +1,5 @@
-import { ASSETS } from '@/assets';
+import { ASSETS, type PrototypeTextures } from '@/assets';
+import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { GameEvent } from '@/data/events';
 import {
@@ -102,6 +103,34 @@ export abstract class StartingLevels extends Level {
     console.log('[Level1] Paddle created');
   }
 
+  createScrap(x: number, y: number): void {
+    const worldId = this.context.worldId;
+
+    const { bodyId } = CreateCircle({
+      worldId: worldId,
+      type: b2BodyType.b2_dynamicBody,
+      position: new b2Vec2(x, y),
+      radius: 0.3,
+      density: 1,
+      friction: 0.5,
+      restitution: 0,
+    });
+
+    b2Body_SetUserData(bodyId, { type: 'scrap' });
+    const scrapSprite = new Sprite({
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0'],
+      scale: Math.random() * 0.3 + 0.8,
+    });
+    scrapSprite.anchor.set(0.5, 0.5);
+    this.context.container!.addChild(scrapSprite);
+    AddSpriteToWorld(this.context.worldId!, scrapSprite, bodyId, 0, 0);
+    this.registerBody(bodyId);
+    let f = new b2Vec2(Math.random() * 1 - 0.5, Math.random() * 1 - 0.5);
+    b2Normalize(f);
+    b2Body_ApplyLinearImpulseToCenter(bodyId, f, true);
+    this.context.systems.get(PhysicsSystem).enableGravity(bodyId);
+  }
+
   createBall(): void {
     const worldId = this.context.worldId;
 
@@ -117,6 +146,8 @@ export abstract class StartingLevels extends Level {
       restitution: 1,
     });
 
+    this.createScrap(paddlePosition.x, paddlePosition.y + 10);
+
     b2Body_SetUserData(bodyId, { type: 'ball' });
     //b2Body_SetLinearVelocity(bodyId, new b2Vec2(2, 5));
 
@@ -125,6 +156,29 @@ export abstract class StartingLevels extends Level {
     ballSprite.scale.set(0.75, 0.75);
     this.context.container!.addChild(ballSprite);
     AddSpriteToWorld(this.context.worldId!, ballSprite, bodyId, 0, 0);
+
+    if (this.follow) {
+      this.follow.stop();
+    }
+
+    /*
+    this.follow = follow(this.context.camera, ballSprite, {
+      bounds: {
+        minX: MIN_WIDTH / 2,
+        maxX: MIN_WIDTH / 2,
+        minY: 0,
+        maxY: MIN_HEIGHT / 2,
+      },
+    });
+    */
+
+    setTimeout(() => {
+      //this.context.camera?.setPosition(0, 0);
+    }, 2000);
+
+    setTimeout(() => {
+      //this.context.camera?.setScale(1.5);
+    }, 3000);
 
     this.registerBody(bodyId);
     this.ballBodyId = bodyId;

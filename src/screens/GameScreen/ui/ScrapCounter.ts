@@ -1,12 +1,13 @@
-import { ASSETS } from '@/assets';
+import { ASSETS, type PrototypeTextures } from '@/assets';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { typedAssets } from '@/core/assets/typed-assets';
 import { createRefs, type RefCountable } from '@/core/reactivity/refs/ref-collection';
 import { getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
-import { Assets, Sprite } from 'pixi.js';
+import { Sprite } from 'pixi.js';
 
-export class BallCounter extends LayoutContainer {
-  ballsUI: RefCountable;
+export class ScrapCounter extends LayoutContainer {
+  scrapsUI: RefCountable;
 
   constructor() {
     super();
@@ -22,17 +23,17 @@ export class BallCounter extends LayoutContainer {
       flexWrap: 'wrap',
     };
 
-    this.ballsUI = createRefs(
-      'balls',
+    this.scrapsUI = createRefs(
+      'scraps',
       () => {
-        const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
-        ballSprite.scale.set(0.75, 0.75);
-        ballSprite.layout = {
+        const scrapSprite = new Sprite(typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0']);
+        scrapSprite.scale.set(0.75, 0.75);
+        scrapSprite.layout = {
           objectFit: 'cover',
         };
-        return ballSprite;
+        return scrapSprite;
       },
-      getRunState().ballsRemaining,
+      getRunState().scrapsCounter,
       this,
     );
   }

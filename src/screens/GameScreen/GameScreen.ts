@@ -6,8 +6,10 @@ import type { AppScreen, LayerName } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
+import { LayoutContainer } from '@pixi/layout/components';
 import { Container, Ticker, TilingSprite } from 'pixi.js';
 import { BallCounter } from './ui/BallCounter';
+import { ScrapCounter } from './ui/ScrapCounter';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -87,7 +89,19 @@ export class GameScreen extends Container implements AppScreen {
     // Setup event listeners for UI events
     this.setupEventListeners();
 
-    layers.ui.addChild(new BallCounter(0, 0));
+    const uiLayer = new LayoutContainer();
+    uiLayer.layout = {
+      gap: 10,
+      padding: 10,
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      width: MIN_WIDTH,
+      height: MIN_HEIGHT,
+    };
+    layers.ui.addChild(uiLayer);
+
+    uiLayer.addChild(new BallCounter());
+    uiLayer.addChild(new ScrapCounter());
 
     console.log('[GameScreen] Prepared');
   }

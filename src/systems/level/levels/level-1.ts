@@ -10,7 +10,7 @@ import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
-import { b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
+import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
@@ -106,7 +106,7 @@ export default class Level1 extends StartingLevels {
 
     // Brick debris particle emitter
     this.brickDebrisEmitter = new ParticleEmitter({
-      texture: textures['bricks_tile_1#0'],
+      texture: textures['scraps#0'],
       maxParticles: 100,
       lifespan: { min: 200, max: 300 },
       speed: { min: 40, max: 80 },
@@ -158,7 +158,7 @@ export default class Level1 extends StartingLevels {
         sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
       }
 
-      shake(this.context.camera!, { intensity: 1, duration: 300 });
+      shake(this.context.camera!, { intensity: Math.random() * 1, duration: 300 });
 
       const brickBody = pair.bodyB;
 
@@ -166,6 +166,13 @@ export default class Level1 extends StartingLevels {
       if (this.brickDebrisEmitter) {
         const { x, y } = BodyToScreen(brickBody);
         this.brickDebrisEmitter.explode(8, x, y);
+      }
+
+      if (Math.random() < 0.5) {
+        this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
+        this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
+      } else {
+        this.createScrap(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
       }
 
       // Remove the brick
@@ -221,6 +228,28 @@ export default class Level1 extends StartingLevels {
 
       this.createBall();
     });
+
+    this.collisions.register('bottom-wall', 'scrap', (pair: CollisionPair) => {
+      const scrapBody = pair.bodyB;
+
+      const { x, y } = BodyToScreen(scrapBody);
+      this.waterEmitter!.explode(10, x, y);
+
+      this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
+    });
+
+    this.collisions.register('paddle', 'scrap', (pair: CollisionPair) => {
+      const scrapBody = pair.bodyB;
+
+      const { x, y } = BodyToScreen(scrapBody);
+      this.brickDebrisEmitter!.explode(10, x, y + 4);
+
+      getRunState().scrapsCounter.update((value) => value + 1);
+
+      this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
+    });
   }
 
   private createBackground(): void {
@@ -244,9 +273,12 @@ export default class Level1 extends StartingLevels {
       map.container.y = -origin.y;
     }
 
+    // TIL the zindex is relative to the container
     map.container.zIndex = -1;
+    // FIXME: lol, why the whole "background" thing?
 
     this.context.container!.addChild(map.container);
+    // ?? this.context.layers?.background.addChild(map.container);
   }
 
   protected checkWinCondition(): boolean {

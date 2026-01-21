@@ -46,8 +46,10 @@ export interface RunState {
   // What level you're on
   currentLevelId: string;
   levelsCompleted: string[];
+
   ballsRemaining: Signal<number>;
 
+  scrapsCounter: Signal<number>;
   // Run-specific state
   // activeBoons: Boon[];
   // temporaryUpgrades: string[];
@@ -107,6 +109,7 @@ export function createGameState(): GameState {
       currentLevelId: '',
       levelsCompleted: [],
       ballsRemaining: signal(1, { label: 'ballsRemaining' }),
+      scrapsCounter: signal(0, { label: 'scrapsCounter' }),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,
