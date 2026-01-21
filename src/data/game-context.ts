@@ -27,12 +27,16 @@ export interface GameLayers {
   effects: Container;
   /** UI overlay layer for HUD, dialogs */
   ui: LayoutContainer;
+  /** Overlay layer for elements that need to be on top of everything */
+  overlay: LayoutContainer;
   /** Debug layer (highest z-index) */
   debug: LayoutContainer;
 }
 
-/** Layer z-order (lowest to highest) */
-export const LAYER_ORDER: LayerName[] = ['background', 'game', 'effects', 'ui', 'debug'];
+/** Layer z-order (lowest to highest)
+ * FIXME: not true since we have cameras, but not sure what to fix here
+ */
+export const LAYER_ORDER: LayerName[] = ['background', 'game', 'effects', 'ui', 'overlay', 'debug'];
 
 /** Shared context passed throughout the game */
 export interface GameContext {

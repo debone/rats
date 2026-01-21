@@ -8,10 +8,10 @@ export class Level_1_LevelStartCommand extends Command<void> {
     const layers = this.context.layers!;
 
     const dark = new Graphics();
-    dark.rect(-100, -100, layers.game.width + 200, layers.game.height + 200);
+    dark.rect(-100, -100, layers.overlay.width + 200, layers.overlay.height + 200);
     dark.fill(0x322947);
     dark.alpha = 1;
-    layers.ui.addChild(dark);
+    layers.overlay.addChild(dark);
 
     const startLevel = new Text({
       text: 'Level Start!',
@@ -23,8 +23,8 @@ export class Level_1_LevelStartCommand extends Command<void> {
       layout: true,
     });
 
-    layers.ui.addChild(startLevel);
-    yield delay(2000);
+    layers.overlay.addChild(startLevel);
+    yield delay(20);
 
     animate(dark, { alpha: 0, duration: 500, easing: 'linear' });
 

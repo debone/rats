@@ -12,5 +12,7 @@ export const MIN_HEIGHT = WORLD_HEIGHT * PXM;
 export const BACKGROUND_Z_INDEX = 0;
 export const CAMERA_Z_INDEX = 5;
 export const UI_Z_INDEX = 10;
+export const OVERLAY_Z_INDEX = 15;
+export const DEBUG_Z_INDEX = 25;
 
 export const STARTING_BALLS = 3;

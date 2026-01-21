@@ -1,4 +1,4 @@
-import { BACKGROUND_Z_INDEX, MIN_HEIGHT, MIN_WIDTH, UI_Z_INDEX } from '@/consts';
+import { BACKGROUND_Z_INDEX, DEBUG_Z_INDEX, MIN_HEIGHT, MIN_WIDTH, OVERLAY_Z_INDEX, UI_Z_INDEX } from '@/consts';
 import type { GameLayers } from '@/data/game-context';
 import { LAYER_ORDER } from '@/data/game-context';
 import { LayoutContainer } from '@pixi/layout/components';
@@ -31,7 +31,8 @@ export function createGameLayers(parent: Container, camera: Camera, visibleLayer
     game: new Container(),
     effects: new Container(),
     ui: createLayer(UI_Z_INDEX),
-    debug: createLayer(UI_Z_INDEX),
+    overlay: createLayer(OVERLAY_Z_INDEX),
+    debug: createLayer(DEBUG_Z_INDEX),
   };
 
   // Add only the requested layers to parent in z-order

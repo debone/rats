@@ -1,7 +1,7 @@
 import type { Container, Ticker } from 'pixi.js';
 
 /** Available layer names for screens */
-export type LayerName = 'background' | 'game' | 'effects' | 'ui' | 'debug';
+export type LayerName = 'background' | 'game' | 'effects' | 'ui' | 'overlay' | 'debug';
 
 /** Interface for app screens */
 export interface AppScreen extends Container {

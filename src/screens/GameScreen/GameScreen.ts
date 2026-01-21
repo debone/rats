@@ -1,5 +1,6 @@
 import { ASSETS } from '@/assets';
 import type { PrototypeTextures } from '@/assets/frames';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import type { AppScreen, LayerName } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
@@ -18,7 +19,7 @@ import { BallCounter } from './ui/BallCounter';
 export class GameScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'game';
   static readonly assetBundles = ['preload', 'default'];
-  static readonly screenLayers: LayerName[] = ['background', 'game', 'ui', 'debug'];
+  static readonly screenLayers: LayerName[] = ['background', 'game', 'effects', 'ui', 'overlay', 'debug'];
 
   private _background?: TilingSprite;
   private _gameContainer?: Container;
@@ -58,6 +59,27 @@ export class GameScreen extends Container implements AppScreen {
     // Set the container on the context so systems can use it
     context.container = gameContainer;
 
+    /*
+    const b = new Sprite({
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['bricks_tile_2#0'],
+      layout: { width: MIN_WIDTH, height: 8 },
+    });
+    layers.debug.addChild(b);
+
+    setTimeout(() => {
+      layers.debug.addChild(
+        new Sprite({
+          texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['bricks_tile_2#0'],
+          x: context.camera.viewWidth / 2,
+          y: context.camera.viewHeight / 2,
+          width: 8,
+          height: MIN_HEIGHT,
+          anchor: { x: 0.5, y: 0.5 },
+        }),
+      );
+    }, 100);
+    */
+
     // Setup physics debug draw on debug layer
     const physicsSystem = context.systems.get(PhysicsSystem);
     physicsSystem.setupDebugDraw(layers.debug);
@@ -65,7 +87,6 @@ export class GameScreen extends Container implements AppScreen {
     // Setup event listeners for UI events
     this.setupEventListeners();
 
-    // FIXME:
     layers.ui.addChild(new BallCounter(0, 0));
 
     console.log('[GameScreen] Prepared');
