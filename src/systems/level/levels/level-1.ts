@@ -2,6 +2,7 @@ import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { bgm, sfx } from '@/core/audio/audio';
+import { shake } from '@/core/camera/effects/shake';
 import { execute } from '@/core/game/Command';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { TiledResource } from '@/core/tiled';
@@ -126,6 +127,8 @@ export default class Level1 extends StartingLevels {
       } else {
         sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
       }
+
+      shake(this.context.camera!, { intensity: 1, duration: 300 });
 
       const brickBody = pair.bodyB;
 
