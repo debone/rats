@@ -26,11 +26,12 @@ export class Level_1_LevelStartCommand extends Command<void> {
     layers.overlay.addChild(startLevel);
     yield delay(20);
 
-    animate(dark, { alpha: 0, duration: 500, easing: 'linear' });
+    animate(startLevel, { alpha: 0, duration: 1000, easing: 'linear' });
+    animate(dark, { alpha: 0, duration: 1000, easing: 'linear' });
 
     setTimeout(() => {
       dark.destroy();
       startLevel.destroy();
-    }, 500);
+    }, 1050);
   }
 }

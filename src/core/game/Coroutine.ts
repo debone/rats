@@ -5,11 +5,13 @@
  * These make it easier to write sequential async flows.
  */
 
+import type { JSAnimation } from 'animejs';
+
 /**
  * A coroutine is a generator that yields promises and can return a value.
  * The runner awaits each yielded value and sends the result back.
  */
-export type Coroutine<TReturn = void> = Generator<Promise<any>, TReturn, any>;
+export type Coroutine<TReturn = void> = Generator<Promise<any> | JSAnimation, TReturn, any>;
 
 /**
  * Run a coroutine to completion and return its final value.
