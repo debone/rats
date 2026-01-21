@@ -60,7 +60,11 @@ export function SetWorldOrigin(worldId: b2WorldId, originX: number, originY: num
  * @param worldId - The Box2D world ID
  * @returns The origin coordinates in pixels
  */
-export function GetWorldOrigin(worldId: b2WorldId): { x: number; y: number } {
+export function GetWorldOrigin(worldId?: b2WorldId): { x: number; y: number } {
+  if (!worldId) {
+    return { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 };
+  }
+
   return WorldOrigins.get(worldId) ?? { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 };
 }
 
@@ -226,6 +230,13 @@ export function BodyToSprite(
 
   // Convert rotation: negate because Y is flipped
   sprite.rotation = -Math.atan2(transform.q.s, transform.q.c);
+}
+
+export function BodyToScreen(bodyId: b2BodyId): { x: number; y: number } {
+  const transform = b2Body_GetTransform(bodyId);
+  const { x, y } = WorldToScreen(transform.p.x, transform.p.y);
+  const origin = GetWorldOrigin();
+  return { x: x + origin.x, y: y + origin.y };
 }
 
 /**

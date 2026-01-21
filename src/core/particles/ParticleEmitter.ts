@@ -466,6 +466,58 @@ export class ParticleEmitter {
     this._emitting = value;
   }
 
+  set angle(value: EmitterOp<number>) {
+    this.config.angle = value;
+  }
+
+  set speed(value: EmitterOp<number>) {
+    this.config.speed = value;
+  }
+
+  set scale(value: EmitterOp<number>) {
+    this.config.scale = value;
+  }
+
+  set gravityY(value: EmitterOp<number>) {
+    this.config.gravityY = value;
+  }
+
+  set gravityX(value: EmitterOp<number>) {
+    this.config.gravityX = value;
+  }
+
+  set tint(value: EmitterOp<number>) {
+    this.config.tint = value;
+  }
+
+  set alpha(value: EmitterOp<number>) {
+    this.config.alpha = value;
+  }
+
+  set delay(value: EmitterOp<number>) {
+    this.config.delay = value;
+  }
+
+  set quantity(value: SimpleOp<number>) {
+    this.config.quantity = value;
+  }
+
+  set frequency(value: SimpleOp<number>) {
+    this.config.frequency = value;
+  }
+
+  set lifespan(value: EmitterOp<number>) {
+    this.config.lifespan = value;
+  }
+
+  set follow(value: { x: number; y: number }) {
+    this.config.follow = value;
+  }
+
+  set followOffset(value: { x: number; y: number }) {
+    this.config.followOffset = value;
+  }
+
   /** Kill all active particles immediately */
   killAll(): this {
     const activeIndices = this.activeIndices;

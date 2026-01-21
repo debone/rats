@@ -1,5 +1,4 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { bgm, sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
@@ -10,8 +9,8 @@ import { getRunState } from '@/data/game-state';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { WorldToScreen } from '@/systems/physics/WorldSprites';
-import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
+import { BodyToScreen } from '@/systems/physics/WorldSprites';
+import { b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
@@ -27,7 +26,6 @@ export default class Level1 extends StartingLevels {
   static id = 'level-1';
 
   private debug_mode = false;
-  private brickDebrisEmitter?: ParticleEmitter;
 
   constructor() {
     super({
@@ -99,6 +97,10 @@ export default class Level1 extends StartingLevels {
     console.log('[Level1] Loaded');
   }
 
+  private brickDebrisEmitter?: ParticleEmitter;
+  private waterEmitter?: ParticleEmitter;
+  private wallEmitter?: ParticleEmitter;
+
   private createParticleEmitters(): void {
     const textures = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
 
@@ -117,6 +119,34 @@ export default class Level1 extends StartingLevels {
     });
 
     this.context.container!.addChild(this.brickDebrisEmitter.container);
+
+    // Water particle emitter
+    this.waterEmitter = new ParticleEmitter({
+      texture: Assets.get(ASSETS.tiles).textures.ball,
+      maxParticles: 100,
+      lifespan: { min: 200, max: 500 },
+      speed: { min: 20, max: 80 },
+      angle: { min: -150, max: -30 },
+      scale: { min: 0.15, max: 0.25 },
+      gravityY: 100,
+      tint: 0xff9977,
+    });
+
+    this.context.container!.addChild(this.waterEmitter.container);
+
+    // Wall particle emitter
+    this.wallEmitter = new ParticleEmitter({
+      texture: Assets.get(ASSETS.tiles).textures.ball,
+      maxParticles: 100,
+      lifespan: { min: 100, max: 700 },
+      speed: { min: 20, max: 80 },
+      angle: { min: 30, max: -30 },
+      scale: { start: { min: 0.15, max: 0.25 }, end: 0 },
+      gravityY: 100,
+      tint: 0x774444,
+    });
+
+    this.context.container!.addChild(this.wallEmitter.container);
   }
 
   private setupCollisionHandlers(): void {
@@ -134,9 +164,8 @@ export default class Level1 extends StartingLevels {
 
       // Spawn debris particles at brick position
       if (this.brickDebrisEmitter) {
-        const pos = b2Body_GetPosition(brickBody);
-        const { x, y } = WorldToScreen(pos.x, pos.y);
-        this.brickDebrisEmitter.explode(8, x + MIN_WIDTH / 2, y + MIN_HEIGHT / 2);
+        const { x, y } = BodyToScreen(brickBody);
+        this.brickDebrisEmitter.explode(8, x, y);
       }
 
       // Remove the brick
@@ -158,8 +187,23 @@ export default class Level1 extends StartingLevels {
       sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A);
     });
 
+    this.collisions.register('ball', 'left-wall', async () => {
+      this.wallEmitter!.angle = { min: 30, max: -30 };
+      const { x, y } = BodyToScreen(this.ballBodyId);
+      this.wallEmitter!.explode(20, x, y);
+    });
+
+    this.collisions.register('ball', 'right-wall', async () => {
+      this.wallEmitter!.angle = { min: 150, max: 210 };
+      const { x, y } = BodyToScreen(this.ballBodyId);
+      this.wallEmitter!.explode(20, x, y);
+    });
+
     this.collisions.register('ball', 'bottom-wall', async () => {
       console.log('Ball hit bottom wall');
+
+      const { x, y } = BodyToScreen(this.ballBodyId);
+      this.waterEmitter!.explode(100, x, y);
 
       sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
 
@@ -219,5 +263,11 @@ export default class Level1 extends StartingLevels {
     // Cleanup particle emitters
     this.brickDebrisEmitter?.destroy();
     this.brickDebrisEmitter = undefined;
+
+    this.waterEmitter?.destroy();
+    this.waterEmitter = undefined;
+
+    this.wallEmitter?.destroy();
+    this.wallEmitter = undefined;
   }
 }
