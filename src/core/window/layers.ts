@@ -1,15 +1,17 @@
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { BACKGROUND_Z_INDEX, MIN_HEIGHT, MIN_WIDTH, UI_Z_INDEX } from '@/consts';
 import type { GameLayers } from '@/data/game-context';
 import { LAYER_ORDER } from '@/data/game-context';
 import { LayoutContainer } from '@pixi/layout/components';
-import type { Container } from 'pixi.js';
+import { Container } from 'pixi.js';
 import type { LayerName } from './types';
+import type { Camera } from '../camera/camera';
 
 /**
  * Create a single layer container
  */
-function createLayer(): LayoutContainer {
+function createLayer(zIndex: number = 0): LayoutContainer {
   return new LayoutContainer({
+    zIndex,
     layout: {
       width: MIN_WIDTH,
       height: MIN_HEIGHT,
@@ -23,19 +25,24 @@ function createLayer(): LayoutContainer {
  * Create all layer containers. Only requested layers are added to the display tree.
  * All layers exist and are accessible, but only visible ones are in the parent.
  */
-export function createGameLayers(parent: Container, visibleLayers: LayerName[]): GameLayers {
+export function createGameLayers(parent: Container, camera: Camera, visibleLayers: LayerName[]): GameLayers {
   const layers: GameLayers = {
-    background: createLayer(),
-    game: createLayer(),
-    effects: createLayer(),
-    ui: createLayer(),
-    debug: createLayer(),
+    background: createLayer(BACKGROUND_Z_INDEX),
+    game: new Container(),
+    effects: new Container(),
+    ui: createLayer(UI_Z_INDEX),
+    debug: createLayer(UI_Z_INDEX),
   };
 
   // Add only the requested layers to parent in z-order
   for (const name of LAYER_ORDER) {
     if (visibleLayers.includes(name)) {
-      parent.addChild(layers[name]);
+      // Peak game dev code
+      if (name === 'game' || name === 'effects') {
+        camera.viewport.addChild(layers[name]);
+      } else {
+        parent.addChild(layers[name]);
+      }
     }
   }
 

@@ -1,11 +1,11 @@
 import type { b2WorldId } from 'phaser-box2d';
 import { Container, type Application } from 'pixi.js';
 
+import type { Camera } from '@/core/camera/camera';
 import type { EventContext } from '@/core/game/EventEmitter';
 import type { SystemRunner } from '@/core/game/SystemRunner';
 import type { LayerName } from '@/core/window/types';
 import { LayoutContainer } from '@pixi/layout/components';
-import { getRunState } from './game-state';
 
 /**
  * Core Game Types
@@ -22,9 +22,9 @@ export interface GameLayers {
   /** Background layer (lowest z-index) */
   background: LayoutContainer;
   /** Main game layer for gameplay objects */
-  game: LayoutContainer;
+  game: Container;
   /** Effects layer for particles, trails */
-  effects: LayoutContainer;
+  effects: Container;
   /** UI overlay layer for HUD, dialogs */
   ui: LayoutContainer;
   /** Debug layer (highest z-index) */
@@ -45,6 +45,9 @@ export interface GameContext {
   /** Z-ordered rendering layers (set by NavigationSystem) */
   layers: GameLayers | null;
 
+  /** Camera for visual effects (set when layers are created) */
+  camera: Camera;
+
   /** Current screen's game container (set by GameScreen when active) */
   container: Container | null;
 
@@ -60,11 +63,17 @@ export interface GameContext {
 
 let gameContext: GameContext | null = null;
 
-export function createGameContext(app: Application, events: EventContext, systems: SystemRunner): GameContext {
+export function createGameContext(
+  app: Application,
+  events: EventContext,
+  systems: SystemRunner,
+  camera: Camera,
+): GameContext {
   return {
     app,
     events,
     systems,
+    camera,
     worldId: null,
     layers: null,
     container: null,

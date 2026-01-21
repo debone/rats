@@ -24,11 +24,13 @@ import { SaveSystem } from '@/systems/save/system';
 import { AppStartCommand } from '@/systems/app/commands/AppStartCommand';
 
 import { ReflectionFilter } from 'pixi-filters';
-import { BloomFilter } from 'pixi-filters/bloom';
 import { CRT2Filter } from './lib/CRT/CRT';
 
 import { initDevtools } from '@pixi/devtools';
+import { Camera } from './core/camera/camera';
+import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
+import { CAMERA_Z_INDEX } from './consts';
 
 export const app = new Application();
 
@@ -74,11 +76,12 @@ async function init() {
     vignetting: 0,
   });
 
+  /*
   const bloom = new BloomFilter({
     quality: 4,
     strength: 0,
   });
-
+  */
   //app.stage.filters = [bloom, c];
   //app.stage.filters = [c, c, bloom];
   //app.stage.filters = [c, bloom, mirror];
@@ -92,7 +95,16 @@ async function init() {
   const events = new EventContext(emitter);
   const systems = new SystemRunner();
 
-  const context: GameContext = createGameContext(app, events, systems);
+  const camera = new Camera();
+  camera.viewport.zIndex = CAMERA_Z_INDEX;
+  app.stage.addChild(camera.viewport);
+
+  if (import.meta.env.DEV) {
+    camera.debug = new CameraDebug(camera);
+    camera.debug.initDebugPanel();
+  }
+
+  const context: GameContext = createGameContext(app, events, systems, camera);
   setGameContext(context);
 
   const state: GameState = createGameState();
@@ -116,6 +128,8 @@ async function init() {
     setMetaState(savedMeta);
   }
 
+  let debugUpdateTime = 0;
+
   // Main loop
   app.ticker.add((time) => {
     engine.update();
@@ -123,6 +137,17 @@ async function init() {
 
     // Update all scheduled systems
     context.systems.update(time.deltaMS);
+
+    context.camera.update();
+
+    // Once a second
+    if (import.meta.env.DEV) {
+      debugUpdateTime += time.deltaMS;
+      if (debugUpdateTime >= 1000) {
+        context.camera.debug?.updateDebug();
+        debugUpdateTime = 0;
+      }
+    }
 
     c.time += time.deltaMS / 1000;
     mirror.time += time.deltaMS / 100;

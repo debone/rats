@@ -36,13 +36,14 @@ class Navigation {
 
     // Create layers for this screen (if specified)
     if (layerNames && layerNames.length > 0) {
-      this.context.layers = createGameLayers(this.container, layerNames);
+      this.context.layers = createGameLayers(app.stage, this.context.camera, layerNames);
     } else {
       this.context.layers = null;
     }
 
     // Add screen to stage (after layers so screen is on top)
-    this.container.addChild(screen);
+    // TODO: Not needed? Why GameScreen even extends Container then?
+    // this.container.addChild(screen);
 
     // Setup things and pre-organise screen before showing
     if (screen.prepare) {
@@ -91,7 +92,10 @@ class Navigation {
       screen.parent.removeChild(screen);
     }
 
-    // Destroy layers for this screen
+    // Destroy camera and layers for this screen
+    // TODO: maybe? Sorry :)
+    // this.context.camera.reset();
+
     if (this.context.layers) {
       destroyGameLayers(this.context.layers);
       this.context.layers = null;

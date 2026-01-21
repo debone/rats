@@ -14,6 +14,7 @@ import {
 } from 'phaser-box2d';
 import { CollisionHandlerRegistry } from '../physics/collision-handler';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
+import type { FollowResult } from '@/core/camera/effects/follow';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -39,6 +40,8 @@ export abstract class Level {
 
   public bodiesIds: Set<b2BodyId> = new Set();
   public bodies: b2BodyId[] = [];
+
+  protected follow?: FollowResult;
 
   protected collisions = new CollisionHandlerRegistry();
 
@@ -147,6 +150,8 @@ export abstract class Level {
    */
   async unload(): Promise<void> {
     console.log(`[Level] Unloading level: ${this.config.id}`);
+
+    this.follow?.stop();
 
     // Destroy all registered physics bodies
     for (const bodyId of this.bodies) {

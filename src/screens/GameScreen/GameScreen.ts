@@ -1,12 +1,10 @@
 import { ASSETS } from '@/assets';
 import type { PrototypeTextures } from '@/assets/frames';
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import type { AppScreen, LayerName } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { LayoutContainer } from '@pixi/layout/components';
 import { Container, Ticker, TilingSprite } from 'pixi.js';
 import { BallCounter } from './ui/BallCounter';
 
@@ -23,7 +21,7 @@ export class GameScreen extends Container implements AppScreen {
   static readonly screenLayers: LayerName[] = ['background', 'game', 'ui', 'debug'];
 
   private _background?: TilingSprite;
-  private _gameContainer?: LayoutContainer;
+  private _gameContainer?: Container;
 
   constructor() {
     super();
@@ -36,22 +34,8 @@ export class GameScreen extends Container implements AppScreen {
   async prepare() {
     console.log('[GameScreen] Preparing...');
 
-    this.layout = {
-      justifyContent: 'center',
-      alignItems: 'center',
-      flexDirection: 'column',
-    };
-
-    // Game container (black box for the game area)
-    const gameContainer = new LayoutContainer({
-      layout: {
-        width: MIN_WIDTH,
-        height: MIN_HEIGHT,
-        backgroundColor: 'black',
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-    });
+    // Game container
+    const gameContainer = new Container();
     this._gameContainer = gameContainer;
 
     // Tiling background
@@ -63,14 +47,16 @@ export class GameScreen extends Container implements AppScreen {
     this._background = tilingSprite;
 
     const context = getGameContext();
+    context.camera.setPosition(MIN_WIDTH / 2, MIN_HEIGHT / 2);
+
     const layers = context.layers!; // Layers are guaranteed to exist in prepare()
 
     // Add content to layers
     layers.background.addChild(this._background);
-    layers.game.addChild(this._gameContainer);
+    layers.game.addChild(gameContainer);
 
     // Set the container on the context so systems can use it
-    context.container = this._gameContainer;
+    context.container = gameContainer;
 
     // Setup physics debug draw on debug layer
     const physicsSystem = context.systems.get(PhysicsSystem);
@@ -79,7 +65,8 @@ export class GameScreen extends Container implements AppScreen {
     // Setup event listeners for UI events
     this.setupEventListeners();
 
-    this.addChild(new BallCounter(0, 0));
+    // FIXME:
+    layers.ui.addChild(new BallCounter(0, 0));
 
     console.log('[GameScreen] Prepared');
   }

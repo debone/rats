@@ -154,7 +154,7 @@ export default class Level2 extends StartingLevels {
       }
     });
 
-    this.collisions.register('ball', 'exit', (pair: CollisionPair) => {
+    this.collisions.register('ball', 'exit', (_pair: CollisionPair) => {
       execute(Level_2_BallExitedCommand, { level: this });
     });
 
