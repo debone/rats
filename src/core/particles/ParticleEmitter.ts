@@ -236,8 +236,8 @@ export class ParticleEmitter {
     const dp = config.dynamicProperties ?? {};
     const hasScale = config.scale !== undefined;
     const hasRotate = config.rotate !== undefined;
-    const hasAlpha = config.alpha !== undefined;
-    const hasTint = config.tint !== undefined;
+    // const hasAlpha = config.alpha !== undefined;
+    // const hasTint = config.tint !== undefined;
 
     // Create container with optimized dynamic properties
     this.container = new ParticleContainer({

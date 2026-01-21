@@ -1,8 +1,6 @@
 import { ASSETS } from '@/assets';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
-import { assert } from '@/core/common/assert';
 import { createRefs, type RefCountable } from '@/core/reactivity/refs/ref-collection';
-import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Assets, Sprite } from 'pixi.js';

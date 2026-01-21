@@ -25,7 +25,7 @@ SOFTWARE.
 
 */
 
-import * as zlib from "zlib";
+import * as zlib from 'zlib';
 
 // Define interfaces for the Aseprite parser
 export namespace AsepriteTypes {
@@ -145,17 +145,17 @@ class Aseprite {
   slices: AsepriteTypes.Slice[] = [];
   tags: AsepriteTypes.Tag[] = [];
   tilesets: AsepriteTypes.Tileset[] = [];
-  palette: AsepriteTypes.Palette;
-  colorProfile: AsepriteTypes.ColorProfile;
+  palette!: AsepriteTypes.Palette;
+  colorProfile!: AsepriteTypes.ColorProfile;
   name: string;
-  paletteIndex: number;
-  colorDepth: number;
-  pixelRatio: string;
-  numColors: number;
-  fileSize: number;
-  width: number;
-  height: number;
-  numFrames: number;
+  paletteIndex!: number;
+  colorDepth!: number;
+  pixelRatio!: string;
+  numColors!: number;
+  fileSize!: number;
+  width!: number;
+  height!: number;
+  numFrames!: number;
   private _offset: number = 0;
   private _buffer: Buffer;
 
@@ -382,10 +382,7 @@ class Aseprite {
     // flag to the map with the accompanying "toggle"
     for (const flag in Aseprite.LAYER_FLAG_MAP) {
       translatedFlagMap[flag] =
-        (flagValue &
-          Aseprite.LAYER_FLAG_MAP[
-            flag as keyof typeof Aseprite.LAYER_FLAG_MAP
-          ]) ==
+        (flagValue & Aseprite.LAYER_FLAG_MAP[flag as keyof typeof Aseprite.LAYER_FLAG_MAP]) ==
         Aseprite.LAYER_FLAG_MAP[flag as keyof typeof Aseprite.LAYER_FLAG_MAP];
     }
     return translatedFlagMap as AsepriteTypes.LayerFlags;
@@ -496,7 +493,7 @@ class Aseprite {
    * Color Profile Chunk is type 0x2007
    */
   readColorProfileChunk(): void {
-    const types = ["None", "sRGB", "ICC"];
+    const types = ['None', 'sRGB', 'ICC'];
     const typeInd = this.readNextWord();
     const type = types[typeInd];
     const flag = this.readNextWord();
@@ -521,7 +518,7 @@ class Aseprite {
    * Tags Cunk is type 0x2018
    */
   readFrameTagsChunk(): void {
-    const loops = ["Forward", "Reverse", "Ping-pong", "Ping-pong Reverse"];
+    const loops = ['Forward', 'Reverse', 'Ping-pong', 'Ping-pong Reverse'];
     const numTags = this.readNextWord();
     this.skipBytes(8);
     for (let i = 0; i < numTags; i++) {
@@ -530,7 +527,7 @@ class Aseprite {
       const animDirection = loops[this.readNextByte()];
       const repeat = this.readNextWord();
       this.skipBytes(6);
-      const color = this.readNextRawBytes(3).toString("hex");
+      const color = this.readNextRawBytes(3).toString('hex');
       this.skipBytes(1);
       const name = this.readNextString();
 
@@ -572,7 +569,7 @@ class Aseprite {
         green,
         blue,
         alpha,
-        name: name !== undefined ? name : "none",
+        name: name !== undefined ? name : 'none',
       });
     }
     let palette: AsepriteTypes.Palette = {
@@ -837,13 +834,13 @@ class Aseprite {
    */
   formatBytes(bytes: number, decimals: number): string {
     if (bytes === 0) {
-      return "0 Byte";
+      return '0 Byte';
     }
     const k = 1024;
     const dm = decimals + 1 || 3;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
   /**
@@ -869,7 +866,7 @@ class Aseprite {
               celType: cel.celType,
               w: cel.w,
               h: cel.h,
-              rawCelData: "buffer",
+              rawCelData: 'buffer',
             };
           }),
         };

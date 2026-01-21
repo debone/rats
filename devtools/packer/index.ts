@@ -8,7 +8,7 @@ import { Atlas } from './processors/atlas.ts';
 /**
  * Generate TypeScript content for atlas config
  */
-function generateTypescriptContent(atlasConfig: Record<string, any>, baseName: string): string {
+export function generateTypescriptContent(atlasConfig: Record<string, any>, baseName: string): string {
   const configName = toPascalCase(baseName) + 'Frames';
 
   let content = `// Auto-generated TypeScript file for ${baseName} multiatlas frames\n`;

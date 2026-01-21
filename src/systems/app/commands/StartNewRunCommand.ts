@@ -11,6 +11,8 @@ export class StartNewRunCommand extends Command<{ startingLevelId: string }> {
   *execute({ startingLevelId }: { startingLevelId: string }): Coroutine {
     console.log('[Command] Start New Run');
 
+    console.log('[Command] Start New Run: requested starting level', startingLevelId);
+
     // Hi Victor from future, if you see this, I'm sorry.
     // I already evolved from the idea of just setting the state directly
     // but then the methods still need calling

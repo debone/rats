@@ -258,7 +258,7 @@ function loadJointCommonProperties(
   }
 }
 
-function loadJointFromRUBE(jointJson: any, world: b2WorldDef, loadedBodies: b2BodyId[]) {
+function loadJointFromRUBE(jointJson: any, worldId: b2WorldId, loadedBodies: b2BodyId[]) {
   if (!jointJson.hasOwnProperty('type')) {
     console.log("Joint does not have a 'type' property");
     return null;
@@ -298,7 +298,7 @@ function loadJointFromRUBE(jointJson: any, world: b2WorldDef, loadedBodies: b2Bo
       jd.enableMotor = jointJson.enableMotor;
     }
 
-    joint = b2CreateRevoluteJoint(world, jd);
+    joint = b2CreateRevoluteJoint(worldId, jd);
   } else if (jointJson.type == 'distance' || jointJson.type == 'rope') {
     if (jointJson.type == 'rope') {
       console.log('Replacing unsupported rope joint with distance joint!');
@@ -314,7 +314,7 @@ function loadJointFromRUBE(jointJson: any, world: b2WorldDef, loadedBodies: b2Bo
     if (jointJson.hasOwnProperty('frequency')) {
       jd.hertz = jointJson.frequency;
     }
-    joint = b2CreateDistanceJoint(world, jd);
+    joint = b2CreateDistanceJoint(worldId, jd);
   } else if (jointJson.type == 'prismatic') {
     const jd = b2DefaultPrismaticJointDef();
     loadJointCommonProperties(jd, jointJson, loadedBodies);
@@ -347,7 +347,7 @@ function loadJointFromRUBE(jointJson: any, world: b2WorldDef, loadedBodies: b2Bo
     console.log(JSON.stringify(jointJson, null, 2));
     console.log(jd);
 
-    joint = b2CreatePrismaticJoint(world, jd);
+    joint = b2CreatePrismaticJoint(worldId, jd);
   } else if (jointJson.type == 'wheel') {
     throw new Error('Wheel joint is not supported');
     //Make a fake wheel joint using a line joint and a distance joint.
@@ -381,7 +381,7 @@ function loadJointFromRUBE(jointJson: any, world: b2WorldDef, loadedBodies: b2Bo
     if (jointJson.hasOwnProperty('referenceAngle')) {
       jd.referenceAngle = jointJson.referenceAngle;
     }
-    joint = b2CreateWeldJoint(world, jd);
+    joint = b2CreateWeldJoint(worldId, jd);
   } else {
     console.log('Unsupported joint type: ' + jointJson.type);
     console.log(jointJson);
@@ -428,14 +428,14 @@ function loadImageFromRUBE(imageJson: any, loadedBodies: b2BodyId[]) {
 }
 
 //load the scene into an already existing world variable
-export function loadSceneIntoWorld(worldJson: any, world: b2WorldId) {
+export function loadSceneIntoWorld(worldJson: any, worldId: b2WorldId) {
   let success = true;
 
   let loadedBodies = [];
   if (worldJson.hasOwnProperty('body')) {
     for (let i = 0; i < worldJson.body.length; i++) {
       let bodyJson = worldJson.body[i];
-      let body = loadBodyFromRUBE(bodyJson, world);
+      let body = loadBodyFromRUBE(bodyJson, worldId);
 
       if (body) {
         loadedBodies.push(body);
@@ -449,7 +449,7 @@ export function loadSceneIntoWorld(worldJson: any, world: b2WorldId) {
   if (worldJson.hasOwnProperty('joint')) {
     for (let i = 0; i < worldJson.joint.length; i++) {
       let jointJso = worldJson.joint[i];
-      let joint = loadJointFromRUBE(jointJso, world, loadedBodies);
+      let joint = loadJointFromRUBE(jointJso, worldId, loadedBodies);
       if (joint) {
         loadedJoints.push(joint);
       } else {
@@ -470,7 +470,7 @@ export function loadSceneIntoWorld(worldJson: any, world: b2WorldId) {
       }
     }
     // TODO: images?
-    (world as any).images = loadedImages;
+    // (world as any).images = loadedImages;
   }
 
   if (loadedBodies.length === 0 && loadedJoints.length === 0 && loadedImages.length === 0) {
@@ -495,7 +495,7 @@ export function loadWorldFromRUBE(worldJson: any) {
 
   world.gravity = gravity;
 
-  if (!loadSceneIntoWorld(worldJson, world)) return false;
+  if (!loadSceneIntoWorld(worldJson, world as any)) return false;
 
   (world as any).worldId = CreateWorld({ worldDef: world }).worldId;
 

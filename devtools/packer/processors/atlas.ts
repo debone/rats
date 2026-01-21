@@ -1,7 +1,6 @@
-import * as path from 'path';
 import sharp from 'sharp';
 
-import type { AtlasFrame, AtlasMetadata, ExtractedSprite, SpritesheetData, SpritesheetFrameData } from '../types.ts';
+import type { ExtractedSprite, SpritesheetData, SpritesheetFrameData } from '../types.ts';
 import { generateFrames, generateSpritesheetSlices } from './slices.ts';
 
 interface TrimInfo {

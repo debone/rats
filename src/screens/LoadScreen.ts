@@ -1,16 +1,15 @@
 import { ASSETS, FRAMES, type BackgroundTextures } from '@/assets';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
+import { createRefs } from '@/core/reactivity/refs/ref-collection';
+import { signal } from '@/core/reactivity/signals/signals';
 import type { AppScreen } from '@/core/window/types';
+import { GameEvent } from '@/data/events';
+import { getGameContext, hasGameContext } from '@/data/game-context';
 import { LayoutContainer, LayoutSprite, LayoutText } from '@pixi/layout/components';
 import { CompositeTilemap } from '@pixi/tilemap';
 import { animate } from 'animejs';
 import { Assets, Container, Sprite, Texture, TilingSprite } from 'pixi.js';
-import { hasGameContext, getGameContext } from '@/data/game-context';
-import { GameEvent } from '@/data/events';
-import { createRef, type Ref } from '@/core/reactivity/refs/ref';
-import { createRefCollection, createRefs } from '@/core/reactivity/refs/ref-collection';
-import { signal } from '@/core/reactivity/signals/signals';
 
 export class LoadScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'load';

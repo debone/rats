@@ -1,9 +1,9 @@
+import { assert } from '@/core/common/assert';
 import { Container } from 'pixi.js';
 import { SignalCollection } from '../signals/signal-collection';
-import { getSignalValue, signal, type SignalWrapped } from '../signals/signals';
-import type { Signal, SignalValue } from '../signals/types';
+import { getSignalValue, signal } from '../signals/signals';
+import type { Signal } from '../signals/types';
 import { pickRef, type Ref } from './ref';
-import { assert } from '@/core/common/assert';
 
 type Elements = Container;
 
@@ -17,7 +17,7 @@ const defaultContainerStrategy: ContainerStrategy = {
   add: (parent: Elements, element: Elements) => {
     parent.addChild(element);
   },
-  remove: (parent: Elements, element: Elements) => {
+  remove: (_parent: Elements, element: Elements) => {
     //parent.removeChild(element);
     element.destroy();
   },
