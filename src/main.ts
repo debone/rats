@@ -50,7 +50,7 @@ async function init() {
     resolution: Math.max(window.devicePixelRatio, 2),
     roundPixels: false,
     antialias: false,
-    backgroundColor: 0xffffff,
+    backgroundColor: 0x000000,
     sharedTicker: true,
   });
 
