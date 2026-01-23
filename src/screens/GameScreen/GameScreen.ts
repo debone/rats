@@ -10,6 +10,7 @@ import { LayoutContainer } from '@pixi/layout/components';
 import { Container, Ticker, TilingSprite } from 'pixi.js';
 import { BallCounter } from './ui/BallCounter';
 import { ScrapCounter } from './ui/ScrapCounter';
+import { LevelIndicator } from './ui/LevelIndicator';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -100,6 +101,7 @@ export class GameScreen extends Container implements AppScreen {
     };
     layers.ui.addChild(uiLayer);
 
+    uiLayer.addChild(new LevelIndicator());
     uiLayer.addChild(new BallCounter());
     uiLayer.addChild(new ScrapCounter());
 

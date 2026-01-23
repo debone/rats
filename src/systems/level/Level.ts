@@ -1,7 +1,8 @@
+import type { FollowResult } from '@/core/camera/effects/follow';
 import { execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
-import { getLevelState, getRunState, type Boon, type LevelResult, type LevelState } from '@/data/game-state';
+import { getLevelState, getRunState, type Boon, type LevelResult } from '@/data/game-state';
 import {
   b2Body_GetUserData,
   b2Body_IsValid,
@@ -14,15 +15,11 @@ import {
 } from 'phaser-box2d';
 import { CollisionHandlerRegistry } from '../physics/collision-handler';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
-import type { FollowResult } from '@/core/camera/effects/follow';
 
 /** Configuration for a level */
 export interface LevelConfig {
   id: string;
   name: string;
-  arena: {};
-  ballSpeed?: number;
-  ballCount?: number;
 }
 
 /**
@@ -72,9 +69,10 @@ export abstract class Level {
    * Create initial level state
    * Override this to customize initial state
    */
-  createInitialState(): LevelState {
+  createInitialState(): LevelConfig {
     return {
-      levelId: this.config.id,
+      id: this.config.id,
+      name: this.config.name,
       //bricksDestroyed: 0,
       //powerupsCollected: [],
       //elapsedTime: 0,
@@ -267,14 +265,6 @@ export abstract class Level {
   protected selectBoons(): Boon[] {
     // TODO: Implement boon selection logic
     return [];
-  }
-
-  /**
-   * Check if the level was cleared perfectly
-   */
-  protected checkPerfectClear(): boolean {
-    // Perfect clear: no balls lost
-    return getRunState().ballsRemaining.get() === (this.config.ballCount || 3);
   }
 
   /**

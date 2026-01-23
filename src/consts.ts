@@ -16,3 +16,4 @@ export const OVERLAY_Z_INDEX = 15;
 export const DEBUG_Z_INDEX = 25;
 
 export const STARTING_BALLS = 3;
+export const BALL_SPEED_DEFAULT = 13;

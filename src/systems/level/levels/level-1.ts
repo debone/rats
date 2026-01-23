@@ -25,15 +25,12 @@ import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
 export default class Level1 extends StartingLevels {
   static id = 'level-1';
 
-  private debug_mode = false;
+  private debug_mode = true;
 
   constructor() {
     super({
       id: 'level-1',
-      name: 'First Level',
-      arena: {},
-      ballSpeed: 13,
-      ballCount: 3,
+      name: 'Starting grounds',
     });
   }
 

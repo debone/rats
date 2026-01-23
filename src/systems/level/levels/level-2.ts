@@ -24,9 +24,6 @@ export default class Level2 extends StartingLevels {
     super({
       id: 'level-2',
       name: 'Second Level',
-      arena: {},
-      ballSpeed: 15,
-      ballCount: 3,
     });
   }
 

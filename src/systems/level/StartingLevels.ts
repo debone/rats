@@ -35,6 +35,7 @@ import { InputDevice } from 'pixijs-input-devices';
 import { PhysicsSystem } from '../physics/system';
 import { AddSpriteToWorld } from '../physics/WorldSprites';
 import { Level } from './Level';
+import { BALL_SPEED_DEFAULT } from '@/consts';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -303,7 +304,7 @@ export abstract class StartingLevels extends Level {
   maintainBallSpeed(): void {
     const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
     const speed = Math.max(0.1, Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y));
-    const targetSpeed = this.config.ballSpeed || 10;
+    const targetSpeed = BALL_SPEED_DEFAULT;
 
     // Calculate current angle from horizon (in radians, between 0 and PI)
     // (angle from horizontal axis, so angle = atan2(abs(y), abs(x)))

@@ -7,6 +7,7 @@
 
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
+import type { LevelConfig } from '@/systems/level/Level';
 
 export interface GameState {
   meta: MetaGameState;
@@ -64,6 +65,7 @@ export interface RunState {
 /** In-level state - specific to current level instance */
 export interface LevelState {
   levelId: string;
+  levelName: Signal<string>;
   //bricksDestroyed: number;
   //powerupsCollected: string[];
   //elapsedTime: number;
@@ -118,6 +120,7 @@ export function createGameState(): GameState {
     },
     level: {
       levelId: '',
+      levelName: signal('', { label: 'levelName' }),
       //bricksDestroyed: 0,
       //powerupsCollected: [],
       //elapsedTime: 0,
@@ -141,8 +144,9 @@ export function getLevelState(): LevelState {
   return getGameState().level;
 }
 
-export function setLevelState(state: LevelState): void {
-  getGameState().level = state;
+export function setLevelState(state: LevelConfig): void {
+  getLevelState().levelName.set(state.name);
+  getLevelState().levelId = state.id;
 }
 
 export function addCompletedLevel(levelId: string): void {
