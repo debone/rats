@@ -14,6 +14,7 @@ import { Level_2_DoorOpenCommand } from './level-2/DoorOpenCommand';
 import { Level_2_LevelStartCommand } from './level-2/LevelStartCommand';
 import { Level_2_LoseBallCommand } from './level-2/LoseBallCommand';
 import { getRunState } from '@/data/game-state';
+import { t } from '@/i18n/i18n';
 
 export default class Level2 extends StartingLevels {
   static id = 'level-2';
@@ -23,7 +24,7 @@ export default class Level2 extends StartingLevels {
   constructor() {
     super({
       id: 'level-2',
-      name: 'Second Level',
+      name: t.dict['level-2.name'],
     });
   }
 

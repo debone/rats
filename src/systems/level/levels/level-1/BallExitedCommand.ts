@@ -1,5 +1,6 @@
 import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
+import { t } from '@/i18n/i18n';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { animate } from 'animejs';
@@ -26,7 +27,7 @@ export class Level_1_BallExitedCommand extends Command<void> {
     yield animate(dark, { alpha: 0.5, duration: 500, easing: 'linear' });
 
     const endLevel = new Text({
-      text: 'Level Complete!',
+      text: t.dict['level.complete'],
       style: {
         fontFamily: 'Georgia',
         fontSize: 48,

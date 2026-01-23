@@ -1,17 +1,17 @@
 /**
  * Import the dictionary of English i18n strings.
  */
-import { i18nDict } from '@/i18n/en';
+import { i18nDictEnglish } from '@/i18n/en';
 
 /**
  * Type that defines the structure of the i18n dictionary.
  */
-export type I18nDictionary = typeof i18nDict;
+export type I18nDictionary = typeof i18nDictEnglish;
 
 /**
  * Type that defines the keys for the i18n dictionary.
  */
-export type I18nKey = keyof typeof i18nDict;
+export type I18nKey = keyof typeof i18nDictEnglish;
 
 /**
  * Type that defines the parameters for the i18n strings.
@@ -25,7 +25,7 @@ export class I18n {
   /**
    * Property that stores the i18n dictionary.
    */
-  public readonly dict: I18nDictionary = i18nDict;
+  public readonly dict: I18nDictionary = i18nDictEnglish;
 
   /**
    * Method that returns the translated string for a given key and parameters.
@@ -33,7 +33,7 @@ export class I18n {
    * @param params - The parameters to replace placeholders in the i18n string.
    * @returns The translated string.
    */
-  public t(k: I18nKey, params?: I18nParams) {
+  public f(k: I18nKey, params?: I18nParams) {
     let str = this.dict[k];
 
     if (params) {
@@ -84,4 +84,4 @@ export class I18n {
 /**
  * Singleton instance of the I18n class.
  */
-export const i18n = new I18n();
+export const t = new I18n();

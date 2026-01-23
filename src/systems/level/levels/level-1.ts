@@ -6,6 +6,7 @@ import { execute } from '@/core/game/Command';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { TiledResource } from '@/core/tiled';
 import { getRunState } from '@/data/game-state';
+import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
@@ -30,7 +31,7 @@ export default class Level1 extends StartingLevels {
   constructor() {
     super({
       id: 'level-1',
-      name: 'Starting grounds',
+      name: t.dict['level-1.name'],
     });
   }
 

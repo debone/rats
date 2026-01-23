@@ -1,5 +1,6 @@
 import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
+import { t } from '@/i18n/i18n';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
 
@@ -14,7 +15,7 @@ export class Level_2_LevelStartCommand extends Command<void> {
     layers.overlay.addChild(dark);
 
     const startLevel = new Text({
-      text: 'Level Start!',
+      text: t.dict['level.start'],
       style: {
         fontFamily: 'Georgia',
         fontSize: 48,
