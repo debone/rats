@@ -2,9 +2,10 @@ import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { GameEvent } from '@/data/events';
+import type { Ball } from '@/entities/balls/Ball';
+import { NormalBall } from '@/entities/balls/NormalBall';
 import {
   b2Body_ApplyLinearImpulseToCenter,
-  b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_GetTransform,
   b2Body_SetLinearVelocity,
@@ -21,7 +22,6 @@ import {
   b2Joint_GetLocalAnchorA,
   b2Joint_GetLocalAnchorB,
   b2JointId,
-  b2MulSV,
   b2Normalize,
   b2PrismaticJoint_GetLowerLimit,
   b2PrismaticJoint_GetUpperLimit,
@@ -35,7 +35,6 @@ import { InputDevice } from 'pixijs-input-devices';
 import { PhysicsSystem } from '../physics/system';
 import { AddSpriteToWorld } from '../physics/WorldSprites';
 import { Level } from './Level';
-import { BALL_SPEED_DEFAULT } from '@/consts';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -53,9 +52,10 @@ export abstract class StartingLevels extends Level {
   doors: b2BodyId[] = [];
   bricksCount = 0;
 
+  balls: Ball[] = [];
+
   paddleBodyId!: b2BodyId;
 
-  ballBodyId!: b2BodyId;
   ballPrismaticJointId!: b2JointId;
 
   shouldMaintainBallSpeed: boolean = false;
@@ -78,6 +78,9 @@ export abstract class StartingLevels extends Level {
       worldId: worldId,
       userData: { type: 'paddle' },
     });
+
+    this.createScrap(pos.x, pos.y + 10);
+    this.createScrap(pos.x, pos.y + 10);
 
     const prismaticJointDef2 = b2DefaultPrismaticJointDef();
     prismaticJointDef2.bodyIdA = anchorBodyId;
@@ -137,58 +140,18 @@ export abstract class StartingLevels extends Level {
 
     const paddlePosition = b2Body_GetPosition(this.paddleBodyId);
 
-    const { bodyId } = CreateCircle({
-      worldId: worldId,
-      type: b2BodyType.b2_dynamicBody,
-      position: new b2Vec2(paddlePosition.x, paddlePosition.y + 1),
-      radius: 0.25,
-      density: 10,
-      friction: 0.5,
-      restitution: 1,
-    });
+    const ball = new NormalBall(this.context, paddlePosition.x, paddlePosition.y + 1);
 
-    this.createScrap(paddlePosition.x, paddlePosition.y + 10);
+    this.registerBody(ball.bodyId);
+    this.balls.push(ball);
 
-    b2Body_SetUserData(bodyId, { type: 'ball' });
-    //b2Body_SetLinearVelocity(bodyId, new b2Vec2(2, 5));
-
-    const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
-    ballSprite.anchor.set(0.5, 0.5);
-    ballSprite.scale.set(0.75, 0.75);
-    this.context.container!.addChild(ballSprite);
-    AddSpriteToWorld(this.context.worldId!, ballSprite, bodyId, 0, 0);
-
-    if (this.follow) {
-      this.follow.stop();
-    }
-
-    /*
-    this.follow = follow(this.context.camera, ballSprite, {
-      bounds: {
-        minX: MIN_WIDTH / 2,
-        maxX: MIN_WIDTH / 2,
-        minY: 0,
-        maxY: MIN_HEIGHT / 2,
-      },
-    });
-    */
-
-    setTimeout(() => {
-      //this.context.camera?.setPosition(0, 0);
-    }, 2000);
-
-    setTimeout(() => {
-      //this.context.camera?.setScale(1.5);
-    }, 3000);
-
-    this.registerBody(bodyId);
-    this.ballBodyId = bodyId;
-
+    // TODO: "SNAP" into boat
+    // boat.snap(ball)
     /**/
     this.ballPrismaticJointId = CreatePrismaticJoint({
       worldId: worldId,
       bodyIdA: this.paddleBodyId,
-      bodyIdB: this.ballBodyId,
+      bodyIdB: ball.bodyId,
       anchorA: new b2Vec2(0, 0.7),
       anchorB: new b2Vec2(0, 0),
       axis: new b2Vec2(1, 0),
@@ -244,7 +207,9 @@ export abstract class StartingLevels extends Level {
     // Maintain constant ball speed
     // TODO: this should be a method swap
     if (this.shouldMaintainBallSpeed) {
-      this.maintainBallSpeed();
+      for (let i = 0; i < this.balls.length; i++) {
+        this.balls[i].update(delta);
+      }
     }
   }
 
@@ -283,15 +248,18 @@ export abstract class StartingLevels extends Level {
     }
 
     if ((InputDevice.gamepads[0]?.button.Face1 || InputDevice.keyboard.key.Space) && !this.shouldMaintainBallSpeed) {
+      // TODO: boat launch
+      // boat.launch();
+      const ball = this.balls[0];
       this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
-      const ball_position = b2Body_GetPosition(this.ballBodyId);
+      const ball_position = b2Body_GetPosition(ball.bodyId);
       const paddle_position = b2Body_GetPosition(this.paddleBodyId);
       const force = 1;
 
       sfx.play(ASSETS.sounds_Rat_Squeak_A);
 
       b2Body_ApplyLinearImpulseToCenter(
-        this.ballBodyId,
+        ball.bodyId,
         new b2Vec2(force * (ball_position.x - paddle_position.x), force * (ball_position.y - paddle_position.y)),
         true,
       );
@@ -299,44 +267,5 @@ export abstract class StartingLevels extends Level {
         this.shouldMaintainBallSpeed = true;
       }, 100);
     }
-  }
-
-  maintainBallSpeed(): void {
-    const velocity = b2Body_GetLinearVelocity(this.ballBodyId);
-    const speed = Math.max(0.1, Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y));
-    const targetSpeed = BALL_SPEED_DEFAULT;
-
-    // Calculate current angle from horizon (in radians, between 0 and PI)
-    // (angle from horizontal axis, so angle = atan2(abs(y), abs(x)))
-    // unused const absVx = Math.abs(velocity.x);
-    const absVy = Math.abs(velocity.y);
-
-    // Prevent perfectly horizontal ball: minddimum angle from horizon = 20deg (in radians)
-    const minAngleRad = (30 * Math.PI) / 180;
-
-    let newVelocity = { x: velocity.x, y: velocity.y };
-
-    // If the ball is too horizontal (the angle from the x-axis to the velocity is less than minAngleRad)
-    if (speed > 0.0001 && absVy / speed < Math.sin(minAngleRad)) {
-      // Clamp the direction to minAngleRad from the horizon
-      // Keep the sign of x and y the same as original velocity
-      const signX = Math.sign(velocity.x) || 1;
-      const signY = Math.sign(velocity.y) || 1;
-
-      // Calculate new velocity components with the constrained angle
-      // vx = speed * cos(minAngleRad)
-      // vy = speed * sin(minAngleRad)
-      const clampedVx = Math.cos(minAngleRad) * speed * signX;
-      const clampedVy = Math.sin(minAngleRad) * speed * signY;
-
-      newVelocity = { x: clampedVx, y: clampedVy };
-    } else {
-      // Optionally adjust to targetSpeed as original
-      if (Math.abs(speed - targetSpeed) > 0.1) {
-        const normalizedVelocity = b2Normalize(velocity);
-        newVelocity = b2MulSV(targetSpeed, normalizedVelocity);
-      }
-    }
-    b2Body_SetLinearVelocity(this.ballBodyId, new b2Vec2(newVelocity.x, newVelocity.y));
   }
 }

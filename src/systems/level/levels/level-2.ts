@@ -2,19 +2,19 @@ import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
+import { getRunState } from '@/data/game-state';
+import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { GetSpriteFromBody } from '@/systems/physics/WorldSprites';
-import { b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
+import { B2_ID_EQUALS, b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_2_BallExitedCommand } from './level-2/BallExitedCommand';
 import { Level_2_DoorOpenCommand } from './level-2/DoorOpenCommand';
 import { Level_2_LevelStartCommand } from './level-2/LevelStartCommand';
 import { Level_2_LoseBallCommand } from './level-2/LoseBallCommand';
-import { getRunState } from '@/data/game-state';
-import { t } from '@/i18n/i18n';
 
 export default class Level2 extends StartingLevels {
   static id = 'level-2';
@@ -156,10 +156,13 @@ export default class Level2 extends StartingLevels {
       execute(Level_2_BallExitedCommand, { level: this });
     });
 
-    this.collisions.register('ball', 'bottom-wall', async () => {
+    this.collisions.register('ball', 'bottom-wall', async (pair: CollisionPair) => {
+      const ball = pair.bodyA;
       console.log('Ball hit bottom wall');
 
-      this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
+      this.balls.find((b) => B2_ID_EQUALS(b.bodyId, ball))?.destroy();
+      this.balls = this.balls.filter((b) => !B2_ID_EQUALS(b.bodyId, ball));
+
       this.shouldMaintainBallSpeed = false;
 
       await execute(Level_2_LoseBallCommand);

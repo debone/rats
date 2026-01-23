@@ -46,8 +46,6 @@ export abstract class Level {
     this.config = config;
   }
 
-  protected a = 0;
-
   registerBody(bodyId: b2BodyId): void {
     this.bodies.push(bodyId);
     this.bodiesIds.add(bodyId);

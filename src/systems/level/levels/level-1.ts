@@ -11,7 +11,7 @@ import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
-import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
+import { B2_ID_EQUALS, b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
@@ -26,7 +26,7 @@ import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
 export default class Level1 extends StartingLevels {
   static id = 'level-1';
 
-  private debug_mode = true;
+  private debug_mode = false;
 
   constructor() {
     super({
@@ -192,27 +192,31 @@ export default class Level1 extends StartingLevels {
       sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A);
     });
 
-    this.collisions.register('ball', 'left-wall', async () => {
+    this.collisions.register('ball', 'left-wall', (pair: CollisionPair) => {
+      const ball = pair.bodyA;
       this.wallEmitter!.angle = { min: 30, max: -30 };
-      const { x, y } = BodyToScreen(this.ballBodyId);
+      const { x, y } = BodyToScreen(ball);
       this.wallEmitter!.explode(20, x, y);
     });
 
-    this.collisions.register('ball', 'right-wall', async () => {
+    this.collisions.register('ball', 'right-wall', (pair: CollisionPair) => {
+      const ball = pair.bodyA;
       this.wallEmitter!.angle = { min: 150, max: 210 };
-      const { x, y } = BodyToScreen(this.ballBodyId);
+      const { x, y } = BodyToScreen(ball);
       this.wallEmitter!.explode(20, x, y);
     });
 
-    this.collisions.register('ball', 'bottom-wall', async () => {
+    this.collisions.register('ball', 'bottom-wall', async (pair: CollisionPair) => {
+      const ball = pair.bodyA;
       console.log('Ball hit bottom wall');
 
-      const { x, y } = BodyToScreen(this.ballBodyId);
+      const { x, y } = BodyToScreen(ball);
       this.waterEmitter!.explode(100, x, y);
 
       sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
 
-      this.context.systems.get(PhysicsSystem).queueDestruction(this.ballBodyId);
+      this.balls.find((b) => B2_ID_EQUALS(b.bodyId, ball))?.destroy();
+      this.balls = this.balls.filter((b) => !B2_ID_EQUALS(b.bodyId, ball));
       this.shouldMaintainBallSpeed = false;
 
       // TODO: migrate the state to the run state and then make it work here.
@@ -243,7 +247,13 @@ export default class Level1 extends StartingLevels {
       const { x, y } = BodyToScreen(scrapBody);
       this.brickDebrisEmitter!.explode(10, x, y + 4);
 
-      getRunState().scrapsCounter.update((value) => value + 1);
+      getRunState().scrapsCounter.update((value) => {
+        value += 1;
+        if (value % 5 === 0) {
+          this.balls[0].powerUp();
+        }
+        return value;
+      });
 
       this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
       this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
