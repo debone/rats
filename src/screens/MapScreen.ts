@@ -1,6 +1,7 @@
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { execute } from '@/core/game/Command';
 import type { AppScreen } from '@/core/window/types';
+import { getGameContext } from '@/data/game-context';
 import { LevelSelectedCommand } from '@/systems/app/commands/LevelSelectedCommand';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
@@ -16,16 +17,7 @@ export class MapScreen extends Container implements AppScreen {
   static readonly assetBundles = ['default'];
 
   constructor() {
-    super();
-
-    this.layout = {
-      justifyContent: 'center',
-      alignItems: 'center',
-      flexDirection: 'column',
-    };
-
-    // Game container (black box for the game area)
-    const gameContainer = new LayoutContainer({
+    super({
       layout: {
         width: MIN_WIDTH,
         height: MIN_HEIGHT,
@@ -37,33 +29,36 @@ export class MapScreen extends Container implements AppScreen {
         gap: 20,
       },
     });
+  }
 
-    this.addChild(gameContainer);
-    this.gameContainer = gameContainer;
+  async prepare() {
+    // Game container (black box for the game area)
+
+    const layers = getGameContext().layers!;
+    layers.ui.addChild(this);
+
     const text = new Text({
       text: 'Map Screen (TODO)',
-      style: { fontSize: 24, fill: 'pink' },
-      layout: {},
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 24 },
+      layout: true,
     });
-    gameContainer.addChild(text);
+    this.addChild(text);
 
     const button = new Button(new Graphics({ layout: { width: 100, height: 50 } }).rect(0, 0, 100, 50).fill('red'));
     button.onPress.connect(() => execute(LevelSelectedCommand, { levelId: 'level-1' }));
 
-    gameContainer.addChild(button.view!);
+    this.addChild(button.view!);
 
-    execute(LevelSelectedCommand, { levelId: 'level-1' });
+    // execute(LevelSelectedCommand, { levelId: 'level-1' });
   }
 
-  gameContainer: LayoutContainer;
+  gameContainer?: LayoutContainer;
 
   async show(): Promise<void> {
     // INSERT_YOUR_CODE
     // Fade in the gameContainer when the screen is shown using animejs
-    if (this.gameContainer) {
-      this.gameContainer.alpha = 0;
-      await animate(this.gameContainer, { alpha: 1, duration: 250, easing: 'easeOutQuad' });
-    }
+    this.alpha = 0;
+    await animate(this, { alpha: 1, duration: 250, easing: 'easeOutQuad' });
   }
 
   resize(_w: number, _h: number) {
@@ -72,7 +67,6 @@ export class MapScreen extends Container implements AppScreen {
 
   reset() {
     console.log('[MapScreen] Resetting...');
-    this.gameContainer.removeChildren();
-    this.gameContainer.destroy({ children: true });
+    this.children.forEach((child) => child.destroy());
   }
 }

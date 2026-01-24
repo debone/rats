@@ -1,3 +1,4 @@
+import { TEXT_STYLE_DEFAULT } from '@/consts';
 import type { Cleanup } from '@/core/reactivity/signals/types';
 import { getLevelState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
@@ -14,11 +15,7 @@ export class LevelIndicator extends LayoutContainer {
 
     const levelNameText = new Text({
       text: 'Level 1',
-      style: {
-        fontSize: 12,
-        fontFamily: 'Georgia',
-        fill: 0xffffff,
-      },
+      style: TEXT_STYLE_DEFAULT,
       layout: true,
     });
 

@@ -2,10 +2,10 @@ import { areBundlesLoaded } from '@/core/assets/assets';
 import { pool } from '@/core/common/pool';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
-import { createGameLayers, destroyGameLayers } from './layers';
 import { app } from '@/main';
 import { Assets, Container } from 'pixi.js';
-import type { AppScreen, AppScreenConstructor, LayerName } from './types';
+import { createGameLayers, destroyGameLayers } from './layers';
+import type { AppScreen, AppScreenConstructor } from './types';
 
 class Navigation {
   /** Container for screens and layers */
@@ -28,18 +28,14 @@ class Navigation {
   }
 
   /** Add screen to the stage, link update & resize functions */
-  private async addAndShowScreen(screen: AppScreen, layerNames?: LayerName[]) {
+  private async addAndShowScreen(screen: AppScreen) {
     // Add navigation container to stage if it does not have a parent yet
     if (!this.container.parent) {
       app.stage.addChild(this.container);
     }
 
     // Create layers for this screen (if specified)
-    if (layerNames && layerNames.length > 0) {
-      this.context.layers = createGameLayers(app.stage, this.context.camera, layerNames);
-    } else {
-      this.context.layers = null;
-    }
+    this.context.layers = createGameLayers(app.stage, this.context.camera);
 
     // Add screen to stage (after layers so screen is on top)
     // TODO: Not needed? Why GameScreen even extends Container then?
@@ -132,7 +128,7 @@ class Navigation {
 
     // Create the new screen and add that to the stage
     this.currentScreen = pool.get(ctor);
-    await this.addAndShowScreen(this.currentScreen, ctor.screenLayers);
+    await this.addAndShowScreen(this.currentScreen);
   }
 
   /**

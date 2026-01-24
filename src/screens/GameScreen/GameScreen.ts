@@ -1,16 +1,19 @@
 import { ASSETS } from '@/assets';
 import type { PrototypeTextures } from '@/assets/frames';
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
-import type { AppScreen, LayerName } from '@/core/window/types';
+import { navigation } from '@/core/window/navigation';
+import type { AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
-import { Container, Ticker, TilingSprite } from 'pixi.js';
+import { Button } from '@pixi/ui';
+import { DropShadowFilter } from 'pixi-filters';
+import { Color, Container, Text, Ticker, TilingSprite } from 'pixi.js';
 import { BallCounter } from './ui/BallCounter';
-import { ScrapCounter } from './ui/ScrapCounter';
 import { LevelIndicator } from './ui/LevelIndicator';
+import { ScrapCounter } from './ui/ScrapCounter';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -22,9 +25,9 @@ import { LevelIndicator } from './ui/LevelIndicator';
 export class GameScreen extends Container implements AppScreen {
   static readonly SCREEN_ID = 'game';
   static readonly assetBundles = ['preload', 'default'];
-  static readonly screenLayers: LayerName[] = ['background', 'game', 'effects', 'ui', 'overlay', 'debug'];
 
   private _background?: TilingSprite;
+  private _popupLayer?: LayoutContainer;
   private _gameContainer?: Container;
 
   constructor() {
@@ -105,6 +108,68 @@ export class GameScreen extends Container implements AppScreen {
     uiLayer.addChild(new BallCounter());
     uiLayer.addChild(new ScrapCounter());
 
+    const popupLayer = new LayoutContainer({
+      layout: {
+        backgroundColor: new Color({ r: 30, g: 30, b: 45, a: 0.8 }),
+        gap: 10,
+        padding: 10,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: navigation.width,
+        height: navigation.height,
+      },
+    });
+
+    this._popupLayer = popupLayer;
+
+    const popupBackground = new LayoutContainer({
+      layout: {
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 1,
+        borderRadius: 5,
+        width: 200,
+        height: 200,
+      },
+    });
+
+    popupBackground.filters = [
+      new DropShadowFilter({
+        color: 0x101019,
+        blur: 10,
+      }),
+    ];
+
+    const buttonContainer = new LayoutContainer({
+      layout: {
+        gap: 10,
+        padding: 10,
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 1,
+        borderRadius: 3,
+        alignItems: 'center',
+        height: 32,
+      },
+    });
+
+    buttonContainer.addChild(new Text({ text: 'Close', style: TEXT_STYLE_DEFAULT, layout: true }));
+
+    const closeButton = new Button(buttonContainer);
+    closeButton.enabled = true;
+
+    closeButton.onPress.connect(() => {
+      // navigation.dismissPopup();
+      console.log('Close button pressed');
+    });
+
+    layers.ui.addChild(buttonContainer);
+
+    popupLayer.addChild(popupBackground);
+
+    //layers.popup.addChild(popupLayer);
+
     console.log('[GameScreen] Prepared');
   }
 
@@ -135,6 +200,11 @@ export class GameScreen extends Container implements AppScreen {
     // Fit background to screen
     this._background!.width = w;
     this._background!.height = h;
+
+    this._popupLayer!.layout = {
+      width: w,
+      height: h,
+    };
   }
 
   /**
