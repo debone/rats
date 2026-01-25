@@ -1,6 +1,6 @@
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { execute } from '@/core/game/Command';
-import type { AppScreen } from '@/core/window/types';
+import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { LevelSelectedCommand } from '@/systems/app/commands/LevelSelectedCommand';
 import { LayoutContainer } from '@pixi/layout/components';
@@ -32,10 +32,8 @@ export class MapScreen extends Container implements AppScreen {
   }
 
   async prepare() {
-    // Game container (black box for the game area)
-
-    const layers = getGameContext().layers!;
-    layers.ui.addChild(this);
+    const navigation = getGameContext().navigation;
+    navigation.addToLayer(this, LAYER_NAMES.UI);
 
     const text = new Text({
       text: 'Map Screen (TODO)',

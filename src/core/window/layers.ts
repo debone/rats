@@ -8,7 +8,7 @@ import type { Camera } from '../camera/camera';
 /**
  * Create a single layer container
  */
-function createLayer(zIndex: number = 0, label: string): LayoutContainer {
+function createLayer(label: string, zIndex: number = 0): LayoutContainer {
   return new LayoutContainer({
     label,
     zIndex,
@@ -18,7 +18,15 @@ function createLayer(zIndex: number = 0, label: string): LayoutContainer {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    visible: false,
   });
+}
+
+/**
+ * Create a container
+ */
+function createContainer(label: string, zIndex: number = 0): Container {
+  return new Container({ label, zIndex, visible: false });
 }
 
 /**
@@ -27,13 +35,13 @@ function createLayer(zIndex: number = 0, label: string): LayoutContainer {
  */
 export function createGameLayers(parent: Container, camera: Camera): GameLayers {
   const layers: GameLayers = {
-    background: createLayer(BACKGROUND_Z_INDEX, 'backgroundLayer'),
-    game: new Container({ label: 'gameLayer' }),
-    effects: new Container({ label: 'effectsLayer' }),
-    ui: createLayer(UI_Z_INDEX, 'uiLayer'),
-    popup: new Container({ label: 'popupLayer', zIndex: UI_Z_INDEX }),
-    overlay: createLayer(OVERLAY_Z_INDEX, 'overlayLayer'),
-    debug: createLayer(DEBUG_Z_INDEX, 'debugLayer'),
+    background: createLayer('backgroundLayer', BACKGROUND_Z_INDEX),
+    game: createContainer('gameLayer'),
+    effects: createContainer('effectsLayer'),
+    ui: createLayer('uiLayer', UI_Z_INDEX),
+    popup: createContainer('popupLayer', UI_Z_INDEX),
+    overlay: createLayer('overlayLayer', OVERLAY_Z_INDEX),
+    debug: createLayer('debugLayer', DEBUG_Z_INDEX),
   };
 
   // Add only the requested layers to parent in z-order

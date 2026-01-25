@@ -31,6 +31,7 @@ import { Camera } from './core/camera/camera';
 import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
 import { CAMERA_Z_INDEX } from './consts';
+import { navigation } from './core/window/navigation';
 
 export const app = new Application();
 
@@ -104,7 +105,7 @@ async function init() {
     camera.debug.initDebugPanel();
   }
 
-  const context: GameContext = createGameContext(app, events, systems, camera);
+  const context: GameContext = createGameContext(app, events, systems, camera, navigation);
   setGameContext(context);
 
   const state: GameState = createGameState();

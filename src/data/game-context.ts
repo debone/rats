@@ -4,6 +4,7 @@ import { Container, type Application } from 'pixi.js';
 import type { Camera } from '@/core/camera/camera';
 import type { EventContext } from '@/core/game/EventEmitter';
 import type { SystemRunner } from '@/core/game/SystemRunner';
+import type { Navigation } from '@/core/window/navigation';
 import type { LayerName } from '@/core/window/types';
 import { LayoutContainer } from '@pixi/layout/components';
 
@@ -48,8 +49,13 @@ export interface GameContext {
   /** The Box2D world ID (set by PhysicsSystem when active) */
   worldId: b2WorldId | null;
 
-  /** Z-ordered rendering layers (set by NavigationSystem) */
+  /** Z-ordered rendering layers (set by NavigationSystem)
+   * @deprecated Use navigation instead
+   */
   layers: GameLayers | null;
+
+  /** Navigation singleton */
+  navigation: Navigation;
 
   /** Camera for visual effects (set when layers are created) */
   camera: Camera;
@@ -74,12 +80,14 @@ export function createGameContext(
   events: EventContext,
   systems: SystemRunner,
   camera: Camera,
+  navigation: Navigation,
 ): GameContext {
   return {
     app,
     events,
     systems,
     camera,
+    navigation,
     worldId: null,
     layers: null,
     container: null,

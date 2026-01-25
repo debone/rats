@@ -1,13 +1,13 @@
 import { areBundlesLoaded } from '@/core/assets/assets';
 import { pool } from '@/core/common/pool';
 import { GameEvent } from '@/data/events';
-import type { GameContext } from '@/data/game-context';
+import type { GameContext, GameLayers } from '@/data/game-context';
 import { app } from '@/main';
 import { Assets, Container } from 'pixi.js';
 import { createGameLayers, destroyGameLayers } from './layers';
-import type { AppScreen, AppScreenConstructor } from './types';
+import type { AppScreen, AppScreenConstructor, LayerName } from './types';
 
-class Navigation {
+export class Navigation {
   /** Container for screens and layers */
   public container = new Container();
 
@@ -23,6 +23,19 @@ class Navigation {
   /** Game context */
   public context!: GameContext;
 
+  /** Game layers */
+  private layers: GameLayers | null = null;
+
+  addToLayer(child: Container, layer: LayerName, makeVisible: boolean = true): void {
+    if (this.layers && this.layers[layer]) {
+      this.layers[layer].addChild(child);
+
+      if (makeVisible) {
+        this.layers[layer].visible = true;
+      }
+    }
+  }
+
   setContext(context: GameContext) {
     this.context = context;
   }
@@ -35,7 +48,8 @@ class Navigation {
     }
 
     // Create layers for this screen (if specified)
-    this.context.layers = createGameLayers(app.stage, this.context.camera);
+    this.layers = createGameLayers(app.stage, this.context.camera);
+    this.context.layers = this.layers;
 
     // Add screen to stage (after layers so screen is on top)
     // TODO: Not needed? Why GameScreen even extends Container then?

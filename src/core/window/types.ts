@@ -1,7 +1,17 @@
 import type { Container, Ticker } from 'pixi.js';
 
+export const LAYER_NAMES = {
+  BACKGROUND: 'background',
+  GAME: 'game',
+  EFFECTS: 'effects',
+  UI: 'ui',
+  POPUP: 'popup',
+  OVERLAY: 'overlay',
+  DEBUG: 'debug',
+} as const;
+
 /** Available layer names for screens */
-export type LayerName = 'background' | 'game' | 'effects' | 'ui' | 'popup' | 'overlay' | 'debug';
+export type LayerName = (typeof LAYER_NAMES)[keyof typeof LAYER_NAMES];
 
 /** Interface for app screens */
 export interface AppScreen extends Container {

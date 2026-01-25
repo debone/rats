@@ -121,7 +121,7 @@ export class Camera {
     private screenWidth: number = 0,
     private screenHeight: number = 0,
   ) {
-    this.viewport = new Container();
+    this.viewport = new Container({ label: '🎥 cameraViewport' });
   }
 
   resize(width: number, height: number) {
