@@ -1,18 +1,19 @@
 import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
+import { LAYER_NAMES } from '@/core/window/types';
 import { t } from '@/i18n/i18n';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
 
 export class Level_1_LevelStartCommand extends Command<void> {
   *execute() {
-    const layers = this.context.layers!;
+    const navigation = this.context.navigation;
 
     const dark = new Graphics();
-    dark.rect(-100, -100, layers.overlay.width + 200, layers.overlay.height + 200);
+    dark.rect(0, 0, navigation.width, navigation.height);
     dark.fill(0x322947);
     dark.alpha = 1;
-    layers.overlay.addChild(dark);
+    navigation.addToLayer(dark, LAYER_NAMES.OVERLAY);
 
     const startLevel = new Text({
       text: t.dict['level.start'],
@@ -24,7 +25,7 @@ export class Level_1_LevelStartCommand extends Command<void> {
       layout: true,
     });
 
-    layers.overlay.addChild(startLevel);
+    navigation.addToLayer(startLevel, LAYER_NAMES.OVERLAY);
     yield delay(20);
 
     animate(startLevel, { alpha: 0, duration: 1000, easing: 'linear' });
@@ -33,6 +34,7 @@ export class Level_1_LevelStartCommand extends Command<void> {
     setTimeout(() => {
       dark.destroy();
       startLevel.destroy();
+      navigation.hideLayer(LAYER_NAMES.OVERLAY);
     }, 1050);
   }
 }

@@ -9,6 +9,7 @@ import { MIN_HEIGHT, MIN_WIDTH, PXM } from '@/consts';
 import { assert } from '@/core/common/assert';
 import type { System } from '@/core/game/System';
 import { signal } from '@/core/reactivity/signals/signals';
+import { LAYER_NAMES } from '@/core/window/types';
 import type { GameContext } from '@/data/game-context';
 import { PhaserDebugDraw } from '@/screens/PhaserDebugDraw';
 import {
@@ -28,7 +29,7 @@ import {
   CreateWorld,
   SetWorldScale,
 } from 'phaser-box2d';
-import { Container, Graphics } from 'pixi.js';
+import { Graphics } from 'pixi.js';
 import { ClearWorldSprites, DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
 
 export class PhysicsSystem implements System {
@@ -190,14 +191,15 @@ export class PhysicsSystem implements System {
     }
   }
 
-  setupDebugDraw(container: Container) {
+  setupDebugDraw() {
     // Clean up existing debug graphics first
     this.cleanupDebugDraw();
 
     // Create debug graphics
     this.debugGraphics = new Graphics();
 
-    container.addChild(this.debugGraphics);
+    // Add debug graphics to debug layer but don't make it visible yet
+    this.context.navigation.addToLayer(this.debugGraphics, LAYER_NAMES.DEBUG, false);
 
     // Create debug draw instance
     this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH, MIN_HEIGHT, PXM);

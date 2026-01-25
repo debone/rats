@@ -36,6 +36,12 @@ export class Navigation {
     }
   }
 
+  hideLayer(layer: LayerName): void {
+    if (this.layers && this.layers[layer]) {
+      this.layers[layer].visible = false;
+    }
+  }
+
   setContext(context: GameContext) {
     this.context = context;
   }
@@ -49,11 +55,6 @@ export class Navigation {
 
     // Create layers for this screen (if specified)
     this.layers = createGameLayers(app.stage, this.context.camera);
-    this.context.layers = this.layers;
-
-    // Add screen to stage (after layers so screen is on top)
-    // TODO: Not needed? Why GameScreen even extends Container then?
-    // this.container.addChild(screen);
 
     // Setup things and pre-organise screen before showing
     if (screen.prepare) {
@@ -106,9 +107,9 @@ export class Navigation {
     // TODO: maybe? Sorry :)
     // this.context.camera.reset();
 
-    if (this.context.layers) {
-      destroyGameLayers(this.context.layers);
-      this.context.layers = null;
+    if (this.layers) {
+      destroyGameLayers(this.layers);
+      this.layers = null;
     }
 
     // Clean up the screen so that instance can be reused again later
@@ -161,8 +162,8 @@ export class Navigation {
     }
 
     // Resize all layers
-    if (this.context.layers) {
-      for (const layer of Object.values(this.context.layers)) {
+    if (this.layers) {
+      for (const layer of Object.values(this.layers)) {
         layer.layout = { width, height };
       }
     }

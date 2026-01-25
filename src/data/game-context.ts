@@ -49,11 +49,6 @@ export interface GameContext {
   /** The Box2D world ID (set by PhysicsSystem when active) */
   worldId: b2WorldId | null;
 
-  /** Z-ordered rendering layers (set by NavigationSystem)
-   * @deprecated Use navigation instead
-   */
-  layers: GameLayers | null;
-
   /** Navigation singleton */
   navigation: Navigation;
 
@@ -89,7 +84,6 @@ export function createGameContext(
     camera,
     navigation,
     worldId: null,
-    layers: null,
     container: null,
     phase: 'idle',
   };

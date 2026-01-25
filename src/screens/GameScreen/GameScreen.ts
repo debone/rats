@@ -3,7 +3,7 @@ import type { PrototypeTextures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { navigation } from '@/core/window/navigation';
-import type { AppScreen } from '@/core/window/types';
+import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
@@ -56,14 +56,12 @@ export class GameScreen extends Container implements AppScreen {
     const context = getGameContext();
     context.camera.setPosition(MIN_WIDTH / 2, MIN_HEIGHT / 2);
 
-    const layers = context.layers!; // Layers are guaranteed to exist in prepare()
-
     // Add content to layers
-    layers.background.addChild(this._background);
-    layers.game.addChild(gameContainer);
+    context.navigation.addToLayer(this._background, LAYER_NAMES.BACKGROUND);
+    context.navigation.addToLayer(this, LAYER_NAMES.GAME);
 
     // Set the container on the context so systems can use it
-    context.container = gameContainer;
+    context.container = this;
 
     /*
     const b = new Sprite({
@@ -88,7 +86,7 @@ export class GameScreen extends Container implements AppScreen {
 
     // Setup physics debug draw on debug layer
     const physicsSystem = context.systems.get(PhysicsSystem);
-    physicsSystem.setupDebugDraw(layers.debug);
+    physicsSystem.setupDebugDraw();
 
     // Setup event listeners for UI events
     this.setupEventListeners();
@@ -102,7 +100,7 @@ export class GameScreen extends Container implements AppScreen {
       width: MIN_WIDTH,
       height: MIN_HEIGHT,
     };
-    layers.ui.addChild(uiLayer);
+    context.navigation.addToLayer(uiLayer, LAYER_NAMES.UI);
 
     uiLayer.addChild(new LevelIndicator());
     uiLayer.addChild(new BallCounter());
@@ -164,7 +162,7 @@ export class GameScreen extends Container implements AppScreen {
       console.log('Close button pressed');
     });
 
-    layers.ui.addChild(buttonContainer);
+    context.navigation.addToLayer(buttonContainer, LAYER_NAMES.UI);
 
     popupLayer.addChild(popupBackground);
 
