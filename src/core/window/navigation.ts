@@ -4,6 +4,7 @@ import { GameEvent } from '@/data/events';
 import type { GameContext, GameLayers } from '@/data/game-context';
 import { app } from '@/main';
 import { Assets, Container } from 'pixi.js';
+import { assert } from '../common/assert';
 import { createGameLayers, destroyGameLayers } from './layers';
 import type { AppScreen, AppScreenConstructor, LayerName } from './types';
 
@@ -19,6 +20,9 @@ export class Navigation {
 
   /** Current screen being displayed */
   public currentScreen?: AppScreen;
+
+  /** Current popup being displayed */
+  public currentOverlay?: AppScreen;
 
   /** Game context */
   public context!: GameContext;
@@ -75,9 +79,13 @@ export class Navigation {
     this.context.events.emit(GameEvent.SCREEN_READY, { screenId: (screen as any).SCREEN_ID });
 
     // Show the new screen
+    screen.interactiveChildren = false;
+
     if (screen.show) {
-      screen.interactiveChildren = false;
       await screen.show();
+    }
+
+    if (!this.currentOverlay) {
       screen.interactiveChildren = true;
     }
   }
@@ -120,6 +128,63 @@ export class Navigation {
     this.context.events.emit(GameEvent.SCREEN_UNLOADED, { screenId: (screen as any).SCREEN_ID });
   }
 
+  private async addAndShowOverlay(overlay: AppScreen) {
+    console.log('[Navigation] Adding and showing overlay', overlay.constructor.name);
+
+    // Setup things and pre-organise screen before showing
+    if (overlay.prepare) {
+      overlay.prepare();
+    }
+
+    // Add screen's resize handler, if available
+    if (overlay.resize) {
+      // Trigger a first resize
+      this.resize(this.width, this.height);
+    }
+
+    // Add update function if available
+    if (overlay.update) {
+      app.ticker.add(overlay.update, overlay);
+    }
+
+    this.context.events.emit(GameEvent.OVERLAY_READY, { overlayId: (overlay as any).SCREEN_ID });
+
+    // Show the new screen
+    if (overlay.show) {
+      overlay.interactiveChildren = false;
+      await overlay.show();
+      overlay.interactiveChildren = true;
+    }
+  }
+
+  private async hideAndRemoveOverlay(overlay: AppScreen) {
+    console.log('[Navigation] Hiding and removing popup', overlay.constructor.name);
+    // Prevent interaction in the screen
+    overlay.interactiveChildren = false;
+
+    // Hide screen if method is available
+    if (overlay.hide) {
+      await overlay.hide();
+    }
+
+    // Unlink update function if method is available
+    if (overlay.update) {
+      app.ticker.remove(overlay.update, overlay);
+    }
+
+    // Remove screen from its parent
+    if (overlay.parent) {
+      overlay.parent.removeChild(overlay);
+    }
+
+    // Clean up the screen so that instance can be reused again later
+    if (overlay.reset) {
+      overlay.reset();
+    }
+
+    this.context.events.emit(GameEvent.OVERLAY_UNLOADED, { overlayId: (overlay as any).SCREEN_ID });
+  }
+
   /**
    * Hide current screen (if there is one) and present a new screen.
    * Any class that matches AppScreen interface can be used here.
@@ -146,6 +211,33 @@ export class Navigation {
     await this.addAndShowScreen(this.currentScreen);
   }
 
+  public async showOverlay(ctor: AppScreenConstructor) {
+    assert(!this.currentOverlay, 'An overlay is already being displayed');
+
+    if (this.currentScreen) {
+      this.currentScreen.interactiveChildren = false;
+    }
+
+    if (ctor.assetBundles && !areBundlesLoaded(ctor.assetBundles)) {
+      await Assets.loadBundle(ctor.assetBundles);
+    }
+
+    const overlay = pool.get(ctor);
+    this.currentOverlay = overlay;
+    await this.addAndShowOverlay(overlay);
+  }
+
+  public async dismissCurrentOverlay() {
+    assert(this.currentOverlay, 'No overlay to dismiss');
+
+    await this.hideAndRemoveOverlay(this.currentOverlay);
+    this.currentOverlay = undefined;
+
+    if (this.currentScreen) {
+      this.currentScreen.interactiveChildren = true;
+    }
+  }
+
   /**
    * Resize screens
    * @param width Viewport width
@@ -159,6 +251,12 @@ export class Navigation {
     if (this.currentScreen) {
       this.currentScreen.layout = { width, height };
       this.currentScreen.resize?.(width, height);
+    }
+
+    // Resize popup
+    if (this.currentOverlay) {
+      this.currentOverlay.layout = { width, height };
+      this.currentOverlay.resize?.(width, height);
     }
 
     // Resize all layers

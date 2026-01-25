@@ -7,8 +7,8 @@
  * Event names are exported as constants so you can cmd+click to find all usages.
  */
 
-import type { LevelResult, MapSelection } from './game-state';
 import type { AppScreenConstructor } from '@/core/window/types';
+import type { LevelResult, MapSelection } from './game-state';
 
 /**
  * Event name constants - use these for cmd+click navigation
@@ -27,8 +27,11 @@ export const GameEvent = {
   UNLOAD_SCREEN: 'screen:unload',
   SCREEN_READY: 'screen:ready',
   SCREEN_UNLOADED: 'screen:unloaded',
-  SHOW_POPUP: 'popup:show',
-  DISMISS_POPUP: 'popup:dismiss',
+
+  SHOW_OVERLAY: 'overlay:show',
+  DISMISS_OVERLAY: 'overlay:dismiss',
+  OVERLAY_READY: 'overlay:ready',
+  OVERLAY_UNLOADED: 'overlay:unloaded',
 
   // Run lifecycle
   START_NEW_RUN: 'run:start-new',
@@ -85,8 +88,11 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.SCREEN_READY]: { screenId: string };
   [GameEvent.UNLOAD_SCREEN]: { screen: AppScreenConstructor };
   [GameEvent.SCREEN_UNLOADED]: { screenId: string };
-  [GameEvent.SHOW_POPUP]: { popup: AppScreenConstructor };
-  [GameEvent.DISMISS_POPUP]: void;
+
+  [GameEvent.SHOW_OVERLAY]: { overlay: AppScreenConstructor };
+  [GameEvent.DISMISS_OVERLAY]: void;
+  [GameEvent.OVERLAY_READY]: { overlayId: string };
+  [GameEvent.OVERLAY_UNLOADED]: { overlayId: string };
 
   // Run lifecycle
   [GameEvent.START_NEW_RUN]: { startingLevelId: string };

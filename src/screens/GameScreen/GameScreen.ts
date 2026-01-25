@@ -2,15 +2,18 @@ import { ASSETS } from '@/assets';
 import type { PrototypeTextures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
+import { execute } from '@/core/game/Command';
 import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { DropShadowFilter } from 'pixi-filters';
 import { Color, Container, Text, Ticker, TilingSprite } from 'pixi.js';
+import { CrewPickerOverlay } from '../CrewPickerOverlay/CrewPickerOverlay';
 import { BallCounter } from './ui/BallCounter';
 import { LevelIndicator } from './ui/LevelIndicator';
 import { ScrapCounter } from './ui/ScrapCounter';
@@ -28,7 +31,6 @@ export class GameScreen extends Container implements AppScreen {
 
   private _background?: TilingSprite;
   private _popupLayer?: LayoutContainer;
-  private _gameContainer?: Container;
 
   constructor() {
     super();
@@ -40,10 +42,6 @@ export class GameScreen extends Container implements AppScreen {
    */
   async prepare() {
     console.log('[GameScreen] Preparing...');
-
-    // Game container
-    const gameContainer = new Container();
-    this._gameContainer = gameContainer;
 
     // Tiling background
     const tilingSprite = new TilingSprite({
@@ -129,10 +127,13 @@ export class GameScreen extends Container implements AppScreen {
         borderRadius: 5,
         width: 200,
         height: 200,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
       },
     });
 
-    popupBackground.filters = [
+    popupBackground.background.filters = [
       new DropShadowFilter({
         color: 0x101019,
         blur: 10,
@@ -148,7 +149,7 @@ export class GameScreen extends Container implements AppScreen {
         borderWidth: 1,
         borderRadius: 3,
         alignItems: 'center',
-        height: 32,
+        justifyContent: 'center',
       },
     });
 
@@ -162,11 +163,13 @@ export class GameScreen extends Container implements AppScreen {
       console.log('Close button pressed');
     });
 
-    context.navigation.addToLayer(buttonContainer, LAYER_NAMES.UI);
+    popupBackground.addChild(buttonContainer);
 
     popupLayer.addChild(popupBackground);
 
-    //layers.popup.addChild(popupLayer);
+    //context.navigation.addToLayer(popupLayer, LAYER_NAMES.POPUP);
+
+    await execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
 
     console.log('[GameScreen] Prepared');
   }
@@ -290,9 +293,11 @@ export class GameScreen extends Container implements AppScreen {
     physicsSystem.cleanupDebugDraw();
 
     // Destroy containers
-    this._gameContainer?.destroy({ children: true });
+    for (const child of this.children) {
+      child.destroy();
+    }
+
     this._background?.destroy();
-    this._gameContainer = undefined;
     this._background = undefined;
 
     context.container = null;
