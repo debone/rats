@@ -27,6 +27,8 @@ import { ReflectionFilter } from 'pixi-filters';
 import { CRT2Filter } from './lib/CRT/CRT';
 
 import { initDevtools } from '@pixi/devtools';
+import '@pixi/layout/devtools';
+
 import { Camera } from './core/camera/camera';
 import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';

@@ -16,12 +16,17 @@ export const OVERLAY_Z_INDEX = 15;
 export const DEBUG_Z_INDEX = 25;
 
 export const STARTING_BALLS = 3;
-export const BALL_SPEED_DEFAULT = 13;
+export const BALL_SPEED_DEFAULT = 15;
 
 export const TEXT_STYLE_DEFAULT = {
   fontSize: 12,
   fontFamily: 'Georgia',
   fill: 0xffffff,
+};
+
+export const TEXT_STYLE_TITLE = {
+  ...TEXT_STYLE_DEFAULT,
+  fontSize: 24,
 };
 
 export const UI_BUTTON_HEIGHT = 32;
