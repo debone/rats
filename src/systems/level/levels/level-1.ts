@@ -290,7 +290,7 @@ export default class Level1 extends StartingLevels {
   }
 
   protected checkWinCondition(): boolean {
-    return this.bricksCount <= 0;
+    return this.bricksCount <= 5;
   }
 
   protected checkLoseCondition(): boolean {
