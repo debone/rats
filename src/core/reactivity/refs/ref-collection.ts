@@ -29,6 +29,7 @@ interface RefCollection<T> {
   parent?: Elements;
   template: (ref: Ref<T>) => Elements;
   children: Signal<Elements[]>;
+  strategy: ContainerStrategy;
 
   onAdd: Signal<{ item: Signal<T>; index: number } | null>;
   onRemove: Signal<{ item: Signal<T>; index: number } | null>;
@@ -149,6 +150,7 @@ export function createRefs(
   template: (index: number) => Elements,
   size: Signal<number>,
   parent?: Elements,
+  strategy: ContainerStrategy = defaultContainerStrategy,
 ): RefCountable {
   const currentElements: Elements[] = [];
 

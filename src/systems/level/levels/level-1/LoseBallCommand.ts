@@ -6,6 +6,8 @@ export class Level_1_LoseBallCommand extends Command<void> {
   *execute() {
     removeBallFromRun(1);
 
+    // execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
+
     yield delay(300);
   }
 }

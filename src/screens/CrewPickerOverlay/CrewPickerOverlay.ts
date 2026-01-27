@@ -1,11 +1,183 @@
-import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS, FRAMES, type PrototypeTextures } from '@/assets';
+import { TEXT_STYLE_DEFAULT, TEXT_STYLE_TITLE } from '@/consts';
+import { typedAssets } from '@/core/assets/typed-assets';
+import { signal } from '@/core/reactivity/signals/signals';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
 import { DropShadowFilter } from 'pixi-filters';
-import { Color, Container, Graphics, Text, Ticker } from 'pixi.js';
+import { Color, Container, Graphics, Sprite, Text, Ticker } from 'pixi.js';
+
+class PrimaryButton extends Button {
+  constructor(label: string) {
+    const view = new LayoutContainer({
+      layout: {
+        gap: 10,
+        padding: 10,
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 1,
+        borderRadius: 3,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+    });
+
+    view.addChild(new Text({ text: label, style: TEXT_STYLE_DEFAULT, layout: true }));
+
+    super(view);
+
+    this.onPress.connect(() => {
+      console.log('Primary button pressed');
+    });
+  }
+}
+
+class CrewMemberBadge extends LayoutContainer {
+  constructor(name: string) {
+    /*
++---------------------------------------------------------+
+|                                                         |
+|  +------------+                                         |
+|  |            | TITLE                                   |
+|  |            |                                         |
+|  |            | Description                             |
+|  |            |                                         |
+|  |            |                                         |
+|  |            |                                         |
+|  |            |                                         |
+|  +------------+                                         |
+|                                                         |
+|  +------------+ +-------------------------------------+ |
+|  | crew power | | 123 Scraps to hire                  | |
+|  +------------+ +-------------------------------------+ |
+|                                                         |
++---------------------------------------------------------+
+ */
+    super({
+      layout: {
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 1,
+        borderRadius: 3,
+        minWidth: 480,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 5,
+        gap: 10,
+        height: '100%',
+      },
+    });
+
+    const leftContent = new LayoutContainer({
+      layout: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        padding: 5,
+        debug: true,
+      },
+    });
+
+    const middleContent = new LayoutContainer({
+      layout: {
+        flexGrow: 1,
+        height: '100%',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        gap: 10,
+        padding: 5,
+      },
+    });
+
+    const rightContent = new LayoutContainer({
+      layout: {
+        height: '100%',
+        flexDirection: 'column',
+        gap: 10,
+        padding: 5,
+      },
+    });
+
+    const frame = new Sprite({
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures[FRAMES.prototype['avatars_tile_2#0']],
+      layout: true,
+    });
+    leftContent.addChild(frame);
+
+    const nameText = new Text({ text: name, style: TEXT_STYLE_TITLE, layout: true });
+    middleContent.addChild(nameText);
+
+    const descriptionText = new Text({ text: 'Description', style: TEXT_STYLE_DEFAULT, layout: true });
+    middleContent.addChild(descriptionText);
+
+    const crewPowerText = new PrimaryButton('123 Scraps to hire');
+    rightContent.addChild(crewPowerText.view!);
+
+    this.addChild(leftContent);
+    this.addChild(middleContent);
+    this.addChild(rightContent);
+  }
+}
+
+class CrewPickerPanel {
+  public readonly view: LayoutContainer;
+
+  constructor() {
+    this.view = new LayoutContainer({
+      layout: {
+        gap: 10,
+        padding: 10,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+    });
+
+    const title = new Text({ text: 'Crew Picker', style: TEXT_STYLE_DEFAULT, layout: true });
+    this.view.addChild(title);
+
+    const description = new Text({ text: 'Select a crew member to continue', style: TEXT_STYLE_DEFAULT, layout: true });
+    this.view.addChild(description);
+
+    const crewMembers = new LayoutContainer({
+      layout: {
+        gap: 10,
+        padding: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+    });
+
+    this.view.addChild(crewMembers);
+
+    const crewMemberBadge = new CrewMemberBadge('John Doe');
+    crewMembers.addChild(crewMemberBadge);
+
+    const membersCount = signal(0);
+
+    const countText = new Text({ text: '0/3', style: TEXT_STYLE_DEFAULT, layout: true });
+
+    membersCount.subscribe((count) => {
+      countText.text = `${count}/3`;
+    });
+
+    this.view.addChild(countText);
+
+    const addMemberButton = new PrimaryButton('Add Member');
+    addMemberButton.onPress.connect(() => {
+      membersCount.update((count) => count + 1);
+      getRunState().scrapsCounter.update((count) => count + 10);
+    });
+
+    this.view.addChild(addMemberButton.view!);
+  }
+}
 
 export class CrewPickerOverlay extends Container implements AppScreen {
   static readonly SCREEN_ID = 'crew-picker';
@@ -37,8 +209,6 @@ export class CrewPickerOverlay extends Container implements AppScreen {
         borderColor: 0x57294b,
         borderWidth: 1,
         borderRadius: 5,
-        width: 200,
-        height: 200,
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
@@ -63,23 +233,7 @@ export class CrewPickerOverlay extends Container implements AppScreen {
 
     const context = getGameContext();
 
-    const buttonContainer = new LayoutContainer({
-      layout: {
-        gap: 10,
-        padding: 10,
-        backgroundColor: 0x272736,
-        borderColor: 0x57294b,
-        borderWidth: 1,
-        borderRadius: 3,
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-    });
-
-    buttonContainer.addChild(new Text({ text: 'Close', style: TEXT_STYLE_DEFAULT, layout: true }));
-
-    const closeButton = new Button(buttonContainer);
-    closeButton.enabled = true;
+    const closeButton = new PrimaryButton('Close');
 
     closeButton.onPress.connect(() => {
       // navigation.dismissPopup();
@@ -87,9 +241,12 @@ export class CrewPickerOverlay extends Container implements AppScreen {
       context.navigation.dismissCurrentOverlay();
     });
 
-    this._popupBackground.addChild(buttonContainer);
+    this._popupBackground.addChild(closeButton.view!);
 
     this.addChild(this._popupBackground);
+
+    const crewPickerPanel = new CrewPickerPanel();
+    this._popupBackground.addChild(crewPickerPanel.view!);
 
     context.navigation.addToLayer(this, LAYER_NAMES.POPUP);
 

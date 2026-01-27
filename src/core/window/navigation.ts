@@ -255,6 +255,7 @@ export class Navigation {
 
     // Resize popup
     if (this.currentOverlay) {
+      // TODO: bug when refreshing the screen. But should it?
       this.currentOverlay.layout = { width, height };
       this.currentOverlay.resize?.(width, height);
     }
