@@ -84,14 +84,16 @@ export class SignalImpl<T> implements Signal<T> {
     this.set(fn(this._value));
   }
 
-  subscribe(subscriber: Subscriber<T>): Cleanup {
+  subscribe(subscriber: Subscriber<T>, immediate = true): Cleanup {
     if (this.disposed) {
       throw new Error('Cannot subscribe to disposed signal');
     }
 
     this.subscribers.add(subscriber);
-    // Call subscriber immediately with current value
-    subscriber(this._value);
+    if (immediate) {
+      // Call subscriber immediately with current value
+      subscriber(this._value);
+    }
 
     return () => {
       if (!this.disposed) {

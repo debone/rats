@@ -13,7 +13,7 @@ export interface Signal<T> {
   get(): T;
   set(value: T): void;
   update(fn: (value: T) => T): void;
-  subscribe(subscriber: Subscriber<T>): Cleanup;
+  subscribe(subscriber: Subscriber<T>, immediate?: boolean): Cleanup;
   dispose(): void;
 }
 

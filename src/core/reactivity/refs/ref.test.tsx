@@ -1,17 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createRef } from "./ref";
+import { describe, expect, it } from 'vitest';
+import { createRef } from './ref';
 
-describe("Refs", () => {
-  // Mock window.currentScene
-  beforeEach(() => {
-    (window as any).currentScene = {
-      tweens: {
-        add: vi.fn(),
-      },
-    };
-  });
-
-  it("should handle basic ref updates", () => {
+describe('Refs', () => {
+  it('should handle basic ref updates', () => {
     const gameObject: { x: number; y: number } = {
       x: 10,
       y: 10,
