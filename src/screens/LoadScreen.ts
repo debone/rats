@@ -143,18 +143,18 @@ export class LoadScreen extends Container implements AppScreen {
 
     /**/
 
-    const ballsUI = createRefs(
-      'balls',
-      () => {
+    const ballsUI = createRefs({
+      path: 'balls',
+      template: () => {
         const sprite = new Sprite({
           texture: aa_tile_1,
           layout: { width: aa_tile_1.width, height: aa_tile_1.height },
         });
         return sprite;
       },
-      signal(2),
-      this,
-    );
+      size: signal(2),
+      parent: this,
+    });
 
     //ballsUI.data.push({ x: 100, y: 650 });
     setTimeout(() => {

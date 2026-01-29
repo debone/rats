@@ -1,7 +1,8 @@
 import { ASSETS } from '@/assets';
-import { createRefs, type RefCountable } from '@/core/reactivity/refs/ref-collection';
+import { createRefs, type RefCountable, type Strategy } from '@/core/reactivity/refs/ref-collection';
 import { getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
+import { animate } from 'animejs';
 import { Assets, Sprite } from 'pixi.js';
 
 export class BallCounter extends LayoutContainer {
@@ -21,9 +22,30 @@ export class BallCounter extends LayoutContainer {
       flexWrap: 'wrap',
     };
 
-    this.ballsUI = createRefs(
-      'balls',
-      () => {
+    const ballStrategy: Strategy = (parent, { adds, removes, moves }) => {
+      // Animate removes out (parallel, staggered)
+      removes.reverse().forEach(({ element }, i) => {
+        animate(element, { alpha: 0, y: '+=20', duration: 200, delay: i * 30 }).then(() => element.destroy());
+      });
+
+      // Animate adds in (parallel, staggered, after removes)
+      const removeTime = removes.length * 30 + 200;
+      adds.forEach(({ element }, i) => {
+        element.alpha = 0;
+        parent.addChild(element);
+        animate(element, { alpha: 1, duration: 200, delay: removeTime + i * 30 });
+      });
+
+      // Animate moves
+      moves.forEach(({ element, to }) => {
+        const targetX = to * 16;
+        animate(element, { x: targetX, duration: 300 });
+      });
+    };
+
+    this.ballsUI = createRefs({
+      path: 'balls',
+      template: () => {
         const ballSprite = new Sprite(Assets.get(ASSETS.tiles).textures.ball);
         ballSprite.scale.set(0.75, 0.75);
         ballSprite.layout = {
@@ -31,8 +53,9 @@ export class BallCounter extends LayoutContainer {
         };
         return ballSprite;
       },
-      getRunState().ballsRemaining,
-      this,
-    );
+      size: getRunState().ballsRemaining,
+      parent: this,
+      strategy: ballStrategy,
+    });
   }
 }

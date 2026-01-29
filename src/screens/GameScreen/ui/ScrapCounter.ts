@@ -22,9 +22,9 @@ export class ScrapCounter extends LayoutContainer {
       flexWrap: 'wrap',
     };
 
-    this.scrapsUI = createRefs(
-      'scraps',
-      () => {
+    this.scrapsUI = createRefs({
+      path: 'scraps',
+      template: () => {
         const scrapSprite = new Sprite(typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0']);
         scrapSprite.scale.set(0.75, 0.75);
         scrapSprite.layout = {
@@ -32,8 +32,8 @@ export class ScrapCounter extends LayoutContainer {
         };
         return scrapSprite;
       },
-      getRunState().scrapsCounter,
-      this,
-    );
+      size: getRunState().scrapsCounter,
+      parent: this,
+    });
   }
 }
