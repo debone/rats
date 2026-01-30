@@ -5,9 +5,19 @@
  * These are pure data definitions without implementation logic.
  */
 
+import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
+import {
+  CaptainCrewMember,
+  CrewMember,
+  DoublerCrewMember,
+  EmptyCrewMember,
+  FasterCrewMember,
+} from '@/screens/GameScreen/ui/CrewIndicator';
 import type { LevelConfig } from '@/systems/level/Level';
+import { GameEvent } from './events';
+import { getGameContext } from './game-context';
 
 export interface GameState {
   meta: MetaGameState;
@@ -51,6 +61,7 @@ export interface RunState {
   ballsRemaining: Signal<number>;
 
   scrapsCounter: Signal<number>;
+  crewMembers: SignalCollection<CrewMember>;
   // Run-specific state
   // activeBoons: Boon[];
   // temporaryUpgrades: string[];
@@ -112,6 +123,12 @@ export function createGameState(): GameState {
       levelsCompleted: [],
       ballsRemaining: signal(1, { label: 'ballsRemaining' }),
       scrapsCounter: signal(0, { label: 'scrapsCounter' }),
+      crewMembers: createKeyedCollection([
+        new DoublerCrewMember('doubler'),
+        new FasterCrewMember('faster'),
+        new CaptainCrewMember('captain'),
+        new EmptyCrewMember('empty'),
+      ]),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,
@@ -180,4 +197,16 @@ export function removeBallFromRun(count: number): void {
 
 export function setBallsRemaining(count: number): void {
   getRunState().ballsRemaining.set(count);
+}
+
+export function activateCrewMember(): void {
+  const rest = getRunState().crewMembers.getAll();
+  const crewMember = rest.shift();
+
+  getGameContext().events.emit(GameEvent.POWERUP_ACTIVATED, {
+    type: crewMember!.type,
+  });
+
+  const index = rest.findIndex((m) => m.type === 'empty');
+  getRunState().crewMembers.set([...rest.splice(0, index), crewMember!, ...rest]);
 }

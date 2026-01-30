@@ -55,6 +55,7 @@ export abstract class StartingLevels extends Level {
   balls: Ball[] = [];
 
   paddleBodyId!: b2BodyId;
+  paddleSprite!: Sprite;
 
   ballPrismaticJointId!: b2JointId;
 
@@ -102,7 +103,9 @@ export abstract class StartingLevels extends Level {
     AddSpriteToWorld(this.context.worldId!, paddleSprite, bodyId, 0, -34);
 
     this.registerBody(bodyId);
+
     this.paddleBodyId = bodyId;
+    this.paddleSprite = paddleSprite;
 
     console.log('[Level1] Paddle created');
   }
@@ -133,6 +136,16 @@ export abstract class StartingLevels extends Level {
     b2Normalize(f);
     b2Body_ApplyLinearImpulseToCenter(bodyId, f, true);
     this.context.systems.get(PhysicsSystem).enableGravity(bodyId);
+  }
+
+  doubleBalls(): void {
+    let maxBalls = this.balls.length;
+    for (let i = 0; i < maxBalls; i++) {
+      const ballPosition = b2Body_GetPosition(this.balls[i].bodyId);
+      const ball = new NormalBall(this.context, ballPosition.x, ballPosition.y);
+      this.registerBody(ball.bodyId);
+      this.balls.push(ball);
+    }
   }
 
   createBall(): void {
@@ -211,6 +224,29 @@ export abstract class StartingLevels extends Level {
         this.balls[i].update(delta);
       }
     }
+
+    if (this.timeoutSpeedBoat > 0) {
+      this.timeoutSpeedBoat -= delta;
+      if (this.timeoutSpeedBoat <= 0) {
+        this.slowBoat();
+      }
+    }
+  }
+
+  private boatForce = 0;
+  private maxSpeed = 15;
+
+  private timeoutSpeedBoat = 0;
+  speedBoat(): void {
+    this.timeoutSpeedBoat = 15000;
+    this.maxSpeed = 30;
+    this.paddleSprite.tint = 0xffff00;
+  }
+
+  private slowBoat(): void {
+    this.timeoutSpeedBoat = 1000;
+    this.maxSpeed = 15;
+    this.paddleSprite.tint = 0xffffff;
   }
 
   updatePaddleInput(): void {
@@ -220,23 +256,27 @@ export abstract class StartingLevels extends Level {
     transform.q.s = 0;
     b2Body_SetTransform(this.paddleBodyId, transform.p, transform.q);
 
-    if (InputDevice.gamepads[0] !== undefined) {
-      transform.q.s = 0.1 * InputDevice.gamepads[0]?.leftJoystick.x;
-      b2Body_SetTransform(this.paddleBodyId, transform.p, transform.q);
-      b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(15 * InputDevice.gamepads[0]?.leftJoystick.x, 0));
-    }
-
     // Handle arrow key input
     if (InputDevice.keyboard.key.ArrowLeft) {
-      transform.q.s = -0.1;
-      b2Body_SetTransform(this.paddleBodyId, transform.p, transform.q);
-      b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(-10, 0));
+      this.boatForce = Math.max(this.boatForce - 0.1, -1);
+    } else if (InputDevice.keyboard.key.ArrowRight) {
+      this.boatForce = Math.min(this.boatForce + 0.1, 1);
+    } else {
+      if (this.boatForce > 0) {
+        this.boatForce = Math.max(this.boatForce - 0.2, 0);
+      } else {
+        this.boatForce = Math.min(this.boatForce + 0.2, 0);
+      }
     }
 
-    if (InputDevice.keyboard.key.ArrowRight) {
-      transform.q.s = 0.1;
+    if (InputDevice.gamepads[0] !== undefined) {
+      this.boatForce = InputDevice.gamepads[0]?.leftJoystick.x;
+    }
+
+    if (this.boatForce !== 0) {
+      transform.q.s = this.boatForce * 0.25;
       b2Body_SetTransform(this.paddleBodyId, transform.p, transform.q);
-      b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(10, 0));
+      b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(this.boatForce * this.maxSpeed, 0));
     }
 
     if (InputDevice.keyboard.key.ArrowUp) {

@@ -38,33 +38,20 @@ export const GameEvent = {
   RESUME_RUN: 'run:resume',
 
   // Level events
-  START_LEVEL: 'level:start',
   LEVEL_STARTED: 'level:started',
   LEVEL_WON: 'level:won',
   LEVEL_LOST: 'level:lost',
-  LEVEL_COMPLETED: 'level:completed',
-  LEVEL_FAILED: 'level:failed',
-  UNLOAD_LEVEL: 'level:unload',
 
   // Game flow events
   GAME_SHOW_MAP: 'game:show-map',
   MAP_LEVEL_SELECTED: 'map:level-selected',
-  GAME_SHOW_GAME_OVER: 'game:show-game-over',
-  GAME_OVER: 'game:over',
   GAME_OVER_ACTION: 'game-over:action',
   GAME_OVER_DATA: 'game-over:data',
   GAME_QUIT: 'game:quit',
 
-  // Shop events
-  ENTER_SHOP: 'shop:enter',
-  SHOW_SHOP: 'shop:show',
-  SHOP_CLOSED: 'shop:closed',
-
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
-  BOON_ACQUIRED: 'boon:acquired',
-  POWERUP_COLLECTED: 'powerup:collected',
-  BALL_LOST: 'ball:lost',
+  POWERUP_ACTIVATED: 'powerup:activated',
 
   // System events
   SAVE_COMPLETED: 'save:completed',
@@ -99,13 +86,9 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.RESUME_RUN]: { run: import('./game-state').RunState };
 
   // Level events
-  [GameEvent.START_LEVEL]: { levelId: string };
   [GameEvent.LEVEL_STARTED]: { levelId: string };
   [GameEvent.LEVEL_WON]: LevelResult;
   [GameEvent.LEVEL_LOST]: LevelResult;
-  [GameEvent.LEVEL_COMPLETED]: LevelResult;
-  [GameEvent.LEVEL_FAILED]: LevelResult;
-  [GameEvent.UNLOAD_LEVEL]: void;
 
   // Game flow events
   [GameEvent.GAME_SHOW_MAP]: {
@@ -113,14 +96,6 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
     result: LevelResult | null;
   };
   [GameEvent.MAP_LEVEL_SELECTED]: MapSelection;
-  [GameEvent.GAME_SHOW_GAME_OVER]: {
-    score: number;
-    levelsCompleted: number;
-  };
-  [GameEvent.GAME_OVER]: {
-    score: number;
-    levelsCompleted: number;
-  };
   [GameEvent.GAME_OVER_ACTION]: 'restart' | 'quit';
   [GameEvent.GAME_OVER_DATA]: {
     score: number;
@@ -128,30 +103,14 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   };
   [GameEvent.GAME_QUIT]: void;
 
-  // Shop events
-  [GameEvent.ENTER_SHOP]: { shopId: string };
-  [GameEvent.SHOW_SHOP]: { shopId: string };
-  [GameEvent.SHOP_CLOSED]: {
-    purchases: string[];
-    nextAction: 'continue' | 'map';
-  };
-
   // Gameplay events
   [GameEvent.BRICK_DESTROYED]: {
     brickId: string;
     position: { x: number; y: number };
     score: number;
   };
-  [GameEvent.BOON_ACQUIRED]: {
-    boonId: string;
-    source: 'level' | 'brick' | 'event';
-  };
-  [GameEvent.POWERUP_COLLECTED]: {
-    powerupId: string;
+  [GameEvent.POWERUP_ACTIVATED]: {
     type: string;
-  };
-  [GameEvent.BALL_LOST]: {
-    ballsRemaining: number;
   };
 
   // System events

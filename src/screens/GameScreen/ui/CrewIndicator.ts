@@ -1,113 +1,128 @@
 import { ASSETS } from '@/assets';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { signal } from '@/core/reactivity/signals/signals';
+import type { Ref } from '@/core/reactivity/refs/ref';
+import { createRefCollection, type Strategy } from '@/core/reactivity/refs/ref-collection';
+import { activateCrewMember, getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
-import { Container, Sprite, Text } from 'pixi.js';
+import { Sprite, Text } from 'pixi.js';
 
-// There is a crew array
-// The tip of this crew is the one "active"
-// When some event (pick cheese) comes, we activate this crew ability
-// and shuffle it to back end of the pack
-const activeCrew = signal(null);
+export type CrewMemberType = 'faster' | 'doubler' | 'captain' | 'empty';
 
-abstract class CrewMember {
+export abstract class CrewMember {
+  public readonly key: string;
   public readonly name: string;
+  public readonly description: string;
+  public readonly type: CrewMemberType;
   public readonly textureName: string;
-  public badge: Button;
 
-  constructor({ name, textureName }: { name: string; textureName: string }) {
+  constructor({
+    key,
+    name,
+    description,
+    type,
+    textureName,
+  }: {
+    key: string;
+    name: string;
+    description: string;
+    type: CrewMemberType;
+    textureName: string;
+  }) {
+    this.key = key;
     this.name = name;
     this.textureName = textureName;
-    this.badge = this.getBadge();
+    this.description = description;
+    this.type = type;
+  }
+}
+
+export class FasterCrewMember extends CrewMember {
+  constructor(key: string) {
+    super({ key, name: 'Faster', description: 'balls go brrr', type: 'faster', textureName: 'avatars_tile_2#0' });
+  }
+}
+
+export class DoublerCrewMember extends CrewMember {
+  constructor(key: string) {
+    super({ key, name: 'Doubler', description: 'double the balls', type: 'doubler', textureName: 'avatars_tile_3#0' });
+  }
+}
+
+export class CaptainCrewMember extends CrewMember {
+  constructor(key: string) {
+    super({ key, name: 'Captain', description: 'ship is faster', type: 'captain', textureName: 'avatars_tile_4#0' });
+  }
+}
+
+export class EmptyCrewMember extends CrewMember {
+  constructor(key: string) {
+    super({ key, name: '', description: '', type: 'empty', textureName: 'avatars_tile_1#0' });
+  }
+}
+
+function getBadge(crewMember: Ref<CrewMember>): Button {
+  const name = crewMember.name.get();
+  const textureName = crewMember.textureName.get();
+
+  const texture = typedAssets.get(ASSETS.prototype).textures[textureName];
+
+  const container = new LayoutContainer({
+    layout: {
+      gap: 7,
+      flexDirection: 'row',
+    },
+  });
+
+  const sprite = new Sprite({ texture, layout: { width: 32, height: 32 } });
+  container.addChild(sprite);
+
+  const hoverContainer = new LayoutContainer({
+    visible: false,
+    layout: {
+      gap: 3,
+      flexDirection: 'column',
+      backgroundColor: 0x272736,
+      borderColor: 0x57294b,
+      borderWidth: 1,
+      borderRadius: 3,
+      padding: 5,
+    },
+  });
+
+  if (name) {
+    const text = new Text({
+      text: name,
+      style: {
+        ...TEXT_STYLE_DEFAULT,
+        fontSize: 14,
+      },
+      layout: true,
+    });
+    hoverContainer.addChild(text);
+
+    container.addChild(hoverContainer);
   }
 
-  //  abstract activate(): void;
+  const button = new Button(container);
 
-  getBadge(): Button {
-    const texture = typedAssets.get(ASSETS.prototype).textures[this.textureName];
-
-    const container = new LayoutContainer({
-      layout: {
-        gap: 7,
-        flexDirection: 'row',
-      },
-    });
-
-    const sprite = new Sprite({ texture, layout: { width: 32, height: 32 } });
-    container.addChild(sprite);
-
-    const hoverContainer = new LayoutContainer({
-      visible: false,
-      layout: {
-        gap: 3,
-        flexDirection: 'column',
-        backgroundColor: 0x272736,
-        borderColor: 0x57294b,
-        borderWidth: 1,
-        borderRadius: 3,
-        padding: 5,
-      },
-    });
-
-    if (this.name) {
-      const text = new Text({
-        text: this.name,
-        style: {
-          ...TEXT_STYLE_DEFAULT,
-          fontSize: 14,
-        },
-        layout: true,
-      });
-      hoverContainer.addChild(text);
-
-      container.addChild(hoverContainer);
+  button.onHover.connect(() => {
+    sprite.tint = 0xffff00;
+    if (name) {
+      hoverContainer.visible = true;
     }
+  });
 
-    const button = new Button(container);
+  button.onOut.connect(() => {
+    sprite.tint = 0xffffff;
+    if (name) {
+      hoverContainer.visible = false;
+    }
+  });
 
-    button.onHover.connect(() => {
-      sprite.tint = 0xffff00;
-      if (this.name) {
-        hoverContainer.visible = true;
-      }
-    });
-
-    button.onOut.connect(() => {
-      sprite.tint = 0xffffff;
-      if (this.name) {
-        hoverContainer.visible = false;
-      }
-    });
-
-    return button;
-  }
-}
-
-class FasterCrewMember extends CrewMember {
-  constructor() {
-    super({ name: 'Faster', textureName: 'avatars_tile_2#0' });
-  }
-}
-
-class DoublerCrewMember extends CrewMember {
-  constructor() {
-    super({ name: 'Doubler', textureName: 'avatars_tile_3#0' });
-  }
-}
-
-class CaptainCrewMember extends CrewMember {
-  constructor() {
-    super({ name: 'Captain', textureName: 'avatars_tile_4#0' });
-  }
-}
-
-class EmptyCrewMember extends CrewMember {
-  constructor() {
-    super({ name: '', textureName: 'avatars_tile_1#0' });
-  }
+  return button;
 }
 
 export class CrewIndicator extends LayoutContainer {
@@ -115,6 +130,8 @@ export class CrewIndicator extends LayoutContainer {
 
   constructor() {
     super();
+
+    const crewMembersCollection = getRunState().crewMembers;
 
     this.layout = {
       borderWidth: 1,
@@ -124,107 +141,60 @@ export class CrewIndicator extends LayoutContainer {
       flexDirection: 'column',
     };
 
-    const fasterCrewMember = new FasterCrewMember();
-    this._crewMembers.push(fasterCrewMember);
-    this.addChild(fasterCrewMember.badge.view!);
+    const strategy: Strategy = async (parent, { adds, removes, moves }) => {
+      removes.forEach(({ element }) => element.destroy());
+      adds.forEach(({ element }) => parent.addChild(element));
 
-    const doublerCrewMember = new DoublerCrewMember();
-    this._crewMembers.push(doublerCrewMember);
-    this.addChild(doublerCrewMember.badge.view!);
+      if (moves.length === 0) return;
 
-    const captainCrewMember = new CaptainCrewMember();
-    this._crewMembers.push(captainCrewMember);
-    this.addChild(captainCrewMember.badge.view!);
+      const firstToBack = moves.find((m) => m.from === 0);
 
-    const emptyCrewMember = new EmptyCrewMember();
-    this._crewMembers.push(emptyCrewMember);
-    this.addChild(emptyCrewMember.badge.view!);
+      //moves.forEach((m) => (m.element.y = 0));
+      if (firstToBack) {
+        // Special choreography
+        animate(firstToBack.element.scale, { x: 2, y: 2, duration: 200, easing: 'easeInOutQuad' });
+        await animate(firstToBack.element, { alpha: 0, duration: 200, easing: 'easeInOutQuad' });
+        const others = moves.filter((m) => m !== firstToBack);
+        await Promise.all(others.map((m) => animate(m.element, { y: -34, duration: 200, easing: 'easeInOutQuad' })));
+
+        parent.removeChild(firstToBack.element);
+        others.map((m) => {
+          m.element.y = 0;
+        });
+        parent.addChildAt(firstToBack.element, firstToBack.to);
+
+        firstToBack.element.scale = 1;
+
+        await animate(firstToBack.element, { alpha: 1, duration: 200, easing: 'easeInOutQuad' });
+      } else {
+        // Default: just slide everything awful to signal broken
+        moves.forEach((m) => animate(m.element, { x: 100 }));
+      }
+    };
+
+    createRefCollection({
+      path: 'crewMembers',
+      template: (ref: Ref<CrewMember>) => getBadge(ref).view!,
+      data: crewMembersCollection,
+      parent: this,
+      strategy,
+    });
 
     setTimeout(() => {
-      //this.rotateCrew();
-    }, 1000);
-  }
-  //animate(crewMember1, { x: 0, alpha: 1, duration: 200, easing: 'easeInOutQuad' });
+      activateCrewMember();
 
-  private async rotateCrewToBack() {
-    animate(crewMember1.view!, { x: -10, alpha: 0, duration: 200, easing: 'easeInOutQuad' }).then(() => {
-      Promise.all(
-        this._crewMembers.map((child) =>
-          animate(child, {
-            y: -34,
-            duration: 500,
-            easing: 'easeInOutQuad',
-          }),
-        ),
-      ).then(() => {
-        this.removeChild(crewMember1.view!);
-        this._crewMembers.map((child) => (child.y = 0));
-        this.addChild(crewMember1.view!);
-        animate(crewMember1.view!, { x: 0, alpha: 1, duration: 200, easing: 'easeInOutQuad' });
-      });
-    });
-  }
+      setInterval(() => {
+        activateCrewMember();
+      }, 10000);
+    }, 2000);
 
-  private async rotateCrew() {
-    if (this.children.length === 0) return;
-
-    const oldPositions = this._crewMembers.map((child) => ({
-      x: child.layout?.realX ?? 0,
-      y: child.layout?.realY ?? 0,
-    }));
-
-    console.log('[CrewIndicator] oldPositions', oldPositions);
-
-    // Disable layout, reorder, then let layout calculate new positions
-    for (const child of this.children) {
-      child.layout = false;
-    }
-
-    const firstChild = this.removeChildAt(0);
-    this.addChild(firstChild);
-
-    // Re-enable layout to calculate target positions
-    for (const child of this.children) {
-      child.layout = true;
-    }
-    const targetPositions = this._crewMembers.map((child) => ({
-      x: child.layout?.realX ?? 0,
-      y: child.layout?.realY ?? 0,
-    }));
-
-    // Set back to old positions and disable layout for animation
-    for (let i = 0; i < this._crewMembers.length; i++) {
-      const child = this._crewMembers[i];
-      //child.x = oldPositions[i].x;
-      //child.y = oldPositions[i].y;
-      //child.layout = false;
-    }
-    /**
-
-    await Promise.all(
-      this._crewMembers.map((child, i) =>
-        animate(child, {
-          x: targetPositions[i].x + 100,
-          y: targetPositions[i].y,
-          duration: 500,
-          easing: 'easeInOutQuad',
-        }),
-      ),
-    );
     /*
+    setTimeout(() => {
+      crewMembersCollection.set([captainCrewMember, emptyCrewMember, fasterCrewMember, doublerCrewMember]);
+    }, 2000);
 
-    // Animate
-    await Promise.all(
-    );
-
-    // Re-enable layout
-    /**
-    for (let i = 0; i < this._crewMembers.length; i++) {
-      const child = this._crewMembers[i];
-      child.x = 0;
-      child.y = 0;
-      child.layout = true;
-    }
-    /**/
+    setTimeout(() => {
+      crewMembersCollection.set([fasterCrewMember, doublerCrewMember, captainCrewMember, emptyCrewMember]);
+    }, 3000);*/
   }
 }

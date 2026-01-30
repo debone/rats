@@ -5,6 +5,7 @@ import { shake } from '@/core/camera/effects/shake';
 import { execute } from '@/core/game/Command';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { TiledResource } from '@/core/tiled';
+import { GameEvent } from '@/data/events';
 import { getRunState } from '@/data/game-state';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
@@ -40,6 +41,8 @@ export default class Level1 extends StartingLevels {
 
     // Setup collision handlers
     this.setupCollisionHandlers();
+
+    this.setupEventListeners();
 
     setTimeout(() => {
       console.log('[sound]');
@@ -247,17 +250,34 @@ export default class Level1 extends StartingLevels {
       const { x, y } = BodyToScreen(scrapBody);
       this.brickDebrisEmitter!.explode(10, x, y + 4);
 
-      getRunState().scrapsCounter.update((value) => {
-        value += 1;
-        if (value % 5 === 0) {
-          this.balls[0].powerUp();
-        }
-        return value;
-      });
+      getRunState().scrapsCounter.update((value) => value + 1);
 
       this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
       this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
     });
+  }
+
+  private eventCleanups: (() => void)[] = [];
+
+  private setupEventListeners(): void {
+    this.eventCleanups.push(
+      this.context.events.on(GameEvent.POWERUP_ACTIVATED, (payload) => {
+        console.log('[Level1] Powerup activated:', payload.type);
+        switch (payload.type) {
+          case 'faster':
+            for (let i = 0; i < this.balls.length; i++) {
+              this.balls[i].powerUp();
+            }
+            break;
+          case 'doubler':
+            this.doubleBalls();
+            break;
+          case 'captain':
+            this.speedBoat();
+            break;
+        }
+      }),
+    );
   }
 
   private createBackground(): void {
@@ -299,6 +319,9 @@ export default class Level1 extends StartingLevels {
 
   async unload(): Promise<void> {
     await super.unload();
+
+    this.eventCleanups.forEach((cleanup) => cleanup());
+    this.eventCleanups = [];
 
     // Cleanup particle emitters
     this.brickDebrisEmitter?.destroy();

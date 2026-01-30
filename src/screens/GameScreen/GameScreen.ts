@@ -6,6 +6,7 @@ import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
@@ -169,6 +170,14 @@ export class GameScreen extends Container implements AppScreen {
     //context.navigation.addToLayer(popupLayer, LAYER_NAMES.POPUP);
 
     // await execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
+
+    setTimeout(() => {
+      getRunState().ballsRemaining.update((value) => value + 20);
+    }, 1000);
+
+    setTimeout(() => {
+      getRunState().ballsRemaining.update((value) => value - 20);
+    }, 1500);
 
     console.log('[GameScreen] Prepared');
   }
