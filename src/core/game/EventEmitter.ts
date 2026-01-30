@@ -100,8 +100,9 @@ export class EventContext {
   /**
    * Listen for an event
    */
-  on<K extends GameEventName>(event: K, listener: (payload: GameEventPayload<K>) => void): void {
+  on<K extends GameEventName>(event: K, listener: (payload: GameEventPayload<K>) => void): () => void {
     this.#emitter.on(event, listener);
+    return () => this.off(event, listener);
   }
 
   /**
