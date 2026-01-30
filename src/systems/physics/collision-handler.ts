@@ -1,3 +1,4 @@
+import { assert } from '@/core/common/assert';
 import type { GameContext } from '@/data/game-context';
 import { type b2BodyId } from 'phaser-box2d';
 
@@ -66,6 +67,8 @@ export class CollisionHandlerRegistry {
    * @param handler - Handler function to call on collision
    */
   register(typeA: string, typeB: string, handler: CollisionHandler): this {
+    assert(!this.hasHandler(typeA, typeB), `Collision handler already registered for ${typeA} and ${typeB}`);
+
     this.handlers.set(this.makeKey(typeA, typeB), handler);
     return this;
   }

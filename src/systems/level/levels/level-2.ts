@@ -7,14 +7,16 @@ import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { GetSpriteFromBody } from '@/systems/physics/WorldSprites';
-import { B2_ID_EQUALS, b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
+import { BodyToScreen, GetSpriteFromBody } from '@/systems/physics/WorldSprites';
+import { B2_ID_EQUALS, b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
 import { Level_2_BallExitedCommand } from './level-2/BallExitedCommand';
 import { Level_2_DoorOpenCommand } from './level-2/DoorOpenCommand';
 import { Level_2_LevelStartCommand } from './level-2/LevelStartCommand';
 import { Level_2_LoseBallCommand } from './level-2/LoseBallCommand';
+import { shake } from '@/core/camera/effects/shake';
+import { sfx } from '@/core/audio/audio';
 
 export default class Level2 extends StartingLevels {
   static id = 'level-2';
@@ -32,7 +34,9 @@ export default class Level2 extends StartingLevels {
     console.log('[Level2] Loading...');
 
     // Setup collision handlers
+    this.registerDefaultCollisionHandlers();
     this.setupCollisionHandlers();
+    this.setupEventListeners();
 
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(Assets.get(ASSETS.level_2_rube), this.context.worldId!);
@@ -79,6 +83,7 @@ export default class Level2 extends StartingLevels {
     });
 
     this.createBackground();
+    this.createParticleEmitters();
 
     await execute(Level_2_LevelStartCommand);
 
@@ -118,7 +123,28 @@ export default class Level2 extends StartingLevels {
   private setupCollisionHandlers(): void {
     // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
     this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
+      if (Math.random() < 0.5) {
+        sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10);
+      } else {
+        sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
+      }
+
+      shake(this.context.camera!, { intensity: Math.random() * 1, duration: 300 });
+
       const brickBody = pair.bodyB;
+
+      // Spawn debris particles at brick position
+      const { x, y } = BodyToScreen(brickBody);
+      this.brickDebrisEmitter!.explode(8, x, y);
+
+      /*if (Math.random() < 0.5) {
+        this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
+        this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
+      } else {
+        this.createScrap(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
+    }*/
+      this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
+
       // Remove the brick
       this.removeBrick(brickBody);
 
@@ -130,6 +156,7 @@ export default class Level2 extends StartingLevels {
     });
 
     this.collisions.register('ball', 'strong-brick', (pair: CollisionPair) => {
+      const ballBody = pair.bodyA;
       const brickBody = pair.bodyB;
       const life = pair.userDataB.life as number;
 
@@ -139,8 +166,14 @@ export default class Level2 extends StartingLevels {
           const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
           (sprite as Sprite).texture = bg[`bricks_tile_4#0`];
         }
+
+        const { x, y } = BodyToScreen(ballBody);
+        this.brickDebrisEmitter!.explode(2, x, y);
+
         b2Body_SetUserData(brickBody, { ...pair.userDataB, life: life - 1 });
       } else {
+        const { x, y } = BodyToScreen(brickBody);
+        this.brickDebrisEmitter!.explode(12, x, y);
         // Remove the brick
         this.removeBrick(brickBody);
 
@@ -152,32 +185,39 @@ export default class Level2 extends StartingLevels {
       }
     });
 
-    this.collisions.register('ball', 'exit', (_pair: CollisionPair) => {
-      execute(Level_2_BallExitedCommand, { level: this });
-    });
-
     this.collisions.register('ball', 'bottom-wall', async (pair: CollisionPair) => {
       const ball = pair.bodyA;
       console.log('Ball hit bottom wall');
 
+      const { x, y } = BodyToScreen(ball);
+      this.waterEmitter!.explode(100, x, y);
+
+      sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+
       this.balls.find((b) => B2_ID_EQUALS(b.bodyId, ball))?.destroy();
       this.balls = this.balls.filter((b) => !B2_ID_EQUALS(b.bodyId, ball));
+      // TODO: migrate the state to the run state and then make it work here.
+      if (this.balls.length === 0) {
+        this.shouldMaintainBallSpeed = false;
 
-      this.shouldMaintainBallSpeed = false;
+        await execute(Level_2_LoseBallCommand);
 
-      await execute(Level_2_LoseBallCommand);
+        if (this.checkLoseCondition()) {
+          this.onLose();
+          return;
+        }
 
-      if (this.checkLoseCondition()) {
-        this.onLose();
-        return;
+        this.createBall();
       }
+    });
 
-      this.createBall();
+    this.collisions.once('ball', 'exit', (_pair: CollisionPair) => {
+      execute(Level_2_BallExitedCommand, { level: this });
     });
   }
 
   protected checkWinCondition(): boolean {
-    return this.bricksCount <= 0;
+    return this.bricksCount === 5;
   }
 
   protected checkLoseCondition(): boolean {

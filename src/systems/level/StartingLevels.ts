@@ -5,6 +5,7 @@ import { GameEvent } from '@/data/events';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
 import {
+  B2_ID_EQUALS,
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetPosition,
   b2Body_GetTransform,
@@ -33,8 +34,11 @@ import {
 import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { PhysicsSystem } from '../physics/system';
-import { AddSpriteToWorld } from '../physics/WorldSprites';
+import { AddSpriteToWorld, BodyToScreen } from '../physics/WorldSprites';
 import { Level } from './Level';
+import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import type { CollisionPair } from '../physics/collision-handler';
+import { activateCrewMember, getRunState } from '@/data/game-state';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -238,6 +242,140 @@ export abstract class StartingLevels extends Level {
     this.bricksCount--;
   }
 
+  registerDefaultCollisionHandlers(): void {
+    this.collisions.register('ball', 'paddle', async () => {
+      sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A);
+    });
+
+    this.collisions.register('ball', 'left-wall', (pair: CollisionPair) => {
+      const ball = pair.bodyA;
+      this.wallEmitter!.angle = { min: 30, max: -30 };
+      const { x, y } = BodyToScreen(ball);
+      this.wallEmitter!.explode(20, x, y);
+    });
+
+    this.collisions.register('ball', 'right-wall', (pair: CollisionPair) => {
+      const ball = pair.bodyA;
+      this.wallEmitter!.angle = { min: 150, max: 210 };
+      const { x, y } = BodyToScreen(ball);
+      this.wallEmitter!.explode(20, x, y);
+    });
+
+    this.collisions.register('cheese', 'paddle', (pair: CollisionPair) => {
+      activateCrewMember();
+
+      const cheeseBody = pair.bodyA;
+
+      this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+    });
+
+    this.collisions.register('bottom-wall', 'cheese', (pair: CollisionPair) => {
+      const cheeseBody = pair.bodyB;
+
+      const { x, y } = BodyToScreen(cheeseBody);
+      this.waterEmitter!.explode(20, x, y);
+
+      this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+    });
+
+    this.collisions.register('bottom-wall', 'scrap', (pair: CollisionPair) => {
+      const scrapBody = pair.bodyB;
+
+      const { x, y } = BodyToScreen(scrapBody);
+      this.waterEmitter!.explode(10, x, y);
+
+      this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
+    });
+
+    this.collisions.register('paddle', 'scrap', (pair: CollisionPair) => {
+      const scrapBody = pair.bodyB;
+
+      const { x, y } = BodyToScreen(scrapBody);
+      this.brickDebrisEmitter!.explode(10, x, y + 4);
+
+      getRunState().scrapsCounter.update((value) => value + 1);
+
+      this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
+    });
+  }
+
+  setupEventListeners(): void {
+    this.eventCleanups.push(
+      this.context.events.on(GameEvent.POWERUP_ACTIVATED, (payload) => {
+        console.log('[Level1] Powerup activated:', payload.type);
+        switch (payload.type) {
+          case 'faster':
+            for (let i = 0; i < this.balls.length; i++) {
+              this.balls[i].powerUp();
+            }
+            break;
+          case 'doubler':
+            this.doubleBalls();
+            break;
+          case 'captain':
+            this.speedBoat();
+            break;
+        }
+      }),
+    );
+  }
+
+  protected brickDebrisEmitter?: ParticleEmitter;
+  protected waterEmitter?: ParticleEmitter;
+  protected wallEmitter?: ParticleEmitter;
+
+  protected createParticleEmitters(): void {
+    const textures = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
+
+    // Brick debris particle emitter
+    this.brickDebrisEmitter = new ParticleEmitter({
+      texture: textures['scraps#0'],
+      maxParticles: 100,
+      lifespan: { min: 200, max: 300 },
+      speed: { min: 40, max: 80 },
+      angle: { min: -450, max: 225 },
+      scale: { start: { min: 0.3, max: 0.6 }, end: 0.2 },
+      gravityY: 400,
+      rotate: { min: -180, max: 180 },
+      x: { min: -16, max: 16 },
+      y: { min: -8, max: 8 },
+    });
+
+    this.context.container!.addChild(this.brickDebrisEmitter.container);
+
+    // Water particle emitter
+    this.waterEmitter = new ParticleEmitter({
+      texture: Assets.get(ASSETS.tiles).textures.ball,
+      maxParticles: 100,
+      lifespan: { min: 200, max: 500 },
+      speed: { min: 20, max: 80 },
+      angle: { min: -150, max: -30 },
+      scale: { min: 0.15, max: 0.25 },
+      gravityY: 100,
+      tint: 0xff9977,
+    });
+
+    this.context.container!.addChild(this.waterEmitter.container);
+
+    // Wall particle emitter
+    this.wallEmitter = new ParticleEmitter({
+      texture: Assets.get(ASSETS.tiles).textures.ball,
+      maxParticles: 100,
+      lifespan: { min: 100, max: 700 },
+      speed: { min: 20, max: 80 },
+      angle: { min: 30, max: -30 },
+      scale: { start: { min: 0.15, max: 0.25 }, end: 0 },
+      gravityY: 100,
+      tint: 0x774444,
+    });
+
+    this.context.container!.addChild(this.wallEmitter.container);
+  }
+
   update(delta: number): void {
     super.update(delta);
 
@@ -334,5 +472,18 @@ export abstract class StartingLevels extends Level {
         this.shouldMaintainBallSpeed = true;
       }, 100);
     }
+  }
+
+  async unload(): Promise<void> {
+    await super.unload();
+
+    this.brickDebrisEmitter?.destroy();
+    this.brickDebrisEmitter = undefined;
+
+    this.waterEmitter?.destroy();
+    this.waterEmitter = undefined;
+
+    this.wallEmitter?.destroy();
+    this.wallEmitter = undefined;
   }
 }

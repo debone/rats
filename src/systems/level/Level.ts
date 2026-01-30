@@ -38,6 +38,8 @@ export abstract class Level {
   public bodiesIds: Set<b2BodyId> = new Set();
   public bodies: b2BodyId[] = [];
 
+  public eventCleanups: (() => void)[] = [];
+
   protected follow?: FollowResult;
 
   protected collisions = new CollisionHandlerRegistry();
@@ -148,6 +150,9 @@ export abstract class Level {
     console.log(`[Level] Unloading level: ${this.config.id}`);
 
     this.follow?.stop();
+
+    this.eventCleanups.forEach((cleanup) => cleanup());
+    this.eventCleanups = [];
 
     // Destroy all registered physics bodies
     for (const bodyId of this.bodies) {

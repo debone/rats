@@ -127,6 +127,7 @@ export function createGameState(): GameState {
         new DoublerCrewMember('doubler'),
         new DoublerCrewMember('doubler2'),
         new DoublerCrewMember('doubler3'),
+        new FasterCrewMember('faster'),
         //new FasterCrewMember('faster'),
         //new CaptainCrewMember('captain'),
         //new EmptyCrewMember('empty'),
@@ -212,7 +213,7 @@ export function activateCrewMember(): void {
   const index = rest.findIndex((m) => m.type === 'empty');
 
   if (index === -1) {
-    getRunState().crewMembers.set([crewMember!, ...rest]);
+    getRunState().crewMembers.set([...rest, crewMember!]);
   } else {
     getRunState().crewMembers.set([...rest.splice(0, index), crewMember!, ...rest]);
   }
