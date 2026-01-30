@@ -138,6 +138,33 @@ export abstract class StartingLevels extends Level {
     this.context.systems.get(PhysicsSystem).enableGravity(bodyId);
   }
 
+  createCheese(x: number, y: number): void {
+    const worldId = this.context.worldId;
+
+    const { bodyId } = CreateCircle({
+      worldId: worldId,
+      type: b2BodyType.b2_dynamicBody,
+      position: new b2Vec2(x, y),
+      radius: 0.3,
+      density: 1,
+      friction: 0.5,
+      restitution: 0,
+    });
+
+    b2Body_SetUserData(bodyId, { type: 'cheese' });
+    const cheeseSprite = new Sprite({
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'],
+    });
+    cheeseSprite.anchor.set(0.5, 0.5);
+    this.context.container!.addChild(cheeseSprite);
+    AddSpriteToWorld(this.context.worldId!, cheeseSprite, bodyId, 0, 0);
+    this.registerBody(bodyId);
+    let f = new b2Vec2(Math.random() * 1 - 0.5, Math.random() * 1 - 0.5);
+    b2Normalize(f);
+    b2Body_ApplyLinearImpulseToCenter(bodyId, f, true);
+    this.context.systems.get(PhysicsSystem).enableGravity(bodyId);
+  }
+
   doubleBalls(): void {
     let maxBalls = this.balls.length;
     for (let i = 0; i < maxBalls; i++) {

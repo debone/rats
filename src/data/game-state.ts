@@ -125,9 +125,11 @@ export function createGameState(): GameState {
       scrapsCounter: signal(0, { label: 'scrapsCounter' }),
       crewMembers: createKeyedCollection([
         new DoublerCrewMember('doubler'),
-        new FasterCrewMember('faster'),
-        new CaptainCrewMember('captain'),
-        new EmptyCrewMember('empty'),
+        new DoublerCrewMember('doubler2'),
+        new DoublerCrewMember('doubler3'),
+        //new FasterCrewMember('faster'),
+        //new CaptainCrewMember('captain'),
+        //new EmptyCrewMember('empty'),
       ]),
       // activeBoons: [],
       // temporaryUpgrades: [],
@@ -208,5 +210,10 @@ export function activateCrewMember(): void {
   });
 
   const index = rest.findIndex((m) => m.type === 'empty');
-  getRunState().crewMembers.set([...rest.splice(0, index), crewMember!, ...rest]);
+
+  if (index === -1) {
+    getRunState().crewMembers.set([crewMember!, ...rest]);
+  } else {
+    getRunState().crewMembers.set([...rest.splice(0, index), crewMember!, ...rest]);
+  }
 }

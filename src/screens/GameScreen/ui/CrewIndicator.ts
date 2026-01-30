@@ -179,22 +179,5 @@ export class CrewIndicator extends LayoutContainer {
       parent: this,
       strategy,
     });
-
-    setTimeout(() => {
-      activateCrewMember();
-
-      setInterval(() => {
-        activateCrewMember();
-      }, 10000);
-    }, 2000);
-
-    /*
-    setTimeout(() => {
-      crewMembersCollection.set([captainCrewMember, emptyCrewMember, fasterCrewMember, doublerCrewMember]);
-    }, 2000);
-
-    setTimeout(() => {
-      crewMembersCollection.set([fasterCrewMember, doublerCrewMember, captainCrewMember, emptyCrewMember]);
-    }, 3000);*/
   }
 }

@@ -6,7 +6,7 @@ import { execute } from '@/core/game/Command';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { TiledResource } from '@/core/tiled';
 import { GameEvent } from '@/data/events';
-import { getRunState } from '@/data/game-state';
+import { activateCrewMember, getRunState } from '@/data/game-state';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
@@ -169,12 +169,13 @@ export default class Level1 extends StartingLevels {
         this.brickDebrisEmitter.explode(8, x, y);
       }
 
-      if (Math.random() < 0.5) {
+      /*if (Math.random() < 0.5) {
         this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
         this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
       } else {
         this.createScrap(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
-      }
+    }*/
+      this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
 
       // Remove the brick
       this.removeBrick(brickBody);
@@ -220,18 +221,39 @@ export default class Level1 extends StartingLevels {
 
       this.balls.find((b) => B2_ID_EQUALS(b.bodyId, ball))?.destroy();
       this.balls = this.balls.filter((b) => !B2_ID_EQUALS(b.bodyId, ball));
-      this.shouldMaintainBallSpeed = false;
 
       // TODO: migrate the state to the run state and then make it work here.
+      if (this.balls.length === 0) {
+        this.shouldMaintainBallSpeed = false;
 
-      await execute(Level_1_LoseBallCommand);
+        await execute(Level_1_LoseBallCommand);
 
-      if (this.checkLoseCondition()) {
-        this.onLose();
-        return;
+        if (this.checkLoseCondition()) {
+          this.onLose();
+          return;
+        }
+
+        this.createBall();
       }
+    });
 
-      this.createBall();
+    this.collisions.register('cheese', 'paddle', (pair: CollisionPair) => {
+      activateCrewMember();
+
+      const cheeseBody = pair.bodyA;
+
+      this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+    });
+
+    this.collisions.register('bottom-wall', 'cheese', (pair: CollisionPair) => {
+      const cheeseBody = pair.bodyB;
+
+      const { x, y } = BodyToScreen(cheeseBody);
+      this.waterEmitter!.explode(20, x, y);
+
+      this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
+      this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
     });
 
     this.collisions.register('bottom-wall', 'scrap', (pair: CollisionPair) => {
@@ -310,7 +332,7 @@ export default class Level1 extends StartingLevels {
   }
 
   protected checkWinCondition(): boolean {
-    return this.bricksCount <= 5;
+    return this.bricksCount === 5;
   }
 
   protected checkLoseCondition(): boolean {
