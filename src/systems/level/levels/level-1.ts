@@ -187,7 +187,7 @@ export default class Level1 extends StartingLevels {
       }
     });
 
-    this.collisions.register('ball', 'exit', () => {
+    this.collisions.once('ball', 'exit', () => {
       execute(Level_1_BallExitedCommand);
       this.onWin();
     });
