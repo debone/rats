@@ -131,7 +131,7 @@ export class PhaserDebugDraw {
     const transformedCenterX = scale * xf.p.x + cX;
     const transformedCenterY = -(scale * xf.p.y) + cY;
 
-    const scaledRadius = rad * scale;
+    const scaledRadius = rad * 1; // scale;
 
     graphics
       .circle(transformedCenterX, transformedCenterY, scaledRadius)

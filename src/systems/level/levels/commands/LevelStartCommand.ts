@@ -5,7 +5,7 @@ import { t } from '@/i18n/i18n';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
 
-export class Level_2_LevelStartCommand extends Command<void> {
+export class Levels_LevelStartCommand extends Command<void> {
   *execute() {
     const navigation = this.context.navigation;
 

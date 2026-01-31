@@ -13,24 +13,24 @@ import { BodyToScreen, GetSpriteFromBody } from '@/systems/physics/WorldSprites'
 import { B2_ID_EQUALS, b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
-import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
+import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
 
-export default class Level2 extends StartingLevels {
-  static id = 'level-2';
+export default class Level3 extends StartingLevels {
+  static id = 'level-3';
 
   private debug_mode = false;
 
   constructor() {
     super({
-      id: 'level-2',
-      name: t.dict['level-2.name'],
+      id: 'level-3',
+      name: t.dict['level-3.name'],
     });
   }
 
   async load(): Promise<void> {
-    console.log('[Level2] Loading...');
+    console.log('[Level3] Loading...');
 
     // Setup collision handlers
     this.registerDefaultCollisionHandlers();
@@ -39,7 +39,7 @@ export default class Level2 extends StartingLevels {
 
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(
-      Assets.get(ASSETS.levels_level_2_split_rube),
+      Assets.get(ASSETS.levels_level_3_rube),
       this.context.worldId!,
     );
 
@@ -89,14 +89,14 @@ export default class Level2 extends StartingLevels {
 
     await execute(Levels_LevelStartCommand);
 
-    console.log('[Level2] Loaded');
+    console.log('[Level3] Loaded');
   }
 
   private createBackground(): void {
     const bg = typedAssets.get<PrototypeTextures>(ASSETS.levels_level_1).textures;
 
     const map = new TiledResource({
-      map: TILED_MAPS.backgrounds_level_2_split,
+      map: TILED_MAPS.backgrounds_level_3,
       tilesetTextures: {
         level_1_tileset: {
           textures: bg,
@@ -155,6 +155,11 @@ export default class Level2 extends StartingLevels {
 
       // Remove the brick
       this.removeBrick(brickBody);
+
+      if (this.checkWinCondition()) {
+        // Level completed
+        console.log('[Level3] Level completed!');
+      }
     });
 
     this.collisions.register('ball', 'strong-brick', (pair: CollisionPair) => {
@@ -184,8 +189,14 @@ export default class Level2 extends StartingLevels {
           this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
           this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
         }
+
         // Remove the brick
         this.removeBrick(brickBody);
+
+        if (this.checkWinCondition()) {
+          // Level completed
+          console.log('[Level2] Level completed!');
+        }
       }
     });
 

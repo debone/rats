@@ -8,5 +8,6 @@ export const i18nDictEnglish = {
   'level.complete': 'Level Complete!',
 
   'level-1.name': 'Starting grounds',
-  'level-2.name': 'Starting grounds',
+  'level-2.name': 'Splitting ways',
+  'level-3.name': 'The hook',
 };

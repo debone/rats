@@ -127,7 +127,7 @@ export function createGameState(): GameState {
         new DoublerCrewMember('doubler'),
         new DoublerCrewMember('doubler2'),
         new DoublerCrewMember('doubler3'),
-        new FasterCrewMember('faster'),
+        //new FasterCrewMember('faster'),
         //new FasterCrewMember('faster'),
         //new CaptainCrewMember('captain'),
         //new EmptyCrewMember('empty'),

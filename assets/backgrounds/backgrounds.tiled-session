@@ -7,6 +7,7 @@
     "expandedProjectPaths": [
         "."
     ],
+    "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
         "bricks-test.tsx": {
             "scaleInDock": 1,
@@ -17,15 +18,31 @@
             "scaleInEditor": 2.4991
         },
         "level-1-tileset.tsx": {
-            "scaleInDock": 2.8803,
+            "scaleInDock": 2.0035,
             "scaleInEditor": 1
         },
         "level-1.tmx": {
-            "scale": 1.9997,
+            "scale": 1.0367,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 276.54148122218334,
-                "y": 220.0330049507426
+                "x": 279.2514710137937,
+                "y": 398.3794733288318
+            }
+        },
+        "level-2-split.tmx": {
+            "scale": 0.8531,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 291.2905872699566,
+                "y": 508.7328566404877
+            }
+        },
+        "level-3.tmx": {
+            "scale": 0.9255,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 304.1599135602377,
+                "y": 436.5207995678012
             }
         },
         "prototype-1.tmx": {
@@ -55,9 +72,11 @@
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [
-        "prototype-1.tmx",
+        "level-3.tmx",
         "level-1-tileset.tsx",
         "level-1.tmx",
+        "level-2-split.tmx",
+        "prototype-1.tmx",
         "broad-bg.tsx",
         "bricks-test.tsx",
         "tiles.tsx"

@@ -3,10 +3,8 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { bgm, sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { execute } from '@/core/game/Command';
-import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { TiledResource } from '@/core/tiled';
-import { GameEvent } from '@/data/events';
-import { activateCrewMember, getRunState } from '@/data/game-state';
+import { getRunState } from '@/data/game-state';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { type CollisionPair } from '@/systems/physics/collision-handler';
@@ -15,10 +13,10 @@ import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { B2_ID_EQUALS, b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
-import { Level_1_BallExitedCommand } from './level-1/BallExitedCommand';
-import { Level_1_DoorOpenCommand } from './level-1/DoorOpenCommand';
-import { Level_1_LevelStartCommand } from './level-1/LevelStartCommand';
-import { Level_1_LoseBallCommand } from './level-1/LoseBallCommand';
+import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
+import { Level_1_DoorOpenCommand } from './commands/Level1_DoorOpenCommand';
+import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
+import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -93,7 +91,7 @@ export default class Level1 extends StartingLevels {
     this.createBackground();
     this.createParticleEmitters();
 
-    await execute(Level_1_LevelStartCommand);
+    await execute(Levels_LevelStartCommand);
 
     console.log('[Level1] Loaded');
   }
@@ -115,8 +113,8 @@ export default class Level1 extends StartingLevels {
       const { x, y } = BodyToScreen(brickBody);
       this.brickDebrisEmitter!.explode(8, x, y);
 
-      const random = Math.random();
-      if (random < 0.3) {
+      const random = 0.1;
+      if (random < 0.2) {
         this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
       } else if (random < 0.5) {
         this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
@@ -136,7 +134,7 @@ export default class Level1 extends StartingLevels {
     });
 
     this.collisions.once('ball', 'exit', async () => {
-      await execute(Level_1_BallExitedCommand);
+      await execute(Levels_BallExitedLevelCommand);
       this.onWin();
     });
 
@@ -155,7 +153,7 @@ export default class Level1 extends StartingLevels {
       if (this.balls.length === 0) {
         this.shouldMaintainBallSpeed = false;
 
-        await execute(Level_1_LoseBallCommand);
+        await execute(Levels_LoseBallCommand);
 
         if (this.checkLoseCondition()) {
           this.onLose();

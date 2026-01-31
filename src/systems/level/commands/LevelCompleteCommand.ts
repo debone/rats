@@ -34,7 +34,11 @@ export class LevelCompleteCommand extends Command<LevelResult> {
 
     yield execute(ShowScreenCommand, { screen: GameScreen });
 
-    const nextLevelId = 'level-2';
+    let nextLevelId;
+    if (result.levelId === 'level-1') nextLevelId = 'level-2';
+    if (result.levelId === 'level-2') nextLevelId = 'level-3';
+    if (result.levelId === 'level-3') nextLevelId = 'level-1';
+
     setCurrentLevelId(nextLevelId);
     yield execute(LoadLevelCommand, { levelId: nextLevelId });
 

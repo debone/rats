@@ -17,7 +17,7 @@ import {
 import { Assets, Sprite } from 'pixi.js';
 import type { Ball } from './Ball';
 
-export class NormalBall implements Ball {
+export class VerticalBall implements Ball {
   bodyId: b2BodyId;
   sprite: Sprite;
 
@@ -51,7 +51,7 @@ export class NormalBall implements Ball {
     this.bodyId = bodyId;
     this.sprite = ballSprite;
 
-    console.log('[NormalBall] Ball created');
+    console.log('[VerticalBall] Ball created');
   }
 
   timeout: number = 0;
@@ -82,7 +82,7 @@ export class NormalBall implements Ball {
     const absVy = Math.abs(velocity.y);
 
     // Prevent perfectly horizontal ball: minddimum angle from horizon = 20deg (in radians)
-    const minAngleRad = (10 * Math.PI) / 180;
+    const minAngleRad = (30 * Math.PI) / 180;
 
     let newVelocity = { x: velocity.x, y: velocity.y };
 

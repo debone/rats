@@ -84,9 +84,6 @@ export abstract class StartingLevels extends Level {
       userData: { type: 'paddle' },
     });
 
-    this.createScrap(pos.x, pos.y + 10);
-    this.createScrap(pos.x, pos.y + 10);
-
     const prismaticJointDef2 = b2DefaultPrismaticJointDef();
     prismaticJointDef2.bodyIdA = anchorBodyId;
     prismaticJointDef2.bodyIdB = bodyId;

@@ -2,21 +2,24 @@ import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
 import { LAYER_NAMES } from '@/core/window/types';
 import { t } from '@/i18n/i18n';
+import { PhysicsSystem } from '@/systems/physics/system';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
 
-export class Level_1_LevelStartCommand extends Command<void> {
+export class Levels_BallExitedLevelCommand extends Command<void> {
   *execute() {
     const navigation = this.context.navigation;
 
     const dark = new Graphics();
     dark.rect(0, 0, navigation.width, navigation.height);
     dark.fill(0x322947);
-    dark.alpha = 1;
+    dark.alpha = 0;
     navigation.addToLayer(dark, LAYER_NAMES.OVERLAY);
 
-    const startLevel = new Text({
-      text: t.dict['level.start'],
+    yield animate(dark, { alpha: 0.5, duration: 500, easing: 'linear' });
+
+    const endLevel = new Text({
+      text: t.dict['level.complete'],
       style: {
         fontFamily: 'Georgia',
         fontSize: 48,
@@ -25,16 +28,9 @@ export class Level_1_LevelStartCommand extends Command<void> {
       layout: true,
     });
 
-    navigation.addToLayer(startLevel, LAYER_NAMES.OVERLAY);
-    yield delay(20);
+    navigation.addToLayer(endLevel, LAYER_NAMES.OVERLAY);
 
-    animate(startLevel, { alpha: 0, duration: 1000, easing: 'linear' });
-    animate(dark, { alpha: 0, duration: 1000, easing: 'linear' });
-
-    setTimeout(() => {
-      dark.destroy();
-      startLevel.destroy();
-      navigation.hideLayer(LAYER_NAMES.OVERLAY);
-    }, 1050);
+    this.context.systems.get(PhysicsSystem).stop();
+    yield delay(1000);
   }
 }

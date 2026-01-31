@@ -2,11 +2,9 @@ import { Command } from '@/core/game/Command';
 import { delay } from '@/core/game/Coroutine';
 import { removeBallFromRun } from '@/data/game-state';
 
-export class Level_1_LoseBallCommand extends Command<void> {
+export class Levels_LoseBallCommand extends Command<void> {
   *execute() {
     removeBallFromRun(1);
-
-    // execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
 
     yield delay(300);
   }
