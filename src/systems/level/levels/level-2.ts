@@ -144,9 +144,9 @@ export default class Level2 extends StartingLevels {
       this.brickDebrisEmitter!.explode(8, x, y);
 
       const random = Math.random();
-      if (random < 0.3) {
+      if (random < 0.35) {
         this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
-      } else if (random < 0.5) {
+      } else if (random < 0.7) {
         this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
         this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
       } else {
@@ -178,7 +178,7 @@ export default class Level2 extends StartingLevels {
         this.brickDebrisEmitter!.explode(12, x, y);
 
         const random = Math.random();
-        if (random < 0.5) {
+        if (random < 0.55) {
           this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
         } else {
           this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);

@@ -1,11 +1,12 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
+import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
+import { activateCrewMember, getRunState, swapCrewMembers } from '@/data/game-state';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
 import {
-  B2_ID_EQUALS,
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetPosition,
   b2Body_GetTransform,
@@ -33,12 +34,10 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
+import type { CollisionPair } from '../physics/collision-handler';
 import { PhysicsSystem } from '../physics/system';
 import { AddSpriteToWorld, BodyToScreen } from '../physics/WorldSprites';
 import { Level } from './Level';
-import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
-import type { CollisionPair } from '../physics/collision-handler';
-import { activateCrewMember, getRunState } from '@/data/game-state';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -164,16 +163,6 @@ export abstract class StartingLevels extends Level {
     b2Normalize(f);
     b2Body_ApplyLinearImpulseToCenter(bodyId, f, true);
     this.context.systems.get(PhysicsSystem).enableGravity(bodyId);
-  }
-
-  doubleBalls(): void {
-    let maxBalls = this.balls.length;
-    for (let i = 0; i < maxBalls; i++) {
-      const ballPosition = b2Body_GetPosition(this.balls[i].bodyId);
-      const ball = new NormalBall(this.context, ballPosition.x, ballPosition.y);
-      this.registerBody(ball.bodyId);
-      this.balls.push(ball);
-    }
   }
 
   createBall(): void {
@@ -373,15 +362,40 @@ export abstract class StartingLevels extends Level {
     this.context.container!.addChild(this.wallEmitter.container);
   }
 
+  ballsToIncrease = 0;
+
+  increaseBallCount(): void {
+    let ballsLength = this.balls.length;
+    for (let ballsIncreased = 0; ballsIncreased <= Math.min(5, this.ballsToIncrease); ballsIncreased++) {
+      const ballPosition = b2Body_GetPosition(this.balls[Math.floor(Math.random() * ballsLength)].bodyId);
+      const ball = new NormalBall(this.context, ballPosition.x, ballPosition.y);
+      this.registerBody(ball.bodyId);
+      this.balls.push(ball);
+      this.ballsToIncrease--;
+    }
+  }
+
+  doubleBalls(): void {
+    let maxBalls = this.balls.length;
+    if (maxBalls > 50) {
+      return;
+    }
+    this.ballsToIncrease += maxBalls;
+  }
+
   update(delta: number): void {
     super.update(delta);
+
+    if (this.ballsToIncrease > 0) {
+      this.increaseBallCount();
+    }
 
     // Handle paddle input
     this.updatePaddleInput();
 
     // Maintain constant ball speed
     // TODO: this should be a method swap
-    if (this.shouldMaintainBallSpeed) {
+    if (this.shouldMaintainBallSpeed || this.balls.length > 1) {
       for (let i = 0; i < this.balls.length; i++) {
         this.balls[i].update(delta);
       }
@@ -401,7 +415,7 @@ export abstract class StartingLevels extends Level {
   private timeoutSpeedBoat = 0;
   speedBoat(): void {
     this.timeoutSpeedBoat = 15000;
-    this.maxSpeed = 30;
+    this.maxSpeed = 23;
     this.paddleSprite.tint = 0xffff00;
   }
 
@@ -464,7 +478,7 @@ export abstract class StartingLevels extends Level {
         b2Body_SetLinearVelocity(ball.bodyId, new b2Vec2(x, y));
       }, 0);
 
-        this.shouldMaintainBallSpeed = true;
+      this.shouldMaintainBallSpeed = true;
     }
 
     if (InputDevice.keyboard.key.KeyX && !this.isXDown) {
@@ -475,8 +489,8 @@ export abstract class StartingLevels extends Level {
       const timeDown = performance.now() - this.lastXDownTime;
       if (timeDown > 300) {
         this.isXDown = false;
+      }
     }
-  }
   }
 
   isXDown: boolean = false;

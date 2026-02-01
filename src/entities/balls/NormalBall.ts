@@ -82,7 +82,7 @@ export class NormalBall implements Ball {
     const absVy = Math.abs(velocity.y);
 
     // Prevent perfectly horizontal ball: minddimum angle from horizon = 20deg (in radians)
-    const minAngleRad = (10 * Math.PI) / 180;
+    const minAngleRad = (15 * Math.PI) / 180;
 
     let newVelocity = { x: velocity.x, y: velocity.y };
 

@@ -113,7 +113,7 @@ export default class Level1 extends StartingLevels {
       const { x, y } = BodyToScreen(brickBody);
       this.brickDebrisEmitter!.explode(8, x, y);
 
-      const random = 0.1;
+      const random = Math.random();
       if (random < 0.2) {
         this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
       } else if (random < 0.5) {
