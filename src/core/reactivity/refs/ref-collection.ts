@@ -10,7 +10,7 @@ import { signal } from '../signals/signals';
 import type { Signal, Subscriber } from '../signals/types';
 import { pickRef, type Ref } from './ref';
 
-type Elements = Container;
+export type Elements = Container;
 
 /**
  * Represents a batch of changes (adds, removes, moves) for animated transitions.
@@ -43,7 +43,7 @@ const defaultStrategy: Strategy = (parent, { adds, removes }) => {
   adds.forEach(({ element }) => parent.addChild(element));
 };
 
-interface RefCollection<T> {
+export interface RefCollection<T> {
   data: SignalCollection<ContainsKey<T>>;
   path: string;
   parent?: Elements;
@@ -207,6 +207,8 @@ export interface RefCountable {
   parent?: Elements;
   template: (index: number) => Elements;
   children: SignalCollection<Elements>;
+  destroy: () => void;
+
   [Symbol.iterator](): Iterator<Elements>;
 }
 
@@ -243,21 +245,8 @@ export function createRefs(options: CreateRefsOptions): RefCountable {
   // We use a placeholder object for each item, but key by array index
   const children = new SignalCollection<{ index: number }>([], (_item, index) => String(index));
 
-  const collection: RefCountable = {
-    path,
-    parent,
-    size,
-    template,
-    children: children as unknown as SignalCollection<Elements>,
-
-    // Make it iterable so it works as JSX children
-    [Symbol.iterator](): Iterator<Elements> {
-      return currentElements[Symbol.iterator]();
-    },
-  };
-
   // Handle batched changes
-  children.onBatchChange.subscribe((change) => {
+  const handleBatchChange: Subscriber<BatchChange<{ index: number }> | null> = (change) => {
     if (!change || !parent) return;
 
     // Build TransitionBatch with element references
@@ -295,7 +284,9 @@ export function createRefs(options: CreateRefsOptions): RefCountable {
 
     // Call strategy to handle visual orchestration
     strategy(parent, batch);
-  });
+  };
+
+  const unsubscribe = children.onBatchChange.subscribe(handleBatchChange, false);
 
   // Subscribe to size changes and update collection
   size.subscribe((value) => {
@@ -311,5 +302,21 @@ export function createRefs(options: CreateRefsOptions): RefCountable {
     children.set(targetItems);
   });
 
-  return collection;
+  return {
+    path,
+    parent,
+    size,
+    template,
+    children: children as unknown as SignalCollection<Elements>,
+    destroy: () => {
+      currentElements.length = 0;
+      elementsByKey.clear();
+      unsubscribe();
+    },
+
+    // Make it iterable so it works as JSX children
+    [Symbol.iterator](): Iterator<Elements> {
+      return currentElements[Symbol.iterator]();
+    },
+  };
 }

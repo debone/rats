@@ -199,7 +199,7 @@ export class PhysicsSystem implements System {
     this.debugGraphics = new Graphics();
 
     // Add debug graphics to debug layer but don't make it visible yet
-    this.context.navigation.addToLayer(this.debugGraphics, LAYER_NAMES.DEBUG, true);
+    this.context.navigation.addToLayer(this.debugGraphics, LAYER_NAMES.DEBUG, false);
 
     // Create debug draw instance
     this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH + 166, MIN_HEIGHT + 105, PXM * 2);

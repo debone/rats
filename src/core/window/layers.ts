@@ -22,6 +22,19 @@ function createLayer(label: string, zIndex: number = 0): LayoutContainer {
   });
 }
 
+function createNonInteractiveLayer(label: string, zIndex: number = 0): LayoutContainer {
+  return new LayoutContainer({
+    eventMode: 'none',
+    label,
+    zIndex,
+    layout: {
+      width: MIN_WIDTH,
+      height: MIN_HEIGHT,
+    },
+    visible: false,
+  });
+}
+
 /**
  * Create a container
  */
@@ -41,7 +54,7 @@ export function createGameLayers(parent: Container, camera: Camera): GameLayers 
     ui: createLayer('uiLayer', UI_Z_INDEX),
     popup: createContainer('popupLayer', UI_Z_INDEX),
     overlay: createLayer('overlayLayer', OVERLAY_Z_INDEX),
-    debug: createLayer('debugLayer', DEBUG_Z_INDEX),
+    debug: createNonInteractiveLayer('debugLayer', DEBUG_Z_INDEX),
   };
 
   // Add only the requested layers to parent in z-order

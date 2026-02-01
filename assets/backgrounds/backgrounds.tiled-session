@@ -30,16 +30,16 @@
             }
         },
         "level-2-split.tmx": {
-            "scale": 0.8531,
+            "scale": 2.0562,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 291.2905872699566,
-                "y": 508.7328566404877
+                "x": 364.9936776578154,
+                "y": 567.5517945725124
             }
         },
         "level-3.tmx": {
             "scale": 0.9848,
-            "selectedLayer": 0,
+            "selectedLayer": 1,
             "viewCenter": {
                 "x": 391.4500406173842,
                 "y": 518.8870836718115
@@ -72,11 +72,11 @@
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [
+        "level-2-split.tmx",
         "level-3.tmx",
         "prototype-1.tmx",
         "level-1-tileset.tsx",
         "level-1.tmx",
-        "level-2-split.tmx",
         "broad-bg.tsx",
         "bricks-test.tsx",
         "tiles.tsx"
