@@ -26,7 +26,7 @@ export class Levels_LevelStartCommand extends Command<void> {
     });
 
     navigation.addToLayer(startLevel, LAYER_NAMES.OVERLAY);
-    yield delay(20);
+    yield delay(1000);
 
     animate(startLevel, { alpha: 0, duration: 1000, easing: 'linear' });
     animate(dark, { alpha: 0, duration: 1000, easing: 'linear' });

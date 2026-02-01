@@ -125,13 +125,13 @@ export function createGameState(): GameState {
       scrapsCounter: signal(0, { label: 'scrapsCounter' }),
       crewMembers: createKeyedCollection([
         /**
-        new DoublerCrewMember('doubler1'),
-        new DoublerCrewMember('doubler2'),
-        new DoublerCrewMember('doubler3'),
+         new DoublerCrewMember('doubler2'),
+         new DoublerCrewMember('doubler3'),
+         new DoublerCrewMember('doubler'),
         /**/
-        new FasterCrewMember('faster'),
-        new DoublerCrewMember('doubler'),
+        new DoublerCrewMember('doubler1'),
         new CaptainCrewMember('captain'),
+        new FasterCrewMember('faster'),
         new EmptyCrewMember('empty'),
         /**/
       ]),

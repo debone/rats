@@ -7,9 +7,11 @@ export const i18nDictEnglish = {
   'level.start': 'Level Start!',
   'level.complete': 'Level Complete!',
 
-  'level-1.name': 'Starting grounds',
-  'level-2.name': 'Splitting ways',
-  'level-3.name': 'The hook',
+  'demo.complete': 'Demo Complete!\n\nThanks for playing!\n\nGoing back to level 1...',
+
+  'level-1.name': '1 - Starting grounds',
+  'level-2.name': '3 - Splitting ways',
+  'level-3.name': '2 - The hook',
 
   'crew-swap': 'Press "x" to swap crew for 10 scraps',
 };
