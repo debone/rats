@@ -36,4 +36,9 @@ export class ScrapCounter extends LayoutContainer {
       parent: this,
     });
   }
+
+  destroy() {
+    super.destroy();
+    this.scrapsUI.destroy();
+  }
 }

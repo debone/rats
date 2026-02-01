@@ -450,26 +450,37 @@ export abstract class StartingLevels extends Level {
     }
 
     if ((InputDevice.gamepads[0]?.button.Face1 || InputDevice.keyboard.key.Space) && !this.shouldMaintainBallSpeed) {
-      // TODO: boat launch
-      // boat.launch();
       const ball = this.balls[0];
       this.context.systems.get(PhysicsSystem).queueJointDestruction(this.ballPrismaticJointId);
       const ball_position = b2Body_GetPosition(ball.bodyId);
       const paddle_position = b2Body_GetPosition(this.paddleBodyId);
-      const force = 1;
 
       sfx.play(ASSETS.sounds_Rat_Squeak_A);
 
-      b2Body_ApplyLinearImpulseToCenter(
-        ball.bodyId,
-        new b2Vec2(force * (ball_position.x - paddle_position.x), force * (ball_position.y - paddle_position.y)),
-        true,
-      );
+      const x = ball_position.x - paddle_position.x;
+      const y = ball_position.y - paddle_position.y;
+
       setTimeout(() => {
+        b2Body_SetLinearVelocity(ball.bodyId, new b2Vec2(x, y));
+      }, 0);
+
         this.shouldMaintainBallSpeed = true;
-      }, 100);
+    }
+
+    if (InputDevice.keyboard.key.KeyX && !this.isXDown) {
+      this.isXDown = true;
+      this.lastXDownTime = performance.now();
+      swapCrewMembers();
+    } else if (!InputDevice.keyboard.key.KeyX && this.isXDown) {
+      const timeDown = performance.now() - this.lastXDownTime;
+      if (timeDown > 300) {
+        this.isXDown = false;
     }
   }
+  }
+
+  isXDown: boolean = false;
+  lastXDownTime: number = 0;
 
   async unload(): Promise<void> {
     await super.unload();

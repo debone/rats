@@ -58,4 +58,9 @@ export class BallCounter extends LayoutContainer {
       strategy: ballStrategy,
     });
   }
+
+  destroy() {
+    super.destroy();
+    this.ballsUI.destroy();
+  }
 }

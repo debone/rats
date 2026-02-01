@@ -124,13 +124,16 @@ export function createGameState(): GameState {
       ballsRemaining: signal(1, { label: 'ballsRemaining' }),
       scrapsCounter: signal(0, { label: 'scrapsCounter' }),
       crewMembers: createKeyedCollection([
-        new DoublerCrewMember('doubler'),
+        /**
+        new DoublerCrewMember('doubler1'),
         new DoublerCrewMember('doubler2'),
         new DoublerCrewMember('doubler3'),
-        //new FasterCrewMember('faster'),
-        //new FasterCrewMember('faster'),
-        //new CaptainCrewMember('captain'),
-        //new EmptyCrewMember('empty'),
+        /**/
+        new FasterCrewMember('faster'),
+        new DoublerCrewMember('doubler'),
+        new CaptainCrewMember('captain'),
+        new EmptyCrewMember('empty'),
+        /**/
       ]),
       // activeBoons: [],
       // temporaryUpgrades: [],
@@ -217,4 +220,27 @@ export function activateCrewMember(): void {
   } else {
     getRunState().crewMembers.set([...rest.splice(0, index), crewMember!, ...rest]);
   }
+}
+
+export function swapCrewMembers(): void {
+  const runState = getRunState();
+
+  if (runState.scrapsCounter.get() < 10) {
+    return;
+  }
+
+  runState.scrapsCounter.update((value) => value - 10);
+
+  const rest = runState.crewMembers.getAll();
+  const crewMember = rest.shift();
+
+  const index = rest.findIndex((m) => m.type === 'empty');
+
+  if (index === -1) {
+    getRunState().crewMembers.set([...rest, crewMember!]);
+  } else {
+    getRunState().crewMembers.set([...rest.splice(0, index), crewMember!, ...rest]);
+  }
+
+  console.log('swapCrewMembers', getRunState().crewMembers.getAll());
 }
