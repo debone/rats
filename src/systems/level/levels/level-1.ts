@@ -45,13 +45,13 @@ export default class Level1 extends StartingLevels {
     setTimeout(() => {
       console.log('[sound]');
 
-      bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
+      //bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
       //sfx.playPitched(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
     }, 1000);
 
     setTimeout(() => {
       sfx.play(ASSETS.sounds_Rat_Squeak_A);
-    }, 4000);
+    }, 1000);
 
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);

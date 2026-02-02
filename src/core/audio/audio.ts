@@ -225,13 +225,13 @@ class SFX {
    */
   public play(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
-    this.playSound(alias, volume, options);
+    //this.playSound(alias, volume, options);
   }
 
   public playPitched(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
     const randomPitch = Math.random() * 0.6 - 0.2;
-    this.playSound(alias, volume, { ...options, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
+    //this.playSound(alias, volume, { ...options, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
   }
 
   /**
