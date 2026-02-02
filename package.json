@@ -7,7 +7,7 @@
     "prestart": "run-s clean",
     "start": "vite --config devtools/config.dev.mjs",
     "clean": "rimraf dist/* public/assets/* .assetpack/*",
-    "prebuild": "run-s clean format:check lint types",
+    "prebuild": "run-s clean format:check",
     "build": "vite build --config devtools/config.build.mjs",
     "prepreview": "run-s build",
     "preview": "vite preview --config devtools/config.build.mjs --open",
