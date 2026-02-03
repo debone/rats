@@ -10,20 +10,18 @@ let instance: SoundLibrary;
  * @ignore
  * @param sound - - Sound library instance
  */
-function setInstance(sound: SoundLibrary): SoundLibrary
-{
-    instance = sound;
+function setInstance(sound: SoundLibrary): SoundLibrary {
+  instance = sound;
 
-    return sound;
+  return sound;
 }
 
 /**
  * Internal get function for the singleton instance.
  * @ignore
  */
-function getInstance(): SoundLibrary
-{
-    return instance;
+function getInstance(): SoundLibrary {
+  return instance;
 }
 
 export { getInstance, instance, setInstance };
