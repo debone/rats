@@ -181,6 +181,7 @@ export function addCompletedLevel(levelId: string): void {
   // this.context.state.run.activeBoons.push(...result.boonsEarned);
 
   // Update meta state
+  // FIXME [RATZ-107]: this doesn't work on itchio???
   metaState.completedLevels.add(levelId);
 }
 

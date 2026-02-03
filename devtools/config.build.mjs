@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import path from 'path';
 import { assetpackPlugin } from './vite-plugin-assetpack';
 
-export default defineConfig({
-  mode: 'development',
+export default defineConfig(({ mode }) => ({
+  mode,
   base: './',
   plugins: [assetpackPlugin()],
   resolve: {
@@ -12,6 +12,6 @@ export default defineConfig({
     },
   },
   build: {
-    sourcemap: true,
+    sourcemap: mode === 'development' ? true : false,
   },
-});
+}));

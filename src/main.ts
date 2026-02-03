@@ -4,7 +4,7 @@ import { Application, TextureStyle } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 
 import { initAssets } from '@/core/assets/assets';
-import { audio, initTone } from '@/core/audio/audio';
+import { initTone } from '@/core/audio/audio';
 import { storage } from '@/core/storage/storage';
 import { resize, visibilityChange } from '@/core/window/resize';
 
@@ -14,7 +14,7 @@ import { EventContext, EventEmitter } from '@/core/game/EventEmitter';
 import { SystemRunner } from '@/core/game/SystemRunner';
 import type { GameContext } from '@/data/game-context';
 import { createGameContext, setGameContext } from '@/data/game-context';
-import { createGameState, type GameState, setGameState, setMetaState } from '@/data/game-state';
+import { createGameState, type GameState, setGameState } from '@/data/game-state';
 
 // Systems
 import { NavigationSystem } from '@/systems/navigation/system';
@@ -29,10 +29,10 @@ import { CRT2Filter } from './lib/CRT/CRT';
 import { initDevtools } from '@pixi/devtools';
 import '@pixi/layout/devtools';
 
+import { CAMERA_Z_INDEX } from './consts';
 import { Camera } from './core/camera/camera';
 import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
-import { CAMERA_Z_INDEX } from './consts';
 import { navigation } from './core/window/navigation';
 
 export const app = new Application();
@@ -123,12 +123,13 @@ async function init() {
   await initAssets();
   storage.readyStorage();
   //audio.muted(storage.getStorageItem('muted'));
-  audio.muted(true);
+  // audio.muted(true);
 
   // Load meta state
   const savedMeta = await context.systems.get(SaveSystem).loadMeta();
   if (savedMeta) {
-    setMetaState(savedMeta);
+    // FIXME RATZ-107
+    //setMetaState(savedMeta);
   }
 
   let debugUpdateTime = 0;
