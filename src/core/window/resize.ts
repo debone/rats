@@ -1,9 +1,9 @@
-import { sound } from '@pixi/sound';
 import type { Application } from 'pixi.js';
 
 import { navigation } from './navigation';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import type { GameContext } from '@/data/game-context';
+import { sound } from '../audio/audio';
 
 /** Set up a resize function for the app */
 export function resize(app: Application, context: GameContext) {

@@ -1,4 +1,5 @@
-import { Filter, type PlayOptions, Sound, sound } from '@pixi/sound';
+import { Filter, Sound, SoundLibrary, type PlayOptions } from '@/lib/pixi-sound/src';
+import { setInstance } from '@/lib/pixi-sound/src/instance';
 import { animate, utils } from 'animejs';
 import type { ToneAudioNode } from 'tone';
 import * as Tone from 'tone';
@@ -84,6 +85,8 @@ class BGM {
 
 let _toneInitialized = false;
 
+export let sound: SoundLibrary;
+
 /**
  * Initialize Tone.js to share the same AudioContext as Pixi.Sound.
  * Call this before using any ToneFilter effects.
@@ -91,12 +94,16 @@ let _toneInitialized = false;
 export async function initTone() {
   if (_toneInitialized) return;
 
+  const ctx = Tone.getContext().rawContext;
+  sound = setInstance(new SoundLibrary(ctx as AudioContext));
+
   // Share Pixi.Sound's AudioContext with Tone.js
-  const audioContext = sound.context.audioContext;
-  Tone.setContext(new Tone.Context(audioContext));
+  // const audioContext = sound.context.audioContext;
+  //Tone.setContext(audioContext);
 
   // Resume audio context (required after user interaction)
   Tone.start();
+
   _toneInitialized = true;
 }
 
@@ -116,6 +123,7 @@ export class ToneFilter<T extends ToneAudioNode> extends Filter {
 
   constructor(effect: T) {
     const { audioContext } = sound.context;
+    //const audioContext = Tone.getContext();
 
     // Create Web Audio GainNodes as bridge points
     // These are real AudioNodes that Pixi.Sound can connect to
@@ -225,13 +233,13 @@ class SFX {
    */
   public play(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
-    //this.playSound(alias, volume, options);
+    this.playSound(alias, volume, options);
   }
 
   public playPitched(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
     const randomPitch = Math.random() * 0.6 - 0.2;
-    //this.playSound(alias, volume, { ...options, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
+    this.playSound(alias, volume, { ...options, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
   }
 
   /**
