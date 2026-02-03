@@ -7,8 +7,6 @@
     "prestart": "run-s clean",
     "start": "vite --config devtools/config.dev.mjs",
     "clean": "rimraf dist/* public/assets/* .assetpack/*",
-    "prebuild": "run-s clean format:check",
-    "build": "vite build --config devtools/config.build.mjs",
     "prepreview": "run-s build",
     "preview": "vite preview --config devtools/config.build.mjs --open",
     "lint": "eslint src",
@@ -17,8 +15,14 @@
     "format:check": "prettier --check src",
     "test": "vitest",
     "test-assetpack": "assetpack",
-    "prepublish": "run-s build",
-    "publish": "butler push dist javascripl/prototype-rats:main"
+    "prebuild:prod": "run-s clean format:check",
+    "build:prod": "vite build --config devtools/config.build.mjs",
+    "prepublish:prod": "run-s build:prod",
+    "publish:prod": "butler push dist javascripl/prototype-rats:main",
+    "prebuild:dev": "run-s clean format:check",
+    "build:dev": "vite build --config devtools/config.build.mjs --mode development",
+    "prepublish:dev": "run-s build:dev",
+    "publish:dev": "butler push dist javascripl/prototype-rats:main"
   },
   "devDependencies": {
     "@assetpack/core": "1.7.0",
@@ -40,7 +44,6 @@
   "dependencies": {
     "@pixi/devtools": "2.0.1",
     "@pixi/layout": "3.2.0",
-    "@pixi/sound": "6.0.1",
     "@pixi/tilemap": "5.0.2",
     "@pixi/ui": "2.3.2",
     "@tweakpane/core": "2.0.5",
