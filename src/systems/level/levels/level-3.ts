@@ -163,6 +163,12 @@ export default class Level3 extends StartingLevels {
     });
 
     this.collisions.register('ball', 'strong-brick', (pair: CollisionPair) => {
+      if (Math.random() < 0.5) {
+        sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10);
+      } else {
+        sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
+      }
+
       const ballBody = pair.bodyA;
       const brickBody = pair.bodyB;
       const life = pair.userDataB.life as number;
@@ -177,26 +183,24 @@ export default class Level3 extends StartingLevels {
         const { x, y } = BodyToScreen(ballBody);
         this.brickDebrisEmitter!.explode(2, x, y);
 
+        shake(this.context.camera!, { intensity: Math.random() * 0.25, duration: 300 });
+
         b2Body_SetUserData(brickBody, { ...pair.userDataB, life: life - 1 });
       } else {
         const { x, y } = BodyToScreen(brickBody);
         this.brickDebrisEmitter!.explode(12, x, y);
 
+        shake(this.context.camera!, { intensity: Math.random() * 1.25, duration: 300 });
+
         const random = Math.random();
-        if (random < 0.5) {
+        if (random < 0.55) {
           this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
         } else {
           this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
           this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
         }
-
         // Remove the brick
         this.removeBrick(brickBody);
-
-        if (this.checkWinCondition()) {
-          // Level completed
-          console.log('[Level2] Level completed!');
-        }
       }
     });
 
