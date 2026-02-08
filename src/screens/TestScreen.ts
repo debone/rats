@@ -2,10 +2,12 @@ import { ASSETS } from '@/assets';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
-import { LayoutContainer } from '@pixi/layout/components';
+import { LayoutContainer, type LayoutContainerOptions } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate, utils } from 'animejs';
-import { Assets, Bounds, Container, Sprite, Text, type FederatedPointerEvent } from 'pixi.js';
+import { Assets, Bounds, Container, Sprite, Text, type FederatedPointerEvent, type SpriteOptions } from 'pixi.js';
+
+const LOOP_PROTECTION = 1_000_000;
 
 interface DraggableOptions {
   onDragStart?: () => void;
@@ -13,155 +15,563 @@ interface DraggableOptions {
   onDragEnd?: (event: FederatedPointerEvent, globalX: number, globalY: number) => void;
 }
 
-function makeDraggable(parent: Container, sprite: Container, options: DraggableOptions): () => void {
-  sprite.interactive = true;
-  sprite.cursor = 'grab';
+interface DroppableHoverEvent {
+  event: FederatedPointerEvent;
+  item: Container;
+  isOver: boolean;
+}
 
-  let isDragging = false;
-  let dragOffset = { x: 0, y: 0 };
+interface Droppable {
+  updateBounds(): void;
+  onHover(): Generator<undefined, void, DroppableHoverEvent>;
+  onDrop(event: FederatedPointerEvent, item: Container): boolean;
+}
 
-  const onPointerDown = (event: FederatedPointerEvent) => {
-    if (!sprite.parent) return;
-    options.onDragStart?.();
+type DroppableContainer = Container & Droppable;
+type DroppableLayoutContainer = LayoutContainer & Droppable;
 
-    sprite.tint = 0x00ff00;
-    isDragging = true;
-    sprite.cursor = 'grabbing';
-    parent.addChild(sprite);
-    sprite.layout = false;
-    sprite.x = event.global.x - sprite.width / 2;
-    sprite.y = event.global.y - sprite.height / 2;
+class DroppableManager {
+  droppables: DroppableContainer[] = [];
+  droppableBounds: Map<Container, Bounds> = new Map();
 
-    const pos = event.getLocalPosition(sprite.parent);
-    dragOffset.x = sprite.x - pos.x;
-    dragOffset.y = sprite.y - pos.y;
-    ////console.log('[drag] onPointerDown', pos, dragOffset);
-  };
+  constructor() {
+    this.droppables = [];
+    this.droppableBounds = new Map();
+  }
 
-  const onPointerMove = (event: FederatedPointerEvent) => {
-    if (!isDragging || !sprite.parent) return;
-    sprite.tint = 0x00ffff;
-    const pos = event.getLocalPosition(sprite.parent);
-    sprite.x = pos.x + dragOffset.x;
-    sprite.y = pos.y + dragOffset.y;
-    options.onDragMove?.(event, event.global.x, event.global.y);
-  };
+  addDroppable(droppable: DroppableContainer) {
+    this.droppables.push(droppable);
+    this.droppableBounds.set(droppable, droppable.getBounds());
+  }
 
-  const endDrag = (event: FederatedPointerEvent) => {
-    if (!isDragging) return;
-    sprite.tint = 0xffffff;
-    isDragging = false;
+  removeDroppable(droppable: DroppableContainer) {
+    this.droppables.splice(this.droppables.indexOf(droppable), 1);
+    this.droppableBounds.delete(droppable);
+  }
+
+  updateDroppableBounds() {
+    this.droppables.forEach((droppable) => {
+      const bounds = droppable.getBounds();
+      droppable.updateBounds?.();
+      this.droppableBounds.set(droppable, bounds);
+    });
+
+    console.log('[droppable] updateDroppableBounds', this.droppableBounds);
+  }
+
+  getDroppable(globalX: number, globalY: number): DroppableContainer | undefined {
+    return this.droppables.find((droppable) => {
+      const bounds = this.droppableBounds.get(droppable);
+      if (!bounds) return false;
+      return (
+        globalX >= bounds.x &&
+        globalX <= bounds.x + bounds.width &&
+        globalY >= bounds.y &&
+        globalY <= bounds.y + bounds.height
+      );
+    });
+  }
+}
+
+class DraggableSprite extends Sprite {
+  droppableManager: DroppableManager;
+  originalParent: Container;
+  surface: Container;
+  cleanup: () => void;
+
+  // TODO
+  // - custom callbacks?
+
+  constructor(options: SpriteOptions & { droppableManager: DroppableManager; surface: Container }) {
+    super(options);
+
+    this.droppableManager = options.droppableManager;
+    this.surface = options.surface;
+    this.cleanup = this.makeDraggable(this);
+
+    this.on('added', (parent) => {
+      if (!this.originalParent) {
+        this.originalParent = parent;
+      }
+    });
+  }
+
+  destroy(...args: Parameters<Sprite['destroy']>) {
+    this.cleanup();
+    super.destroy(...args);
+  }
+
+  makeDraggable(sprite: Sprite): () => void {
+    sprite.interactive = true;
     sprite.cursor = 'grab';
-    sprite.x = 0;
-    sprite.y = 0;
+    sprite.on('destroy', () => {
+      this.cleanup();
+    });
 
-    options.onDragEnd?.(event, event.global.x, event.global.y);
-  };
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    let lastDroppable: DroppableContainer | undefined = undefined;
+    let droppableGenerator: Generator<undefined, void, DroppableHoverEvent> | undefined = undefined;
 
-  sprite.on('pointerdown', onPointerDown);
-  sprite.on('globalpointermove', onPointerMove);
-  sprite.on('pointerup', endDrag);
-  sprite.on('pointerupoutside', endDrag);
+    const onPointerDown = (event: FederatedPointerEvent) => {
+      if (!this.parent) return;
+      this.droppableManager.updateDroppableBounds();
 
-  // Return cleanup function
-  return () => {
-    sprite.off('pointerdown', onPointerDown);
-    sprite.off('globalpointermove', onPointerMove);
-    sprite.off('pointerup', endDrag);
-    sprite.off('pointerupoutside', endDrag);
-  };
+      isDragging = true;
+      sprite.tint = 0x00ff00;
+      sprite.cursor = 'grabbing';
+
+      this.surface.addChild(sprite);
+      sprite.layout = false;
+
+      sprite.x = event.global.x - sprite.width / 2;
+      sprite.y = event.global.y - sprite.height / 2;
+
+      const pos = event.getLocalPosition(sprite.parent!);
+      dragOffset.x = sprite.x - pos.x;
+      dragOffset.y = sprite.y - pos.y;
+    };
+
+    const onPointerMove = (event: FederatedPointerEvent) => {
+      if (!isDragging || !sprite.parent) return;
+      sprite.tint = 0x00ffff;
+      const pos = event.getLocalPosition(sprite.parent);
+      sprite.x = pos.x + dragOffset.x;
+      sprite.y = pos.y + dragOffset.y;
+
+      const globalX = event.global.x;
+      const globalY = event.global.y;
+
+      const droppable = this.droppableManager.getDroppable(globalX, globalY);
+      console.log('[drag] onDragMove over droppable', droppable?.label);
+      if (lastDroppable !== droppable) {
+        droppableGenerator?.next({ event, item: sprite, isOver: true });
+        lastDroppable = droppable;
+        if (lastDroppable) {
+          droppableGenerator = lastDroppable.onHover();
+        }
+      }
+
+      if (droppable) droppableGenerator?.next({ event, item: sprite, isOver: false });
+    };
+
+    const endDrag = (event: FederatedPointerEvent) => {
+      if (!isDragging) return;
+      sprite.tint = 0xffffff;
+      isDragging = false;
+      sprite.cursor = 'grab';
+      sprite.x = 0;
+      sprite.y = 0;
+
+      // TODO exit the droppable hover
+      if (lastDroppable) {
+        droppableGenerator?.next({ event, item: sprite, isOver: true });
+        lastDroppable = undefined;
+        droppableGenerator = undefined;
+      }
+
+      const globalX = event.global.x;
+      const globalY = event.global.y;
+
+      const droppable = this.droppableManager.getDroppable(globalX, globalY);
+      let result = false;
+      if (droppable) {
+        console.log('[drag] onDragMove over droppable', droppable.label);
+        result = droppable.onDrop(event, sprite);
+      }
+
+      if (!result) {
+        this.originalParent.addChild(sprite);
+        sprite.layout = true;
+      }
+    };
+
+    sprite.on('pointerdown', onPointerDown);
+    sprite.on('globalpointermove', onPointerMove);
+    sprite.on('pointerup', endDrag);
+    sprite.on('pointerupoutside', endDrag);
+
+    // Return cleanup function
+    return () => {
+      sprite.off('pointerdown', onPointerDown);
+      sprite.off('globalpointermove', onPointerMove);
+      sprite.off('pointerup', endDrag);
+      sprite.off('pointerupoutside', endDrag);
+    };
+  }
 }
 
-/**
- * Calculate drop index based on pointer X position relative to group children midpoints
- */
-function getDropIndex(
-  group: LayoutContainer,
-  event: FederatedPointerEvent,
-  globalX: number,
-  draggedSprite?: Container,
-): number {
-  const pos = event.getLocalPosition(group);
-  const bounds = group.getBounds();
+class LayoutDroppable {
+  droppable: DroppableLayoutContainer;
+  droppableManager: DroppableManager;
 
-  // Find the position of the first children inside
-  // the container and calculate the padding
-  const firstChild = group.overflowContainer.children[0];
-  const firstChildBounds = firstChild.getBounds();
+  constructor(droppable: DroppableLayoutContainer, droppableManager: DroppableManager) {
+    this.droppable = droppable;
+    this.droppableManager = droppableManager;
 
-  const paddingX = firstChildBounds.x - bounds.x;
-  const paddingY = firstChildBounds.y - bounds.y;
+    this.droppable.overflowContainer.children.forEach((child) => {
+      this.makeDraggable(child);
+    });
 
-  // The gap is a horrible problem if I don't know how many lines there are
-  const gap = group.layout?.style?.gap ?? 0;
+    this.droppable.overflowContainer.on('childAdded', (child: Container) => {
+      this.makeDraggable(child);
+    });
 
-  const children = group.overflowContainer.children;
-  const childrenCount = children.length;
+    // Listen for child removals
+    this.droppable.overflowContainer.on('childRemoved', (child, container, index) => {});
+  }
 
-  const childBounds = children[0].getBounds();
-  const childWidth = childBounds.width + gap / 2;
-  const childHeight = childBounds.height + gap / 2;
+  /**
+   * Create drop preview manager that animates items shifting apart
+   */
+  updateDropPreview(targetIndex: number) {
+    const GAP_SIZE = 24;
 
-  // How many children can fit in the x direction
-  // So sorry if this makes a mess, it should be iterative to find the gap
-  const childrenLines = Math.floor((childrenCount * childWidth) / (bounds.width - paddingX)) + 1;
+    let adjustedIndex = 0;
+    this.droppable.overflowContainer.children.forEach((child) => {
+      const offset = adjustedIndex >= targetIndex ? GAP_SIZE / 2 : -GAP_SIZE / 2;
+      animate(child, {
+        x: offset,
+        duration: 150,
+        easing: 'easeOutQuad',
+      });
+      adjustedIndex++;
+    });
+  }
 
-  ////console.log('[drag] childrenLines', childrenLines, childrenCount, childWidth, bounds.width, paddingX);
+  resetPreview() {
+    this.droppable.overflowContainer.children.forEach((child) => {
+      animate(child, {
+        x: 0,
+        duration: 150,
+        easing: 'easeOutQuad',
+      });
+    });
+  }
 
-  const childrenPerLine = Math.floor(childrenCount / childrenLines);
+  bounds?: Bounds;
+  paddingX?: number;
+  paddingY?: number;
+  gap?: number;
+  childrenCount?: number;
+  childrenPerLine?: number;
+  childrenLines?: number;
+  childWidth?: number;
+  childHeight?: number;
 
-  /*
-    I know where the mouse is.
-    I know the boundaries and a guess of how many lines there are
-    Assuming all children are the same size and gap math didn't go wary
-    The index is roughly 
-  */
+  updateDimensions() {
+    this.bounds = this.droppable.getBounds();
+    // Find the position of the first children inside
+    // the container and calculate the padding
+    const children = this.droppable.overflowContainer.children;
+    const firstChild = children[0];
+    const firstChildBounds = firstChild.getBounds();
+    this.childrenCount = children.length;
 
-  // First, which line am I?
-  const line = Math.max(Math.min(Math.floor((pos.y - paddingY) / childHeight), childrenLines), 0);
-  const column = Math.max(Math.min(Math.floor((pos.x - paddingX + childWidth / 2) / childWidth), childrenPerLine), 0);
-  //console.log('[drag] line', childrenLines, line, column);
+    this.paddingX = firstChildBounds.x - this.bounds.x;
+    this.paddingY = firstChildBounds.y - this.bounds.y;
 
-  return Math.max(0, Math.min(line * childrenPerLine + column, childrenCount));
-}
+    this.gap = this.droppable.layout?.style?.gap ?? 0;
 
-/**
- * Create drop preview manager that animates items shifting apart
- */
-function createDropPreview(group: LayoutContainer) {
-  let currentDropIndex = -1;
-  const GAP_SIZE = 24;
+    this.childWidth = firstChildBounds.width + this.gap / 2;
+    this.childHeight = firstChildBounds.height + this.gap / 2;
 
-  return {
-    update(targetIndex: number, draggedSprite?: Container) {
-      let adjustedIndex = 0;
-      group.overflowContainer.children.forEach((child) => {
+    // How many children can fit in the x direction
+    // So sorry if this makes a mess, it should be iterative to find the gap
+    this.childrenLines = Math.floor((children.length * this.childWidth) / (this.bounds.width - this.paddingX)) + 1;
+
+    this.childrenPerLine = Math.floor(children.length / this.childrenLines);
+  }
+
+  /**
+   * Calculate drop index based on pointer X position relative to group children midpoints
+   */
+  getDropIndex(event: FederatedPointerEvent, size = 0): number {
+    const pos = event.getLocalPosition(this.droppable);
+
+    const line = Math.max(Math.min(Math.floor((pos.y - this.paddingY!) / this.childHeight!), this.childrenLines!), 0);
+    const column = Math.max(
+      Math.min(Math.floor((pos.x - this.paddingX! + this.childWidth! / 2) / this.childWidth!), this.childrenPerLine!),
+      0,
+    );
+
+    return Math.max(0, Math.min(line * this.childrenPerLine! + column, this.childrenCount! - size));
+  }
+
+  makeDraggable(sprite: Container): () => void {
+    sprite.interactive = true;
+    sprite.cursor = 'grab';
+
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    let wasOverGroup = false;
+    let lastDroppable: DroppableContainer | undefined = undefined;
+    let droppableGenerator: Generator<undefined, void, DroppableHoverEvent> | undefined = undefined;
+
+    const onPointerDown = (event: FederatedPointerEvent) => {
+      if (!sprite.parent) return;
+      this.droppableManager.updateDroppableBounds();
+      this.updateDimensions();
+
+      //const dropIndex = this.getDropIndex(event);
+      //this.updateDropPreview(dropIndex);
+
+      isDragging = true;
+      sprite.tint = 0x00ff00;
+      sprite.cursor = 'grabbing';
+      this.droppable.parent!.addChild(sprite);
+      sprite.layout = false;
+
+      sprite.x = event.global.x - sprite.width / 2;
+      sprite.y = event.global.y - sprite.height / 2;
+
+      const pos = event.getLocalPosition(sprite.parent);
+      dragOffset.x = sprite.x - pos.x;
+      dragOffset.y = sprite.y - pos.y;
+    };
+
+    const onPointerMove = (event: FederatedPointerEvent) => {
+      if (!isDragging || !sprite.parent) return;
+      sprite.tint = 0x00ffff;
+      const pos = event.getLocalPosition(sprite.parent);
+      sprite.x = pos.x + dragOffset.x;
+      sprite.y = pos.y + dragOffset.y;
+
+      const globalX = event.global.x;
+      const globalY = event.global.y;
+
+      const droppable = this.droppableManager.getDroppable(globalX, globalY);
+      if (lastDroppable !== droppable) {
+        droppableGenerator?.next({ event, item: sprite, isOver: true });
+        lastDroppable = droppable;
+        if (lastDroppable) {
+          droppableGenerator = lastDroppable.onHover();
+        }
+      }
+
+      if (droppable) droppableGenerator?.next({ event, item: sprite, isOver: false });
+
+      if (this.overGroup(globalX, globalY)) {
+        const dropIndex = this.getDropIndex(event);
+        this.updateDropPreview(dropIndex);
+        wasOverGroup = true;
+      } else if (wasOverGroup) {
+        this.resetPreview();
+        wasOverGroup = false;
+      }
+    };
+
+    const endDrag = (event: FederatedPointerEvent) => {
+      if (!isDragging) return;
+      sprite.tint = 0xffffff;
+      isDragging = false;
+      sprite.cursor = 'grab';
+      sprite.x = 0;
+      sprite.y = 0;
+
+      // TODO exit the droppable hover
+      if (lastDroppable) {
+        droppableGenerator?.next({ event, item: sprite, isOver: true });
+        lastDroppable = undefined;
+        droppableGenerator = undefined;
+      }
+
+      const globalX = event.global.x;
+      const globalY = event.global.y;
+
+      const droppable = this.droppableManager.getDroppable(globalX, globalY);
+      if (droppable) {
+        console.log('[drag] onDragMove over droppable', droppable.label);
+        /*if (droppable.isBusy()) {
+          const slot = droppable.getBlah();
+          slot.layout = true;
+          this.droppable.addChild(slot);
+        }
+        droppable.blah();
+
+        sprite.destroy();
+        return;*/
+      }
+
+      if (this.overGroup(globalX, globalY)) {
+        const dropIndex = this.getDropIndex(event, 1);
+        this.droppable.addChildAt(sprite, dropIndex);
+        //group.layout?.forceUpdate();
+      } else {
+        this.droppable.addChild(sprite);
+      }
+
+      this.droppable.overflowContainer.children.forEach((child) => {
         utils.remove(child);
-        const offset = adjustedIndex >= targetIndex ? GAP_SIZE / 2 : -GAP_SIZE / 2;
-        animate(child, {
-          x: offset,
-          duration: 150,
-          easing: 'easeOutQuad',
-        });
-        adjustedIndex++;
+        child.x = 0;
       });
-    },
 
-    reset() {
-      currentDropIndex = -1;
-      group.overflowContainer.children.forEach((child) => {
-        animate(child, {
-          x: 0,
-          duration: 150,
-          easing: 'easeOutQuad',
-        });
+      sprite.layout = true;
+      this.resetPreview();
+    };
+
+    sprite.on('pointerdown', onPointerDown);
+    sprite.on('globalpointermove', onPointerMove);
+    sprite.on('pointerup', endDrag);
+    sprite.on('pointerupoutside', endDrag);
+
+    // Return cleanup function
+    return () => {
+      sprite.off('pointerdown', onPointerDown);
+      sprite.off('globalpointermove', onPointerMove);
+      sprite.off('pointerup', endDrag);
+      sprite.off('pointerupoutside', endDrag);
+    };
+  }
+
+  overGroup(globalX: number, globalY: number): boolean {
+    return (
+      globalX >= this.bounds!.x &&
+      globalX <= this.bounds!.x + this.bounds!.width &&
+      globalY >= this.bounds!.y &&
+      globalY <= this.bounds!.y + this.bounds!.height
+    );
+  }
+}
+
+class ActuallyDroppableLayout extends LayoutContainer implements Droppable {
+  droppableManager: DroppableManager;
+
+  constructor(options: LayoutContainerOptions & { droppableManager: DroppableManager }) {
+    super(options);
+    this.droppableManager = options.droppableManager;
+    this.droppableManager.addDroppable(this);
+  }
+
+  destroy(...args: Parameters<LayoutContainer['destroy']>) {
+    this.droppableManager.removeDroppable(this);
+    super.destroy(...args);
+  }
+
+  bounds?: Bounds;
+  paddingX?: number;
+  paddingY?: number;
+  gap?: number;
+  childrenCount?: number;
+  childrenPerLine?: number;
+  childrenLines?: number;
+  childWidth?: number;
+  childHeight?: number;
+
+  // TODO: flex direction column, and reverses
+  updateBounds() {
+    this.bounds = this.getBounds();
+    // Find the position of the first children inside
+    // the container and calculate the padding
+    const children = this.overflowContainer.children;
+    this.childrenCount = children.length;
+
+    if (this.childrenCount === 0) return;
+
+    const firstChild = children[0];
+    const firstChildBounds = firstChild.getBounds();
+
+    this.paddingX = firstChildBounds.x - this.bounds.x;
+    this.paddingY = firstChildBounds.y - this.bounds.y;
+
+    this.gap = this.layout?.style?.gap ?? 0;
+
+    this.childWidth = firstChildBounds.width + this.gap / 2;
+    this.childHeight = firstChildBounds.height + this.gap / 2;
+
+    // How many children can fit in the x direction
+    // So sorry if this makes a mess, it should be iterative to find the gap
+    this.childrenLines = Math.floor((children.length * this.childWidth) / (this.bounds.width - this.paddingX)) + 1;
+
+    this.childrenPerLine = Math.floor(children.length / this.childrenLines);
+  }
+
+  updateDropPreview(targetIndex: number) {
+    const GAP_SIZE = 24;
+
+    let adjustedIndex = 0;
+    this.overflowContainer.children.forEach((child) => {
+      const offset = adjustedIndex >= targetIndex ? GAP_SIZE / 2 : -GAP_SIZE / 2;
+      animate(child, {
+        x: offset,
+        duration: 150,
+        easing: 'easeOutQuad',
       });
-    },
+      adjustedIndex++;
+    });
+  }
 
-    getCurrentIndex() {
-      return currentDropIndex;
-    },
-  };
+  resetPreview() {
+    this.overflowContainer.children.forEach((child) => {
+      animate(child, {
+        x: 0,
+        duration: 150,
+        easing: 'easeOutQuad',
+      });
+    });
+  }
+
+  /**
+   * Calculate drop index based on pointer X position relative to group children midpoints
+   */
+  getDropIndex(event: FederatedPointerEvent, size = 0): number {
+    if (this.childrenCount === 0) return 0;
+
+    const pos = event.getLocalPosition(this);
+
+    const line = Math.max(Math.min(Math.floor((pos.y - this.paddingY!) / this.childHeight!), this.childrenLines!), 0);
+    const column = Math.max(
+      Math.min(Math.floor((pos.x - this.paddingX! + this.childWidth! / 2) / this.childWidth!), this.childrenPerLine!),
+      0,
+    );
+
+    return Math.max(0, Math.min(line * this.childrenPerLine! + column, this.childrenCount! - size));
+  }
+
+  overGroup(globalX: number, globalY: number): boolean {
+    return (
+      globalX >= this.bounds!.x &&
+      globalX <= this.bounds!.x + this.bounds!.width &&
+      globalY >= this.bounds!.y &&
+      globalY <= this.bounds!.y + this.bounds!.height
+    );
+  }
+
+  i = LOOP_PROTECTION;
+  *onHover() {
+    while (this.i > 0) {
+      let { event, isOver } = yield;
+      if (isOver) {
+        break;
+      }
+
+      const globalX = event.global.x;
+      const globalY = event.global.y;
+
+      if (this.overGroup(globalX, globalY)) {
+        const dropIndex = this.getDropIndex(event);
+        this.updateDropPreview(dropIndex);
+      }
+
+      this.i--;
+    }
+    this.resetPreview();
+    this.i = LOOP_PROTECTION;
+  }
+
+  onDrop(event: FederatedPointerEvent, item: Container) {
+    const dropIndex = this.getDropIndex(event, 1);
+    this.addChildAt(item, dropIndex);
+    item.layout = true;
+
+    this.overflowContainer.children.forEach((child) => {
+      utils.remove(child);
+      child.x = 0;
+    });
+    // this.resetPreview();
+
+    return true;
+  }
 }
 
 export class TestScreen extends Container implements AppScreen {
@@ -191,33 +601,21 @@ export class TestScreen extends Container implements AppScreen {
     });
   }
 
+  getAvatarSprite2(number: number, droppableManager: DroppableManager): DraggableSprite {
+    return new DraggableSprite({
+      texture: Assets.get(ASSETS.prototype).textures[`avatars_tile_${number}#0`],
+      label: `avatar_${number}`,
+      layout: true,
+      droppableManager,
+      surface: this.parent!,
+    });
+  }
+
   async prepare() {
     const navigation = getGameContext().navigation;
     navigation.addToLayer(this, LAYER_NAMES.UI);
 
-    const droppables: Container[] = [];
-
-    const droppableBounds = new Map<Container, Bounds>();
-
-    const matchDroppable = (globalX: number, globalY: number): Container | undefined => {
-      return droppables.find((droppable) => {
-        const bounds = droppableBounds.get(droppable);
-        if (!bounds) return false;
-        return (
-          globalX >= bounds.x &&
-          globalX <= bounds.x + bounds.width &&
-          globalY >= bounds.y &&
-          globalY <= bounds.y + bounds.height
-        );
-      });
-    };
-
-    const updateDroppableBounds = () => {
-      droppables.forEach((droppable) => {
-        const bounds = droppable.getBounds();
-        droppableBounds.set(droppable, bounds);
-      });
-    };
+    const droppableManager = new DroppableManager();
 
     const text = new Text({
       text: 'Test Screen',
@@ -226,7 +624,8 @@ export class TestScreen extends Container implements AppScreen {
     });
     this.addChild(text);
 
-    const group = new LayoutContainer({
+    const group = new ActuallyDroppableLayout({
+      droppableManager,
       layout: {
         gap: 10,
         flexDirection: 'row',
@@ -241,124 +640,41 @@ export class TestScreen extends Container implements AppScreen {
       },
     });
 
-    // Make a group item draggable and reorderable
-    const makeGroupItemDraggable = (sprite: Container) => {
-      let originalIndex = -1;
+    group.addChild(this.getAvatarSprite2(1, droppableManager));
+    group.addChild(this.getAvatarSprite2(3, droppableManager));
+    group.addChild(this.getAvatarSprite2(4, droppableManager));
+    group.addChild(this.getAvatarSprite2(2, droppableManager));
+    group.addChild(this.getAvatarSprite2(3, droppableManager));
+    group.addChild(this.getAvatarSprite2(1, droppableManager));
 
-      makeDraggable(this, sprite, {
-        onDragStart: () => {
-          updateDroppableBounds();
-          // originalIndex = group.getChildIndex(sprite);
-          //this.addChild(sprite);
-          /*console.log('[drag] onDragStart', sprite.label, originalIndex);
-          sprite.alpha = 0.7;
-          sprite.zIndex = 100;
-          // Disable layout so the sprite can be moved freely
-          sprite.layout = false;
-          sprite.tint = 0x00ff00;*/
-        },
-        onDragMove: (event, globalX, globalY) => {
-          //console.log('[drag] onDragMove', sprite.label, globalX, globalY);
-          const droppable = matchDroppable(globalX, globalY);
-          if (droppable) {
-            //console.log('[drag] onDragMove over droppable', droppable.label);
-          } else {
-            //console.log('[drag] onDragMove not over droppable');
-          }
-          if (isOverGroup(globalX, globalY)) {
-            const dropIndex = getDropIndex(group, event, globalX, sprite);
-            dropPreview.update(dropIndex, sprite);
-            //  console.log('[drag] onDragMove over group', sprite.label, dropIndex);
-          } else {
-            dropPreview.reset();
-            //console.log('[drag] onDragMove not over group', sprite.label, 'reset');
-            //console.log(event);
-          }
-          /**/
-        },
-        onDragEnd: (event, globalX, globalY) => {
-          const droppable = matchDroppable(globalX, globalY);
-          if (droppable) {
-            console.log('[drag] onDragMove over droppable', droppable.label);
-            if (droppable.isBusy()) {
-              const slot = droppable.getBlah();
-              slot.layout = true;
-              group.addChild(slot);
-            }
-            droppable.blah();
-
-            sprite.destroy();
-            return;
-          }
-          if (isOverGroup(globalX, globalY)) {
-            //const dropIndex = dropPreview.getCurrentIndex();
-            const dropIndex = getDropIndex(group, event, globalX, sprite);
-
-            group.addChildAt(sprite, dropIndex);
-            //group.layout?.forceUpdate();
-          } else {
-            group.addChild(sprite);
-          }
-
-          group.overflowContainer.children.forEach((child) => {
-            utils.remove(child);
-            child.x = 0;
-          });
-
-          sprite.layout = true;
-          dropPreview.reset();
-          /*sprite.alpha = 1;
-          sprite.zIndex = 0;
-          //group.addChild(sprite);
-          // Re-enable layout
-          //sprite.layout = true;
-          //sprite.x = 0;
-
-          if (isOverGroup(globalX, globalY)) {
-            const dropIndex = dropPreview.getCurrentIndex();
-            if (dropIndex !== -1 && dropIndex !== originalIndex) {
-              group.removeChild(sprite);
-              // Adjust index if we removed from before the target
-              const adjustedIndex = dropIndex > originalIndex ? dropIndex - 1 : dropIndex;
-              group.addChildAt(sprite, adjustedIndex);
-            }
-          }
-
-          dropPreview.reset();*/
-        },
-      });
-    };
-
-    group.addChild(this.getAvatarSprite(1));
-    group.addChild(this.getAvatarSprite(3));
-    group.addChild(this.getAvatarSprite(4));
-    group.addChild(this.getAvatarSprite(2));
-    group.addChild(this.getAvatarSprite(3));
-    group.addChild(this.getAvatarSprite(1));
-    //group.addChild(this.getAvatarSprite(3));
     this.addChild(group);
 
-    const dropPreview = createDropPreview(group);
+    const group2 = new ActuallyDroppableLayout({
+      droppableManager,
+      layout: {
+        gap: 10,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        width: 200,
+        height: 160,
+        padding: 20,
+        //borderStyle: 'solid',
+        borderColor: 'red',
+        borderWidth: 1,
+        alignContent: 'flex-start',
+      },
+    });
 
-    // Helper to check if pointer is over group
-    const isOverGroup = (globalX: number, globalY: number): boolean => {
-      const groupBounds = group.getBounds();
-      //console.log('[drag] isOverGroup', globalX, globalY, groupBounds);
-      return (
-        globalX >= groupBounds.x &&
-        globalX <= groupBounds.x + groupBounds.width &&
-        globalY >= groupBounds.y &&
-        globalY <= groupBounds.y + groupBounds.height
-      );
-    };
+    group2.addChild(this.getAvatarSprite2(2, droppableManager));
+    group2.addChild(this.getAvatarSprite2(3, droppableManager));
+    group2.addChild(this.getAvatarSprite2(1, droppableManager));
+    this.addChild(group2);
 
-    // Make existing group items draggable
-    // Use spread to get a snapshot of children array
-    group.overflowContainer.children.forEach((child) => makeGroupItemDraggable(child));
+    // A
 
     // Create the external avatar that can be dropped into the group
     const avatar = new Button(
-      new (class extends Container {
+      new (class extends Container implements Droppable {
         constructor() {
           super({
             layout: true,
@@ -369,6 +685,38 @@ export class TestScreen extends Container implements AppScreen {
               layout: true,
             }),
           );
+        }
+
+        updateBounds() {}
+
+        i = LOOP_PROTECTION;
+
+        *onHover() {
+          while (this.i > 0) {
+            let { event, item, isOver } = yield;
+            if (isOver) {
+              break;
+            }
+
+            this.children[0].texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
+
+            this.i--;
+          }
+          this.children[0].texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
+
+          this.i = LOOP_PROTECTION;
+        }
+
+        onDrop(event: FederatedPointerEvent, item: Container) {
+          console.log('onDrop', item);
+          item.destroy();
+          const sprite = new Sprite({
+            texture: Assets.get(ASSETS.prototype).textures['avatars_tile_3#0'],
+          });
+          this.slot = sprite;
+          //makeGroupItemDraggable(sprite);
+          this.addChild(sprite);
+          return true;
         }
 
         isBusy() {
@@ -387,75 +735,26 @@ export class TestScreen extends Container implements AppScreen {
             texture: Assets.get(ASSETS.prototype).textures['avatars_tile_3#0'],
           });
           this.slot = sprite;
-          makeGroupItemDraggable(sprite);
+          //makeGroupItemDraggable(sprite);
           this.addChild(sprite);
         }
       })(),
-    ) as Button & { view: Sprite };
+    ) as Button & { view: DroppableContainer };
+
+    /**
 
     avatar.onHover.connect(() => {
-      avatar.view.texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
+      avatar.view.children[0].texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
     });
     avatar.onOut.connect(() => {
-      avatar.view.texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
+      avatar.view.children[0].texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
     });
 
-    droppables.push(avatar.view!);
+    /**/
+
+    droppableManager.addDroppable(avatar.view! as DroppableContainer);
 
     this.addChild(avatar.view!);
-
-    /*
-    const setupExternalAvatarDrag = () => {
-      cleanupAvatarDrag = makeDraggable(avatar, {
-        onDragStart: () => {
-          avatarOriginalPosition = { x: avatar.x, y: avatar.y };
-          avatar.alpha = 0.7;
-          avatar.zIndex = 100;
-        },
-        onDragMove: (globalX, globalY) => {
-          if (isOverGroup(globalX, globalY)) {
-            avatar.tint = 0x00ff00;
-            const dropIndex = getDropIndex(group, globalX);
-            dropPreview.update(dropIndex);
-          } else {
-            avatar.tint = 0xffffff;
-            dropPreview.reset();
-          }
-        },
-        onDragEnd: (globalX, globalY) => {
-          avatar.alpha = 1;
-          avatar.zIndex = 0;
-
-          if (isOverGroup(globalX, globalY)) {
-            const dropIndex = dropPreview.getCurrentIndex();
-            if (dropIndex !== -1) {
-              if (dropIndex >= group.children.length) {
-                group.addChild(avatar);
-              } else {
-                this.removeChild(avatar);
-                group.addChildAt(avatar, dropIndex);
-              }
-              // Remove from current parent and add to group
-              avatar.layout = true;
-              avatar.x = 0;
-
-              // Clean up external drag handlers and set up group item drag
-              cleanupAvatarDrag?.();
-              cleanupAvatarDrag = null;
-              makeGroupItemDraggable(avatar);
-            }
-          } else {
-            // Return to original position
-            avatar.x = avatarOriginalPosition.x;
-            avatar.y = avatarOriginalPosition.y;
-          }
-
-          dropPreview.reset();
-        },
-      });
-    };
-
-    setupExternalAvatarDrag();*/
   }
 
   async show(): Promise<void> {
