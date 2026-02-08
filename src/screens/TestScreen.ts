@@ -23,15 +23,15 @@ interface DroppableHoverEvent {
   isOver: boolean;
 }
 
-interface Droppable {
+export interface Droppable {
   updateBounds(): void;
   onHover(): Generator<undefined, void, DroppableHoverEvent>;
   onDrop(event: FederatedPointerEvent, item: Container): boolean;
 }
 
-type DroppableContainer = Container & Droppable;
+export type DroppableContainer = Container & Droppable;
 
-class DroppableManager {
+export class DroppableManager {
   droppables: DroppableContainer[] = [];
   droppableBounds: Map<Container, Bounds> = new Map();
 
@@ -72,7 +72,7 @@ class DroppableManager {
   }
 }
 
-class DraggableSprite extends Sprite {
+export class DraggableSprite extends Sprite {
   droppableManager: DroppableManager;
   owner?: Container;
   surface: Container;
@@ -120,15 +120,17 @@ class DraggableSprite extends Sprite {
       sprite.tint = 0x00ff00;
       sprite.cursor = 'grabbing';
 
-      this.surface.addChild(sprite);
+      sprite.scale = 1;
       sprite.layout = false;
 
-      sprite.x = event.global.x - sprite.width / 2;
-      sprite.y = event.global.y - sprite.height / 2;
+      this.surface.addChild(sprite);
 
       const pos = event.getLocalPosition(sprite.parent!);
-      dragOffset.x = sprite.x - pos.x;
-      dragOffset.y = sprite.y - pos.y;
+      sprite.x = pos.x - sprite.width / 2;
+      sprite.y = pos.y - sprite.height / 2;
+
+      dragOffset.x = -sprite.width / 2;
+      dragOffset.y = -sprite.height / 2;
     };
 
     const onPointerMove = (event: FederatedPointerEvent) => {
@@ -200,7 +202,7 @@ class DraggableSprite extends Sprite {
   }
 }
 
-class DroppableLayoutContainer extends LayoutContainer implements Droppable {
+export class DroppableLayoutContainer extends LayoutContainer implements Droppable {
   droppableManager: DroppableManager;
 
   constructor(options: LayoutContainerOptions & { droppableManager: DroppableManager }) {
@@ -417,9 +419,6 @@ export class TestScreen extends Container implements AppScreen {
     group2.addChild(this.getAvatarSprite(1, droppableManager));
     this.addChild(group2);
 
-    // A
-
-    // Create the external avatar that can be dropped into the group
     const avatar = new Button(
       new (class extends Container implements Droppable {
         label = 'avatar';
@@ -490,17 +489,6 @@ export class TestScreen extends Container implements AppScreen {
         }
       })(),
     ) as Button & { view: DroppableContainer };
-
-    /**
-
-    avatar.onHover.connect(() => {
-      avatar.view.children[0].texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
-    });
-    avatar.onOut.connect(() => {
-      avatar.view.children[0].texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
-    });
-
-    /**/
 
     droppableManager.addDroppable(avatar.view! as DroppableContainer);
 

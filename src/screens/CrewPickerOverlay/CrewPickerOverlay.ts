@@ -9,7 +9,16 @@ import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
 import { DropShadowFilter } from 'pixi-filters';
-import { Color, Container, Graphics, Sprite, Text, Ticker } from 'pixi.js';
+import { Assets, Color, Container, FederatedPointerEvent, Graphics, Sprite, Text, Ticker } from 'pixi.js';
+import {
+  DraggableSprite,
+  DroppableLayoutContainer,
+  DroppableManager,
+  type Droppable,
+  type DroppableContainer,
+} from '../TestScreen';
+
+const LOOP_PROTECTION = 1_000_000;
 
 class PrimaryButton extends Button {
   constructor(label: string) {
@@ -124,7 +133,260 @@ class CrewMemberBadge extends LayoutContainer {
   }
 }
 
+const layout = {
+  gap: 10,
+  padding: 10,
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 0x272736,
+  borderColor: 0x57294b,
+  borderWidth: 1,
+  borderRadius: 5,
+};
+
+function getShopCard() {
+  const card = new LayoutContainer({
+    layout,
+  });
+
+  card.addChild(new Text({ text: 'Shop Card', style: TEXT_STYLE_DEFAULT, layout: true }));
+
+  const image = new Sprite({ texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'], layout: true });
+  card.addChild(image);
+
+  const cost = new LayoutContainer({
+    layout: {
+      ...layout,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+      padding: 5,
+    },
+  });
+  cost.addChild(new Sprite({ texture: Assets.get(ASSETS.prototype).textures['scraps#0'], layout: true }));
+  cost.addChild(new Text({ text: '100 Scraps', style: TEXT_STYLE_DEFAULT, layout: true }));
+  card.addChild(cost);
+
+  return card;
+}
+
 class CrewPickerPanel {
+  public readonly view: LayoutContainer;
+
+  constructor() {
+    this.view = new LayoutContainer({
+      layout,
+    });
+
+    const shop = new LayoutContainer({
+      layout,
+    });
+
+    const shopTitle = new Text({ text: 'Shop', style: TEXT_STYLE_DEFAULT, layout: true });
+    shop.addChild(shopTitle);
+
+    const shopItems = new LayoutContainer({
+      layout: {
+        ...layout,
+        flexDirection: 'row',
+        gap: 10,
+      },
+    });
+
+    shopItems.addChild(getShopCard());
+    shopItems.addChild(getShopCard());
+    shopItems.addChild(getShopCard());
+
+    shop.addChild(shopItems);
+
+    this.view.addChild(shop);
+
+    const crew = new LayoutContainer({
+      layout,
+    });
+
+    const title = new Text({ text: 'Crew', style: TEXT_STYLE_DEFAULT, layout: true });
+    crew.addChild(title);
+
+    const crewMembersContainer = new LayoutContainer({
+      layout: {
+        ...layout,
+        flexDirection: 'row',
+        gap: 10,
+      },
+    });
+
+    const droppableManager = new DroppableManager();
+
+    const activeMembersContainer = new LayoutContainer({
+      layout,
+    });
+
+    activeMembersContainer.addChild(new Text({ text: 'Active Members', style: TEXT_STYLE_DEFAULT, layout: true }));
+
+    const avatar = new Button(
+      new (class extends Container implements Droppable {
+        label = 'avatar';
+        constructor() {
+          super({
+            layout: true,
+          });
+          this.addChild(
+            new Sprite({
+              texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'],
+              layout: true,
+              scale: 1.25,
+            }),
+          );
+
+          // TODO: Draggable.onRemove? Droppable.onRemove?
+          this.on('childRemoved', (child) => {
+            if (child === this.slot) {
+              this.slot = undefined;
+            }
+          });
+        }
+
+        updateBounds() {}
+
+        i = LOOP_PROTECTION;
+
+        *onHover() {
+          while (this.i > 0) {
+            let { event, item, isOver } = yield;
+            if (isOver) {
+              break;
+            }
+
+            if (this.slot) {
+              this.tint = 0xdd0000;
+            } else {
+              this.tint = 0x00ffff;
+            }
+
+            (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
+
+            this.i--;
+          }
+          this.tint = 0xffffff;
+          (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
+
+          this.i = LOOP_PROTECTION;
+        }
+
+        slot?: Container;
+
+        onDrop(event: FederatedPointerEvent, item: Container) {
+          if (this.slot) {
+            // SWAP
+            this.slot.scale = 1;
+            this.slot.layout = true;
+            (this.slot as DraggableSprite).owner?.addChild(this.slot);
+            this.slot = undefined;
+          }
+
+          if (item instanceof DraggableSprite) {
+            // runState.setCaptain(item.crew);
+            //console.log('onDrop', item.somethingSomething);
+          }
+
+          this.slot = item;
+          this.addChild(item);
+          item.scale = 1.25;
+          return true;
+        }
+      })(),
+    ) as Button & { view: DroppableContainer };
+
+    droppableManager.addDroppable(avatar.view! as DroppableContainer);
+
+    activeMembersContainer.addChild(avatar.view!);
+
+    const passiveMembersContainer = new LayoutContainer({
+      layout: {
+        ...layout,
+        flexGrow: 1,
+      },
+    });
+    passiveMembersContainer.addChild(new Text({ text: 'Passive Members', style: TEXT_STYLE_DEFAULT, layout: true }));
+
+    const group2 = new DroppableLayoutContainer({
+      droppableManager,
+      label: 'group2',
+      layout: {
+        gap: 10,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        width: 200,
+        height: 160,
+        padding: 20,
+        //borderStyle: 'solid',
+        alignContent: 'flex-start',
+      },
+    });
+
+    group2.addChild(getAvatarSprite(2, droppableManager, this.view));
+    group2.addChild(getAvatarSprite(3, droppableManager, this.view));
+    group2.addChild(getAvatarSprite(1, droppableManager, this.view));
+    passiveMembersContainer.addChild(group2);
+
+    crewMembersContainer.addChild(activeMembersContainer);
+    crewMembersContainer.addChild(passiveMembersContainer);
+
+    crew.addChild(crewMembersContainer);
+
+    this.view.addChild(crew);
+
+    const footer = new LayoutContainer({
+      layout: {
+        ...layout,
+        flexDirection: 'row',
+      },
+    });
+
+    const footerLeft = new LayoutContainer({
+      layout: {
+        ...layout,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+      },
+    });
+
+    footerLeft.addChild(new Text({ text: 'RAT', style: TEXT_STYLE_DEFAULT, layout: true }));
+
+    footer.addChild(footerLeft);
+
+    const footerRight = new LayoutContainer({
+      layout: {
+        ...layout,
+      },
+    });
+
+    const activeAbility = new LayoutContainer({
+      layout: {
+        ...layout,
+      },
+    });
+    activeAbility.addChild(new Text({ text: 'Active Ability', style: TEXT_STYLE_DEFAULT, layout: true }));
+    footerRight.addChild(activeAbility);
+
+    const passiveAbility = new LayoutContainer({
+      layout: {
+        ...layout,
+      },
+    });
+    passiveAbility.addChild(new Text({ text: 'Passive Ability', style: TEXT_STYLE_DEFAULT, layout: true }));
+    footerRight.addChild(passiveAbility);
+
+    footer.addChild(footerRight);
+    this.view.addChild(footer);
+  }
+}
+
+class CrewPickerPanel2 {
   public readonly view: LayoutContainer;
 
   constructor() {
@@ -169,6 +431,103 @@ class CrewPickerPanel {
 
     this.view.addChild(countText);
 
+    const droppableManager = new DroppableManager();
+
+    const group2 = new DroppableLayoutContainer({
+      droppableManager,
+      label: 'group2',
+      layout: {
+        gap: 10,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        width: 200,
+        height: 160,
+        padding: 20,
+        //borderStyle: 'solid',
+        alignContent: 'flex-start',
+      },
+    });
+
+    group2.addChild(getAvatarSprite(2, droppableManager, this.view));
+    group2.addChild(getAvatarSprite(3, droppableManager, this.view));
+    group2.addChild(getAvatarSprite(1, droppableManager, this.view));
+    this.view.addChild(group2);
+
+    const avatar = new Button(
+      new (class extends Container implements Droppable {
+        label = 'avatar';
+        constructor() {
+          super({
+            layout: false,
+          });
+          this.addChild(
+            new Sprite({
+              texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'],
+              layout: true,
+            }),
+          );
+
+          // TODO: Draggable.onRemove? Droppable.onRemove?
+          this.on('childRemoved', (child) => {
+            if (child === this.slot) {
+              this.slot = undefined;
+            }
+          });
+        }
+
+        updateBounds() {}
+
+        i = LOOP_PROTECTION;
+
+        *onHover() {
+          while (this.i > 0) {
+            let { event, item, isOver } = yield;
+            if (isOver) {
+              break;
+            }
+
+            if (this.slot) {
+              this.tint = 0xdd0000;
+            } else {
+              this.tint = 0x00ffff;
+            }
+
+            (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
+
+            this.i--;
+          }
+          this.tint = 0xffffff;
+          (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
+
+          this.i = LOOP_PROTECTION;
+        }
+
+        slot?: Container;
+
+        onDrop(event: FederatedPointerEvent, item: Container) {
+          if (this.slot) {
+            // SWAP
+            this.slot.layout = true;
+            (this.slot as DraggableSprite).owner?.addChild(this.slot);
+            this.slot = undefined;
+          }
+
+          if (item instanceof DraggableSprite) {
+            // runState.setCaptain(item.crew);
+            //console.log('onDrop', item.somethingSomething);
+          }
+
+          this.slot = item;
+          this.addChild(item);
+          return true;
+        }
+      })(),
+    ) as Button & { view: DroppableContainer };
+
+    droppableManager.addDroppable(avatar.view! as DroppableContainer);
+
+    this.view.addChild(avatar.view!);
+
     const addMemberButton = new PrimaryButton('Add Member');
     addMemberButton.onPress.connect(() => {
       membersCount.update((count) => count + 1);
@@ -177,6 +536,16 @@ class CrewPickerPanel {
 
     this.view.addChild(addMemberButton.view!);
   }
+}
+
+function getAvatarSprite(number: number, droppableManager: DroppableManager, surface: Container): DraggableSprite {
+  return new DraggableSprite({
+    texture: Assets.get(ASSETS.prototype).textures[`avatars_tile_${number}#0`],
+    label: `avatar_${number}`,
+    layout: true,
+    droppableManager,
+    surface,
+  });
 }
 
 export class CrewPickerOverlay extends Container implements AppScreen {

@@ -1,12 +1,12 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
-import { SaveSystem } from '../../save/system';
-import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
-import { StartNewRunCommand } from './StartNewRunCommand';
-import { ResumeRunCommand } from './ResumeRunCommand';
 import { LoadScreen } from '@/screens/LoadScreen';
 import { LevelSystem } from '@/systems/level/system';
 import { PhysicsSystem } from '@/systems/physics/system';
+import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
+import { SaveSystem } from '../../save/system';
+import { ResumeRunCommand } from './ResumeRunCommand';
+import { StartNewRunCommand } from './StartNewRunCommand';
 
 export class AppStartCommand extends Command {
   *execute(): Coroutine {
@@ -29,6 +29,7 @@ export class AppStartCommand extends Command {
     if (savedRun) {
       yield execute(ResumeRunCommand, { run: savedRun });
     } else {
+      //yield execute(ShowScreenCommand, { screen: TestScreen });
       yield execute(StartNewRunCommand, { startingLevelId: 'level-1' });
     }
     /**/

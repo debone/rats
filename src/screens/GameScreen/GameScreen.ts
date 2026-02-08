@@ -2,15 +2,18 @@ import { ASSETS } from '@/assets';
 import type { PrototypeTextures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
+import { execute } from '@/core/game/Command';
 import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { DropShadowFilter } from 'pixi-filters';
 import { Color, Container, Text, Ticker, TilingSprite } from 'pixi.js';
+import { CrewPickerOverlay } from '../CrewPickerOverlay/CrewPickerOverlay';
 import { BallCounter } from './ui/BallCounter';
 import { CrewIndicator } from './ui/CrewIndicator';
 import { LevelIndicator } from './ui/LevelIndicator';
@@ -168,7 +171,7 @@ export class GameScreen extends Container implements AppScreen {
 
     //context.navigation.addToLayer(popupLayer, LAYER_NAMES.POPUP);
 
-    // await execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
+    await execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
 
     /*
     setTimeout(() => {
