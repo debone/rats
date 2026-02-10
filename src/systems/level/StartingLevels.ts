@@ -3,7 +3,7 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
-import { activateCrewMember, getRunState, swapCrewMembers } from '@/data/game-state';
+import { activateCrewMember, changeScraps, swapCrewMembers } from '@/data/game-state';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
 import {
@@ -282,7 +282,7 @@ export abstract class StartingLevels extends Level {
       const { x, y } = BodyToScreen(scrapBody);
       this.brickDebrisEmitter!.explode(10, x, y + 4);
 
-      getRunState().scrapsCounter.update((value) => value + 1);
+      changeScraps(1);
 
       this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
       this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);

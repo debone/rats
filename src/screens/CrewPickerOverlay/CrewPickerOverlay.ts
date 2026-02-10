@@ -1,27 +1,25 @@
 import { ASSETS, FRAMES, type PrototypeTextures } from '@/assets';
 import { TEXT_STYLE_DEFAULT, TEXT_STYLE_TITLE } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { signal } from '@/core/reactivity/signals/signals';
+import { DraggableSprite } from '@/core/dnd/DraggableSprite';
+import { DroppableLayoutContainer } from '@/core/dnd/DroppableLayoutContainer';
+import { DroppableManager } from '@/core/dnd/DroppableManager';
+import type { Droppable, DroppableContainer } from '@/core/dnd/types';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
-import { getRunState } from '@/data/game-state';
+import { changeScraps, getRunState } from '@/data/game-state';
+import type { LayoutStyles } from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
 import { DropShadowFilter } from 'pixi-filters';
 import { Assets, Color, Container, FederatedPointerEvent, Graphics, Sprite, Text, Ticker } from 'pixi.js';
-import {
-  DraggableSprite,
-  DroppableLayoutContainer,
-  DroppableManager,
-  type Droppable,
-  type DroppableContainer,
-} from '../TestScreen';
+import { FasterCrewMember, type CrewMember } from '../GameScreen/ui/CrewIndicator';
 
 const LOOP_PROTECTION = 1_000_000;
 
-class PrimaryButton extends Button {
-  constructor(label: string) {
+class BaseButton extends Button {
+  constructor(layout: Partial<LayoutStyles>, ...containers: Container[]) {
     const view = new LayoutContainer({
       layout: {
         gap: 10,
@@ -32,16 +30,21 @@ class PrimaryButton extends Button {
         borderRadius: 3,
         alignItems: 'center',
         justifyContent: 'center',
+        ...layout,
       },
     });
 
-    view.addChild(new Text({ text: label, style: TEXT_STYLE_DEFAULT, layout: true }));
+    for (const container of containers) {
+      view.addChild(container);
+    }
 
     super(view);
+  }
+}
 
-    this.onPress.connect(() => {
-      console.log('Primary button pressed');
-    });
+class PrimaryButton extends BaseButton {
+  constructor(label: string) {
+    super({}, new Text({ text: label, style: TEXT_STYLE_DEFAULT, layout: true }));
   }
 }
 
@@ -133,7 +136,7 @@ class CrewMemberBadge extends LayoutContainer {
   }
 }
 
-const layout = {
+const layout: Partial<LayoutStyles> = {
   gap: 10,
   padding: 10,
   flexDirection: 'column',
@@ -155,19 +158,23 @@ function getShopCard() {
   const image = new Sprite({ texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'], layout: true });
   card.addChild(image);
 
-  const cost = new LayoutContainer({
-    layout: {
-      ...layout,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-      padding: 5,
-    },
+  const buyButton = new BaseButton(
+    { padding: 5, justifyContent: 'space-between' },
+    new Sprite({ texture: Assets.get(ASSETS.prototype).textures['scraps#0'], layout: true }),
+    new Text({ text: '100 Scraps', style: TEXT_STYLE_DEFAULT, layout: true }),
+  );
+
+  buyButton.onPress.connect(() => {
+    console.log('Buy button pressed');
+    if (getRunState().scrapsCounter.get() < 100) {
+      return;
+    }
+    changeScraps(-100);
+    getRunState().crewMembers.push(new FasterCrewMember('faster-crew-member-1'));
+    card.destroy();
   });
-  cost.addChild(new Sprite({ texture: Assets.get(ASSETS.prototype).textures['scraps#0'], layout: true }));
-  cost.addChild(new Text({ text: '100 Scraps', style: TEXT_STYLE_DEFAULT, layout: true }));
-  card.addChild(cost);
+
+  card.addChild(buyButton.view!);
 
   return card;
 }
@@ -175,7 +182,7 @@ function getShopCard() {
 class CrewPickerPanel {
   public readonly view: LayoutContainer;
 
-  constructor() {
+  constructor(surface: Container) {
     this.view = new LayoutContainer({
       layout,
     });
@@ -283,13 +290,27 @@ class CrewPickerPanel {
             // SWAP
             this.slot.scale = 1;
             this.slot.layout = true;
-            (this.slot as DraggableSprite).owner?.addChild(this.slot);
-            this.slot = undefined;
+            getRunState().crewMembers.push(this.slot.data! as CrewMember);
+            console.log('onDrop swap AVATAR', getRunState().crewMembers.getAll());
+            this.slot.destroy();
           }
 
           if (item instanceof DraggableSprite) {
-            // runState.setCaptain(item.crew);
-            //console.log('onDrop', item.somethingSomething);
+            if (item.data) {
+              const crewMember = item.data as CrewMember;
+              console.log('onDrop AVATAR', crewMember.name);
+              /*
+              The below actually is nonsense
+
+              This avatar must be concerned about itself. 
+              Trying to manage a broader state from here is nonsense.
+*/
+              const rest = getRunState()
+                .crewMembers.getAll()
+                .filter((member) => member.key !== crewMember.key);
+              getRunState().crewMembers.set(rest);
+              console.log('onDrop AVATAR', getRunState().crewMembers.getAll());
+            }
           }
 
           this.slot = item;
@@ -327,9 +348,37 @@ class CrewPickerPanel {
       },
     });
 
-    group2.addChild(getAvatarSprite(2, droppableManager, this.view));
-    group2.addChild(getAvatarSprite(3, droppableManager, this.view));
-    group2.addChild(getAvatarSprite(1, droppableManager, this.view));
+    /*
+    I'm going for the "this is not the way to do it"
+
+    you see, the signal collection is a good way to keep track of things
+    but if we are doing side-effects on it through dnd, putting it around and
+    back will not work.
+
+    But also – how then do I add a new crew member? 
+
+    aha.
+
+
+    So I can't keep this kind of collection the way it is here. 
+
+    */
+
+    getRunState()
+      .crewMembers.getAll()
+      .forEach((crew) => {
+        group2.addChild(getAvatarSprite(crew, droppableManager, surface));
+      });
+
+    getRunState().crewMembers.onBatchChange.subscribe(({ adds, removes, moves }) => {
+      console.log('onBatchChange', adds, removes, moves);
+      adds.forEach((add) => {
+        group2.addChild(getAvatarSprite(add.item.get(), droppableManager, this.view));
+      });
+
+      //return getAvatarSprite(, droppableManager, this.view);
+    }, false);
+
     passiveMembersContainer.addChild(group2);
 
     crewMembersContainer.addChild(activeMembersContainer);
@@ -386,162 +435,11 @@ class CrewPickerPanel {
   }
 }
 
-class CrewPickerPanel2 {
-  public readonly view: LayoutContainer;
-
-  constructor() {
-    this.view = new LayoutContainer({
-      layout: {
-        gap: 10,
-        padding: 10,
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-    });
-
-    const title = new Text({ text: 'Crew Picker', style: TEXT_STYLE_DEFAULT, layout: true });
-    this.view.addChild(title);
-
-    const description = new Text({ text: 'Select a crew member to continue', style: TEXT_STYLE_DEFAULT, layout: true });
-    this.view.addChild(description);
-
-    const crewMembers = new LayoutContainer({
-      layout: {
-        gap: 10,
-        padding: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-    });
-
-    this.view.addChild(crewMembers);
-
-    const crewMemberBadge = new CrewMemberBadge('John Doe');
-    crewMembers.addChild(crewMemberBadge);
-
-    const membersCount = signal(0);
-
-    const countText = new Text({ text: '0/3', style: TEXT_STYLE_DEFAULT, layout: true });
-
-    membersCount.subscribe((count) => {
-      countText.text = `${count}/3`;
-    });
-
-    this.view.addChild(countText);
-
-    const droppableManager = new DroppableManager();
-
-    const group2 = new DroppableLayoutContainer({
-      droppableManager,
-      label: 'group2',
-      layout: {
-        gap: 10,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        width: 200,
-        height: 160,
-        padding: 20,
-        //borderStyle: 'solid',
-        alignContent: 'flex-start',
-      },
-    });
-
-    group2.addChild(getAvatarSprite(2, droppableManager, this.view));
-    group2.addChild(getAvatarSprite(3, droppableManager, this.view));
-    group2.addChild(getAvatarSprite(1, droppableManager, this.view));
-    this.view.addChild(group2);
-
-    const avatar = new Button(
-      new (class extends Container implements Droppable {
-        label = 'avatar';
-        constructor() {
-          super({
-            layout: false,
-          });
-          this.addChild(
-            new Sprite({
-              texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'],
-              layout: true,
-            }),
-          );
-
-          // TODO: Draggable.onRemove? Droppable.onRemove?
-          this.on('childRemoved', (child) => {
-            if (child === this.slot) {
-              this.slot = undefined;
-            }
-          });
-        }
-
-        updateBounds() {}
-
-        i = LOOP_PROTECTION;
-
-        *onHover() {
-          while (this.i > 0) {
-            let { event, item, isOver } = yield;
-            if (isOver) {
-              break;
-            }
-
-            if (this.slot) {
-              this.tint = 0xdd0000;
-            } else {
-              this.tint = 0x00ffff;
-            }
-
-            (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
-
-            this.i--;
-          }
-          this.tint = 0xffffff;
-          (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
-
-          this.i = LOOP_PROTECTION;
-        }
-
-        slot?: Container;
-
-        onDrop(event: FederatedPointerEvent, item: Container) {
-          if (this.slot) {
-            // SWAP
-            this.slot.layout = true;
-            (this.slot as DraggableSprite).owner?.addChild(this.slot);
-            this.slot = undefined;
-          }
-
-          if (item instanceof DraggableSprite) {
-            // runState.setCaptain(item.crew);
-            //console.log('onDrop', item.somethingSomething);
-          }
-
-          this.slot = item;
-          this.addChild(item);
-          return true;
-        }
-      })(),
-    ) as Button & { view: DroppableContainer };
-
-    droppableManager.addDroppable(avatar.view! as DroppableContainer);
-
-    this.view.addChild(avatar.view!);
-
-    const addMemberButton = new PrimaryButton('Add Member');
-    addMemberButton.onPress.connect(() => {
-      membersCount.update((count) => count + 1);
-      getRunState().scrapsCounter.update((count) => count + 10);
-    });
-
-    this.view.addChild(addMemberButton.view!);
-  }
-}
-
-function getAvatarSprite(number: number, droppableManager: DroppableManager, surface: Container): DraggableSprite {
-  return new DraggableSprite({
-    texture: Assets.get(ASSETS.prototype).textures[`avatars_tile_${number}#0`],
-    label: `avatar_${number}`,
+function getAvatarSprite(crew: CrewMember, droppableManager: DroppableManager, surface: Container) {
+  return new DraggableSprite<CrewMember>({
+    data: crew,
+    texture: Assets.get(ASSETS.prototype).textures[crew.textureName],
+    label: `avatar_${crew.textureName}`,
     layout: true,
     droppableManager,
     surface,
@@ -602,6 +500,31 @@ export class CrewPickerOverlay extends Container implements AppScreen {
 
     const context = getGameContext();
 
+    const header = new LayoutContainer({
+      layout: {
+        ...layout,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+      },
+    });
+
+    const addScraps = new PrimaryButton('Add Scraps');
+    addScraps.onPress.connect(() => {
+      console.log('Add scraps button pressed');
+      changeScraps(50);
+    });
+    header.addChild(addScraps.view!);
+
+    const scrapCount = new Text({
+      text: `0 Scraps`,
+      style: TEXT_STYLE_DEFAULT,
+      layout: true,
+    });
+    getRunState().scrapsCounter.subscribe((count) => {
+      scrapCount.text = `${count} Scraps`;
+    });
+    header.addChild(scrapCount);
+
     const closeButton = new PrimaryButton('Close');
 
     closeButton.onPress.connect(() => {
@@ -610,11 +533,13 @@ export class CrewPickerOverlay extends Container implements AppScreen {
       context.navigation.dismissCurrentOverlay();
     });
 
-    this._popupBackground.addChild(closeButton.view!);
+    //this._popupBackground.addChild(closeButton.view!);
+    header.addChild(closeButton.view!);
+    this._popupBackground.addChild(header);
 
     this.addChild(this._popupBackground);
 
-    const crewPickerPanel = new CrewPickerPanel();
+    const crewPickerPanel = new CrewPickerPanel(this);
     this._popupBackground.addChild(crewPickerPanel.view!);
 
     context.navigation.addToLayer(this, LAYER_NAMES.POPUP);
