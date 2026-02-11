@@ -229,12 +229,15 @@ class CrewPickerPanel {
     const droppableManager = new DroppableManager();
 
     const activeMembersContainer = new LayoutContainer({
-      layout,
+      layout: {
+        ...layout,
+        gap: 20,
+      },
     });
 
     activeMembersContainer.addChild(new Text({ text: 'Active Members', style: TEXT_STYLE_DEFAULT, layout: true }));
 
-    const avatar = new Button(
+    const primary = new Button(
       new (class extends Container implements Droppable {
         label = 'avatar';
         constructor() {
@@ -311,6 +314,8 @@ class CrewPickerPanel {
                 .filter((member) => member.key !== crewMember.key);
               getRunState().crewMembers.set(rest);
               console.log('onDrop AVATAR', getRunState().crewMembers.getAll());
+
+              getRunState().firstMember.set(crewMember);
             }
           }
 
@@ -322,9 +327,102 @@ class CrewPickerPanel {
       })(),
     ) as Button & { view: DroppableContainer };
 
-    droppableManager.addDroppable(avatar.view! as DroppableContainer);
+    droppableManager.addDroppable(primary.view! as DroppableContainer);
 
-    activeMembersContainer.addChild(avatar.view!);
+    const secondary = new Button(
+      new (class extends Container implements Droppable {
+        label = 'avatar';
+        constructor() {
+          super({
+            layout: true,
+          });
+          this.addChild(
+            new Sprite({
+              texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'],
+              layout: true,
+              scale: 1.25,
+            }),
+          );
+
+          // TODO: Draggable.onRemove? Droppable.onRemove?
+          this.on('childRemoved', (child) => {
+            if (child === this.slot) {
+              this.slot = undefined;
+            }
+          });
+        }
+
+        updateBounds() {}
+
+        i = LOOP_PROTECTION;
+
+        *onHover() {
+          while (this.i > 0) {
+            let { event, item, isOver } = yield;
+            if (isOver) {
+              break;
+            }
+
+            if (this.slot) {
+              this.tint = 0xdd0000;
+            } else {
+              this.tint = 0x00ffff;
+            }
+
+            (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_2#0'];
+
+            this.i--;
+          }
+          this.tint = 0xffffff;
+          (this.children[0] as Sprite).texture = Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'];
+
+          this.i = LOOP_PROTECTION;
+        }
+
+        slot?: Container;
+
+        onDrop(event: FederatedPointerEvent, item: Container) {
+          if (this.slot) {
+            // SWAP
+            this.slot.scale = 1;
+            this.slot.layout = true;
+            getRunState().crewMembers.push(this.slot.data! as CrewMember);
+            console.log('onDrop swap AVATAR', getRunState().crewMembers.getAll());
+            this.slot.destroy();
+          }
+
+          if (item instanceof DraggableSprite) {
+            if (item.data) {
+              const crewMember = item.data as CrewMember;
+              console.log('onDrop AVATAR', crewMember.name);
+              /*
+              The below actually is nonsense
+
+              This avatar must be concerned about itself. 
+              Trying to manage a broader state from here is nonsense.
+*/
+              const rest = getRunState()
+                .crewMembers.getAll()
+                .filter((member) => member.key !== crewMember.key);
+              getRunState().crewMembers.set(rest);
+              console.log('onDrop AVATAR', getRunState().crewMembers.getAll());
+
+              getRunState().secondMember.set(crewMember);
+            }
+          }
+
+          this.slot = item;
+          this.addChild(item);
+          item.scale = 1.25;
+          return true;
+        }
+      })(),
+    ) as Button & { view: DroppableContainer };
+
+    droppableManager.addDroppable(secondary.view! as DroppableContainer);
+
+    activeMembersContainer.addChild(primary.view!);
+    activeMembersContainer.addChild(secondary.view!);
 
     const passiveMembersContainer = new LayoutContainer({
       layout: {

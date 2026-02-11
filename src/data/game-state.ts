@@ -60,8 +60,8 @@ export interface RunState {
 
   scrapsCounter: Signal<number>;
   crewMembers: SignalCollection<CrewMember>;
-  firstMember: Signal<CrewMember>;
-  secondMember: Signal<CrewMember>;
+  firstMember: Signal<CrewMember | undefined>;
+  secondMember: Signal<CrewMember | undefined>;
   // Run-specific state
   // activeBoons: Boon[];
   // temporaryUpgrades: string[];
@@ -135,8 +135,8 @@ export function createGameState(): GameState {
         new EmptyCrewMember('empty'),
         /**/
       ]),
-      firstMember: signal(new EmptyCrewMember('empty'), { label: 'firstMember' }),
-      secondMember: signal(new EmptyCrewMember('empty'), { label: 'secondMember' }),
+      firstMember: signal(undefined),
+      secondMember: signal(undefined),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,

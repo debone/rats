@@ -62,6 +62,7 @@ async function init() {
   // Connect debug panel to ticker for FPS monitoring
   if (import.meta.env.DEV) {
     DebugPanel.connectTicker(app);
+    app.renderer.layout.enableDebug(true);
   }
 
   await initTone();
