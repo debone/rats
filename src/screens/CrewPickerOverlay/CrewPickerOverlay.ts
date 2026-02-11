@@ -8,13 +8,14 @@ import type { Droppable, DroppableContainer } from '@/core/dnd/types';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { changeScraps, getRunState } from '@/data/game-state';
+import type { CrewMember } from '@/entities/crew/Crew';
+import { FasterCrewMember } from '@/entities/crew/Faster';
 import type { LayoutStyles } from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
 import { DropShadowFilter } from 'pixi-filters';
 import { Assets, Color, Container, FederatedPointerEvent, Graphics, Sprite, Text, Ticker } from 'pixi.js';
-import { FasterCrewMember, type CrewMember } from '../GameScreen/ui/CrewIndicator';
 
 const LOOP_PROTECTION = 1_000_000;
 
@@ -370,7 +371,9 @@ class CrewPickerPanel {
         group2.addChild(getAvatarSprite(crew, droppableManager, surface));
       });
 
-    getRunState().crewMembers.onBatchChange.subscribe(({ adds, removes, moves }) => {
+    getRunState().crewMembers.onBatchChange.subscribe((change) => {
+      if (!change) return;
+      const { adds, removes, moves } = change;
       console.log('onBatchChange', adds, removes, moves);
       adds.forEach((add) => {
         group2.addChild(getAvatarSprite(add.item.get(), droppableManager, this.view));

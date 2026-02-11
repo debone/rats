@@ -8,13 +8,11 @@
 import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
-import {
-  CaptainCrewMember,
-  CrewMember,
-  DoublerCrewMember,
-  EmptyCrewMember,
-  FasterCrewMember,
-} from '@/screens/GameScreen/ui/CrewIndicator';
+import type { CrewMember } from '@/entities/crew/Crew';
+import { CaptainCrewMember } from '@/entities/crew/Captain';
+import { DoublerCrewMember } from '@/entities/crew/Doubler';
+import { EmptyCrewMember } from '@/entities/crew/Empty';
+import { FasterCrewMember } from '@/entities/crew/Faster';
 import type { LevelConfig } from '@/systems/level/Level';
 import { GameEvent } from './events';
 import { getGameContext } from './game-context';
@@ -62,6 +60,8 @@ export interface RunState {
 
   scrapsCounter: Signal<number>;
   crewMembers: SignalCollection<CrewMember>;
+  firstMember: Signal<CrewMember>;
+  secondMember: Signal<CrewMember>;
   // Run-specific state
   // activeBoons: Boon[];
   // temporaryUpgrades: string[];
@@ -135,6 +135,8 @@ export function createGameState(): GameState {
         new EmptyCrewMember('empty'),
         /**/
       ]),
+      firstMember: signal(new EmptyCrewMember('empty'), { label: 'firstMember' }),
+      secondMember: signal(new EmptyCrewMember('empty'), { label: 'secondMember' }),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,
@@ -192,6 +194,11 @@ export function setCurrentLevelId(levelId: string): void {
 
 export function getCurrentLevelId(): string {
   return getRunState().currentLevelId;
+}
+
+export function changeScraps(count: number): void {
+  // Sorry Victor from future trying to make negative scraps happen
+  getRunState().scrapsCounter.update((value) => Math.max(0, value + count));
 }
 
 export function addBallToRun(count: number): void {

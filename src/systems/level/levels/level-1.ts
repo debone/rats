@@ -1,6 +1,6 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { bgm, sfx } from '@/core/audio/audio';
+import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
