@@ -3,7 +3,7 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
-import { activateCrewMember, changeScraps } from '@/data/game-state';
+import { activateCrewMember, changeCheese, changeScraps } from '@/data/game-state';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
 import {
@@ -248,7 +248,7 @@ export abstract class StartingLevels extends Level {
     });
 
     this.collisions.register('cheese', 'paddle', (pair: CollisionPair) => {
-      activateCrewMember();
+      changeCheese(1);
 
       const cheeseBody = pair.bodyA;
 
@@ -282,7 +282,7 @@ export abstract class StartingLevels extends Level {
       const { x, y } = BodyToScreen(scrapBody);
       this.brickDebrisEmitter!.explode(10, x, y + 4);
 
-      changeScraps(1);
+      changeScraps(Math.floor(Math.random() * 10) + 1);
 
       this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
       this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);

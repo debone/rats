@@ -59,6 +59,7 @@ export interface RunState {
   ballsRemaining: Signal<number>;
 
   scrapsCounter: Signal<number>;
+  cheeseCounter: Signal<number>;
   crewMembers: SignalCollection<CrewMember>;
   firstMember: Signal<CrewMember | undefined>;
   secondMember: Signal<CrewMember | undefined>;
@@ -121,8 +122,9 @@ export function createGameState(): GameState {
     run: {
       currentLevelId: '',
       levelsCompleted: [],
-      ballsRemaining: signal(1, { label: 'ballsRemaining' }),
-      scrapsCounter: signal(0, { label: 'scrapsCounter' }),
+      ballsRemaining: signal(1),
+      scrapsCounter: signal(0),
+      cheeseCounter: signal(0),
       crewMembers: createKeyedCollection([
         /**
          new DoublerCrewMember('doubler2'),
@@ -199,6 +201,10 @@ export function getCurrentLevelId(): string {
 export function changeScraps(count: number): void {
   // Sorry Victor from future trying to make negative scraps happen
   getRunState().scrapsCounter.update((value) => Math.max(0, value + count));
+}
+
+export function changeCheese(count: number): void {
+  getRunState().cheeseCounter.update((value) => Math.max(0, value + count));
 }
 
 export function addBallToRun(count: number): void {

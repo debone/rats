@@ -17,6 +17,7 @@ import { CrewPickerOverlay } from '../CrewPickerOverlay/CrewPickerOverlay';
 import { BallCounter } from './ui/BallCounter';
 import { CrewIndicator } from './ui/CrewIndicator';
 import { LevelIndicator } from './ui/LevelIndicator';
+import { CheeseCounter } from './ui/CheeseCounter';
 import { ScrapCounter } from './ui/ScrapCounter';
 
 /**
@@ -103,8 +104,20 @@ export class GameScreen extends Container implements AppScreen {
 
     uiLayer.addChild(new LevelIndicator());
     uiLayer.addChild(new BallCounter());
-    uiLayer.addChild(new ScrapCounter());
     uiLayer.addChild(new CrewIndicator());
+
+    const countersContainer = new LayoutContainer({
+      layout: {
+        gap: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 'auto',
+      },
+    });
+    uiLayer.addChild(countersContainer);
+
+    countersContainer.addChild(new ScrapCounter());
+    countersContainer.addChild(new CheeseCounter());
 
     const popupLayer = new LayoutContainer({
       layout: {
