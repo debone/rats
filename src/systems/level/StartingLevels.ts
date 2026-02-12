@@ -3,7 +3,7 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
-import { activateCrewMember, changeScraps, swapCrewMembers } from '@/data/game-state';
+import { activateCrewMember, changeScraps } from '@/data/game-state';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
 import {
@@ -481,20 +481,34 @@ export abstract class StartingLevels extends Level {
       this.shouldMaintainBallSpeed = true;
     }
 
-    if (InputDevice.keyboard.key.KeyX && !this.isXDown) {
-      this.isXDown = true;
-      this.lastXDownTime = performance.now();
-      swapCrewMembers();
-    } else if (!InputDevice.keyboard.key.KeyX && this.isXDown) {
-      const timeDown = performance.now() - this.lastXDownTime;
-      if (timeDown > 300) {
-        this.isXDown = false;
+    if (InputDevice.keyboard.key.KeyQ && !this.isQDown) {
+      this.isQDown = true;
+      this.lastQDownTime = performance.now();
+      activateCrewMember(0);
+    } else if (!InputDevice.keyboard.key.KeyQ && this.isQDown) {
+      const timeDown = performance.now() - this.lastQDownTime;
+      if (timeDown > 50) {
+        this.isQDown = false;
+      }
+    }
+
+    if (InputDevice.keyboard.key.KeyW && !this.isWDown) {
+      this.isWDown = true;
+      this.lastWDownTime = performance.now();
+      activateCrewMember(1);
+    } else if (!InputDevice.keyboard.key.KeyW && this.isWDown) {
+      const timeDown = performance.now() - this.lastWDownTime;
+      if (timeDown > 50) {
+        this.isWDown = false;
       }
     }
   }
 
-  isXDown: boolean = false;
-  lastXDownTime: number = 0;
+  isQDown: boolean = false;
+  lastQDownTime: number = 0;
+
+  isWDown: boolean = false;
+  lastWDownTime: number = 0;
 
   async unload(): Promise<void> {
     await super.unload();

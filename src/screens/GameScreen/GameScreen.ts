@@ -171,7 +171,7 @@ export class GameScreen extends Container implements AppScreen {
 
     //context.navigation.addToLayer(popupLayer, LAYER_NAMES.POPUP);
 
-    await execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
+    // await execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
 
     /*
     setTimeout(() => {
