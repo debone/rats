@@ -1,29 +1,36 @@
-export type CrewMemberType = 'faster' | 'doubler' | 'captain' | 'empty';
+import { CaptainCrewMember } from './Captain';
+import { DoublerCrewMember } from './Doubler';
+import { EmptyCrewMember } from './Empty';
+import { FasterCrewMember } from './Faster';
 
-export abstract class CrewMember {
-  public readonly key: string;
-  public readonly name: string;
-  public readonly description: string;
-  public readonly type: CrewMemberType;
-  public readonly textureName: string;
+export interface Ability {
+  readonly name: string;
+  readonly description: string;
+  readonly cost: number;
 
-  constructor({
-    key,
-    name,
-    description,
-    type,
-    textureName,
-  }: {
-    key: string;
-    name: string;
-    description: string;
-    type: CrewMemberType;
-    textureName: string;
-  }) {
-    this.key = key;
-    this.name = name;
-    this.textureName = textureName;
-    this.description = description;
-    this.type = type;
-  }
+  readonly effect: () => void;
+}
+
+export const CREW_DEFS = {
+  captain: CaptainCrewMember,
+  faster: FasterCrewMember,
+  doubler: DoublerCrewMember,
+  empty: EmptyCrewMember,
+} satisfies Record<string, CrewMemberDef>;
+
+export type CrewMemberDefKey = keyof typeof CREW_DEFS;
+
+export interface CrewMemberDef {
+  readonly name: string;
+  readonly description: string;
+  readonly type: CrewMemberDefKey;
+  readonly textureName: string;
+  readonly ability: Ability;
+}
+
+export class CrewMemberInstance {
+  constructor(
+    public readonly defKey: CrewMemberDefKey,
+    public readonly key: string,
+  ) {}
 }

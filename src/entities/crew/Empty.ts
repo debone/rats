@@ -1,7 +1,16 @@
-import { CrewMember } from './Crew';
+import type { CrewMemberDef } from './Crew';
 
-export class EmptyCrewMember extends CrewMember {
-  constructor(key: string) {
-    super({ key, name: '', description: '', type: 'empty', textureName: 'avatars_tile_1#0' });
-  }
-}
+export const EmptyCrewMember: CrewMemberDef = {
+  type: 'empty',
+  name: 'Empty',
+  description: 'no ability',
+  textureName: 'avatars_tile_1#0',
+  ability: {
+    name: 'No Ability',
+    description: 'no ability',
+    cost: 0,
+    effect: () => {
+      console.log('Empty ability effect');
+    },
+  },
+};

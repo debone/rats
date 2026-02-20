@@ -8,6 +8,7 @@
  */
 
 import type { AppScreenConstructor } from '@/core/window/types';
+import type { CrewMemberDefKey } from '@/entities/crew/Crew';
 import type { LevelResult, MapSelection } from './game-state';
 
 /**
@@ -110,7 +111,7 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
     score: number;
   };
   [GameEvent.POWERUP_ACTIVATED]: {
-    type: string;
+    type: CrewMemberDefKey;
   };
 
   // System events

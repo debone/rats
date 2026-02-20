@@ -1,7 +1,16 @@
-import { CrewMember } from './Crew';
+import type { CrewMemberDef } from './Crew';
 
-export class CaptainCrewMember extends CrewMember {
-  constructor(key: string) {
-    super({ key, name: 'Captain', description: 'ship is faster', type: 'captain', textureName: 'avatars_tile_4#0' });
-  }
-}
+export const CaptainCrewMember: CrewMemberDef = {
+  type: 'captain',
+  name: 'Captain',
+  description: 'ship is faster',
+  textureName: 'avatars_tile_4#0',
+  ability: {
+    name: 'Speed Up',
+    description: 'ship is faster',
+    cost: 10,
+    effect: () => {
+      console.log('Captain ability effect');
+    },
+  },
+};

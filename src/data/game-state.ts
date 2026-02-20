@@ -8,11 +8,7 @@
 import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
-import type { CrewMember } from '@/entities/crew/Crew';
-import { CaptainCrewMember } from '@/entities/crew/Captain';
-import { DoublerCrewMember } from '@/entities/crew/Doubler';
-import { EmptyCrewMember } from '@/entities/crew/Empty';
-import { FasterCrewMember } from '@/entities/crew/Faster';
+import { CrewMemberInstance } from '@/entities/crew/Crew';
 import type { LevelConfig } from '@/systems/level/Level';
 import { GameEvent } from './events';
 import { getGameContext } from './game-context';
@@ -60,9 +56,9 @@ export interface RunState {
 
   scrapsCounter: Signal<number>;
   cheeseCounter: Signal<number>;
-  crewMembers: SignalCollection<CrewMember>;
-  firstMember: Signal<CrewMember | undefined>;
-  secondMember: Signal<CrewMember | undefined>;
+  crewMembers: SignalCollection<CrewMemberInstance>;
+  firstMember: Signal<CrewMemberInstance | undefined>;
+  secondMember: Signal<CrewMemberInstance | undefined>;
   // Run-specific state
   // activeBoons: Boon[];
   // temporaryUpgrades: string[];
@@ -131,14 +127,14 @@ export function createGameState(): GameState {
          new DoublerCrewMember('doubler3'),
          new DoublerCrewMember('doubler'),
         /**/
-        new DoublerCrewMember('doubler1'),
-        new CaptainCrewMember('captain'),
-        new FasterCrewMember('faster'),
-        new EmptyCrewMember('empty'),
+        new CrewMemberInstance('doubler', 'doubler1'),
+        new CrewMemberInstance('captain', 'captain'),
+        new CrewMemberInstance('faster', 'faster'),
+        new CrewMemberInstance('empty', 'empty'),
         /**/
       ]),
-      firstMember: signal(new DoublerCrewMember('doubler2')),
-      secondMember: signal(new FasterCrewMember('faster')),
+      firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
+      secondMember: signal(new CrewMemberInstance('faster', 'faster')),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,
@@ -223,6 +219,6 @@ export function activateCrewMember(index: number): void {
   const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
 
   getGameContext().events.emit(GameEvent.POWERUP_ACTIVATED, {
-    type: crewMember!.type,
+    type: crewMember!.defKey,
   });
 }

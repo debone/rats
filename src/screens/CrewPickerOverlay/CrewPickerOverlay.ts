@@ -8,8 +8,7 @@ import type { Droppable, DroppableContainer } from '@/core/dnd/types';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { changeScraps, getRunState } from '@/data/game-state';
-import type { CrewMember } from '@/entities/crew/Crew';
-import { FasterCrewMember } from '@/entities/crew/Faster';
+import { CREW_DEFS, CrewMemberInstance } from '@/entities/crew/Crew';
 import type { LayoutStyles } from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
@@ -171,7 +170,7 @@ function getShopCard() {
       return;
     }
     changeScraps(-100);
-    getRunState().crewMembers.push(new FasterCrewMember('faster-crew-member-1'));
+    getRunState().crewMembers.push(new CrewMemberInstance('faster', 'faster-crew-member-1'));
     card.destroy();
   });
 
@@ -266,7 +265,8 @@ class CrewPickerPanel {
 
         *onHover() {
           while (this.i > 0) {
-            let { event, item, isOver } = yield;
+            //let { event, item, isOver } = yield;
+            const { isOver } = yield;
             if (isOver) {
               break;
             }
@@ -289,20 +289,20 @@ class CrewPickerPanel {
 
         slot?: Container;
 
-        onDrop(event: FederatedPointerEvent, item: Container) {
+        onDrop(_event: FederatedPointerEvent, item: Container) {
           if (this.slot) {
             // SWAP
             this.slot.scale = 1;
             this.slot.layout = true;
-            getRunState().crewMembers.push(this.slot.data! as CrewMember);
+            getRunState().crewMembers.push(this.slot.data! as CrewMemberInstance);
             console.log('onDrop swap AVATAR', getRunState().crewMembers.getAll());
             this.slot.destroy();
           }
 
           if (item instanceof DraggableSprite) {
             if (item.data) {
-              const crewMember = item.data as CrewMember;
-              console.log('onDrop AVATAR', crewMember.name);
+              const crewMember = item.data as CrewMemberInstance;
+              console.log('onDrop AVATAR', crewMember.defKey);
               /*
               The below actually is nonsense
 
@@ -358,7 +358,8 @@ class CrewPickerPanel {
 
         *onHover() {
           while (this.i > 0) {
-            let { event, item, isOver } = yield;
+            //let { event, item, isOver } = yield;
+            const { isOver } = yield;
             if (isOver) {
               break;
             }
@@ -381,20 +382,20 @@ class CrewPickerPanel {
 
         slot?: Container;
 
-        onDrop(event: FederatedPointerEvent, item: Container) {
+        onDrop(_event: FederatedPointerEvent, item: Container) {
           if (this.slot) {
             // SWAP
             this.slot.scale = 1;
             this.slot.layout = true;
-            getRunState().crewMembers.push(this.slot.data! as CrewMember);
+            getRunState().crewMembers.push(this.slot.data! as CrewMemberInstance);
             console.log('onDrop swap AVATAR', getRunState().crewMembers.getAll());
             this.slot.destroy();
           }
 
           if (item instanceof DraggableSprite) {
             if (item.data) {
-              const crewMember = item.data as CrewMember;
-              console.log('onDrop AVATAR', crewMember.name);
+              const crewMember = item.data as CrewMemberInstance;
+              console.log('onDrop AVATAR', crewMember.defKey);
               /*
               The below actually is nonsense
 
@@ -536,11 +537,11 @@ class CrewPickerPanel {
   }
 }
 
-function getAvatarSprite(crew: CrewMember, droppableManager: DroppableManager, surface: Container) {
-  return new DraggableSprite<CrewMember>({
+function getAvatarSprite(crew: CrewMemberInstance, droppableManager: DroppableManager, surface: Container) {
+  return new DraggableSprite<CrewMemberInstance>({
     data: crew,
-    texture: Assets.get(ASSETS.prototype).textures[crew.textureName],
-    label: `avatar_${crew.textureName}`,
+    texture: Assets.get(ASSETS.prototype).textures[CREW_DEFS[crew.defKey].textureName],
+    label: `avatar_${crew.defKey}`,
     layout: true,
     droppableManager,
     surface,

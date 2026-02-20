@@ -3,22 +3,23 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { computed } from '@/core/reactivity/signals/signals';
 import { getRunState } from '@/data/game-state';
-import type { CrewMember } from '@/entities/crew/Crew';
-import { EmptyCrewMember } from '@/entities/crew/Empty';
+import { CREW_DEFS, CrewMemberInstance } from '@/entities/crew/Crew';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { Sprite, Text } from 'pixi.js';
 
 class BadgeButton extends Button {
-  private _crewMember: CrewMember;
+  private _crewMember: CrewMemberInstance;
   private _sprite: Sprite;
   private _hoverContainer: LayoutContainer;
   private _nameText: Text;
 
-  constructor(crewMember: CrewMember | undefined) {
-    const member = crewMember ?? new EmptyCrewMember('empty');
+  constructor(crewMember: CrewMemberInstance | undefined) {
+    const member = crewMember ?? new CrewMemberInstance('empty', 'empty');
 
-    const texture = typedAssets.get(ASSETS.prototype).textures[member.textureName];
+    const def = CREW_DEFS[member.defKey];
+
+    const texture = typedAssets.get(ASSETS.prototype).textures[def.textureName];
 
     const container = new LayoutContainer({
       layout: {
@@ -50,7 +51,7 @@ class BadgeButton extends Button {
     });
 
     const nameText = new Text({
-      text: member.name,
+      text: `${def.name} - ${def.ability.cost}`,
       style: {
         ...TEXT_STYLE_DEFAULT,
         fontSize: 14,
@@ -69,7 +70,7 @@ class BadgeButton extends Button {
 
     this.onHover.connect(() => {
       this._sprite.tint = 0xffff00;
-      if (this._crewMember.name) {
+      if (CREW_DEFS[this._crewMember.defKey].name) {
         this._hoverContainer.visible = true;
       }
     });
@@ -80,7 +81,7 @@ class BadgeButton extends Button {
     });
   }
 
-  get crewMember(): CrewMember {
+  get crewMember(): CrewMemberInstance {
     return this._crewMember;
   }
 
@@ -88,15 +89,16 @@ class BadgeButton extends Button {
     return this._sprite;
   }
 
-  setCrewMember(crewMember: CrewMember | undefined): void {
-    const member = crewMember ?? new EmptyCrewMember('empty');
+  setCrewMember(crewMember: CrewMemberInstance | undefined): void {
+    const member = crewMember ?? new CrewMemberInstance('empty', 'empty');
     this._crewMember = member;
+    const def = CREW_DEFS[member.defKey];
 
     // Update sprite texture
-    this._sprite.texture = typedAssets.get(ASSETS.prototype).textures[member.textureName];
+    this._sprite.texture = typedAssets.get(ASSETS.prototype).textures[def.textureName];
 
     // Update name text
-    this._nameText.text = member.name;
+    this._nameText.text = `${def.name} - ${def.ability.cost}`;
   }
 }
 
@@ -115,7 +117,7 @@ export class CrewIndicator extends LayoutContainer {
       layout: {
         width: 64,
         gap: 15,
-        paddingTop: 15,
+        paddingTop: 5,
         flexDirection: 'column',
         alignItems: 'center',
       },

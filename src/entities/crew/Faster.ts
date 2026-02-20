@@ -1,7 +1,16 @@
-import { CrewMember } from './Crew';
+import type { CrewMemberDef } from './Crew';
 
-export class FasterCrewMember extends CrewMember {
-  constructor(key: string) {
-    super({ key, name: 'Faster', description: 'balls go brrr', type: 'faster', textureName: 'avatars_tile_2#0' });
-  }
-}
+export const FasterCrewMember: CrewMemberDef = {
+  type: 'faster',
+  name: 'Faster',
+  description: 'balls go brrr',
+  textureName: 'avatars_tile_2#0',
+  ability: {
+    name: 'Faster',
+    description: 'balls go brrr',
+    cost: 10,
+    effect: () => {
+      console.log('Faster ability effect');
+    },
+  },
+};
