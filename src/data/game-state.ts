@@ -8,7 +8,7 @@
 import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
-import { CrewMemberInstance } from '@/entities/crew/Crew';
+import { CREW_DEFS, CrewMemberInstance } from '@/entities/crew/Crew';
 import type { LevelConfig } from '@/systems/level/Level';
 import { GameEvent } from './events';
 import { getGameContext } from './game-context';
@@ -217,6 +217,14 @@ export function setBallsRemaining(count: number): void {
 
 export function activateCrewMember(index: number): void {
   const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
+
+  const def = CREW_DEFS[crewMember!.defKey];
+
+  if (def.ability.cost > getRunState().cheeseCounter.get()) {
+    return;
+  }
+
+  changeCheese(-def.ability.cost);
 
   getGameContext().events.emit(GameEvent.POWERUP_ACTIVATED, {
     type: crewMember!.defKey,

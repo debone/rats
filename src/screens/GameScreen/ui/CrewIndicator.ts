@@ -1,4 +1,4 @@
-import { ASSETS } from '@/assets';
+import { ASSETS, type PrototypeTextures } from '@/assets';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { computed } from '@/core/reactivity/signals/signals';
@@ -60,6 +60,48 @@ class BadgeButton extends Button {
     });
     hoverContainer.addChild(nameText);
     container.addChild(hoverContainer);
+
+    const costContainer = new LayoutContainer({
+      layout: {
+        width: 20,
+        height: 20,
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 3,
+        borderRadius: 10,
+        position: 'absolute',
+        justifyContent: 'center',
+        alignItems: 'center',
+        top: 0,
+        right: 0,
+      },
+    });
+
+    const cheeseSprite = new Sprite({
+      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'],
+    });
+
+    cheeseSprite.layout = {
+      objectFit: 'none',
+      width: 16,
+      height: 16,
+    };
+
+    const costText = new Text({
+      text: `${def.ability.cost}`,
+      style: {
+        ...TEXT_STYLE_DEFAULT,
+        fontSize: 14,
+      },
+      layout: {
+        width: 20,
+        height: 20,
+      },
+    });
+
+    costContainer.addChild(cheeseSprite);
+    costContainer.addChild(costText);
+    container.addChild(costContainer);
 
     super(container);
 

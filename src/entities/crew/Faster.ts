@@ -8,7 +8,7 @@ export const FasterCrewMember: CrewMemberDef = {
   ability: {
     name: 'Faster',
     description: 'balls go brrr',
-    cost: 10,
+    cost: 1,
     effect: () => {
       console.log('Faster ability effect');
     },

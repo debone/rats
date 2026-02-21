@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "level-1.tmx",
+    "activeFile": "",
     "expandedProjectPaths": [
         "."
     ],
@@ -66,9 +66,6 @@
     "map.lastUsedFormat": "tmx",
     "map.width": 18,
     "openFiles": [
-        "prototype-1.tmx",
-        "level-1.tmx",
-        "level-1-tileset.tsx"
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [

@@ -8,7 +8,7 @@ export const DoublerCrewMember: CrewMemberDef = {
   ability: {
     name: 'Double Up',
     description: 'double the balls',
-    cost: 10,
+    cost: 2,
     effect: () => {
       console.log('Doubler ability effect');
     },
