@@ -13,6 +13,7 @@ class BadgeButton extends Button {
   private _sprite: Sprite;
   private _hoverContainer: LayoutContainer;
   private _nameText: Text;
+  private _costText: Text;
 
   constructor(crewMember: CrewMemberInstance | undefined) {
     const member = crewMember ?? new CrewMemberInstance('empty', 'empty');
@@ -109,6 +110,7 @@ class BadgeButton extends Button {
     this._sprite = sprite;
     this._hoverContainer = hoverContainer;
     this._nameText = nameText;
+    this._costText = costText;
 
     this.onHover.connect(() => {
       this._sprite.tint = 0xffff00;
@@ -141,6 +143,9 @@ class BadgeButton extends Button {
 
     // Update name text
     this._nameText.text = `${def.name} - ${def.ability.cost}`;
+
+    // Update cost text
+    this._costText.text = `${def.ability.cost}`;
   }
 }
 

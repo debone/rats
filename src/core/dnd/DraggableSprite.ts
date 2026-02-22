@@ -55,6 +55,7 @@ export class DraggableSprite<T> extends Sprite {
       sprite.tint = 0x00ff00;
       sprite.cursor = 'grabbing';
 
+      // ??? remains of what exactly
       sprite.scale = 1;
 
       // The order IS important. We remove a "layout" element
@@ -69,6 +70,8 @@ export class DraggableSprite<T> extends Sprite {
 
       dragOffset.x = -sprite.width / 2;
       dragOffset.y = -sprite.height / 2;
+
+      sprite.emit('dragstart');
     };
 
     const onPointerMove = (event: FederatedPointerEvent) => {
@@ -118,10 +121,8 @@ export class DraggableSprite<T> extends Sprite {
       }
 
       if (!result) {
-        // TODO: onDropFail?
         this.owner?.addChild(sprite);
-        // meh
-        sprite.layout = true;
+        sprite.emit('dragcancel');
       }
     };
 

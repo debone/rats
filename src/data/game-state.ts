@@ -130,11 +130,11 @@ export function createGameState(): GameState {
         new CrewMemberInstance('doubler', 'doubler1'),
         new CrewMemberInstance('captain', 'captain'),
         new CrewMemberInstance('faster', 'faster'),
-        new CrewMemberInstance('empty', 'empty'),
+        //new CrewMemberInstance('empty', 'empty'),
         /**/
       ]),
       firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
-      secondMember: signal(new CrewMemberInstance('faster', 'faster')),
+      secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,
