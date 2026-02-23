@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, '../src'),
     },
   },
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: '@/core/jsx',
+  },
   build: {
     sourcemap: mode === 'development' ? true : false,
   },
