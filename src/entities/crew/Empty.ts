@@ -5,6 +5,9 @@ export const EmptyCrewMember: CrewMemberDef = {
   name: 'Empty',
   description: 'no ability',
   textureName: 'avatars_tile_1#0',
+
+  hiringCost: 0,
+
   ability: {
     name: 'No Ability',
     description: 'no ability',

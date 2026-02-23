@@ -8,7 +8,7 @@ import type { Cleanup, Signal } from '@/core/reactivity/signals/types';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { changeScraps, getRunState } from '@/data/game-state';
-import { CREW_DEFS, CrewMemberInstance } from '@/entities/crew/Crew';
+import { CREW_DEFS, CrewMemberInstance, pickRandomCrewMember } from '@/entities/crew/Crew';
 import type { LayoutStyles } from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
@@ -65,25 +65,29 @@ function getShopCard() {
     layout,
   });
 
-  card.addChild(new Text({ text: 'Shop Card', style: TEXT_STYLE_DEFAULT, layout: true }));
+  const crewMember = pickRandomCrewMember();
 
-  const image = new Sprite({ texture: Assets.get(ASSETS.prototype).textures['avatars_tile_1#0'], layout: true });
+  card.addChild(new Text({ text: `Hire`, style: TEXT_STYLE_DEFAULT, layout: true }));
+
+  const image = new Sprite({ texture: Assets.get(ASSETS.prototype).textures[crewMember.textureName], layout: true });
   card.addChild(image);
 
   const buyButton = new BaseButton(
     { padding: 5, justifyContent: 'space-between' },
     new Sprite({ texture: Assets.get(ASSETS.prototype).textures['scraps#0'], layout: true }),
-    new Text({ text: '100 Scraps', style: TEXT_STYLE_DEFAULT, layout: true }),
+    new Text({ text: `${crewMember.hiringCost} Scraps`, style: TEXT_STYLE_DEFAULT, layout: true }),
   );
 
   buyButton.onPress.connect(() => {
     console.log('Buy button pressed');
-    if (getRunState().scrapsCounter.get() < 100) {
+    if (getRunState().scrapsCounter.get() < crewMember.hiringCost) {
       return;
     }
-    changeScraps(-100);
-    getRunState().crewMembers.push(new CrewMemberInstance('faster', 'faster-crew-member-1'));
-    card.destroy();
+    changeScraps(-crewMember.hiringCost);
+    getRunState().crewMembers.push(
+      new CrewMemberInstance(crewMember.type, `crew-member-1-${Math.random().toString(36).substring(2, 6)}`),
+    );
+    card.destroy({ children: true });
   });
 
   card.addChild(buyButton.view!);

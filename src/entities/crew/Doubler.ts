@@ -5,6 +5,9 @@ export const DoublerCrewMember: CrewMemberDef = {
   name: 'Doubler',
   description: 'double the balls',
   textureName: 'avatars_tile_3#0',
+
+  hiringCost: 50,
+
   ability: {
     name: 'Double Up',
     description: 'double the balls',

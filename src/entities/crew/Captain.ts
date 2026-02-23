@@ -5,6 +5,9 @@ export const CaptainCrewMember: CrewMemberDef = {
   name: 'Captain',
   description: 'ship is faster',
   textureName: 'avatars_tile_4#0',
+
+  hiringCost: 30,
+
   ability: {
     name: 'Speed Up',
     description: 'ship is faster',
