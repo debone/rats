@@ -1,8 +1,8 @@
-import type { GraphicsElement, SpriteElement, TextElement } from '@/core/jsx/types';
-import { addChildren, applyProps } from '@/core/jsx/shared';
-import { getSignalValue } from '@/core/reactivity/signals/signals';
-import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { addChildren, applyProps, createSignalBinding } from '@/core/jsx/shared';
+import type { GraphicsElement, SpriteElement, TextElement } from '@/core/jsx/types';
+import { getSignalValue, isSignal } from '@/core/reactivity/signals/signals';
+import { Container, Graphics, Sprite, Text } from 'pixi.js';
 
 export const PIXI_CORE_TAGS = new Set(['container', 'sprite', 'text', 'graphics', 'mount']);
 
@@ -42,11 +42,12 @@ export function createCoreElement(type: string, props: Record<string, any>): Con
 
     case 'text': {
       const { text, style, ...textRest } = rest as TextElement;
-      let textStyle = style;
-      if (!textStyle) {
-        textStyle = TEXT_STYLE_DEFAULT;
+      const textStyle = style ?? TEXT_STYLE_DEFAULT;
+      const initialText = getSignalValue(text ?? '', '');
+      element = new Text({ text: initialText as string, style: textStyle });
+      if (isSignal(text)) {
+        createSignalBinding(element, 'text', text, setCoreProperty);
       }
-      element = new Text({ text: text as string, style: textStyle });
       applyProps(element, textRest, setCoreProperty, TEXT_IGNORE);
       addChildren(element, children);
       return element;

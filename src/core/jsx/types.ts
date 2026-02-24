@@ -1,7 +1,16 @@
 import type { Signal, SignalValue } from '@/core/reactivity/signals/types';
 import type { LayoutStyles } from '@pixi/layout';
-import type { LayoutContainerOptions } from '@pixi/layout/components';
-import type { Container, ColorSource, ContainerChild, TextStyleOptions, Texture } from 'pixi.js';
+import type { LayoutContainer, LayoutContainerOptions } from '@pixi/layout/components';
+import type {
+  ColorSource,
+  Container,
+  ContainerChild,
+  Graphics,
+  Sprite,
+  Text,
+  TextStyleOptions,
+  Texture,
+} from 'pixi.js';
 
 export type PixiJsxChild = ContainerChild | PixiJsxChild[];
 
@@ -35,22 +44,22 @@ export interface PixiJsxProps<T extends Container = Container> {
 // pixi.js core elements
 export interface ContainerElement extends PixiJsxProps<Container> {}
 
-export interface SpriteElement extends PixiJsxProps {
+export interface SpriteElement extends PixiJsxProps<Sprite> {
   texture: Texture;
   anchor?: SignalValue<number | { x: number; y: number }>;
 }
 
-export interface TextElement extends PixiJsxProps {
+export interface TextElement extends PixiJsxProps<Text> {
   text?: SignalValue<string>;
   style?: TextStyleOptions;
 }
 
-export interface GraphicsElement extends PixiJsxProps {
+export interface GraphicsElement extends PixiJsxProps<Graphics> {
   draw?: (g: import('pixi.js').Graphics) => void;
 }
 
 // @pixi/layout elements
-export interface LayoutContainerElement extends PixiJsxProps {
+export interface LayoutContainerElement extends PixiJsxProps<LayoutContainer> {
   layout?: Partial<LayoutStyles>;
   trackpad?: LayoutContainerOptions['trackpad'];
   background?: LayoutContainerOptions['background'];
@@ -75,6 +84,7 @@ export interface IntrinsicElementMap {
   text: TextElement;
   graphics: GraphicsElement;
   layoutContainer: LayoutContainerElement;
+  box: LayoutContainerElement;
   button: ButtonElement;
   mount: MountElement;
 }
