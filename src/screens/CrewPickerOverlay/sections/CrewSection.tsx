@@ -1,8 +1,10 @@
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { DroppableManager } from '@/core/dnd/DroppableManager';
+import { useContext } from '@/core/reactivity/context';
 import { getRunState } from '@/data/game-state';
 import type { Container } from 'pixi.js';
-import { panelLayout } from '../styles';
+import { CREW_PICKER_CTX, type CrewPickerCtx } from '../context';
+import { panelLayout, panelLayoutBordered } from '../styles';
 import { ActiveMemberSlot, getAvatarSprite } from '../widgets/ActiveMemberSlot';
 import { BenchContainer } from '../widgets/BenchContainer';
 
@@ -11,6 +13,7 @@ interface CrewSectionProps {
 }
 
 export function CrewSection({ surface }: CrewSectionProps) {
+  const { hoverIntent } = useContext<CrewPickerCtx>(CREW_PICKER_CTX);
   const droppableManager = new DroppableManager();
 
   const primarySlot = new ActiveMemberSlot(getRunState().firstMember, droppableManager, surface);
@@ -28,50 +31,65 @@ export function CrewSection({ surface }: CrewSectionProps) {
       flexWrap: 'wrap',
       width: 200,
       height: 160,
-      padding: 20,
+      padding: 10,
       alignContent: 'flex-start',
     },
   });
 
+  const setupBenchAvatar = (avatar: ReturnType<typeof getAvatarSprite>) => {
+    avatar.on('dragcancel', () => {
+      avatar.layout = true;
+    });
+    avatar.on('dragstart', () => {
+      hoverIntent.clearImmediate();
+    });
+    avatar.on('pointerover', () => {
+      if (avatar.data) {
+        hoverIntent.hoverEnter(avatar.data);
+      }
+    });
+    avatar.on('pointerout', () => {
+      hoverIntent.hoverLeave();
+    });
+    return avatar;
+  };
+
   getRunState()
     .crewMembers.getAll()
     .forEach((crew) => {
-      const avatar = getAvatarSprite(crew, droppableManager, surface);
-      avatar.on('dragcancel', () => {
-        avatar.layout = true;
-      });
-      bench.addChild(avatar);
+      bench.addChild(setupBenchAvatar(getAvatarSprite(crew, droppableManager, surface)));
     });
 
   const cleanupBatchChange = getRunState().crewMembers.onBatchChange.subscribe((change) => {
     if (!change) return;
     change.adds.forEach((add) => {
-      const avatar = getAvatarSprite(add.item.get(), droppableManager, surface);
-      avatar.on('dragcancel', () => {
-        avatar.layout = true;
-      });
-      bench.addChild(avatar);
+      bench.addChild(setupBenchAvatar(getAvatarSprite(add.item.get(), droppableManager, surface)));
     });
   }, false);
 
   const section = (
     <layoutContainer layout={panelLayout}>
-      <text text="Crew" style={TEXT_STYLE_DEFAULT} layout={true} />
-      <layoutContainer layout={{ ...panelLayout, flexDirection: 'row', gap: 10 }}>
+      <text text="Crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
+      <text text="Drag and drop to make changes" style={TEXT_STYLE_DEFAULT} layout={true} />
+      <layoutContainer layout={{ ...panelLayoutBordered, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
         <layoutContainer layout={{ ...panelLayout, gap: 20 }}>
-          <text text="Active Members" style={TEXT_STYLE_DEFAULT} layout={true} />
+          <text text="Captain" style={TEXT_STYLE_DEFAULT} layout={true} />
           {primarySlot}
+          <text text="First Mate" style={TEXT_STYLE_DEFAULT} layout={true} />
           {secondarySlot}
         </layoutContainer>
-        <layoutContainer layout={{ ...panelLayout, flexGrow: 1 }}>
-          <text text="Passive Members" style={TEXT_STYLE_DEFAULT} layout={true} />
+        <layoutContainer layout={{ ...panelLayoutBordered, flexGrow: 1 }}>
+          <text text="Deck" style={TEXT_STYLE_DEFAULT} layout={true} />
           {bench}
         </layoutContainer>
       </layoutContainer>
     </layoutContainer>
   );
 
-  section.on('destroyed', cleanupBatchChange);
+  section.on('destroyed', () => {
+    cleanupBatchChange();
+    hoverIntent.clearImmediate();
+  });
 
   return section;
 }

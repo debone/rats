@@ -1,3 +1,6 @@
+import { disposeContext, provideContext } from '@/core/reactivity/context';
+import { createHoverIntent } from '@/core/reactivity/hover-intent';
+import { signal } from '@/core/reactivity/signals/signals';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
@@ -6,6 +9,7 @@ import { animate } from 'animejs';
 import { DropShadowFilter } from 'pixi-filters';
 import { Color, Container, Graphics, Ticker } from 'pixi.js';
 import { addScraps } from './actions';
+import { CREW_PICKER_CTX, type HoveredCrewMember } from './context';
 import { CrewSection } from './sections/CrewSection';
 import { Footer } from './sections/Footer';
 import { Header } from './sections/Header';
@@ -60,13 +64,20 @@ export class CrewPickerOverlay extends Container implements AppScreen {
   async prepare() {
     console.log('[CrewPickerOverlay] Preparing...');
 
-    const context = getGameContext();
+    const gameContext = getGameContext();
+
+    disposeContext(CREW_PICKER_CTX);
+    const hoveredMember = signal<HoveredCrewMember | null>(null);
+    provideContext(CREW_PICKER_CTX, {
+      hoveredMember,
+      hoverIntent: createHoverIntent(hoveredMember),
+    });
 
     <mount target={this._popupBackground}>
       <Header
         scrapsCounter={getRunState().scrapsCounter}
         onAddScraps={() => addScraps(50)}
-        onClose={() => context.navigation.dismissCurrentOverlay()}
+        onClose={() => gameContext.navigation.dismissCurrentOverlay()}
       />
       <ShopSection />
       <CrewSection surface={this} />
@@ -74,7 +85,7 @@ export class CrewPickerOverlay extends Container implements AppScreen {
     </mount>;
 
     this.addChild(this._popupBackground);
-    context.navigation.addToLayer(this, LAYER_NAMES.POPUP);
+    gameContext.navigation.addToLayer(this, LAYER_NAMES.POPUP);
 
     console.log('[CrewPickerOverlay] Prepared');
   }
@@ -114,5 +125,7 @@ export class CrewPickerOverlay extends Container implements AppScreen {
     for (let i = this.children.length - 1; i >= 0; i--) {
       this.children[i].destroy({ children: true });
     }
+
+    disposeContext(CREW_PICKER_CTX);
   }
 }

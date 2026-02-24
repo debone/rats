@@ -2,16 +2,16 @@ import type { CrewMemberDef } from './Crew';
 
 export const CaptainCrewMember: CrewMemberDef = {
   type: 'captain',
-  name: 'Captain',
-  description: 'ship is faster',
+  name: 'Rattain',
+  description: 'A leading rat',
   textureName: 'avatars_tile_4#0',
 
   hiringCost: 30,
 
   ability: {
     name: 'Speed Up',
-    description: 'ship is faster',
-    cost: 1,
+    description: 'The ship will move faster',
+    cost: 2,
     effect: () => {
       console.log('Captain ability effect');
     },

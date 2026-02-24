@@ -1,11 +1,13 @@
 import { DraggableSprite } from '@/core/dnd/DraggableSprite';
 import type { DroppableManager } from '@/core/dnd/DroppableManager';
 import type { Droppable } from '@/core/dnd/types';
+import { useContext } from '@/core/reactivity/context';
 import type { Signal } from '@/core/reactivity/signals/types';
 import { getRunState } from '@/data/game-state';
 import { CrewMemberInstance } from '@/entities/crew/Crew';
 import { Container, type FederatedPointerEvent, Sprite } from 'pixi.js';
 import { getCrewTexture, getSlotTexture } from '../actions';
+import { CREW_PICKER_CTX, type CrewPickerCtx } from '../context';
 
 const LOOP_PROTECTION = 1_000_000;
 
@@ -39,6 +41,8 @@ export class ActiveMemberSlot extends Container implements Droppable {
     surface: Container,
   ) {
     super({ layout: true });
+
+    const { hoverIntent } = useContext<CrewPickerCtx>(CREW_PICKER_CTX);
 
     this.addChild(
       new Sprite({
@@ -76,11 +80,20 @@ export class ActiveMemberSlot extends Container implements Droppable {
 
       const sprite = getAvatarSprite(member, droppableManager, surface);
       sprite.on('dragstart', () => {
+        hoverIntent.clearImmediate();
         this.memberSignal.set(new CrewMemberInstance('empty', 'empty'));
       });
       sprite.on('dragcancel', () => {
         this.memberSignal.set(member);
         sprite.scale = 1.25;
+      });
+      sprite.on('pointerover', () => {
+        if (sprite.data) {
+          hoverIntent.hoverEnter(sprite.data);
+        }
+      });
+      sprite.on('pointerout', () => {
+        hoverIntent.hoverLeave();
       });
       sprite.layout = false;
       sprite.x = 0;
@@ -90,6 +103,9 @@ export class ActiveMemberSlot extends Container implements Droppable {
     });
 
     this.on('destroyed', cleanupSignal);
+    this.on('destroyed', () => {
+      hoverIntent.clearImmediate();
+    });
   }
 
   updateBounds() {}

@@ -2,16 +2,16 @@ import type { CrewMemberDef } from './Crew';
 
 export const DoublerCrewMember: CrewMemberDef = {
   type: 'doubler',
-  name: 'Doubler',
-  description: 'double the balls',
+  name: 'Doub Doub',
+  description: "It's all cheese magic",
   textureName: 'avatars_tile_3#0',
 
   hiringCost: 50,
 
   ability: {
-    name: 'Double Up',
-    description: 'double the balls',
-    cost: 2,
+    name: 'Double balls',
+    description: 'All existing balls get duplicated',
+    cost: 3,
     effect: () => {
       console.log('Doubler ability effect');
     },

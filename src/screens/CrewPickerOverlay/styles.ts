@@ -6,6 +6,10 @@ export const panelLayout: Partial<LayoutStyles> = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
+};
+
+export const panelLayoutBordered: Partial<LayoutStyles> = {
+  ...panelLayout,
   backgroundColor: 0x272736,
   borderColor: 0x57294b,
   borderWidth: 1,

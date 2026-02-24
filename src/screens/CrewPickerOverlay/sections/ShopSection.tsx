@@ -6,7 +6,7 @@ import { ShopCard } from './ShopCard';
 export function ShopSection() {
   return (
     <layoutContainer layout={panelLayout}>
-      <text text="Shop" style={TEXT_STYLE_DEFAULT} layout={true} />
+      <text text="Hire crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
       <layoutContainer layout={{ ...panelLayout, flexDirection: 'row', gap: 10 }}>
         <ShopCard crewMember={pickRandomCrewMember()} />
         <ShopCard crewMember={pickRandomCrewMember()} />
