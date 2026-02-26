@@ -12,6 +12,7 @@ import { signal } from '@/core/reactivity/signals/signals';
 import { LAYER_NAMES } from '@/core/window/types';
 import type { GameContext } from '@/data/game-context';
 import { PhaserDebugDraw } from '@/screens/PhaserDebugDraw';
+import { animate } from 'animejs';
 import {
   b2Body_ApplyForceToCenter,
   b2Body_GetMass,
@@ -88,6 +89,16 @@ export class PhysicsSystem implements System {
     this.context.systems.register('update', this.updateHandler);
   }
 
+  ramp: number = 1;
+
+  rampUp() {
+    assert(this.context.worldId, 'World ID is not set');
+    this.context.systems.register('update', this.updateHandler);
+
+    this.ramp = 0;
+    animate(this, { ramp: 1, duration: 3000, easing: 'easeOut' });
+  }
+
   destroyWorld() {
     console.log('[PhysicsSystem] Destroying world...');
     assert(this.context.worldId, 'World ID is not set');
@@ -124,7 +135,7 @@ export class PhysicsSystem implements System {
 
     // Step the physics world (delta is in milliseconds, convert to seconds)
     // TODO: fix the loop
-    b2World_Step(worldId, delta / 1000, 4);
+    b2World_Step(worldId, (this.ramp * delta) / 1000, 4);
 
     // Update sprite positions from physics bodies
     UpdateWorldSprites(worldId);

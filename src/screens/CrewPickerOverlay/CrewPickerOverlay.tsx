@@ -4,6 +4,8 @@ import { signal } from '@/core/reactivity/signals/signals';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
+import { LevelSystem } from '@/systems/level/system';
+import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { animate } from 'animejs';
 import { DropShadowFilter } from 'pixi-filters';
@@ -18,6 +20,7 @@ import { ShopSection } from './sections/ShopSection';
 export class CrewPickerOverlay extends Container implements AppScreen {
   static readonly SCREEN_ID = 'crew-picker';
   static readonly assetBundles = ['default'];
+  readonly SCREEN_ID = 'crew-picker';
 
   private _background: Graphics;
   private _popupBackground: LayoutContainer;
@@ -65,6 +68,11 @@ export class CrewPickerOverlay extends Container implements AppScreen {
     console.log('[CrewPickerOverlay] Preparing...');
 
     const gameContext = getGameContext();
+    const physicsSystem = gameContext.systems.get(PhysicsSystem);
+    const levelSystem = gameContext.systems.get(LevelSystem);
+
+    physicsSystem.stop();
+    levelSystem.stop();
 
     disposeContext(CREW_PICKER_CTX);
     const hoveredMember = signal<HoveredCrewMember | null>(null);
@@ -77,7 +85,13 @@ export class CrewPickerOverlay extends Container implements AppScreen {
       <Header
         scrapsCounter={getRunState().scrapsCounter}
         onAddScraps={() => addScraps(50)}
-        onClose={() => gameContext.navigation.dismissCurrentOverlay()}
+        onClose={() => {
+          gameContext.navigation.dismissCurrentOverlay();
+          setTimeout(() => {
+            physicsSystem.rampUp();
+            levelSystem.start();
+          }, 500);
+        }}
       />
       <ShopSection />
       <CrewSection surface={this} />

@@ -1,11 +1,13 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
+import { execute } from '@/core/game/Command';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
 import { activateCrewMember, changeCheese, changeScraps } from '@/data/game-state';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
+import { CrewPickerOverlay } from '@/screens/CrewPickerOverlay/CrewPickerOverlay';
 import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetPosition,
@@ -34,6 +36,7 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite, Texture } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
+import { ShowOverlayCommand } from '../navigation/commands/ShowOverlayCommand';
 import type { CollisionPair } from '../physics/collision-handler';
 import { PhysicsSystem } from '../physics/system';
 import { AddSpriteToWorld, BodyToScreen } from '../physics/WorldSprites';
@@ -262,6 +265,8 @@ export abstract class StartingLevels extends Level {
 
       this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
       this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+
+      execute(ShowOverlayCommand, { overlay: CrewPickerOverlay, waitForCompletion: true });
     });
 
     this.collisions.register('bottom-wall', 'cheese', (pair: CollisionPair) => {
