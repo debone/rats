@@ -28,8 +28,8 @@ import {
   b2PrismaticJoint_GetLowerLimit,
   b2PrismaticJoint_GetUpperLimit,
   b2Vec2,
-  CreateBoxPolygon,
   CreateCircle,
+  CreatePolygon,
   CreatePrismaticJoint,
 } from 'phaser-box2d';
 import { Assets, Sprite, Texture } from 'pixi.js';
@@ -72,16 +72,24 @@ export abstract class StartingLevels extends Level {
 
     const pos = b2Body_GetPosition(tempBodyId);
 
-    const { bodyId } = CreateBoxPolygon({
+    // Create a paddle body as a custom polygon shape using vertices
+    const paddleVertices = [
+      new b2Vec2(2, -0.25),
+      new b2Vec2(1.8, 0.2),
+      new b2Vec2(0.5, 0.5),
+      new b2Vec2(-0.5, 0.5),
+      new b2Vec2(-1.8, 0.2),
+      new b2Vec2(-2, -0.25),
+    ];
+    const { bodyId } = CreatePolygon({
       position: new b2Vec2(pos.x, pos.y),
       type: b2BodyType.b2_dynamicBody,
-      size: new b2Vec2(2, 0.5),
+      vertices: paddleVertices,
       density: 10,
       friction: 0.5,
-      restitution: 1,
       worldId: worldId,
-      userData: { type: 'paddle' },
     });
+    b2Body_SetUserData(bodyId, { type: 'paddle' });
 
     const prismaticJointDef2 = b2DefaultPrismaticJointDef();
     prismaticJointDef2.bodyIdA = anchorBodyId;
