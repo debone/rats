@@ -64,8 +64,8 @@ class BadgeButton extends Button {
 
     const costContainer = new LayoutContainer({
       layout: {
-        width: 20,
-        height: 20,
+        width: 24,
+        height: 24,
         backgroundColor: 0x272736,
         borderColor: 0x57294b,
         borderWidth: 3,
@@ -158,7 +158,10 @@ export class CrewIndicator extends LayoutContainer {
       flexDirection: 'column',
     };
 
-    this.addChild(new Text({ text: 'Crew', style: TEXT_STYLE_DEFAULT, layout: true }));
+    <mount target={this}>
+      <text text="Active Crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 14 }} layout={true} />
+      <text text="Q and W to activate" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 10 }} layout={true} />
+    </mount>;
 
     const crewContainer = new LayoutContainer({
       layout: {
