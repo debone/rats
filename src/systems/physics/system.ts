@@ -201,6 +201,14 @@ export class PhysicsSystem implements System {
     // Add debug graphics to debug layer but don't make it visible yet
     this.context.navigation.addToLayer(this.debugGraphics, LAYER_NAMES.DEBUG, false);
 
+    this.enableDebug.subscribe((value) => {
+      if (value) {
+        this.context.navigation.showLayer(LAYER_NAMES.DEBUG);
+      } else {
+        this.context.navigation.hideLayer(LAYER_NAMES.DEBUG);
+      }
+    });
+
     // Create debug draw instance
     this.debugDraw = new PhaserDebugDraw(this.debugGraphics, MIN_WIDTH + 166, MIN_HEIGHT + 105, PXM * 2);
     this.debugDraw.drawJoints = true;

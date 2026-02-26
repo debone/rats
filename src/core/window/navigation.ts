@@ -40,6 +40,12 @@ export class Navigation {
     }
   }
 
+  showLayer(layer: LayerName): void {
+    if (this.layers && this.layers[layer]) {
+      this.layers[layer].visible = true;
+    }
+  }
+
   hideLayer(layer: LayerName): void {
     if (this.layers && this.layers[layer]) {
       this.layers[layer].visible = false;
