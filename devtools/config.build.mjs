@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => ({
   esbuild: {
     jsx: 'automatic',
     jsxImportSource: '@/core/jsx',
+    jsxDev: false,
+    jsxSideEffects: true,
   },
   build: {
     sourcemap: mode === 'development' ? true : false,

@@ -212,10 +212,18 @@ export class TonePhaserFilter extends ToneFilter<Tone.Phaser> {
  */
 class SFX {
   /** A global volume that affects all sfx sounds. */
-  private _volume = 0.5;
+  private _volume = 0.25;
 
   /** A map of last played time for each sound effect. */
   private lastPlayed: Map<string, number> = new Map();
+
+  private pitchShift?: Tone.PitchShift;
+  private filter?: ToneFilter<Tone.PitchShift>;
+
+  constructor() {
+    //this.pitchShift = new Tone.PitchShift(-0.1);
+    //this.filter = new ToneFilter(this.pitchShift);
+  }
 
   private playSound(alias: string, volume: number, options?: PlayOptions) {
     const now = Date.now();
@@ -238,8 +246,8 @@ class SFX {
 
   public playPitched(alias: string, options?: PlayOptions) {
     const volume = this._volume * (options?.volume ?? 1);
-    const randomPitch = Math.random() * 0.6 - 0.2;
-    this.playSound(alias, volume, { ...options, filters: [new ToneFilter(new Tone.PitchShift(randomPitch))] });
+    //this.filter.effect.pitch = Math.random() * 0.6 - 0.2;
+    this.playSound(alias, volume, { ...options });
   }
 
   /**
