@@ -2,9 +2,11 @@ import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { GameEvent } from '@/data/events';
 import { getRunState } from '@/data/game-state';
-import { PhysicsSystem } from '../../physics/system';
-import { StartNewRunCommand } from './StartNewRunCommand';
 import { UnloadLevelCommand } from '@/systems/level/commands/UnloadLevelCommand';
+import { LevelSystem } from '@/systems/level/system';
+import { PhysicsSystem } from '../../physics/system';
+import { GameEndScreenCommand } from './GameEndScreenCommand';
+import { StartNewRunCommand } from './StartNewRunCommand';
 
 export class GameOverCommand extends Command {
   *execute(): Coroutine {
@@ -12,8 +14,14 @@ export class GameOverCommand extends Command {
 
     // Remove game-specific systems
     const physicsSystem = this.context.systems.get(PhysicsSystem);
+    const levelSystem = this.context.systems.get(LevelSystem);
+
     physicsSystem.stop();
+    levelSystem.stop();
+
     yield execute(UnloadLevelCommand);
+
+    yield execute(GameEndScreenCommand);
 
     // Clear run state
     // this.context.state.run = createDefaultRunState();
