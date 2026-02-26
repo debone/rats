@@ -225,7 +225,11 @@ export default class Level2 extends StartingLevels {
       }
     });
 
+    let exitExecuted = false;
+
     this.collisions.once('ball', 'exit', async (_pair: CollisionPair) => {
+      if (exitExecuted) return;
+      exitExecuted = true;
       await execute(Levels_BallExitedLevelCommand);
       this.onWin();
     });

@@ -13,8 +13,8 @@ import { BodyToScreen, GetSpriteFromBody } from '@/systems/physics/WorldSprites'
 import { B2_ID_EQUALS, b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2Body_SetUserData } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { StartingLevels } from '../StartingLevels';
-import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
 import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
+import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
 import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
 
 export default class Level3 extends StartingLevels {
@@ -230,7 +230,10 @@ export default class Level3 extends StartingLevels {
       }
     });
 
+    let exitExecuted = false;
     this.collisions.once('ball', 'exit', async (_pair: CollisionPair) => {
+      if (exitExecuted) return;
+      exitExecuted = true;
       await execute(Levels_BallExitedLevelCommand);
       this.onWin();
     });

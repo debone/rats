@@ -133,7 +133,10 @@ export default class Level1 extends StartingLevels {
       }
     });
 
+    let exitExecuted = false;
     this.collisions.once('ball', 'exit', async () => {
+      if (exitExecuted) return;
+      exitExecuted = true;
       await execute(Levels_BallExitedLevelCommand);
       this.onWin();
     });
