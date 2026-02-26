@@ -70,7 +70,11 @@ export function CrewSection({ surface }: CrewSectionProps) {
   const section = (
     <layoutContainer layout={panelLayout}>
       <text text="Crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
-      <text text="Drag and drop to make changes" style={TEXT_STYLE_DEFAULT} layout={true} />
+      <text
+        text="Drag and drop to make changes, active crew can use abilities"
+        style={{ ...TEXT_STYLE_DEFAULT, fontSize: 10 }}
+        layout={true}
+      />
       <layoutContainer layout={{ ...panelLayoutBordered, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
         <layoutContainer layout={{ ...panelLayout, gap: 20 }}>
           <text text="Captain" style={TEXT_STYLE_DEFAULT} layout={true} />

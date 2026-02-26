@@ -12,10 +12,7 @@ export interface HoverIntent<T> {
   dispose(): void;
 }
 
-export function createHoverIntent<T>(
-  target: Signal<T | null>,
-  options?: HoverIntentOptions,
-): HoverIntent<T> {
+export function createHoverIntent<T>(target: Signal<T | null>, options?: HoverIntentOptions): HoverIntent<T> {
   const SWITCH_DEBOUNCE_MS = options?.switchDebounceMs ?? 32;
   const LEAVE_DELAY_MS = options?.leaveDelayMs ?? 140;
 

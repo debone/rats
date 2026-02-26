@@ -6,7 +6,7 @@ export const FasterCrewMember: CrewMemberDef = {
   description: 'Some rats can send, fast.',
   textureName: 'avatars_tile_2#0',
 
-  hiringCost: 20,
+  hiringCost: 8,
 
   ability: {
     name: 'Faster balls',

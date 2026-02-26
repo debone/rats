@@ -1,5 +1,5 @@
 import { TEXT_STYLE_DEFAULT } from '@/consts';
-import { pickRandomCrewMember } from '@/entities/crew/Crew';
+import { CREW_DEFS } from '@/entities/crew/Crew';
 import { panelLayout } from '../styles';
 import { ShopCard } from './ShopCard';
 
@@ -8,9 +8,9 @@ export function ShopSection() {
     <layoutContainer layout={panelLayout}>
       <text text="Hire crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
       <layoutContainer layout={{ ...panelLayout, flexDirection: 'row', gap: 10 }}>
-        <ShopCard crewMember={pickRandomCrewMember()} />
-        <ShopCard crewMember={pickRandomCrewMember()} />
-        <ShopCard crewMember={pickRandomCrewMember()} />
+        <ShopCard crewMember={CREW_DEFS.faster} />
+        <ShopCard crewMember={CREW_DEFS.captain} />
+        <ShopCard crewMember={CREW_DEFS.doubler} />
       </layoutContainer>
     </layoutContainer>
   );

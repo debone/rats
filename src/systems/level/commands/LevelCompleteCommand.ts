@@ -4,6 +4,7 @@ import { addCompletedLevel, setCurrentLevelId, type LevelResult } from '@/data/g
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
+import { LevelSystem } from '../system';
 import { LoadLevelCommand } from './LoadLevelCommand';
 import { UnloadLevelCommand } from './UnloadLevelCommand';
 
@@ -12,6 +13,7 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     console.log('[Command] Level Complete', result);
 
     const physicsSystem = this.context.systems.get(PhysicsSystem);
+    const levelSystem = this.context.systems.get(LevelSystem);
 
     // Update run state
     addCompletedLevel(result.levelId);
@@ -22,6 +24,8 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     yield delay(500);
 
     physicsSystem.stop();
+    levelSystem.stop();
+
     yield execute(UnloadLevelCommand);
 
     // Show map screen

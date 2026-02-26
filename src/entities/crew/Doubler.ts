@@ -6,7 +6,7 @@ export const DoublerCrewMember: CrewMemberDef = {
   description: "It's all cheese magic",
   textureName: 'avatars_tile_3#0',
 
-  hiringCost: 50,
+  hiringCost: 25,
 
   ability: {
     name: 'Double balls',

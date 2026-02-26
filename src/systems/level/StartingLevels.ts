@@ -282,7 +282,7 @@ export abstract class StartingLevels extends Level {
       const { x, y } = BodyToScreen(scrapBody);
       this.brickDebrisEmitter!.explode(10, x, y + 4);
 
-      changeScraps(Math.floor(Math.random() * 10) + 1);
+      changeScraps(Math.floor(Math.random() * 1) + 3);
 
       this.context.systems.get(PhysicsSystem).disableGravity(scrapBody);
       this.context.systems.get(PhysicsSystem).queueDestruction(scrapBody);
@@ -476,7 +476,7 @@ export abstract class StartingLevels extends Level {
 
       setTimeout(() => {
         b2Body_SetLinearVelocity(ball.bodyId, new b2Vec2(x, y));
-      }, 0);
+      }, 20);
 
       this.shouldMaintainBallSpeed = true;
     }

@@ -6,6 +6,7 @@ export const i18nDictEnglish = {
 
   'level.start': 'Level Start!',
   'level.complete': 'Level Complete!',
+  'game.over': 'Last ball lost!\n\nRestarting...',
 
   'demo.complete': 'Demo Complete!\n\nThanks for playing!\n\nGoing back to level 1...',
 

@@ -21,18 +21,19 @@ export class ScrapCounter extends LayoutContainer {
       padding: 5,
       gap: 5,
       minHeight: 20,
-      alignItems: 'baseline',
-      minWidth: 48,
+      alignItems: 'center',
+      minWidth: 74,
     };
 
     const scrapSprite = new Sprite({
       texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0'],
+      scale: 2,
     });
 
     scrapSprite.layout = {
       objectFit: 'none',
-      width: 16,
-      height: 16,
+      width: 32,
+      height: 32,
     };
 
     this.addChild(scrapSprite);
@@ -41,7 +42,7 @@ export class ScrapCounter extends LayoutContainer {
       text: '0',
       style: {
         ...TEXT_STYLE_DEFAULT,
-        fontSize: 16,
+        fontSize: 20,
       },
       layout: true,
     });

@@ -15,7 +15,7 @@ export class LevelIndicator extends LayoutContainer {
 
     const levelNameText = new Text({
       text: 'Level 1',
-      style: TEXT_STYLE_DEFAULT,
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 14 },
       layout: true,
     });
 

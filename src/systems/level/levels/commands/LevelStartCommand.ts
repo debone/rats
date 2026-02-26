@@ -5,8 +5,7 @@ import { t } from '@/i18n/i18n';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
 
-const LEVEL_START_DURATION = 10;
-//const LEVEL_START_DURATION = 1000;
+const LEVEL_START_DURATION = import.meta.env.DEV ? 10 : 1000;
 
 export class Levels_LevelStartCommand extends Command<void> {
   *execute() {

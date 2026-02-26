@@ -6,7 +6,7 @@ export const CaptainCrewMember: CrewMemberDef = {
   description: 'A leading rat',
   textureName: 'avatars_tile_4#0',
 
-  hiringCost: 30,
+  hiringCost: 12,
 
   ability: {
     name: 'Speed Up',

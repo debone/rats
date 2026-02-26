@@ -69,6 +69,18 @@ export class LevelSystem implements System {
     this.currentLevel = undefined;
   }
 
+  stop() {
+    console.log('[LevelSystem] Stopping current level...');
+    this.context.systems.unregister('update', this.updateHandler);
+    this.context.systems.unregister('resize', this.resizeHandler);
+  }
+
+  start() {
+    console.log('[LevelSystem] Starting current level...');
+    this.context.systems.register('update', this.updateHandler);
+    this.context.systems.register('resize', this.resizeHandler);
+  }
+
   private updateLevel(delta: number) {
     this.currentLevel!.update(delta);
   }
