@@ -5,6 +5,7 @@
  * These are pure data definitions without implementation logic.
  */
 
+import { MAX_CHEESE } from '@/consts';
 import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
@@ -118,7 +119,7 @@ export function createGameState(): GameState {
     run: {
       currentLevelId: '',
       levelsCompleted: [],
-      ballsRemaining: signal(1),
+      ballsRemaining: signal(5),
       scrapsCounter: signal(0),
       cheeseCounter: signal(0),
       crewMembers: createKeyedCollection([
@@ -127,14 +128,16 @@ export function createGameState(): GameState {
          new DoublerCrewMember('doubler3'),
          new DoublerCrewMember('doubler'),
         /**/
-        new CrewMemberInstance('doubler', 'doubler1'),
-        new CrewMemberInstance('captain', 'captain'),
-        new CrewMemberInstance('faster', 'faster'),
+        //new CrewMemberInstance('doubler', 'doubler1'),
+        //new CrewMemberInstance('captain', 'captain'),
+        //new CrewMemberInstance('faster', 'faster'),
         //new CrewMemberInstance('empty', 'empty'),
         /**/
       ]),
-      firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
-      secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
+      firstMember: signal(undefined),
+      secondMember: signal(undefined),
+      //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
+      //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
       // activeBoons: [],
       // temporaryUpgrades: [],
       // lives: 3,
@@ -199,8 +202,8 @@ export function changeScraps(count: number): void {
   getRunState().scrapsCounter.update((value) => Math.max(0, value + count));
 }
 
-export function changeCheese(count: number): void {
-  getRunState().cheeseCounter.update((value) => Math.max(0, value + count));
+export function changeCheese(delta: number): void {
+  getRunState().cheeseCounter.update((value) => Math.max(0, Math.min(MAX_CHEESE, value + delta)));
 }
 
 export function addBallToRun(count: number): void {
@@ -218,7 +221,11 @@ export function setBallsRemaining(count: number): void {
 export function activateCrewMember(index: number): void {
   const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
 
-  const def = CREW_DEFS[crewMember!.defKey];
+  if (!crewMember) {
+    return;
+  }
+
+  const def = CREW_DEFS[crewMember.defKey];
 
   if (def.ability.cost > getRunState().cheeseCounter.get()) {
     return;
@@ -227,6 +234,6 @@ export function activateCrewMember(index: number): void {
   changeCheese(-def.ability.cost);
 
   getGameContext().events.emit(GameEvent.POWERUP_ACTIVATED, {
-    type: crewMember!.defKey,
+    type: crewMember.defKey,
   });
 }
