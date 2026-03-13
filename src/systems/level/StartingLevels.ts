@@ -12,6 +12,7 @@ import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetPosition,
   b2Body_GetTransform,
+  b2Body_GetUserData,
   b2Body_SetLinearVelocity,
   b2Body_SetTransform,
   b2Body_SetUserData,
@@ -41,6 +42,8 @@ import type { CollisionPair } from '../physics/collision-handler';
 import { PhysicsSystem } from '../physics/system';
 import { AddSpriteToWorld, BodyToScreen } from '../physics/WorldSprites';
 import { Level } from './Level';
+import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
+import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -149,7 +152,7 @@ export abstract class StartingLevels extends Level {
     this.context.systems.get(PhysicsSystem).enableGravity(bodyId);
   }
 
-  createCheese(x: number, y: number): void {
+  createCheese(x: number, y: number, type: CheeseType = 'yellow'): void {
     const worldId = this.context.worldId;
 
     const { bodyId } = CreateCircle({
@@ -162,10 +165,11 @@ export abstract class StartingLevels extends Level {
       restitution: 0,
     });
 
-    b2Body_SetUserData(bodyId, { type: 'cheese' });
-    const cheeseSprite = new Sprite({
-      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'],
-    });
+    const texture = typedAssets.get(ASSETS.prototype).textures[CHEESE_DEFS[type].texture];
+
+    b2Body_SetUserData(bodyId, { type: 'cheese', cheeseType: type });
+
+    const cheeseSprite = new Sprite(texture);
     cheeseSprite.anchor.set(0.5, 0.5);
     this.context.container!.addChild(cheeseSprite);
     AddSpriteToWorld(this.context.worldId!, cheeseSprite, bodyId, 0, 0);
@@ -214,10 +218,19 @@ export abstract class StartingLevels extends Level {
     this.doors.push(bodyId);
   }
 
-  addBrick(texture: Texture, bodyId: b2BodyId): void {
+  addBrick(texture: Texture, bodyId: b2BodyId, powerUp?: BrickPowerUps): void {
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5, 0.5);
     this.context.container!.addChild(sprite);
+
+    if (powerUp) {
+      const powerUpTexture = typedAssets.get(ASSETS.prototype).textures[BRICK_POWER_UP_DEFS[powerUp].texture];
+      const powerUpSprite = new Sprite(powerUpTexture);
+      powerUpSprite.anchor.set(0.5, 0.5);
+      this.context.container!.addChild(powerUpSprite);
+      AddSpriteToWorld(this.context.worldId!, powerUpSprite, bodyId);
+    }
+
     AddSpriteToWorld(this.context.worldId!, sprite, bodyId);
     this.registerBody(bodyId);
     this.bricksCount++;
@@ -259,14 +272,31 @@ export abstract class StartingLevels extends Level {
     });
 
     this.collisions.register('cheese', 'paddle', (pair: CollisionPair) => {
-      changeCheese(1);
-
       const cheeseBody = pair.bodyA;
 
-      this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
-      this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+      const userData = b2Body_GetUserData(cheeseBody) as { cheeseType?: CheeseType } | null;
+      const cheeseType = userData?.cheeseType as CheeseType | undefined;
 
-      execute(ShowOverlayCommand, { overlay: CrewPickerOverlay, waitForCompletion: true });
+      if (cheeseType === 'blue') {
+        changeCheese(1);
+
+        const cheeseBody = pair.bodyA;
+
+        this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
+        this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+
+        execute(ShowOverlayCommand, { overlay: CrewPickerOverlay, waitForCompletion: true });
+      }
+
+      if (cheeseType === 'yellow') {
+        changeCheese(1);
+        this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+      }
+
+      if (cheeseType === 'green') {
+        changeCheese(3);
+        this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
+      }
     });
 
     this.collisions.register('bottom-wall', 'cheese', (pair: CollisionPair) => {

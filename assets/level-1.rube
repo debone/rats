@@ -53,6 +53,13 @@
       "displayName" : "Type",
       "name" : "type",
       "type" : "string"
+    },
+    
+    {
+      "class" : "body",
+      "displayName" : "powerup",
+      "name" : "powerup",
+      "type" : "string"
     }
   ],
   "metaworld" : 
@@ -79,6 +86,51 @@
     },
     "metabody" : 
     [
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 1,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 1,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 4,
+          "y" : 3.5
+        },
+        "type" : "static"
+      },
       
       {
         "angle" : 0,
@@ -284,6 +336,51 @@
           
           {
             "density" : 1,
+            "id" : 5,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 5,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 4,
+          "y" : 2.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
             "id" : 7,
             "name" : "fixture1",
             "restitution" : 1,
@@ -306,8 +403,958 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -7,
+          "x" : -8,
           "y" : 2.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 6,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 7,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 4,
+          "y" : 1.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 8,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 8,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 4,
+          "y" : 0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 9,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 9,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 4,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 10,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 10,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -8,
+          "y" : 0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 11,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 11,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -6,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 12,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 12,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -2,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 13,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 13,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 0,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 14,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 14,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 2,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 15,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 15,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -4,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 16,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 16,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 6,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 17,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 17,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 8,
+          "y" : 0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 18,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 18,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -8,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 19,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 19,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -10,
+          "y" : 0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 20,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 20,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -10,
+          "y" : 2.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 21,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 21,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -8,
+          "y" : 3.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 22,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 22,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : -10,
+          "y" : 1.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 23,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 23,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 8,
+          "y" : -0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 24,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 24,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 10,
+          "y" : 0.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 25,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 25,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 10,
+          "y" : 2.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 26,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 26,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 8,
+          "y" : 3.5
+        },
+        "type" : "static"
+      },
+      
+      {
+        "angle" : 0,
+        "angularVelocity" : 0,
+        "awake" : true,
+        "customProperties" : 
+        [
+          
+          {
+            "name" : "type",
+            "string" : "brick"
+          }
+        ],
+        "fixture" : 
+        [
+          
+          {
+            "density" : 1,
+            "id" : 27,
+            "name" : "fixture1",
+            "restitution" : 1,
+            "shapes" : 
+            [
+              
+              {
+                "type" : "polygon"
+              }
+            ],
+            "vertices" : 
+            {
+              "x" : [ -1, 1, 1, -1 ],
+              "y" : [ -0.5, -0.5, 0.5, 0.5 ]
+            }
+          }
+        ],
+        "id" : 27,
+        "linearVelocity" : 0,
+        "name" : "brick",
+        "position" : 
+        {
+          "x" : 10,
+          "y" : 1.5
         },
         "type" : "static"
       },
@@ -520,6 +1567,11 @@
         [
           
           {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -551,7 +1603,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -5,
+          "x" : -6,
           "y" : 2.5
         },
         "type" : "static"
@@ -596,7 +1648,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -5,
+          "x" : -6,
           "y" : 3.5
         },
         "type" : "static"
@@ -702,6 +1754,11 @@
         [
           
           {
+            "name" : "powerup",
+            "string" : "green"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -733,7 +1790,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -5,
+          "x" : -6,
           "y" : 1.5
         },
         "type" : "static"
@@ -745,6 +1802,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
           
           {
             "name" : "type",
@@ -778,7 +1840,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -7,
+          "x" : -8,
           "y" : 1.5
         },
         "type" : "static"
@@ -790,6 +1852,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
           
           {
             "name" : "type",
@@ -823,7 +1890,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -5,
+          "x" : -6,
           "y" : 0.5
         },
         "type" : "static"
@@ -868,7 +1935,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 3,
+          "x" : 2,
           "y" : 3.5
         },
         "type" : "static"
@@ -913,7 +1980,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 1,
+          "x" : 0,
           "y" : 3.5
         },
         "type" : "static"
@@ -958,7 +2025,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -3,
+          "x" : -4,
           "y" : 2.5
         },
         "type" : "static"
@@ -1003,7 +2070,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -1,
+          "x" : -2,
           "y" : 2.5
         },
         "type" : "static"
@@ -1048,7 +2115,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 1,
+          "x" : 0,
           "y" : 2.5
         },
         "type" : "static"
@@ -1093,7 +2160,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 3,
+          "x" : 2,
           "y" : 2.5
         },
         "type" : "static"
@@ -1138,7 +2205,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -3,
+          "x" : -4,
           "y" : 3.5
         },
         "type" : "static"
@@ -1183,7 +2250,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 3,
+          "x" : 2,
           "y" : 1.5
         },
         "type" : "static"
@@ -1228,7 +2295,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -1,
+          "x" : -2,
           "y" : 0.5
         },
         "type" : "static"
@@ -1273,7 +2340,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -1,
+          "x" : -2,
           "y" : 1.5
         },
         "type" : "static"
@@ -1318,7 +2385,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -1,
+          "x" : -2,
           "y" : 3.5
         },
         "type" : "static"
@@ -1330,6 +2397,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
           
           {
             "name" : "type",
@@ -1363,7 +2435,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -3,
+          "x" : -4,
           "y" : 1.5
         },
         "type" : "static"
@@ -1408,7 +2480,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 1,
+          "x" : 0,
           "y" : 0.5
         },
         "type" : "static"
@@ -1453,7 +2525,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 3,
+          "x" : 2,
           "y" : 0.5
         },
         "type" : "static"
@@ -1465,6 +2537,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "blue"
+          },
           
           {
             "name" : "type",
@@ -1498,7 +2575,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 1,
+          "x" : 0,
           "y" : 1.5
         },
         "type" : "static"
@@ -1543,7 +2620,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : -3,
+          "x" : -4,
           "y" : 0.5
         },
         "type" : "static"
@@ -1588,7 +2665,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 7,
+          "x" : 8,
           "y" : 2.5
         },
         "type" : "static"
@@ -1600,6 +2677,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
           
           {
             "name" : "type",
@@ -1633,7 +2715,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 5,
+          "x" : 6,
           "y" : 0.5
         },
         "type" : "static"
@@ -1645,6 +2727,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
           
           {
             "name" : "type",
@@ -1678,7 +2765,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 5,
+          "x" : 6,
           "y" : 2.5
         },
         "type" : "static"
@@ -1723,7 +2810,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 5,
+          "x" : 6,
           "y" : 3.5
         },
         "type" : "static"
@@ -1735,6 +2822,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "yellow"
+          },
           
           {
             "name" : "type",
@@ -1768,7 +2860,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 7,
+          "x" : 8,
           "y" : 1.5
         },
         "type" : "static"
@@ -1780,6 +2872,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "powerup",
+            "string" : "green"
+          },
           
           {
             "name" : "type",
@@ -1813,7 +2910,7 @@
         "name" : "brick",
         "position" : 
         {
-          "x" : 5,
+          "x" : 6,
           "y" : 1.5
         },
         "type" : "static"

@@ -1,6 +1,6 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { sfx } from '@/core/audio/audio';
+import { bgm, sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
@@ -17,6 +17,7 @@ import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Level_1_DoorOpenCommand } from './commands/Level1_DoorOpenCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
 import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
+import type { BrickPowerUps } from '@/entities/bricks/Brick';
 
 /**
  * Level 1 - Tutorial/First Level
@@ -69,7 +70,7 @@ export default class Level1 extends StartingLevels {
 
     loadedBodies.forEach((bodyId) => {
       if (!b2Body_IsValid(bodyId)) return;
-      const userData = b2Body_GetUserData(bodyId) as { type: string } | null;
+      const userData = b2Body_GetUserData(bodyId) as { type: string; powerup?: BrickPowerUps } | null;
       if (userData?.type === 'brick') {
         if (this.debug_mode && i !== 9) {
           this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
@@ -77,7 +78,9 @@ export default class Level1 extends StartingLevels {
           return;
         }
 
-        this.addBrick(bg[`bricks_tile_1#0`], bodyId);
+        const powerUp = userData?.powerup as BrickPowerUps | undefined;
+
+        this.addBrick(bg[`bricks_tile_1#0`], bodyId, powerUp);
 
         //sprite.filters = [glow];
         i++;
@@ -109,18 +112,25 @@ export default class Level1 extends StartingLevels {
 
       const brickBody = pair.bodyB;
 
+      const userData = b2Body_GetUserData(brickBody) as { powerup?: BrickPowerUps } | null;
+      const powerUp = userData?.powerup as BrickPowerUps | undefined;
+
       // Spawn debris particles at brick position
       const { x, y } = BodyToScreen(brickBody);
       this.brickDebrisEmitter!.explode(8, x, y);
 
-      const random = Math.random();
-      if (random < 0.2) {
-        this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
-      } else if (random < 0.5) {
-        this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
-        this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
+      if (powerUp) {
+        this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y, powerUp);
       } else {
-        this.createScrap(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
+        const random = Math.random();
+        if (random < 0.2) {
+          this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
+        } else if (random < 0.5) {
+          this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
+          this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
+        } else {
+          this.createScrap(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
+        }
       }
 
       // Remove the brick
