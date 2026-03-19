@@ -10,6 +10,7 @@ export const i18nDictEnglish = {
 
   'demo.complete': 'Demo Complete!\n\nThanks for playing!\n\nGoing back to level 1...',
 
+  'level-0.name': '0 - The origin',
   'level-1.name': '1 - Starting grounds',
   'level-2.name': '3 - Splitting ways',
   'level-3.name': '2 - The hook',

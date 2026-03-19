@@ -1,7 +1,7 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { setBallsRemaining } from '@/data/game-state';
-import { MapScreen } from '@/screens/MapScreen';
+import { FirstCrewSelector } from '@/screens/FirstCrewSelector';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { SaveSystem } from '../../save/system';
@@ -28,6 +28,6 @@ export class StartNewRunCommand extends Command<{ startingLevelId: string }> {
     }
 
     // Show game screen
-    yield execute(ShowScreenCommand, { screen: MapScreen });
+    yield execute(ShowScreenCommand, { screen: FirstCrewSelector });
   }
 }

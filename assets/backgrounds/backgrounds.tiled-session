@@ -22,27 +22,35 @@
             "scaleInEditor": 1
         },
         "level-1.tmx": {
-            "scale": 1.0367,
+            "scale": 1.6053,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 279.2514710137937,
-                "y": 398.3794733288318
+                "x": 337.943063601819,
+                "y": 322.05818227122654
             }
         },
         "level-2-split.tmx": {
-            "scale": 2.0562,
+            "scale": 1.4041,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 364.9936776578154,
-                "y": 567.5517945725124
+                "x": 415.5686916886262,
+                "y": 582.5795883484083
+            }
+        },
+        "level-2.tmx": {
+            "scale": 1.05,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 303.3333333333333,
+                "y": 360
             }
         },
         "level-3.tmx": {
-            "scale": 0.9848,
+            "scale": 1.3513,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 391.4500406173842,
-                "y": 518.8870836718115
+                "x": 428.1062680381855,
+                "y": 469.17782875749276
             }
         },
         "prototype-1.tmx": {
@@ -69,11 +77,12 @@
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [
-        "level-2-split.tmx",
+        "level-1.tmx",
+        "level-2.tmx",
         "level-3.tmx",
+        "level-2-split.tmx",
         "prototype-1.tmx",
         "level-1-tileset.tsx",
-        "level-1.tmx",
         "broad-bg.tsx",
         "bricks-test.tsx",
         "tiles.tsx"

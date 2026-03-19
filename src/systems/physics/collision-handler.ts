@@ -73,6 +73,14 @@ export class CollisionHandlerRegistry {
     return this;
   }
 
+  replaceRegister(typeA: string, typeB: string, handler: CollisionHandler): this {
+    if (this.hasHandler(typeA, typeB)) {
+      this.unregister(typeA, typeB);
+    }
+    this.register(typeA, typeB, handler);
+    return this;
+  }
+
   /**
    * Register a handler for a type pair that will be called only once.
    * @param typeA - First body type

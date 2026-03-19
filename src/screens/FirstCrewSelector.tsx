@@ -7,13 +7,12 @@ import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
+import { buttonLayout } from './CrewPickerOverlay/styles';
+import { CREW_DEFS, CrewMemberInstance, type CrewMemberDef } from '@/entities/crew/Crew';
+import { getRunState } from '@/data/game-state';
 
-/**
- * MapScreen - Placeholder for level selection map
- * TODO: Implement actual map UI
- */
-export class MapScreen extends Container implements AppScreen {
-  static readonly SCREEN_ID = 'map';
+export class FirstCrewSelector extends Container implements AppScreen {
+  static readonly SCREEN_ID = 'first-crew-selector';
   static readonly assetBundles = ['default'];
 
   constructor() {
@@ -31,23 +30,36 @@ export class MapScreen extends Container implements AppScreen {
     });
   }
 
+  selectCrewMember(crewMember: CrewMemberDef) {
+    const crewMemberInstance = new CrewMemberInstance(
+      crewMember.type,
+      `crew-${crewMember.type}-${Math.random().toString(36).substring(2, 6)}`,
+    );
+    getRunState().firstMember.set(crewMemberInstance);
+    execute(LevelSelectedCommand, { levelId: 'level-1' });
+  }
+
   async prepare() {
     const navigation = getGameContext().navigation;
     navigation.addToLayer(this, LAYER_NAMES.UI);
 
-    const text = new Text({
-      text: 'Map Screen (TODO)',
-      style: { ...TEXT_STYLE_DEFAULT, fontSize: 24 },
-      layout: true,
-    });
-    this.addChild(text);
+    <mount target={this}>
+      <text text="Pick your first crew member" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 24 }} layout={true} />
+      <button
+        layout={{ ...buttonLayout, backgroundColor: 0x57294b }}
+        onPress={() => this.selectCrewMember(CREW_DEFS.captain)}
+      >
+        <text text="Captain" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
+      </button>
+      <button
+        layout={{ ...buttonLayout, backgroundColor: 0x57294b }}
+        onPress={() => this.selectCrewMember(CREW_DEFS.faster)}
+      >
+        <text text="Faster" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
+      </button>
+    </mount>;
 
-    const button = new Button(new Graphics({ layout: { width: 100, height: 50 } }).rect(0, 0, 100, 50).fill('red'));
-    button.onPress.connect(() => execute(LevelSelectedCommand, { levelId: 'level-1' }));
-
-    this.addChild(button.view!);
-
-    execute(LevelSelectedCommand, { levelId: 'level-1' });
+    execute(LevelSelectedCommand, { levelId: 'level-0' });
   }
 
   gameContainer?: LayoutContainer;

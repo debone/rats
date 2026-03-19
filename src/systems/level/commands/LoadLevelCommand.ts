@@ -20,7 +20,7 @@ export class LoadLevelCommand extends Command<{ levelId: string }> {
 
     this.context.phase = 'level';
 
-    if (getRunState().currentLevelId !== 'level-1') {
+    if (getRunState().currentLevelId !== 'level-0') {
       yield execute(ShowOverlayCommand, { overlay: CrewPickerOverlay });
     }
 
