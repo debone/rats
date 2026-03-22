@@ -2,7 +2,7 @@
  * A dictionary of strings used in-game
  */
 export const i18nDictEnglish = {
-  pixiLogoHeader: 'Made with',
+  'crew-picker.header.start': 'Continue',
 
   'level.start': 'Level Start!',
   'level.complete': 'Level Complete!',

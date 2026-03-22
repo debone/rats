@@ -233,7 +233,14 @@ export function activateCrewMember(index: number): void {
 
   changeCheese(-def.ability.cost);
 
-  getGameContext().events.emit(GameEvent.POWERUP_ACTIVATED, {
-    type: crewMember.defKey,
-  });
+  const powerupEvent = {
+    faster: GameEvent.POWERUP_FASTER,
+    doubler: GameEvent.POWERUP_DOUBLER,
+    captain: GameEvent.POWERUP_CAPTAIN,
+  } as const;
+
+  const event = powerupEvent[crewMember.defKey as keyof typeof powerupEvent];
+  if (event) {
+    getGameContext().events.emit(event);
+  }
 }

@@ -1,39 +1,44 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
-import { shake } from '@/core/camera/effects/shake';
+import { getEntities, type AttachHandle } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
-import { getRunState } from '@/data/game-state';
+import { GameEvent } from '@/data/events';
+import { activateCrewMember, getRunState } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
-import { type CollisionPair } from '@/systems/physics/collision-handler';
+import { Paddle, type PaddleEntity } from '@/systems/level/levels/level-0/Paddle';
+import { Wall, wallSparkOnBall } from '@/systems/level/levels/level-0/Wall';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
-import {
-  B2_ID_EQUALS,
-  b2Body_GetPosition,
-  b2Body_GetUserData,
-  b2Body_IsValid,
-  b2Body_SetUserData,
-  b2BodyId,
-  b2BodyType,
-  b2Vec2,
-  CreatePolygon,
-} from 'phaser-box2d';
+import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2BodyId, b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
+import { InputDevice } from 'pixijs-input-devices';
 import { StartingLevels } from '../StartingLevels';
+
+import { assert } from '@/core/common/assert';
+import { ENTITY_KINDS } from '@/core/entity/entity-kinds';
+import { getEntitiesOfKind } from '@/core/entity/known-entities';
+import { state } from '@/core/state/state';
 import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
-import type { CheeseType } from '@/entities/cheese/Cheese';
+import { attachPaddleBallSnap } from './level-0/attachments/paddleBallSnap';
+import { attachCaptainBoost } from './level-0/attachments/paddleCaptainBoost';
+import { Brick, type BrickEntity } from './level-0/Brick';
+import { BlueCheese, GreenCheese, YellowCheese } from './level-0/Cheese';
+import { Door, type DoorEntity } from './level-0/Door';
+import { NormBall } from './level-0/NormBall';
+import { Scrap } from './level-0/Scrap';
 
 export default class Level0 extends StartingLevels {
   static id = 'level-0';
 
-  private doorOpened = 0;
+  private paddleEntity?: PaddleEntity;
 
-  private blueCheeseBrickPosition: b2Vec2 | null = null;
+  private ballSnap?: AttachHandle<{ launch: () => void; jointId: b2JointId }>;
+  private captainBoostHandle?: { detach: () => void };
 
   constructor() {
     super({
@@ -42,32 +47,76 @@ export default class Level0 extends StartingLevels {
     });
   }
 
-  addRawBlueBrick(position: b2Vec2): b2BodyId {
-    // Create a paddle body as a custom polygon shape using vertices
-    const brickVertices = [new b2Vec2(-0.5, 0.5), new b2Vec2(0.5, 0.5), new b2Vec2(0.5, -0.5), new b2Vec2(-0.5, -0.5)];
+  /** Level-0: `attachPaddleBallSnap` + `attachBallLaunchInput`; keeps `ballPrismaticJointId` for base typings. */
+  createBall(): void {
+    assert(this.paddleEntity, 'Level0 createBall: paddleEntity must be defined');
 
-    const { bodyId } = CreatePolygon({
-      position: new b2Vec2(position.x, position.y),
-      type: b2BodyType.b2_staticBody,
-      vertices: brickVertices,
-      worldId: this.context.worldId!,
-    });
-    b2Body_SetUserData(bodyId, { type: 'brick', powerup: 'blue' });
+    const paddlePosition = b2Body_GetPosition(this.paddleEntity.bodyId);
+    const normBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+    this.ballsCount++;
 
-    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
-    this.addBrick(bg[`bricks_tile_1#0`], bodyId, 'blue');
-
-    this.registerBody(bodyId);
-
-    return bodyId;
+    this.ballSnap?.detach();
+    this.ballSnap = attachPaddleBallSnap(this.paddleEntity, normBall);
   }
+
+  /**
+   * Level-0: doubler unchanged; captain uses `attachCaptainBoost` instead of base `speedBoat`.
+   * Does not call `StartingLevels.setupEventListeners` to avoid duplicate captain handling.
+   */
+  setupEventListeners(): void {
+    this.eventCleanups.push(
+      this.context.events.on(GameEvent.POWERUP_DOUBLER, () => {
+        console.log('[Level0] Powerup: doubler');
+        getEntitiesOfKind(ENTITY_KINDS.normBall).forEach((ball) => {
+          const position = b2Body_GetPosition(ball.bodyId);
+          const newBall = NormBall({ x: position.x, y: position.y });
+          newBall.startUpdating();
+        });
+        this.doubleBalls();
+      }),
+    );
+
+    this.eventCleanups.push(
+      this.context.events.on(GameEvent.POWERUP_CAPTAIN, () => {
+        console.log('[Level0] Powerup: captain');
+        if (!this.paddleEntity) return;
+        this.captainBoostHandle?.detach();
+        this.captainBoostHandle = attachCaptainBoost(this.paddleEntity);
+      }),
+    );
+  }
+
+  /** Level-0: crew keys only — movement + ball launch live on `Paddle` + attachments. */
+  updatePaddleInput(): void {
+    if (InputDevice.keyboard.key.KeyQ && !this.isQDown) {
+      this.isQDown = true;
+      this.lastQDownTime = performance.now();
+      activateCrewMember(0);
+    } else if (!InputDevice.keyboard.key.KeyQ && this.isQDown) {
+      const timeDown = performance.now() - this.lastQDownTime;
+      if (timeDown > 50) {
+        this.isQDown = false;
+      }
+    }
+
+    if (InputDevice.keyboard.key.KeyW && !this.isWDown) {
+      this.isWDown = true;
+      this.lastWDownTime = performance.now();
+      activateCrewMember(1);
+    } else if (!InputDevice.keyboard.key.KeyW && this.isWDown) {
+      const timeDown = performance.now() - this.lastWDownTime;
+      if (timeDown > 50) {
+        this.isWDown = false;
+      }
+    }
+  }
+
+  private ballsCount = 0;
 
   async load(): Promise<void> {
     console.log('[Level0] Loading...');
 
-    // Setup collision handlers
-    this.registerDefaultCollisionHandlers();
-    this.setupCollisionHandlers();
+    //this.registerDefaultCollisionHandlers();
     this.setupEventListeners();
 
     setTimeout(() => {
@@ -87,127 +136,192 @@ export default class Level0 extends StartingLevels {
       this.context.worldId!,
     );
 
-    const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
+    this.createBackground();
+    this.createParticleEmitters();
 
     // Create paddle (kinematic body controlled by player)
-    this.createPaddle(paddleJoint!);
+    const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
+    this.paddleEntity = Paddle({ jointId: paddleJoint!, brickDebrisEmitter: this.brickDebrisEmitter! });
 
     // Create ball
     this.createBall();
 
-    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
+    let doorA: DoorEntity | undefined = undefined;
+    let doorB: DoorEntity | undefined = undefined;
+    let doorBCheeseLeft = 5;
+    let doorC: DoorEntity | undefined = undefined;
+
+    let exitExecuted = false;
 
     loadedBodies.forEach((bodyId) => {
       if (!b2Body_IsValid(bodyId)) return;
-      const userData = b2Body_GetUserData(bodyId) as { type: string; powerup?: BrickPowerUps } | null;
-      if (userData?.type === 'brick') {
+      const userData = b2Body_GetUserData(bodyId) as {
+        type: string;
+        powerup?: BrickPowerUps;
+        doorName?: string;
+      } | null;
+      const tag = userData?.type;
+      if (tag === 'brick') {
         const powerUp = userData?.powerup as BrickPowerUps | undefined;
+        this.bricksCount++;
 
-        if (powerUp === 'blue') {
-          this.blueCheeseBrickPosition = b2Body_GetPosition(bodyId);
+        if (powerUp) {
+          let brickBodyId: b2BodyId | undefined = bodyId;
+          let brickSpawnPos: { x: number; y: number } = b2Body_GetPosition(bodyId);
+          let brickSpawnX = brickSpawnPos.x;
+          let brickSpawnY = brickSpawnPos.y;
+
+          const Cheese = powerUp === 'blue' ? BlueCheese : powerUp === 'green' ? GreenCheese : YellowCheese;
+
+          const done =
+            powerUp === 'blue'
+              ? () => {
+                  doorA?.open();
+                }
+              : powerUp === 'green'
+                ? () => {
+                    doorC?.open();
+                  }
+                : () => {
+                    doorBCheeseLeft--;
+                    if (doorBCheeseLeft === 0) {
+                      doorB?.open();
+                    }
+                  };
+
+          state(
+            {
+              brick: (transition) => {
+                this.bricksCount++;
+
+                Brick({
+                  bodyId: brickBodyId,
+                  spawnPos: { x: brickSpawnX, y: brickSpawnY },
+                  debrisEmitter: this.brickDebrisEmitter!,
+                  powerUp,
+                  onBreak: () => {
+                    this.bricksCount--;
+                    transition('cheese');
+                  },
+                });
+              },
+              cheese: (transition) => {
+                Cheese({
+                  pos: { x: brickSpawnX, y: brickSpawnY },
+                  onCollected: () => transition('done'),
+                  onLost: () => {
+                    brickBodyId = undefined;
+                    transition('brick');
+                  },
+                });
+              },
+              done: () => {
+                done?.();
+              },
+            },
+            'brick',
+          );
+        } else {
+          Brick({
+            powerUp,
+            bodyId,
+            debrisEmitter: this.brickDebrisEmitter!,
+            onBreak: (brick: BrickEntity) => {
+              Scrap({
+                pos: { x: brick.spawnPos.x - 0.25, y: brick.spawnPos.y },
+              });
+
+              Scrap({
+                pos: { x: brick.spawnPos.x + 0.25, y: brick.spawnPos.y },
+              });
+
+              this.bricksCount--;
+            },
+          });
         }
+      } else if (tag === 'left-wall' || tag === 'right-wall' || tag === 'top-wall') {
+        Wall({
+          bodyId,
+          wallCollisionTag: tag,
+          onBall: wallSparkOnBall(tag, this.wallEmitter!),
+        });
+      } else if (tag === 'exit') {
+        Wall({
+          bodyId,
+          wallCollisionTag: tag,
+          onBall: async () => {
+            if (exitExecuted) return;
+            exitExecuted = true;
+            await execute(Levels_BallExitedLevelCommand);
+            this.onWin();
+          },
+        });
+      } else if (tag === 'bottom-wall') {
+        Wall({
+          bodyId,
+          wallCollisionTag: tag,
+          onCheese: async ({ cheeseBody }) => {
+            const { x, y } = BodyToScreen(cheeseBody.bodyId);
+            this.waterEmitter!.explode(25, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            cheeseBody.destroy();
+          },
+          onBall: async ({ ballBody }) => {
+            const { x, y } = BodyToScreen(ballBody.bodyId);
+            this.waterEmitter!.explode(100, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
 
-        this.addBrick(bg[`bricks_tile_1#0`], bodyId, powerUp);
+            ballBody.destroy();
 
-        //sprite.filters = [glow];
-      } else if (userData?.type === 'door') {
-        this.addDoor(bg[`bricks_tile_2#0`], bodyId);
+            this.ballsCount--;
+            if (this.ballsCount === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              this.createBall();
+            }
+          },
+          onScrap: async ({ scrapBody }) => {
+            const { x, y } = BodyToScreen(scrapBody.bodyId);
+            this.waterEmitter!.explode(10, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            scrapBody.destroy();
+          },
+        });
+      } else if (tag === 'door') {
+        const pos = b2Body_GetPosition(bodyId);
+        const spawnPos = { x: pos.x, y: pos.y };
+        this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+
+        const door = Door({
+          spawnPos,
+          length: 2,
+        });
+
+        if (userData?.doorName === 'door-a') {
+          doorA = door;
+        } else if (userData?.doorName === 'door-b') {
+          doorB = door;
+          doorB.openingDirection = 'right';
+        } else if (userData?.doorName === 'door-c') {
+          doorC = door;
+        }
+      } else {
+        this.registerBody(bodyId);
       }
-
-      this.registerBody(bodyId);
     });
 
-    this.createBackground();
-    this.createParticleEmitters();
+    setTimeout(() => {
+      throw new Error(
+        "just keeping this error here so I don't forget that I'm not registering all the physics bodies anymore and even though I have the unmounts and such, I don't call it.",
+      );
+    }, 30_000);
 
     await execute(Levels_LevelStartCommand);
 
+    const entities = getEntities();
+
+    console.log('[Level0] Entities:', entities);
+
     console.log('[Level0] Loaded');
-  }
-
-  private setupCollisionHandlers(): void {
-    // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
-    this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
-      if (Math.random() < 0.5) {
-        sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10);
-      } else {
-        sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
-      }
-
-      shake(this.context.camera!, { intensity: Math.random() * 1, duration: 300 });
-
-      const brickBody = pair.bodyB;
-
-      const userData = b2Body_GetUserData(brickBody) as { powerup?: BrickPowerUps } | null;
-      const powerUp = userData?.powerup as BrickPowerUps | undefined;
-
-      // Spawn debris particles at brick position
-      const { x, y } = BodyToScreen(brickBody);
-      this.brickDebrisEmitter!.explode(8, x, y);
-
-      if (powerUp) {
-        this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y, powerUp);
-      } else {
-        this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
-        this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
-      }
-
-      // Remove the brick
-      this.removeBrick(brickBody);
-    });
-
-    let exitExecuted = false;
-    this.collisions.once('ball', 'exit', async () => {
-      if (exitExecuted) return;
-      exitExecuted = true;
-      await execute(Levels_BallExitedLevelCommand);
-      this.onWin();
-    });
-
-    this.collisions.replaceRegister('cheese', 'paddle', (pair: CollisionPair) => {
-      const cheeseBody = pair.bodyA;
-
-      const userData = b2Body_GetUserData(cheeseBody) as { cheeseType?: CheeseType } | null;
-      const cheeseType = userData?.cheeseType as CheeseType | undefined;
-
-      if (cheeseType === 'blue') {
-        this.doorOpened++;
-      }
-    });
-
-    this.collisions.replaceRegister('bottom-wall', 'cheese', (pair: CollisionPair) => {
-      const cheeseBody = pair.bodyB;
-
-      const { x, y } = BodyToScreen(cheeseBody);
-      this.waterEmitter!.explode(20, x, y);
-
-      this.addRawBlueBrick(this.blueCheeseBrickPosition!);
-
-      this.context.systems.get(PhysicsSystem).disableGravity(cheeseBody);
-      this.context.systems.get(PhysicsSystem).queueDestruction(cheeseBody);
-    });
-
-    this.collisions.register('ball', 'bottom-wall', async (pair: CollisionPair) => {
-      const ball = pair.bodyA;
-      console.log('Ball hit bottom wall');
-
-      const { x, y } = BodyToScreen(ball);
-      this.waterEmitter!.explode(100, x, y);
-
-      sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
-
-      // Cleaning up this specific ball, not all
-      this.balls.find((b) => B2_ID_EQUALS(b.bodyId, ball))?.destroy();
-      this.balls = this.balls.filter((b) => !B2_ID_EQUALS(b.bodyId, ball));
-
-      if (this.balls.length === 0) {
-        this.shouldMaintainBallSpeed = false;
-
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        this.createBall();
-      }
-    });
   }
 
   private createBackground(): void {

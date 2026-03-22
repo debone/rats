@@ -1,6 +1,7 @@
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { computed } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
+import { t } from '@/i18n/i18n';
 import { getScrapsTexture } from '../actions';
 import { buttonLayout, panelLayout, panelLayoutBordered } from '../styles';
 
@@ -28,7 +29,7 @@ export function Header({ scrapsCounter, onAddScraps, onClose }: HeaderProps) {
         <text text={scrapsText} style={TEXT_STYLE_DEFAULT} layout={true} />
       </box>
       <button layout={{ ...buttonLayout, backgroundColor: 0x57294b }} onPress={onClose}>
-        <text text="Start Run" style={TEXT_STYLE_DEFAULT} layout={true} />
+        <text text={t.dict['crew-picker.header.start']} style={TEXT_STYLE_DEFAULT} layout={true} />
       </button>
     </layoutContainer>
   );

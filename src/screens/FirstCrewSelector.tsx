@@ -2,14 +2,13 @@ import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { execute } from '@/core/game/Command';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
+import { CREW_DEFS, CrewMemberInstance, type CrewMemberDef } from '@/entities/crew/Crew';
 import { LevelSelectedCommand } from '@/systems/app/commands/LevelSelectedCommand';
 import { LayoutContainer } from '@pixi/layout/components';
-import { Button } from '@pixi/ui';
 import { animate } from 'animejs';
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container } from 'pixi.js';
 import { buttonLayout } from './CrewPickerOverlay/styles';
-import { CREW_DEFS, CrewMemberInstance, type CrewMemberDef } from '@/entities/crew/Crew';
-import { getRunState } from '@/data/game-state';
 
 export class FirstCrewSelector extends Container implements AppScreen {
   static readonly SCREEN_ID = 'first-crew-selector';
@@ -59,7 +58,7 @@ export class FirstCrewSelector extends Container implements AppScreen {
       </button>
     </mount>;
 
-    execute(LevelSelectedCommand, { levelId: 'level-0' });
+    execute(LevelSelectedCommand, { levelId: 'level-1' });
   }
 
   gameContainer?: LayoutContainer;

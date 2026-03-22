@@ -14,6 +14,7 @@ import {
   type b2BodyId,
 } from 'phaser-box2d';
 import { CollisionHandlerRegistry } from '../physics/collision-handler';
+import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 
 /** Configuration for a level */
@@ -101,6 +102,45 @@ export abstract class Level {
     this.checkCollisions(this.context.worldId!);
   }
 
+  private dispatchCollision(bodyIdA: b2BodyId, bodyIdB: b2BodyId): void {
+    const entityCollisions = this.context.systems.get(EntityCollisionSystem);
+    const entityA = entityCollisions.get(bodyIdA);
+    const entityB = entityCollisions.get(bodyIdB);
+
+    let handled = false;
+
+    if (entityA && entityB) {
+      if (entityA.handlers[entityB.tag]) {
+        entityA.handlers[entityB.tag](entityA.entity, entityB.entity);
+        handled = true;
+      }
+      if (entityB.handlers[entityA.tag]) {
+        entityB.handlers[entityA.tag](entityB.entity, entityA.entity);
+        handled = true;
+      }
+    } else if (entityA) {
+      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
+      if (userDataB?.type && entityA.handlers[userDataB.type]) {
+        entityA.handlers[userDataB.type](entityA.entity, bodyIdB);
+        handled = true;
+      }
+    } else if (entityB) {
+      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
+      if (userDataA?.type && entityB.handlers[userDataA.type]) {
+        entityB.handlers[userDataA.type](entityB.entity, bodyIdA);
+        handled = true;
+      }
+    }
+
+    if (!handled) {
+      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
+      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
+      if (userDataA?.type && userDataB?.type) {
+        this.collisions.handle({ bodyA: bodyIdA, bodyB: bodyIdB, userDataA, userDataB }, this.context);
+      }
+    }
+  }
+
   protected checkCollisions(worldId: b2WorldId): void {
     const contactEvents = b2World_GetContactEvents(worldId);
 
@@ -113,15 +153,8 @@ export abstract class Level {
 
       if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
 
-      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
-      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
-
-      if (userDataA?.type && userDataB?.type) {
-        this.collisions.handle({ bodyA: bodyIdA, bodyB: bodyIdB, userDataA, userDataB }, this.context);
-      }
+      this.dispatchCollision(bodyIdA, bodyIdB);
     }
-
-    // TODO: Do I care sensors go into the same bag?
 
     const sensorEvents = b2World_GetSensorEvents(worldId);
 
@@ -134,12 +167,7 @@ export abstract class Level {
 
       if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
 
-      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
-      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
-
-      if (userDataA?.type && userDataB?.type) {
-        this.collisions.handle({ bodyA: bodyIdA, bodyB: bodyIdB, userDataA, userDataB }, this.context);
-      }
+      this.dispatchCollision(bodyIdA, bodyIdB);
     }
   }
 
@@ -165,6 +193,7 @@ export abstract class Level {
 
     // Clear collision handlers
     this.collisions.clear();
+    this.context.systems.get(EntityCollisionSystem).clear();
   }
 
   /**

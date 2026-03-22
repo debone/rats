@@ -92,7 +92,7 @@ export interface IntrinsicElementMap {
 declare global {
   namespace JSX {
     interface IntrinsicElements extends IntrinsicElementMap {}
-    type Element = Container;
+    type Element = any;
     interface ElementChildrenAttribute {
       children: {};
     }

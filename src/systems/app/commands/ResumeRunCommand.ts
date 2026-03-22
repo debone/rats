@@ -1,11 +1,12 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import type { RunState } from '@/data/game-state';
-import { PhysicsSystem } from '../../physics/system';
+import { GameScreen } from '@/screens/GameScreen/GameScreen';
+import { LoadLevelCommand } from '../../level/commands/LoadLevelCommand';
 import { LevelSystem } from '../../level/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
-import { LoadLevelCommand } from '../../level/commands/LoadLevelCommand';
-import { GameScreen } from '@/screens/GameScreen/GameScreen';
+import { EntityCollisionSystem } from '../../physics/EntityCollisionSystem';
+import { PhysicsSystem } from '../../physics/system';
 
 export class ResumeRunCommand extends Command<{ run: RunState }> {
   *execute({ run }: { run: RunState }): Coroutine {
@@ -19,6 +20,7 @@ export class ResumeRunCommand extends Command<{ run: RunState }> {
 
     // Add game-specific systems dynamically
     this.context.systems.add(PhysicsSystem);
+    this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
 
     // Resume from current level

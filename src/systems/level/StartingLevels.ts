@@ -7,6 +7,8 @@ import { GameEvent } from '@/data/events';
 import { activateCrewMember, changeCheese, changeScraps } from '@/data/game-state';
 import type { Ball } from '@/entities/balls/Ball';
 import { NormalBall } from '@/entities/balls/NormalBall';
+import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
+import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 import { CrewPickerOverlay } from '@/screens/CrewPickerOverlay/CrewPickerOverlay';
 import {
   b2Body_ApplyLinearImpulseToCenter,
@@ -42,8 +44,6 @@ import type { CollisionPair } from '../physics/collision-handler';
 import { PhysicsSystem } from '../physics/system';
 import { AddSpriteToWorld, BodyToScreen } from '../physics/WorldSprites';
 import { Level } from './Level';
-import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
-import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 
 /** Configuration for a level */
 export interface LevelConfig {
@@ -71,6 +71,10 @@ export abstract class StartingLevels extends Level {
   shouldMaintainBallSpeed: boolean = false;
 
   createPaddle(jointId: b2JointId): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
     const worldId = this.context.worldId;
 
     const anchorBodyId = b2Joint_GetBodyA(jointId);
@@ -125,6 +129,11 @@ export abstract class StartingLevels extends Level {
   }
 
   createScrap(x: number, y: number): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     const worldId = this.context.worldId;
 
     const { bodyId } = CreateCircle({
@@ -153,6 +162,11 @@ export abstract class StartingLevels extends Level {
   }
 
   createCheese(x: number, y: number, type: CheeseType = 'yellow'): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     const worldId = this.context.worldId;
 
     const { bodyId } = CreateCircle({
@@ -181,6 +195,11 @@ export abstract class StartingLevels extends Level {
   }
 
   createBall(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     const worldId = this.context.worldId;
 
     const paddlePosition = b2Body_GetPosition(this.paddleBodyId);
@@ -201,8 +220,8 @@ export abstract class StartingLevels extends Level {
       anchorB: new b2Vec2(0, 0),
       axis: new b2Vec2(1, 0),
       enableLimit: true,
-      lowerTranslation: -1.75,
-      upperTranslation: 1.75,
+      lowerTranslation: -0,
+      upperTranslation: 0,
     }).jointId;
     /**/
 
@@ -210,6 +229,11 @@ export abstract class StartingLevels extends Level {
   }
 
   addDoor(texture: Texture, bodyId: b2BodyId): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5, 0.5);
     this.context.container!.addChild(sprite);
@@ -219,6 +243,11 @@ export abstract class StartingLevels extends Level {
   }
 
   addBrick(texture: Texture, bodyId: b2BodyId, powerUp?: BrickPowerUps): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5, 0.5);
     this.context.container!.addChild(sprite);
@@ -237,6 +266,11 @@ export abstract class StartingLevels extends Level {
   }
 
   removeBrick(bodyId: b2BodyId): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     const position = b2Body_GetPosition(bodyId);
 
     // Emit notification (fire and forget)
@@ -253,6 +287,11 @@ export abstract class StartingLevels extends Level {
   }
 
   registerDefaultCollisionHandlers(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     this.collisions.register('ball', 'paddle', async () => {
       sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A);
     });
@@ -333,22 +372,22 @@ export abstract class StartingLevels extends Level {
   }
 
   setupEventListeners(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     this.eventCleanups.push(
-      this.context.events.on(GameEvent.POWERUP_ACTIVATED, (payload) => {
-        console.log('[Level1] Powerup activated:', payload.type);
-        switch (payload.type) {
-          case 'faster':
-            for (let i = 0; i < this.balls.length; i++) {
-              this.balls[i].powerUp();
-            }
-            break;
-          case 'doubler':
-            this.doubleBalls();
-            break;
-          case 'captain':
-            this.speedBoat();
-            break;
-        }
+      this.context.events.on(GameEvent.POWERUP_DOUBLER, () => {
+        console.log('[Level] Powerup: doubler');
+        this.doubleBalls();
+      }),
+    );
+
+    this.eventCleanups.push(
+      this.context.events.on(GameEvent.POWERUP_CAPTAIN, () => {
+        console.log('[Level] Powerup: captain');
+        this.speedBoat();
       }),
     );
   }
@@ -408,6 +447,11 @@ export abstract class StartingLevels extends Level {
   ballsToIncrease = 0;
 
   increaseBallCount(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     let ballsLength = this.balls.length;
     for (let ballsIncreased = 0; ballsIncreased <= Math.min(5, this.ballsToIncrease); ballsIncreased++) {
       const ballPosition = b2Body_GetPosition(this.balls[Math.floor(Math.random() * ballsLength)].bodyId);
@@ -419,6 +463,11 @@ export abstract class StartingLevels extends Level {
   }
 
   doubleBalls(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     let maxBalls = this.balls.length;
     if (maxBalls > 50) {
       return;
@@ -457,18 +506,33 @@ export abstract class StartingLevels extends Level {
 
   private timeoutSpeedBoat = 0;
   speedBoat(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     this.timeoutSpeedBoat = 15000;
     this.maxSpeed = 23;
     this.paddleSprite.tint = 0xffff00;
   }
 
   private slowBoat(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     this.timeoutSpeedBoat = 1000;
     this.maxSpeed = 15;
     this.paddleSprite.tint = 0xffffff;
   }
 
   updatePaddleInput(): void {
+    setTimeout(() => {
+      debugger;
+      throw new Error('DEPRECATED!');
+    }, 1000);
+
     // Reset paddle velocity and rotation
     b2Body_SetLinearVelocity(this.paddleBodyId, new b2Vec2(0, 0));
     const transform = b2Body_GetTransform(this.paddleBodyId);

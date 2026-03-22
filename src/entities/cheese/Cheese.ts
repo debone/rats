@@ -6,7 +6,7 @@ export interface CheeseDef {
 
 export const CHEESE_DEFS = {
   yellow: {
-    texture: 'cheese_tile_2#0',
+    texture: 'cheese_tile_1#0',
   },
   green: {
     texture: 'cheese_tile_3#0',

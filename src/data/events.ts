@@ -8,7 +8,6 @@
  */
 
 import type { AppScreenConstructor } from '@/core/window/types';
-import type { CrewMemberDefKey } from '@/entities/crew/Crew';
 import type { LevelResult, MapSelection } from './game-state';
 
 /**
@@ -52,7 +51,9 @@ export const GameEvent = {
 
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
-  POWERUP_ACTIVATED: 'powerup:activated',
+  POWERUP_FASTER: 'powerup:faster',
+  POWERUP_DOUBLER: 'powerup:doubler',
+  POWERUP_CAPTAIN: 'powerup:captain',
 
   // System events
   SAVE_COMPLETED: 'save:completed',
@@ -110,9 +111,9 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
     position: { x: number; y: number };
     score: number;
   };
-  [GameEvent.POWERUP_ACTIVATED]: {
-    type: CrewMemberDefKey;
-  };
+  [GameEvent.POWERUP_FASTER]: void;
+  [GameEvent.POWERUP_DOUBLER]: void;
+  [GameEvent.POWERUP_CAPTAIN]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;

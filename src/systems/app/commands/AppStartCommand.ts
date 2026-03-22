@@ -2,6 +2,7 @@ import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { LoadScreen } from '@/screens/LoadScreen';
 import { LevelSystem } from '@/systems/level/system';
+import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { SaveSystem } from '../../save/system';
@@ -24,6 +25,7 @@ export class AppStartCommand extends Command {
 
     // Add game-specific systems dynamically
     this.context.systems.add(PhysicsSystem);
+    this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
 
     if (savedRun) {
