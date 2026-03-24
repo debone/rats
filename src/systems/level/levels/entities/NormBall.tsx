@@ -1,12 +1,12 @@
 import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
-import { ENTITY_KINDS, type EntityBase } from '@/core/entity/entity-kinds';
-import { defineEntity, getUnmount, mountEffect, onCleanup } from '@/core/entity/scope';
+import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
-import { getGameContext } from '@/data/game-context';
-import { useBodySprite, useCollisionHandler, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
+import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_GetLinearVelocity,
+  b2Body_GetPosition,
   b2Body_SetLinearVelocity,
   b2Body_SetUserData,
   b2BodyId,
@@ -106,10 +106,14 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     entity: normBall,
   }));
 
-  mountEffect(() => {
-    return getGameContext().events.on(GameEvent.POWERUP_FASTER, () => {
-      powerUp();
-    });
+  useGameEvent(GameEvent.POWERUP_FASTER, () => {
+    powerUp();
+  });
+
+  useGameEvent(GameEvent.POWERUP_DOUBLER, () => {
+    const position = b2Body_GetPosition(bodyId);
+    const newBall = NormBall({ x: position.x, y: position.y });
+    newBall.startUpdating();
   });
 
   const normBall: NormBallEntity = {

@@ -1,32 +1,50 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { bgm, sfx } from '@/core/audio/audio';
-import { shake } from '@/core/camera/effects/shake';
+import { sfx } from '@/core/audio/audio';
+import { assert } from '@/core/common/assert';
+import { getEntities, type AttachHandle } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
-import { getRunState } from '@/data/game-state';
+import { activateCrewMember, getRunState } from '@/data/game-state';
+import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
-import { type CollisionPair } from '@/systems/physics/collision-handler';
+import { Paddle, type PaddleEntity } from '@/systems/level/levels/entities/Paddle';
+import { Wall, wallSparkOnBall } from '@/systems/level/levels/entities/Wall';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
-import { B2_ID_EQUALS, b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid } from 'phaser-box2d';
+import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
-import { StartingLevels } from '../StartingLevels';
+
+import { Level } from '../Level';
+import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
 import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
-import { Level_1_DoorOpenCommand } from './commands/Level1_DoorOpenCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
 import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
-import type { BrickPowerUps } from '@/entities/bricks/Brick';
+import { Brick, type BrickEntity } from './entities/Brick';
+import { BrickDebrisParticles } from './entities/BrickDebrisParticles';
+import { BlueCheese, GreenCheese, YellowCheese } from './entities/Cheese';
+import { Door, type DoorEntity } from './entities/Door';
+import { KeyListener } from './entities/KeyListener';
+import { NormBall } from './entities/NormBall';
+import { Scrap } from './entities/Scrap';
+import { WallParticles } from './entities/WallParticles';
+import { WaterParticles } from './entities/WaterParticles';
 
 /**
  * Level 1 - Tutorial/First Level
- * Simple breakout-style level with basic mechanics
+ * Simple breakout-style level with basic mechanics (entity-based, same pattern as level-0).
  */
-export default class Level1 extends StartingLevels {
+export default class Level1 extends Level {
   static id = 'level-1';
 
   private debug_mode = false;
+
+  private paddleEntity?: PaddleEntity;
+  private ballSnap?: AttachHandle<{ launch: () => void; jointId: b2JointId }>;
+
+  private ballsCount = 0;
+  private bricksCount = 0;
 
   constructor() {
     super({
@@ -35,13 +53,19 @@ export default class Level1 extends StartingLevels {
     });
   }
 
+  createBall(): void {
+    assert(this.paddleEntity, 'Level1 createBall: paddleEntity must be defined');
+
+    const paddlePosition = b2Body_GetPosition(this.paddleEntity.bodyId);
+    const normBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+    this.ballsCount++;
+
+    this.ballSnap?.detach();
+    this.ballSnap = attachPaddleBallSnap(this.paddleEntity, normBall);
+  }
+
   async load(): Promise<void> {
     console.log('[Level1] Loading...');
-
-    // Setup collision handlers
-    this.registerDefaultCollisionHandlers();
-    this.setupCollisionHandlers();
-    this.setupEventListeners();
 
     setTimeout(() => {
       console.log('[sound]');
@@ -57,21 +81,44 @@ export default class Level1 extends StartingLevels {
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(Assets.get(ASSETS.level_1_rube), this.context.worldId!);
 
+    this.createBackground();
+
+    const brickDebrisParticles = BrickDebrisParticles().emitter;
+    const waterParticles = WaterParticles().emitter;
+    const wallParticles = WallParticles().emitter;
+
+    KeyListener({
+      key: 'KeyQ',
+      onPress: () => activateCrewMember(0),
+    });
+
+    KeyListener({
+      key: 'KeyW',
+      onPress: () => activateCrewMember(1),
+    });
+
     const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
+    assert(paddleJoint, 'Level1: paddle-joint not found in RUBE');
 
-    // Create paddle (kinematic body controlled by player)
-    this.createPaddle(paddleJoint!);
+    this.paddleEntity = Paddle({ jointId: paddleJoint, brickDebrisEmitter: brickDebrisParticles });
 
-    // Create ball
     this.createBall();
 
-    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
+    let door: DoorEntity | undefined = undefined;
+
     let i = 0;
+    let exitExecuted = false;
 
     loadedBodies.forEach((bodyId) => {
       if (!b2Body_IsValid(bodyId)) return;
-      const userData = b2Body_GetUserData(bodyId) as { type: string; powerup?: BrickPowerUps } | null;
-      if (userData?.type === 'brick') {
+      const userData = b2Body_GetUserData(bodyId) as {
+        type: string;
+        powerup?: BrickPowerUps;
+        doorName?: string;
+      } | null;
+      const tag = userData?.type;
+
+      if (tag === 'brick') {
         if (this.debug_mode && i !== 9) {
           this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
           i++;
@@ -79,103 +126,118 @@ export default class Level1 extends StartingLevels {
         }
 
         const powerUp = userData?.powerup as BrickPowerUps | undefined;
+        this.bricksCount++;
 
-        this.addBrick(bg[`bricks_tile_1#0`], bodyId, powerUp);
+        Brick({
+          bodyId,
+          debrisEmitter: brickDebrisParticles,
+          powerUp,
+          onBreak: (brick: BrickEntity) => {
+            const pos = brick.spawnPos;
+            const { x, y } = pos;
 
-        //sprite.filters = [glow];
+            if (brick.powerUp) {
+              const t = brick.powerUp;
+              if (t === 'blue') {
+                BlueCheese({ pos: { x, y } });
+              } else if (t === 'green') {
+                GreenCheese({ pos: { x, y } });
+              } else {
+                YellowCheese({ pos: { x, y } });
+              }
+            } else {
+              const random = Math.random();
+              if (random < 0.2) {
+                YellowCheese({ pos: { x, y } });
+              } else if (random < 0.5) {
+                Scrap({ pos: { x: x - 0.25, y } });
+                Scrap({ pos: { x: x + 0.25, y } });
+              } else {
+                Scrap({ pos: { x, y } });
+              }
+            }
+
+            this.bricksCount--;
+
+            if (this.checkWinCondition()) {
+              door?.open();
+            }
+          },
+        });
+
         i++;
-      } else if (userData?.type === 'door') {
-        this.addDoor(bg[`bricks_tile_2#0`], bodyId);
+      } else if (tag === 'door') {
+        const pos = b2Body_GetPosition(bodyId);
+        const spawnPos = { x: pos.x, y: pos.y };
+        this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+
+        door = Door({
+          spawnPos,
+          length: 4,
+        });
+      } else if (tag === 'left-wall' || tag === 'right-wall' || tag === 'top-wall') {
+        Wall({
+          bodyId,
+          wallCollisionTag: tag,
+          onBall: wallSparkOnBall(tag, wallParticles),
+        });
+      } else if (tag === 'exit') {
+        Wall({
+          bodyId,
+          wallCollisionTag: tag,
+          onBall: async () => {
+            if (exitExecuted) return;
+            exitExecuted = true;
+            await execute(Levels_BallExitedLevelCommand);
+            this.onWin();
+          },
+        });
+      } else if (tag === 'bottom-wall') {
+        Wall({
+          bodyId,
+          wallCollisionTag: tag,
+          onCheese: async ({ cheeseBody }) => {
+            const { x, y } = BodyToScreen(cheeseBody.bodyId);
+            waterParticles.explode(25, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            cheeseBody.destroy();
+          },
+          onBall: async ({ ballBody }) => {
+            const { x, y } = BodyToScreen(ballBody.bodyId);
+            waterParticles.explode(100, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+
+            ballBody.destroy();
+
+            this.ballsCount--;
+            if (this.ballsCount === 0) {
+              await execute(Levels_LoseBallCommand);
+
+              if (this.checkLoseCondition()) {
+                this.onLose();
+                return;
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              this.createBall();
+            }
+          },
+          onScrap: async ({ scrapBody }) => {
+            const { x, y } = BodyToScreen(scrapBody.bodyId);
+            waterParticles.explode(10, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            scrapBody.destroy();
+          },
+        });
+      } else {
+        this.context.systems.get(PhysicsSystem).registerOrphanBody(bodyId);
       }
-
-      this.registerBody(bodyId);
     });
-
-    this.createBackground();
-    this.createParticleEmitters();
 
     await execute(Levels_LevelStartCommand);
 
+    console.log('[Level1] Entities:', getEntities());
     console.log('[Level1] Loaded');
-  }
-
-  private setupCollisionHandlers(): void {
-    // Ball + Brick collision: 'ball' < 'brick', so pair.bodyA = ball, pair.bodyB = brick
-    this.collisions.register('ball', 'brick', (pair: CollisionPair) => {
-      if (Math.random() < 0.5) {
-        sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10);
-      } else {
-        sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
-      }
-
-      shake(this.context.camera!, { intensity: Math.random() * 1, duration: 300 });
-
-      const brickBody = pair.bodyB;
-
-      const userData = b2Body_GetUserData(brickBody) as { powerup?: BrickPowerUps } | null;
-      const powerUp = userData?.powerup as BrickPowerUps | undefined;
-
-      // Spawn debris particles at brick position
-      const { x, y } = BodyToScreen(brickBody);
-      this.brickDebrisEmitter!.explode(8, x, y);
-
-      if (powerUp) {
-        this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y, powerUp);
-      } else {
-        const random = Math.random();
-        if (random < 0.2) {
-          this.createCheese(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
-        } else if (random < 0.5) {
-          this.createScrap(b2Body_GetPosition(brickBody).x - 0.25, b2Body_GetPosition(brickBody).y);
-          this.createScrap(b2Body_GetPosition(brickBody).x + 0.25, b2Body_GetPosition(brickBody).y);
-        } else {
-          this.createScrap(b2Body_GetPosition(brickBody).x, b2Body_GetPosition(brickBody).y);
-        }
-      }
-
-      // Remove the brick
-      this.removeBrick(brickBody);
-
-      if (this.checkWinCondition()) {
-        // Level completed
-        console.log('[Level1] Level completed!');
-        execute(Level_1_DoorOpenCommand, { doors: this.doors });
-      }
-    });
-
-    let exitExecuted = false;
-    this.collisions.once('ball', 'exit', async () => {
-      if (exitExecuted) return;
-      exitExecuted = true;
-      await execute(Levels_BallExitedLevelCommand);
-      this.onWin();
-    });
-
-    this.collisions.register('ball', 'bottom-wall', async (pair: CollisionPair) => {
-      const ball = pair.bodyA;
-      console.log('Ball hit bottom wall');
-
-      const { x, y } = BodyToScreen(ball);
-      this.waterEmitter!.explode(100, x, y);
-
-      sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
-
-      this.balls.find((b) => B2_ID_EQUALS(b.bodyId, ball))?.destroy();
-      this.balls = this.balls.filter((b) => !B2_ID_EQUALS(b.bodyId, ball));
-      // TODO: migrate the state to the run state and then make it work here.
-      if (this.balls.length === 0) {
-        this.shouldMaintainBallSpeed = false;
-
-        await execute(Levels_LoseBallCommand);
-
-        if (this.checkLoseCondition()) {
-          this.onLose();
-          return;
-        }
-
-        this.createBall();
-      }
-    });
   }
 
   private createBackground(): void {
@@ -199,12 +261,9 @@ export default class Level1 extends StartingLevels {
       map.container.y = -origin.y;
     }
 
-    // TIL the zindex is relative to the container
     map.container.zIndex = -1;
-    // FIXME: lol, why the whole "background" thing?
 
     this.context.container!.addChild(map.container);
-    // ?? this.context.layers?.background.addChild(map.container);
   }
 
   protected checkWinCondition(): boolean {

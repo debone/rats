@@ -1,6 +1,6 @@
-import { ENTITY_KINDS, type EntityBase } from '@/core/entity/entity-kinds';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useCollisionHandler, usePhysics } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import type { b2BodyId } from 'phaser-box2d';

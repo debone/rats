@@ -1,8 +1,8 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { ENTITY_KINDS, type EntityBase } from '@/core/entity/entity-kinds';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { changeScraps } from '@/data/game-state';
+import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_ApplyLinearImpulseToCenter,

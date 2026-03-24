@@ -1,4 +1,4 @@
-import type { EntityBase } from '@/core/entity/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 
 type Effect = () => (() => void) | void;
 

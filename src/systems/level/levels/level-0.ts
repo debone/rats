@@ -4,41 +4,43 @@ import { sfx } from '@/core/audio/audio';
 import { getEntities, type AttachHandle } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
-import { GameEvent } from '@/data/events';
 import { activateCrewMember, getRunState } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
-import { Paddle, type PaddleEntity } from '@/systems/level/levels/level-0/Paddle';
-import { Wall, wallSparkOnBall } from '@/systems/level/levels/level-0/Wall';
+import { Paddle, type PaddleEntity } from '@/systems/level/levels/entities/Paddle';
+import { Wall, wallSparkOnBall } from '@/systems/level/levels/entities/Wall';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2BodyId, b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
-import { InputDevice } from 'pixijs-input-devices';
-import { StartingLevels } from '../StartingLevels';
 
 import { assert } from '@/core/common/assert';
-import { ENTITY_KINDS } from '@/core/entity/entity-kinds';
-import { getEntitiesOfKind } from '@/core/entity/known-entities';
 import { state } from '@/core/state/state';
+import { Level } from '../Level';
+import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
 import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
-import { attachPaddleBallSnap } from './level-0/attachments/paddleBallSnap';
-import { attachCaptainBoost } from './level-0/attachments/paddleCaptainBoost';
-import { Brick, type BrickEntity } from './level-0/Brick';
-import { BlueCheese, GreenCheese, YellowCheese } from './level-0/Cheese';
-import { Door, type DoorEntity } from './level-0/Door';
-import { NormBall } from './level-0/NormBall';
-import { Scrap } from './level-0/Scrap';
+import { Brick, type BrickEntity } from './entities/Brick';
+import { BrickDebrisParticles } from './entities/BrickDebrisParticles';
+import { BlueCheese, GreenCheese, YellowCheese } from './entities/Cheese';
+import { Door, type DoorEntity } from './entities/Door';
+import { KeyListener } from './entities/KeyListener';
+import { NormBall } from './entities/NormBall';
+import { Scrap } from './entities/Scrap';
+import { WallParticles } from './entities/WallParticles';
+import { WaterParticles } from './entities/WaterParticles';
 
-export default class Level0 extends StartingLevels {
+export default class Level0 extends Level {
   static id = 'level-0';
 
-  private paddleEntity?: PaddleEntity;
+  private debug_mode = true;
 
+  private paddleEntity?: PaddleEntity;
   private ballSnap?: AttachHandle<{ launch: () => void; jointId: b2JointId }>;
-  private captainBoostHandle?: { detach: () => void };
+
+  private ballsCount = 0;
+  private bricksCount = 0;
 
   constructor() {
     super({
@@ -47,7 +49,6 @@ export default class Level0 extends StartingLevels {
     });
   }
 
-  /** Level-0: `attachPaddleBallSnap` + `attachBallLaunchInput`; keeps `ballPrismaticJointId` for base typings. */
   createBall(): void {
     assert(this.paddleEntity, 'Level0 createBall: paddleEntity must be defined');
 
@@ -59,65 +60,8 @@ export default class Level0 extends StartingLevels {
     this.ballSnap = attachPaddleBallSnap(this.paddleEntity, normBall);
   }
 
-  /**
-   * Level-0: doubler unchanged; captain uses `attachCaptainBoost` instead of base `speedBoat`.
-   * Does not call `StartingLevels.setupEventListeners` to avoid duplicate captain handling.
-   */
-  setupEventListeners(): void {
-    this.eventCleanups.push(
-      this.context.events.on(GameEvent.POWERUP_DOUBLER, () => {
-        console.log('[Level0] Powerup: doubler');
-        getEntitiesOfKind(ENTITY_KINDS.normBall).forEach((ball) => {
-          const position = b2Body_GetPosition(ball.bodyId);
-          const newBall = NormBall({ x: position.x, y: position.y });
-          newBall.startUpdating();
-        });
-        this.doubleBalls();
-      }),
-    );
-
-    this.eventCleanups.push(
-      this.context.events.on(GameEvent.POWERUP_CAPTAIN, () => {
-        console.log('[Level0] Powerup: captain');
-        if (!this.paddleEntity) return;
-        this.captainBoostHandle?.detach();
-        this.captainBoostHandle = attachCaptainBoost(this.paddleEntity);
-      }),
-    );
-  }
-
-  /** Level-0: crew keys only — movement + ball launch live on `Paddle` + attachments. */
-  updatePaddleInput(): void {
-    if (InputDevice.keyboard.key.KeyQ && !this.isQDown) {
-      this.isQDown = true;
-      this.lastQDownTime = performance.now();
-      activateCrewMember(0);
-    } else if (!InputDevice.keyboard.key.KeyQ && this.isQDown) {
-      const timeDown = performance.now() - this.lastQDownTime;
-      if (timeDown > 50) {
-        this.isQDown = false;
-      }
-    }
-
-    if (InputDevice.keyboard.key.KeyW && !this.isWDown) {
-      this.isWDown = true;
-      this.lastWDownTime = performance.now();
-      activateCrewMember(1);
-    } else if (!InputDevice.keyboard.key.KeyW && this.isWDown) {
-      const timeDown = performance.now() - this.lastWDownTime;
-      if (timeDown > 50) {
-        this.isWDown = false;
-      }
-    }
-  }
-
-  private ballsCount = 0;
-
   async load(): Promise<void> {
     console.log('[Level0] Loading...');
-
-    //this.registerDefaultCollisionHandlers();
-    this.setupEventListeners();
 
     setTimeout(() => {
       console.log('[sound]');
@@ -137,11 +81,24 @@ export default class Level0 extends StartingLevels {
     );
 
     this.createBackground();
-    this.createParticleEmitters();
+
+    const brickDebrisParticles = BrickDebrisParticles().emitter;
+    const waterParticles = WaterParticles().emitter;
+    const wallParticles = WallParticles().emitter;
+
+    KeyListener({
+      key: 'KeyQ',
+      onPress: () => activateCrewMember(0),
+    });
+
+    KeyListener({
+      key: 'KeyW',
+      onPress: () => activateCrewMember(1),
+    });
 
     // Create paddle (kinematic body controlled by player)
     const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
-    this.paddleEntity = Paddle({ jointId: paddleJoint!, brickDebrisEmitter: this.brickDebrisEmitter! });
+    this.paddleEntity = Paddle({ jointId: paddleJoint!, brickDebrisEmitter: brickDebrisParticles });
 
     // Create ball
     this.createBall();
@@ -165,7 +122,12 @@ export default class Level0 extends StartingLevels {
         const powerUp = userData?.powerup as BrickPowerUps | undefined;
         this.bricksCount++;
 
-        if (powerUp) {
+        if (this.debug_mode && this.bricksCount > 1) {
+          this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+          return;
+        }
+
+        if (powerUp && !this.debug_mode) {
           let brickBodyId: b2BodyId | undefined = bodyId;
           let brickSpawnPos: { x: number; y: number } = b2Body_GetPosition(bodyId);
           let brickSpawnX = brickSpawnPos.x;
@@ -197,7 +159,7 @@ export default class Level0 extends StartingLevels {
                 Brick({
                   bodyId: brickBodyId,
                   spawnPos: { x: brickSpawnX, y: brickSpawnY },
-                  debrisEmitter: this.brickDebrisEmitter!,
+                  debrisEmitter: brickDebrisParticles,
                   powerUp,
                   onBreak: () => {
                     this.bricksCount--;
@@ -225,7 +187,7 @@ export default class Level0 extends StartingLevels {
           Brick({
             powerUp,
             bodyId,
-            debrisEmitter: this.brickDebrisEmitter!,
+            debrisEmitter: brickDebrisParticles,
             onBreak: (brick: BrickEntity) => {
               Scrap({
                 pos: { x: brick.spawnPos.x - 0.25, y: brick.spawnPos.y },
@@ -243,7 +205,7 @@ export default class Level0 extends StartingLevels {
         Wall({
           bodyId,
           wallCollisionTag: tag,
-          onBall: wallSparkOnBall(tag, this.wallEmitter!),
+          onBall: wallSparkOnBall(tag, wallParticles),
         });
       } else if (tag === 'exit') {
         Wall({
@@ -262,13 +224,13 @@ export default class Level0 extends StartingLevels {
           wallCollisionTag: tag,
           onCheese: async ({ cheeseBody }) => {
             const { x, y } = BodyToScreen(cheeseBody.bodyId);
-            this.waterEmitter!.explode(25, x, y);
+            waterParticles.explode(25, x, y);
             sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
             cheeseBody.destroy();
           },
           onBall: async ({ ballBody }) => {
             const { x, y } = BodyToScreen(ballBody.bodyId);
-            this.waterEmitter!.explode(100, x, y);
+            waterParticles.explode(100, x, y);
             sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
 
             ballBody.destroy();
@@ -281,7 +243,7 @@ export default class Level0 extends StartingLevels {
           },
           onScrap: async ({ scrapBody }) => {
             const { x, y } = BodyToScreen(scrapBody.bodyId);
-            this.waterEmitter!.explode(10, x, y);
+            waterParticles.explode(10, x, y);
             sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
             scrapBody.destroy();
           },
@@ -294,6 +256,7 @@ export default class Level0 extends StartingLevels {
         const door = Door({
           spawnPos,
           length: 2,
+          startOpen: this.debug_mode,
         });
 
         if (userData?.doorName === 'door-a') {
@@ -305,7 +268,7 @@ export default class Level0 extends StartingLevels {
           doorC = door;
         }
       } else {
-        this.registerBody(bodyId);
+        this.context.systems.get(PhysicsSystem).registerOrphanBody(bodyId);
       }
     });
 

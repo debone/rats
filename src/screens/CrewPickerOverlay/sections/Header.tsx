@@ -11,7 +11,7 @@ interface HeaderProps {
   onClose: () => void;
 }
 
-export function Header({ scrapsCounter, onAddScraps, onClose }: HeaderProps) {
+export function Header({ scrapsCounter, onClose }: HeaderProps) {
   const scrapsText = computed(() => `${scrapsCounter.get()} Scraps`);
 
   const header = (

@@ -1,9 +1,17 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
-import { ENTITY_KINDS, type EntityBase } from '@/core/entity/entity-kinds';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
-import { useBodySprite, useCollisionHandler, useImmediateUpdate, usePhysics, useWorldId } from '@/hooks/hooks';
+import { GameEvent } from '@/data/events';
+import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import {
+  useBodySprite,
+  useCollisionHandler,
+  useGameEvent,
+  useImmediateUpdate,
+  usePhysics,
+  useWorldId,
+} from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import {
   b2Body_GetPosition,
@@ -29,6 +37,7 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
+import { attachCaptainBoost } from '../attachments/paddleCaptainBoost';
 
 export interface PaddleEntity extends EntityBase<typeof ENTITY_KINDS.paddle> {
   bodyId: b2BodyId;
@@ -118,6 +127,12 @@ export const Paddle = defineEntity(({ jointId, brickDebrisEmitter }: PaddleProps
     },
     entity: paddle,
   }));
+
+  let captainBoostHandle: { detach: () => void } | undefined;
+  useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
+    captainBoostHandle?.detach();
+    captainBoostHandle = attachCaptainBoost(paddle);
+  });
 
   useImmediateUpdate(() => {
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 0));

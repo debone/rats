@@ -1,10 +1,10 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { ENTITY_KINDS, type EntityBase } from '@/core/entity/entity-kinds';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { changeCheese } from '@/data/game-state';
 import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
+import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { CrewPickerOverlay } from '@/screens/CrewPickerOverlay/CrewPickerOverlay';
 import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';

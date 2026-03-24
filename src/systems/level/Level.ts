@@ -1,20 +1,11 @@
 import type { FollowResult } from '@/core/camera/effects/follow';
+import { getEntities } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
 import { getLevelState, getRunState, type Boon, type LevelResult } from '@/data/game-state';
-import {
-  b2Body_GetUserData,
-  b2Body_IsValid,
-  b2DestroyBody,
-  b2Shape_GetBody,
-  b2World_GetContactEvents,
-  b2World_GetSensorEvents,
-  b2WorldId,
-  type b2BodyId,
-} from 'phaser-box2d';
-import { CollisionHandlerRegistry } from '../physics/collision-handler';
 import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
+import { PhysicsSystem } from '../physics/system';
 import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 
 /** Configuration for a level */
@@ -27,36 +18,15 @@ export interface LevelConfig {
  * Base class for all levels
  */
 export abstract class Level {
-  /** Unique identifier for this level */
-  static id: string;
-
   /** Game context reference */
   protected context!: GameContext;
 
   /** Level configuration */
   protected config: LevelConfig;
-
-  public bodiesIds: Set<b2BodyId> = new Set();
-  public bodies: b2BodyId[] = [];
-
-  public eventCleanups: (() => void)[] = [];
-
   protected follow?: FollowResult;
-
-  protected collisions = new CollisionHandlerRegistry();
 
   constructor(config: LevelConfig) {
     this.config = config;
-  }
-
-  registerBody(bodyId: b2BodyId): void {
-    this.bodies.push(bodyId);
-    this.bodiesIds.add(bodyId);
-  }
-
-  unregisterBody(bodyId: b2BodyId): void {
-    this.bodies = this.bodies.filter((id) => id !== bodyId);
-    this.bodiesIds.delete(bodyId);
   }
 
   /**
@@ -98,77 +68,6 @@ export abstract class Level {
       this.context.level.elapsedTime += delta;
     }
     */
-
-    this.checkCollisions(this.context.worldId!);
-  }
-
-  private dispatchCollision(bodyIdA: b2BodyId, bodyIdB: b2BodyId): void {
-    const entityCollisions = this.context.systems.get(EntityCollisionSystem);
-    const entityA = entityCollisions.get(bodyIdA);
-    const entityB = entityCollisions.get(bodyIdB);
-
-    let handled = false;
-
-    if (entityA && entityB) {
-      if (entityA.handlers[entityB.tag]) {
-        entityA.handlers[entityB.tag](entityA.entity, entityB.entity);
-        handled = true;
-      }
-      if (entityB.handlers[entityA.tag]) {
-        entityB.handlers[entityA.tag](entityB.entity, entityA.entity);
-        handled = true;
-      }
-    } else if (entityA) {
-      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
-      if (userDataB?.type && entityA.handlers[userDataB.type]) {
-        entityA.handlers[userDataB.type](entityA.entity, bodyIdB);
-        handled = true;
-      }
-    } else if (entityB) {
-      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
-      if (userDataA?.type && entityB.handlers[userDataA.type]) {
-        entityB.handlers[userDataA.type](entityB.entity, bodyIdA);
-        handled = true;
-      }
-    }
-
-    if (!handled) {
-      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
-      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
-      if (userDataA?.type && userDataB?.type) {
-        this.collisions.handle({ bodyA: bodyIdA, bodyB: bodyIdB, userDataA, userDataB }, this.context);
-      }
-    }
-  }
-
-  protected checkCollisions(worldId: b2WorldId): void {
-    const contactEvents = b2World_GetContactEvents(worldId);
-
-    for (let i = 0; i < contactEvents.beginCount; i++) {
-      const event = contactEvents.beginEvents[i];
-      if (!event) continue;
-
-      const bodyIdA = b2Shape_GetBody(event.shapeIdA);
-      const bodyIdB = b2Shape_GetBody(event.shapeIdB);
-
-      if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
-
-      this.dispatchCollision(bodyIdA, bodyIdB);
-    }
-
-    const sensorEvents = b2World_GetSensorEvents(worldId);
-
-    for (let i = 0; i < sensorEvents.beginCount; i++) {
-      const event = sensorEvents.beginEvents[i];
-      if (!event) continue;
-
-      const bodyIdA = b2Shape_GetBody(event.visitorShapeId);
-      const bodyIdB = b2Shape_GetBody(event.sensorShapeId);
-
-      if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
-
-      this.dispatchCollision(bodyIdA, bodyIdB);
-    }
   }
 
   /**
@@ -179,20 +78,13 @@ export abstract class Level {
 
     this.follow?.stop();
 
-    this.eventCleanups.forEach((cleanup) => cleanup());
-    this.eventCleanups = [];
-
-    // Destroy all registered physics bodies
-    for (const bodyId of this.bodies) {
-      if (b2Body_IsValid(bodyId)) {
-        b2DestroyBody(bodyId);
+    getEntities().forEach((entity) => {
+      if (!entity.destroy) {
+        debugger;
       }
-    }
-    this.bodies = [];
-    this.bodiesIds.clear();
-
-    // Clear collision handlers
-    this.collisions.clear();
+      entity.destroy();
+    });
+    this.context.systems.get(PhysicsSystem).clearOrphans();
     this.context.systems.get(EntityCollisionSystem).clear();
   }
 

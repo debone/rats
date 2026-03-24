@@ -16,6 +16,7 @@ import { animate } from 'animejs';
 import {
   b2Body_ApplyForceToCenter,
   b2Body_GetMass,
+  b2Body_GetUserData,
   b2Body_IsValid,
   b2BodyId,
   b2DefaultWorldDef,
@@ -24,14 +25,19 @@ import {
   b2DestroyWorld,
   b2Joint_IsValid,
   b2JointId,
+  b2Shape_GetBody,
   b2Vec2,
   b2World_Draw,
+  b2World_GetContactEvents,
+  b2World_GetSensorEvents,
   b2World_Step,
+  b2WorldId,
   CreateWorld,
   SetWorldScale,
 } from 'phaser-box2d';
 import { Graphics } from 'pixi.js';
 import { ClearWorldSprites, DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
+import { EntityCollisionSystem } from './EntityCollisionSystem';
 
 export class PhysicsSystem implements System {
   static SYSTEM_ID = 'physics';
@@ -44,6 +50,8 @@ export class PhysicsSystem implements System {
   private enableDebug = signal(false, { label: 'enableDebug' });
 
   private updateHandler = this.update.bind(this);
+
+  private orphanBodies: b2BodyId[] = [];
 
   private pendingDestructions: b2BodyId[] = [];
   private pendingJointDestructions: b2JointId[] = [];
@@ -118,6 +126,23 @@ export class PhysicsSystem implements System {
     this.gravityEnabled = this.gravityEnabled.filter((id) => id !== bodyId);
   }
 
+  registerOrphanBody(bodyId: b2BodyId): void {
+    this.orphanBodies.push(bodyId);
+  }
+
+  unregisterOrphanBody(bodyId: b2BodyId): void {
+    this.orphanBodies = this.orphanBodies.filter((id) => id !== bodyId);
+  }
+
+  clearOrphans(): void {
+    for (const bodyId of this.orphanBodies) {
+      if (b2Body_IsValid(bodyId)) {
+        b2DestroyBody(bodyId);
+      }
+    }
+    this.orphanBodies = [];
+  }
+
   private update(delta: number) {
     const worldId = this.context.worldId;
     if (!worldId) return;
@@ -137,6 +162,8 @@ export class PhysicsSystem implements System {
     // TODO: fix the loop
     b2World_Step(worldId, (this.ramp * delta) / 1000, 4);
 
+    this.checkCollisions(this.context.worldId!);
+
     // Update sprite positions from physics bodies
     UpdateWorldSprites(worldId);
 
@@ -146,6 +173,73 @@ export class PhysicsSystem implements System {
     }
 
     this.flushDestructions();
+  }
+
+  protected checkCollisions(worldId: b2WorldId): void {
+    const contactEvents = b2World_GetContactEvents(worldId);
+
+    for (let i = 0; i < contactEvents.beginCount; i++) {
+      const event = contactEvents.beginEvents[i];
+      if (!event) continue;
+
+      const bodyIdA = b2Shape_GetBody(event.shapeIdA);
+      const bodyIdB = b2Shape_GetBody(event.shapeIdB);
+
+      if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
+
+      this.dispatchCollision(bodyIdA, bodyIdB);
+    }
+
+    const sensorEvents = b2World_GetSensorEvents(worldId);
+
+    for (let i = 0; i < sensorEvents.beginCount; i++) {
+      const event = sensorEvents.beginEvents[i];
+      if (!event) continue;
+
+      const bodyIdA = b2Shape_GetBody(event.visitorShapeId);
+      const bodyIdB = b2Shape_GetBody(event.sensorShapeId);
+
+      if (!b2Body_IsValid(bodyIdA) || !b2Body_IsValid(bodyIdB)) continue;
+
+      this.dispatchCollision(bodyIdA, bodyIdB);
+    }
+  }
+
+  private dispatchCollision(bodyIdA: b2BodyId, bodyIdB: b2BodyId): void {
+    const entityCollisions = this.context.systems.get(EntityCollisionSystem);
+    const entityA = entityCollisions.get(bodyIdA);
+    const entityB = entityCollisions.get(bodyIdB);
+
+    let handled = false;
+
+    if (entityA && entityB) {
+      if (entityA.handlers[entityB.tag]) {
+        entityA.handlers[entityB.tag](entityA.entity, entityB.entity);
+        handled = true;
+      }
+      if (entityB.handlers[entityA.tag]) {
+        entityB.handlers[entityA.tag](entityB.entity, entityA.entity);
+        handled = true;
+      }
+    } else if (entityA) {
+      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
+      if (userDataB?.type && entityA.handlers[userDataB.type]) {
+        entityA.handlers[userDataB.type](entityA.entity, bodyIdB);
+        handled = true;
+      }
+    } else if (entityB) {
+      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
+      if (userDataA?.type && entityB.handlers[userDataA.type]) {
+        entityB.handlers[userDataA.type](entityB.entity, bodyIdA);
+        handled = true;
+      }
+    }
+
+    if (!handled) {
+      // console.error(`There are no handlers for this collision`, { bodyIdA, bodyIdB });
+      // throw new Error(`There are no handlers for this collision ${bodyIdA} and ${bodyIdB}`);
+      // I had something here... but it assumes things that we don't care about colliding (which I'm not sure which one are these, but hey....)
+    }
   }
 
   /**

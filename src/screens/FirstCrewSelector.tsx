@@ -58,7 +58,7 @@ export class FirstCrewSelector extends Container implements AppScreen {
       </button>
     </mount>;
 
-    execute(LevelSelectedCommand, { levelId: 'level-1' });
+    execute(LevelSelectedCommand, { levelId: 'level-0' });
   }
 
   gameContainer?: LayoutContainer;

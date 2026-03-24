@@ -3,11 +3,11 @@ import { sfx } from '@/core/audio/audio';
 import { attach, onCleanup } from '@/core/entity/scope';
 import { getGameContext } from '@/data/game-context';
 import { useImmediateUpdate } from '@/hooks/hooks';
-import type { PaddleEntity } from '@/systems/level/levels/level-0/Paddle';
+import type { PaddleEntity } from '@/systems/level/levels/entities/Paddle';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition, b2Body_SetLinearVelocity, b2Vec2, CreatePrismaticJoint } from 'phaser-box2d';
 import { InputDevice } from 'pixijs-input-devices';
-import type { NormBallEntity } from '../NormBall';
+import type { NormBallEntity } from '../entities/NormBall';
 
 /**
  * Prismatic joint between paddle and ball + `launch()` (joint break + initial velocity).

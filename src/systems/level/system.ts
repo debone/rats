@@ -8,7 +8,6 @@ import { assert } from '@/core/common/assert';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import { setLevelState } from '@/data/game-state';
-import { PhysicsSystem } from '../physics/system';
 import type { Level } from './Level';
 
 export class LevelSystem implements System {
@@ -55,11 +54,6 @@ export class LevelSystem implements System {
     const currentLevel = this.currentLevel;
 
     console.log('[LevelSystem] Unloading level');
-
-    currentLevel.bodies.forEach((bodyId) => {
-      currentLevel.unregisterBody(bodyId);
-      this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
-    });
 
     this.context.systems.unregister('update', this.updateHandler);
     this.context.systems.unregister('resize', this.resizeHandler);
