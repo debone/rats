@@ -23,13 +23,21 @@ export function useCamera() {
   return getGameContext().camera;
 }
 
-export function useBodySprite(sprite: Sprite, bodyId: b2BodyId, options?: { offsetX?: number; offsetY?: number }) {
+export function useBodySprite(
+  sprite: Sprite,
+  bodyId: b2BodyId,
+  options?: { offsetX?: number; offsetY?: number; z?: number },
+) {
   const ctx = getGameContext();
   const offsetX = options?.offsetX ?? 0;
   const offsetY = options?.offsetY ?? 0;
   mountEffect(() => {
     AddSpriteToWorld(ctx.worldId!, sprite, bodyId, offsetX, offsetY);
-    ctx.container!.addChild(sprite);
+    if (options?.z) {
+      ctx.container!.addChildAt(sprite, options.z);
+    } else {
+      ctx.container!.addChild(sprite);
+    }
     return () => {
       RemoveSpriteFromWorld(ctx.worldId!, sprite);
       sprite.destroy();

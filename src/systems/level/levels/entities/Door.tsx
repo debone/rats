@@ -1,5 +1,6 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
+import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { defineEntity, getUnmount, mountEffect, onCleanup } from '@/core/entity/scope';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
@@ -31,10 +32,11 @@ export interface DoorProps {
   length: number;
   openingDirection?: 'left' | 'right';
   startOpen?: boolean;
+  sound?: string;
 }
 
 export const Door = defineEntity(
-  ({ spawnPos, length, openingDirection = 'left', startOpen = false }: DoorProps): DoorEntity => {
+  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps): DoorEntity => {
     const worldId = useWorldId();
     const physics = usePhysics();
     const camera = useCamera();
@@ -82,6 +84,10 @@ export const Door = defineEntity(
       open() {
         this.closed = false;
         const duration = 1500;
+
+        if (sound) {
+          sfx.playPitched(sound, { speed: 0.6, volume: 0.5 });
+        }
 
         const openingDirectionFactor = this.openingDirection === 'left' ? 1 : -1;
 

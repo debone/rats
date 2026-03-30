@@ -17,8 +17,16 @@
             "scaleInDock": 1.6641,
             "scaleInEditor": 2.4991
         },
+        "level-0.tmx": {
+            "scale": 1.274,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 315.5416012558869,
+                "y": 555.729984301413
+            }
+        },
         "level-1-tileset.tsx": {
-            "scaleInDock": 2.0035,
+            "scaleInDock": 1.4558,
             "scaleInEditor": 1
         },
         "level-1.tmx": {
@@ -53,6 +61,14 @@
                 "y": 469.17782875749276
             }
         },
+        "level-4.tmx": {
+            "scale": 1.2082,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 317.0004966065221,
+                "y": 389.0084423108757
+            }
+        },
         "prototype-1.tmx": {
             "expandedObjectLayers": [
                 2
@@ -77,6 +93,8 @@
     ],
     "project": "backgrounds.tiled-project",
     "recentFiles": [
+        "level-4.tmx",
+        "level-0.tmx",
         "level-1.tmx",
         "level-2.tmx",
         "level-3.tmx",

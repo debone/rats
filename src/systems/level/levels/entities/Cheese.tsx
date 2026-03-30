@@ -13,6 +13,8 @@ import {
   b2Body_SetUserData,
   b2BodyType,
   b2Normalize,
+  b2Shape_GetFilter,
+  b2Shape_SetFilter,
   b2Vec2,
   CreateCircle,
   type b2BodyId,
@@ -38,7 +40,7 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
   const physics = usePhysics();
   const unmount = getUnmount();
 
-  const { bodyId } = CreateCircle({
+  const { bodyId, shapeId } = CreateCircle({
     worldId,
     type: b2BodyType.b2_dynamicBody,
     position: new b2Vec2(pos.x, pos.y),
@@ -47,6 +49,11 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
     friction: 0.5,
     restitution: 0,
   });
+
+  const cheeseFilter = b2Shape_GetFilter(shapeId);
+  cheeseFilter.maskBits = 0x0005;
+  cheeseFilter.categoryBits = 0xfffc;
+  b2Shape_SetFilter(shapeId, cheeseFilter);
 
   const f = new b2Vec2(Math.random() * 1 - 0.5, Math.random() * 1 - 0.5);
   b2Normalize(f);

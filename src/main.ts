@@ -23,7 +23,7 @@ import { SaveSystem } from '@/systems/save/system';
 // Commands
 import { AppStartCommand } from '@/systems/app/commands/AppStartCommand';
 
-import { ReflectionFilter } from 'pixi-filters';
+import { BloomFilter } from 'pixi-filters';
 import { CRT2Filter } from './lib/CRT/CRT';
 
 import { initDevtools } from '@pixi/devtools';
@@ -34,6 +34,7 @@ import { Camera } from './core/camera/camera';
 import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
 import { navigation } from './core/window/navigation';
+import { ReflectionFilter2 } from './lib/ReflectionFilter/ReflectionFilter';
 
 export const app = new Application();
 
@@ -49,6 +50,7 @@ engine.useDefaultMainLoop = false;
 async function init() {
   TextureStyle.defaultOptions.scaleMode = 'nearest';
   TextureStyle.defaultOptions.mipmapFilter = 'nearest';
+
   // Initialize app
   await app.init({
     autoDensity: false,
@@ -67,28 +69,35 @@ async function init() {
 
   await initTone();
 
-  const mirror = new ReflectionFilter({
+  const mirror = new ReflectionFilter2({
+    // correct boundary: 0.875,
+    //boundary: 0.875,
     boundary: 0.875,
-    alpha: [0.6, 1],
+    alpha: [1.0, 0.0],
+    amplitude: [20, 200],
   });
 
   const c = new CRT2Filter({
     curvature: 0,
-    lineWidth: 1,
-    lineContrast: 1,
-    noise: 0.2,
+    lineWidth: 0,
+    lineContrast: 0,
+    noise: 0.1,
     vignetting: 0,
   });
 
-  /*
+  //app.stage.filters = [c, mirror];
+
   const bloom = new BloomFilter({
-    quality: 4,
-    strength: 0,
+    quality: 3,
+    strength: 1,
   });
-  */
+  /*
+   */
   //app.stage.filters = [bloom, c];
   //app.stage.filters = [c, c, bloom];
-  //app.stage.filters = [c, bloom, mirror];
+  //app.stage.filters = [mirror, c, bloom];
+  app.stage.filters = [c, mirror];
+  //app.stage.filters = [c, mirror, bloom];
   //app.stage.filters = [c, bloom, glow];
 
   // Add pixi canvas element (app.canvas) to the document's body
@@ -154,8 +163,8 @@ async function init() {
       }
     }
 
-    c.time += time.deltaMS / 1000;
-    mirror.time += time.deltaMS / 100;
+    c.time += time.deltaMS / 500;
+    mirror.time += time.deltaMS / 200;
   });
 
   // Resize handler

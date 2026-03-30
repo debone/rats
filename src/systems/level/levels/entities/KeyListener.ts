@@ -23,13 +23,13 @@ function useKeyListenerBindings(props: KeyListenerProps): void {
   const key = props.key;
   const debounceMs = props.debounceMs ?? 50;
 
-  const pressed = InputDevice.keyboard.key[key];
   const onPress = props.onPress;
 
   let isDown = false;
   let lastDownTime = 0;
 
   useImmediateUpdate(() => {
+    const pressed = InputDevice.keyboard.key[key];
     if (pressed && !isDown) {
       isDown = true;
       lastDownTime = performance.now();

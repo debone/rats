@@ -1,6 +1,7 @@
 import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { bgm, sfx } from '@/core/audio/audio';
+import { sfx } from '@/core/audio/audio';
+import { assert } from '@/core/common/assert';
 import { getEntities, type AttachHandle } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
@@ -12,19 +13,18 @@ import { Paddle, type PaddleEntity } from '@/systems/level/levels/entities/Paddl
 import { Wall, wallSparkOnBall } from '@/systems/level/levels/entities/Wall';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
-import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2BodyId, b2JointId } from 'phaser-box2d';
+import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 
-import { assert } from '@/core/common/assert';
-import { getEntitiesOfKind } from '@/core/entity/entity';
-import { state } from '@/core/state/state';
-import { ENTITY_KINDS } from '@/entities/entity-kinds';
 import { Level } from '../Level';
 import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
 import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
+import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
 import { Brick, type BrickEntity } from './entities/Brick';
 import { BrickDebrisParticles } from './entities/BrickDebrisParticles';
+import { CatPiece } from './entities/CatBody';
+import { CatTail } from './entities/CatTail';
 import { BlueCheese, GreenCheese, YellowCheese } from './entities/Cheese';
 import { Door, type DoorEntity } from './entities/Door';
 import { KeyListener } from './entities/KeyListener';
@@ -32,53 +32,56 @@ import { NormBall } from './entities/NormBall';
 import { PlusCheeseParticles } from './entities/PlusCheeseParticles';
 import { PlusClayParticles } from './entities/PlusClayParticles';
 import { Scrap } from './entities/Scrap';
+import { StrongBrick, type StrongBrickEntity } from './entities/StrongBrick';
 import { WallParticles } from './entities/WallParticles';
 import { WaterParticles } from './entities/WaterParticles';
 
-export default class Level0 extends Level {
-  static id = 'level-0';
+export default class Level4 extends Level {
+  static id = 'level-4';
 
   private debug_mode = false;
 
   private paddleEntity?: PaddleEntity;
   private ballSnap?: AttachHandle<{ launch: () => void; jointId: b2JointId }>;
 
+  private ballsCount = 0;
   private bricksCount = 0;
 
   constructor() {
     super({
-      id: 'level-0',
-      name: t.dict['level-0.name'],
+      id: 'level-4',
+      name: t.dict['level-4.name'],
     });
   }
 
   createBall(): void {
-    assert(this.paddleEntity, 'Level0 createBall: paddleEntity must be defined');
+    assert(this.paddleEntity, 'Level4 createBall: paddleEntity must be defined');
 
     const paddlePosition = b2Body_GetPosition(this.paddleEntity.bodyId);
     const normBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+    this.ballsCount++;
 
     this.ballSnap?.detach();
     this.ballSnap = attachPaddleBallSnap(this.paddleEntity, normBall);
   }
 
   async load(): Promise<void> {
-    console.log('[Level0] Loading...');
+    console.log('[Level4] Loading...');
 
     setTimeout(() => {
       console.log('[sound]');
 
-      bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP, { speed: 0.75, volume: 0.5 });
+      //bgm.play(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
       //sfx.playPitched(ASSETS.sounds_10__Darkened_Pursuit_LOOP);
     }, 1000);
 
     setTimeout(() => {
-      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
+      sfx.play(ASSETS.sounds_Rat_Squeak_A);
     }, 1000);
 
     // Load the world from the RUBE file
     const { loadedBodies, loadedJoints } = loadSceneIntoWorld(
-      Assets.get(ASSETS.levels_level_0_rube),
+      Assets.get(ASSETS.levels_level_4_rube),
       this.context.worldId!,
     );
 
@@ -100,23 +103,21 @@ export default class Level0 extends Level {
       onPress: () => activateCrewMember(1),
     });
 
-    // Create paddle (kinematic body controlled by player)
     const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
+    assert(paddleJoint, 'Level4: paddle-joint not found in RUBE');
+
     this.paddleEntity = Paddle({
-      jointId: paddleJoint!,
+      jointId: paddleJoint,
       brickDebrisEmitter: brickDebrisParticles,
       plusClayEmitter: plusClayParticles,
       plusCheeseEmitter: plusCheeseParticles,
     });
 
-    // Create ball
     this.createBall();
 
-    let doorA: DoorEntity | undefined = undefined;
-    let doorB: DoorEntity | undefined = undefined;
-    let doorBCheeseLeft = 5;
-    let doorC: DoorEntity | undefined = undefined;
+    let door: DoorEntity | undefined = undefined;
 
+    let i = 0;
     let exitExecuted = false;
 
     loadedBodies.forEach((bodyId) => {
@@ -127,89 +128,89 @@ export default class Level0 extends Level {
         doorName?: string;
       } | null;
       const tag = userData?.type;
-      if (tag === 'brick') {
-        const powerUp = userData?.powerup as BrickPowerUps | undefined;
-        this.bricksCount++;
 
-        if (this.debug_mode && this.bricksCount > 1) {
+      if (tag === 'brick') {
+        if (this.debug_mode && i !== 9) {
           this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+          i++;
           return;
         }
 
-        if (powerUp && !this.debug_mode) {
-          let brickBodyId: b2BodyId | undefined = bodyId;
-          let brickSpawnPos: { x: number; y: number } = b2Body_GetPosition(bodyId);
-          let brickSpawnX = brickSpawnPos.x;
-          let brickSpawnY = brickSpawnPos.y;
+        const powerUp = userData?.powerup as BrickPowerUps | undefined;
+        this.bricksCount++;
 
-          const Cheese = powerUp === 'blue' ? BlueCheese : powerUp === 'green' ? GreenCheese : YellowCheese;
+        Brick({
+          bodyId,
+          debrisEmitter: brickDebrisParticles,
+          powerUp,
+          onBreak: (brick: BrickEntity) => {
+            const pos = brick.spawnPos;
+            const { x, y } = pos;
 
-          const done =
-            powerUp === 'blue'
-              ? () => {
-                  doorA?.open();
-                }
-              : powerUp === 'green'
-                ? () => {
-                    doorC?.open();
-                  }
-                : () => {
-                    doorBCheeseLeft--;
-                    if (doorBCheeseLeft === 0) {
-                      doorB?.open();
-                    }
-                  };
+            if (brick.powerUp) {
+              const t = brick.powerUp;
+              if (t === 'blue') {
+                BlueCheese({ pos: { x, y } });
+              } else if (t === 'green') {
+                GreenCheese({ pos: { x, y } });
+              } else {
+                YellowCheese({ pos: { x, y } });
+              }
+            } else {
+              const random = Math.random();
+              if (random < 0.2) {
+                YellowCheese({ pos: { x, y } });
+              } else if (random < 0.5) {
+                Scrap({ pos: { x: x - 0.25, y } });
+                Scrap({ pos: { x: x + 0.25, y } });
+              } else {
+                Scrap({ pos: { x, y } });
+              }
+            }
 
-          state(
-            {
-              brick: (transition) => {
-                this.bricksCount++;
+            this.bricksCount--;
 
-                Brick({
-                  bodyId: brickBodyId,
-                  spawnPos: { x: brickSpawnX, y: brickSpawnY },
-                  debrisEmitter: brickDebrisParticles,
-                  powerUp,
-                  onBreak: () => {
-                    this.bricksCount--;
-                    transition('cheese');
-                  },
-                });
-              },
-              cheese: (transition) => {
-                Cheese({
-                  pos: { x: brickSpawnX, y: brickSpawnY },
-                  onCollected: () => transition('done'),
-                  onLost: () => {
-                    brickBodyId = undefined;
-                    transition('brick');
-                  },
-                });
-              },
-              done: () => {
-                done?.();
-              },
-            },
-            'brick',
-          );
-        } else {
-          Brick({
-            powerUp,
-            bodyId,
-            debrisEmitter: brickDebrisParticles,
-            onBreak: (brick: BrickEntity) => {
-              Scrap({
-                pos: { x: brick.spawnPos.x - 0.25, y: brick.spawnPos.y },
-              });
+            if (this.checkWinCondition()) {
+              door?.open();
+            }
+          },
+        });
 
-              Scrap({
-                pos: { x: brick.spawnPos.x + 0.25, y: brick.spawnPos.y },
-              });
+        i++;
+      } else if (tag === 'strong-brick') {
+        this.bricksCount++;
 
-              this.bricksCount--;
-            },
-          });
-        }
+        StrongBrick({
+          bodyId,
+          debrisEmitter: brickDebrisParticles,
+          initialLife: 2,
+          onBreak: (brick: StrongBrickEntity) => {
+            const pos = brick.spawnPos;
+            const { x, y } = pos;
+
+            const random = Math.random();
+            if (random < 0.55) {
+              YellowCheese({ pos: { x, y } });
+            } else {
+              Scrap({ pos: { x: x - 0.25, y } });
+              Scrap({ pos: { x: x + 0.25, y } });
+            }
+
+            this.bricksCount--;
+          },
+        });
+
+        i++;
+      } else if (tag === 'door') {
+        const pos = b2Body_GetPosition(bodyId);
+        const spawnPos = { x: pos.x, y: pos.y };
+        this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
+
+        door = Door({
+          spawnPos,
+          length: 4,
+          sound: ASSETS.sounds_Chest_Open_Creak_3_1,
+        });
       } else if (tag === 'left-wall' || tag === 'right-wall' || tag === 'top-wall') {
         Wall({
           bodyId,
@@ -244,7 +245,15 @@ export default class Level0 extends Level {
 
             ballBody.destroy();
 
-            if (getEntitiesOfKind(ENTITY_KINDS.normBall).length === 0) {
+            this.ballsCount--;
+            if (this.ballsCount === 0) {
+              await execute(Levels_LoseBallCommand);
+
+              if (this.checkLoseCondition()) {
+                this.onLose();
+                return;
+              }
+
               await new Promise((resolve) => setTimeout(resolve, 300));
               this.createBall();
             }
@@ -256,26 +265,10 @@ export default class Level0 extends Level {
             scrapBody.destroy();
           },
         });
-      } else if (tag === 'door') {
-        const pos = b2Body_GetPosition(bodyId);
-        const spawnPos = { x: pos.x, y: pos.y };
-        this.context.systems.get(PhysicsSystem).queueDestruction(bodyId);
-
-        const door = Door({
-          spawnPos,
-          length: 2,
-          startOpen: this.debug_mode,
-          sound: ASSETS.sounds_Chest_Open_Creak_3_1,
-        });
-
-        if (userData?.doorName === 'door-a') {
-          doorA = door;
-        } else if (userData?.doorName === 'door-b') {
-          doorB = door;
-          doorB.openingDirection = 'right';
-        } else if (userData?.doorName === 'door-c') {
-          doorC = door;
-        }
+      } else if (tag === 'cat-piece') {
+        CatTail({ bodyId, texture: 'cat-tail#0' });
+      } else if (tag === 'cat-body') {
+        CatPiece({ bodyId, texture: 'cat-body#0' });
       } else {
         this.context.systems.get(PhysicsSystem).registerOrphanBody(bodyId);
       }
@@ -283,17 +276,15 @@ export default class Level0 extends Level {
 
     await execute(Levels_LevelStartCommand);
 
-    const entities = getEntities();
-
-    console.log('[Level0] Entities:', entities);
-    console.log('[Level0] Loaded');
+    console.log('[Level4] Entities:', getEntities());
+    console.log('[Level4] Loaded');
   }
 
   private createBackground(): void {
     const bg = typedAssets.get<PrototypeTextures>(ASSETS.levels_level_1).textures;
 
     const map = new TiledResource({
-      map: TILED_MAPS.backgrounds_level_0,
+      map: TILED_MAPS.backgrounds_level_4,
       tilesetTextures: {
         level_1_tileset: {
           textures: bg,
@@ -310,12 +301,9 @@ export default class Level0 extends Level {
       map.container.y = -origin.y;
     }
 
-    // TIL the zindex is relative to the container
     map.container.zIndex = -1;
-    // FIXME: lol, why the whole "background" thing?
 
     this.context.container!.addChild(map.container);
-    // ?? this.context.layers?.background.addChild(map.container);
   }
 
   protected checkWinCondition(): boolean {

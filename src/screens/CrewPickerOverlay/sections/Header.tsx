@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ scrapsCounter, onClose }: HeaderProps) {
-  const scrapsText = computed(() => `${scrapsCounter.get()} Scraps`);
+  const scrapsText = computed(() => `${scrapsCounter.get()} Clay Balls`);
 
   const header = (
     <layoutContainer

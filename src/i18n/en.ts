@@ -12,8 +12,9 @@ export const i18nDictEnglish = {
 
   'level-0.name': '0 - The origin',
   'level-1.name': '1 - Starting grounds',
-  'level-2.name': '3 - Splitting ways',
-  'level-3.name': '2 - The hook',
+  'level-2.name': '4 - Splitting ways',
+  'level-3.name': '3 - The hook',
+  'level-4.name': '2 - Cheese is power',
 
   'crew-swap': 'Press "x" to swap crew for 10 scraps',
 };

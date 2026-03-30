@@ -52,7 +52,7 @@ class BadgeButton extends Button {
     });
 
     const nameText = new Text({
-      text: `${def.name} - ${def.ability.cost}`,
+      text: `${def.name} - Need ${def.ability.cost} cheese`,
       style: {
         ...TEXT_STYLE_DEFAULT,
         fontSize: 14,
@@ -160,7 +160,8 @@ export class CrewIndicator extends LayoutContainer {
 
     <mount target={this}>
       <text text="Active Crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 14 }} layout={true} />
-      <text text="Q and W to activate" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 10 }} layout={true} />
+      <text text="Use cheese" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 10 }} layout={true} />
+      <text text="Q or W to activate" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 10 }} layout={true} />
     </mount>;
 
     const crewContainer = new LayoutContainer({

@@ -48,7 +48,11 @@ export class EventEmitter {
     const listeners = this.listeners.get(event);
     if (listeners) {
       const payload = args[0];
-      listeners.forEach((listener) => listener(payload));
+      // Use array for loop to avoid concurrent modification issues
+      const listenersArray = Array.from(listeners);
+      for (const listener of listenersArray) {
+        listener(payload);
+      }
     }
   }
 

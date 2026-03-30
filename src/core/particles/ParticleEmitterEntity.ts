@@ -18,6 +18,7 @@ export const ParticleEmitterEntity = defineEntity(
     const unmount = getUnmount();
 
     const emitter = new ParticleEmitter(config);
+    emitter.container.zIndex = 1000;
     container.addChild(emitter.container);
 
     onCleanup(() => {

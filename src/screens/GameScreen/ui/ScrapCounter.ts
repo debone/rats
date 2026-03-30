@@ -1,7 +1,6 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { createRefs, type RefCountable } from '@/core/reactivity/refs/ref-collection';
 import type { Cleanup } from '@/core/reactivity/signals/types';
 import { getRunState } from '@/data/game-state';
 import { LayoutContainer } from '@pixi/layout/components';
@@ -22,7 +21,7 @@ export class ScrapCounter extends LayoutContainer {
       gap: 5,
       minHeight: 20,
       alignItems: 'center',
-      minWidth: 74,
+      minWidth: 64,
     };
 
     const scrapSprite = new Sprite({
@@ -32,8 +31,8 @@ export class ScrapCounter extends LayoutContainer {
 
     scrapSprite.layout = {
       objectFit: 'none',
-      width: 32,
-      height: 32,
+      width: 16,
+      height: 16,
     };
 
     this.addChild(scrapSprite);
@@ -42,7 +41,7 @@ export class ScrapCounter extends LayoutContainer {
       text: '0',
       style: {
         ...TEXT_STYLE_DEFAULT,
-        fontSize: 20,
+        fontSize: 14,
       },
       layout: true,
     });

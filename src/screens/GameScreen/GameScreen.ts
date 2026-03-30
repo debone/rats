@@ -88,33 +88,43 @@ export class GameScreen extends Container implements AppScreen {
     // Setup event listeners for UI events
     this.setupEventListeners();
 
-    const uiLayer = new LayoutContainer();
-    uiLayer.layout = {
+    const uiLayer = new LayoutContainer({
+      layout: {
+        flexDirection: 'row',
+        width: MIN_WIDTH,
+      },
+    });
+    context.navigation.addToLayer(uiLayer, LAYER_NAMES.UI);
+
+    const indicatorContainer = new LayoutContainer();
+    indicatorContainer.layout = {
       gap: 10,
       padding: 10,
       flexDirection: 'column',
       alignItems: 'flex-start',
       width: MIN_WIDTH,
-      height: MIN_HEIGHT + 30,
+      height: MIN_HEIGHT,
     };
-    context.navigation.addToLayer(uiLayer, LAYER_NAMES.UI);
 
-    uiLayer.addChild(new LevelIndicator());
-    uiLayer.addChild(new BallCounter());
-    uiLayer.addChild(new CrewIndicator());
+    uiLayer.addChild(indicatorContainer);
+
+    indicatorContainer.addChild(new LevelIndicator());
+    indicatorContainer.addChild(new CrewIndicator());
 
     const countersContainer = new LayoutContainer({
       layout: {
         gap: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 'auto',
+        padding: 10,
+        paddingTop: 35,
+        flexDirection: 'column',
+        alignItems: 'flex-end',
       },
     });
     uiLayer.addChild(countersContainer);
 
-    countersContainer.addChild(new ScrapCounter());
+    indicatorContainer.addChild(new BallCounter());
     countersContainer.addChild(new CheeseCounter());
+    countersContainer.addChild(new ScrapCounter());
 
     const popupLayer = new LayoutContainer({
       layout: {

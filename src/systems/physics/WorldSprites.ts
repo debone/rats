@@ -6,7 +6,7 @@
  * actual game sprites that render the visual representation of physics bodies.
  */
 
-import { PXM, MIN_WIDTH, MIN_HEIGHT } from '@/consts';
+import { MIN_HEIGHT, MIN_WIDTH, PXM } from '@/consts';
 import { b2Body_GetTransform, b2Body_IsValid, b2DestroyBody, type b2BodyId, type b2WorldId } from 'phaser-box2d';
 
 /**
@@ -18,6 +18,7 @@ export interface SpriteObject {
   y: number;
   rotation: number;
   visible?: boolean;
+  shouldRotate?: boolean;
 }
 
 /** Entry storing body reference and optional metadata */
@@ -229,7 +230,9 @@ export function BodyToSprite(
   sprite.y = y + origin.y + offsetY;
 
   // Convert rotation: negate because Y is flipped
-  sprite.rotation = -Math.atan2(transform.q.s, transform.q.c);
+  if (sprite.shouldRotate !== false) {
+    sprite.rotation = -Math.atan2(transform.q.s, transform.q.c);
+  }
 }
 
 export function BodyToScreen(bodyId: b2BodyId): { x: number; y: number } {

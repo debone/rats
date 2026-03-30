@@ -9,9 +9,10 @@ import { buttonLayout, panelLayoutBordered } from '../styles';
 
 interface ShopCardProps {
   crewMember: CrewMemberDef;
+  onPurchased?: () => void;
 }
 
-export function ShopCard({ crewMember }: ShopCardProps) {
+export function ShopCard({ crewMember, onPurchased }: ShopCardProps) {
   const { hoverIntent } = useContext<CrewPickerCtx>(CREW_PICKER_CTX);
   let cardRef: LayoutContainer | undefined;
   let scrapsRef: Sprite | undefined;
@@ -39,13 +40,13 @@ export function ShopCard({ crewMember }: ShopCardProps) {
             scrapsTextRef!.text = 'Sold';
             scrapsRef!.visible = false;
             sold = true;
-            //cardRef?.destroy({ children: true });
+            onPurchased?.();
           }
         }}
       >
         <sprite texture={getScrapsTexture()} layout={true} ref={(el) => (scrapsRef = el)} />
         <text
-          text={`${crewMember.hiringCost} Scraps`}
+          text={`${crewMember.hiringCost} Clay Balls`}
           style={TEXT_STYLE_DEFAULT}
           layout={true}
           ref={(el) => (scrapsTextRef = el)}

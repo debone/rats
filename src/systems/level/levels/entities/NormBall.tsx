@@ -13,6 +13,8 @@ import {
   b2BodyType,
   b2MulSV,
   b2Normalize,
+  b2Shape_GetFilter,
+  b2Shape_SetFilter,
   b2Vec2,
   CreateCircle,
 } from 'phaser-box2d';
@@ -36,7 +38,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
   const unmount = getUnmount();
   const physics = usePhysics();
 
-  const { bodyId } = CreateCircle({
+  const { bodyId, shapeId } = CreateCircle({
     worldId,
     type: b2BodyType.b2_dynamicBody,
     position: new b2Vec2(x, y),
@@ -45,6 +47,10 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     friction: 0.5,
     restitution: 1,
   });
+
+  const ballFilter = b2Shape_GetFilter(shapeId);
+  ballFilter.categoryBits = 0x0002;
+  b2Shape_SetFilter(shapeId, ballFilter);
 
   onCleanup(() => {
     physics.queueDestruction(bodyId);

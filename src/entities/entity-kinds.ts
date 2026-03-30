@@ -1,5 +1,6 @@
 import type { ParticleEmitterEntity } from '@/core/particles/ParticleEmitterEntity';
 import type { BrickEntity } from '@/systems/level/levels/entities/Brick';
+import type { CatPieceEntity } from '@/systems/level/levels/entities/CatTail';
 import type { CheeseEntity } from '@/systems/level/levels/entities/Cheese';
 import type { DoorEntity } from '@/systems/level/levels/entities/Door';
 import type { KeyListenerEntity } from '@/systems/level/levels/entities/KeyListener';
@@ -25,6 +26,9 @@ export const ENTITY_KINDS = {
   door: 'entity:door',
   scrap: 'entity:scrap',
 
+  catPiece: 'entity:cat-piece',
+  catTail: 'entity:cat-tail',
+
   particleEmitter: 'entity:particle-emitter',
   keyListener: 'entity:key-listener',
 } as const;
@@ -48,6 +52,7 @@ export interface EntityByKind {
   [ENTITY_KINDS.scrap]: ScrapEntity;
   [ENTITY_KINDS.keyListener]: KeyListenerEntity;
   [ENTITY_KINDS.particleEmitter]: ParticleEmitterEntity;
+  [ENTITY_KINDS.catPiece]: CatPieceEntity;
 }
 
 export type KnownEntity = EntityByKind[EntityKind];

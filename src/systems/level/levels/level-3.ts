@@ -27,6 +27,8 @@ import { YellowCheese } from './entities/Cheese';
 import { Door } from './entities/Door';
 import { KeyListener } from './entities/KeyListener';
 import { NormBall } from './entities/NormBall';
+import { PlusCheeseParticles } from './entities/PlusCheeseParticles';
+import { PlusClayParticles } from './entities/PlusClayParticles';
 import { Scrap } from './entities/Scrap';
 import { StrongBrick, type StrongBrickEntity } from './entities/StrongBrick';
 import { WallParticles } from './entities/WallParticles';
@@ -85,6 +87,8 @@ export default class Level3 extends Level {
     const brickDebrisParticles = BrickDebrisParticles().emitter;
     const waterParticles = WaterParticles().emitter;
     const wallParticles = WallParticles().emitter;
+    const plusCheeseParticles = PlusCheeseParticles().emitter;
+    const plusClayParticles = PlusClayParticles().emitter;
 
     KeyListener({
       key: 'KeyQ',
@@ -99,7 +103,12 @@ export default class Level3 extends Level {
     const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
     assert(paddleJoint, 'Level3: paddle-joint not found in RUBE');
 
-    this.paddleEntity = Paddle({ jointId: paddleJoint, brickDebrisEmitter: brickDebrisParticles });
+    this.paddleEntity = Paddle({
+      jointId: paddleJoint,
+      brickDebrisEmitter: brickDebrisParticles,
+      plusClayEmitter: plusClayParticles,
+      plusCheeseEmitter: plusCheeseParticles,
+    });
 
     this.createBall();
 
@@ -223,13 +232,13 @@ export default class Level3 extends Level {
           onCheese: async ({ cheeseBody }) => {
             const { x, y } = BodyToScreen(cheeseBody.bodyId);
             waterParticles.explode(25, x, y);
-            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
             cheeseBody.destroy();
           },
           onBall: async ({ ballBody }) => {
             const { x, y } = BodyToScreen(ballBody.bodyId);
             waterParticles.explode(100, x, y);
-            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
 
             ballBody.destroy();
 
@@ -249,7 +258,7 @@ export default class Level3 extends Level {
           onScrap: async ({ scrapBody }) => {
             const { x, y } = BodyToScreen(scrapBody.bodyId);
             waterParticles.explode(10, x, y);
-            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2);
+            sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
             scrapBody.destroy();
           },
         });

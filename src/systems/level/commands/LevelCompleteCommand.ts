@@ -40,9 +40,10 @@ export class LevelCompleteCommand extends Command<LevelResult> {
 
     let nextLevelId = '';
     if (result.levelId === 'level-0') nextLevelId = 'level-1';
-    if (result.levelId === 'level-1') nextLevelId = 'level-3';
-    else if (result.levelId === 'level-2') nextLevelId = 'level-1';
+    if (result.levelId === 'level-1') nextLevelId = 'level-4';
+    else if (result.levelId === 'level-4') nextLevelId = 'level-3';
     else if (result.levelId === 'level-3') nextLevelId = 'level-2';
+    else if (result.levelId === 'level-2') nextLevelId = 'level-0';
 
     setCurrentLevelId(nextLevelId);
     yield execute(LoadLevelCommand, { levelId: nextLevelId });

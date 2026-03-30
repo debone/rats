@@ -83,9 +83,9 @@ export const StrongBrick = defineEntity(
         onHit?.(this);
 
         if (Math.random() < 0.5) {
-          sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10);
+          sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10, { volume: 0.25 });
         } else {
-          sfx.playPitched(ASSETS.sounds_Rock_Impact_07);
+          sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { volume: 0.25 });
         }
 
         if (this.life > 1) {
