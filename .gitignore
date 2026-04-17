@@ -28,3 +28,17 @@ public/assets
 .assetpack
 
 tmp
+
+# Godot editor cache
+godot/.godot
+
+# Godot generated resources (rebuilt by the asset pipeline)
+godot/atlases
+godot/sprites
+godot/sounds
+godot/sprite-map.json
+
+# Godot auto-import cache for generated files
+godot/atlases.import
+godot/sprites.import
+godot/sounds.import

@@ -1,6 +1,7 @@
 import type { ParticleEmitterEntity } from '@/core/particles/ParticleEmitterEntity';
 import type { BrickEntity } from '@/systems/level/levels/entities/Brick';
-import type { CatPieceEntity } from '@/systems/level/levels/entities/CatTail';
+import type { CatTailEntity } from '@/systems/level/levels/entities/CatTail';
+import type { CatPieceEntity } from '@/systems/level/levels/entities/CatBody';
 import type { CheeseEntity } from '@/systems/level/levels/entities/Cheese';
 import type { DoorEntity } from '@/systems/level/levels/entities/Door';
 import type { KeyListenerEntity } from '@/systems/level/levels/entities/KeyListener';
@@ -53,6 +54,7 @@ export interface EntityByKind {
   [ENTITY_KINDS.keyListener]: KeyListenerEntity;
   [ENTITY_KINDS.particleEmitter]: ParticleEmitterEntity;
   [ENTITY_KINDS.catPiece]: CatPieceEntity;
+  [ENTITY_KINDS.catTail]: CatTailEntity;
 }
 
 export type KnownEntity = EntityByKind[EntityKind];

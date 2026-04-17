@@ -6,7 +6,7 @@
   "scripts": {
     "prestart": "run-s clean",
     "start": "vite --config devtools/config.dev.mjs",
-    "clean": "rimraf dist/* public/assets/* .assetpack/*",
+    "clean": "rimraf dist/* public/assets/* .assetpack/* godot/atlases/* godot/sprites/* godot/sounds/* godot/sprite-map.json",
     "preview": "vite preview --config devtools/config.build.mjs",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
