@@ -21,7 +21,7 @@ export async function fade(camera: Camera, options: FadeOptions): Promise<void> 
     return;
   }
 
-  await camera.track(animate(camera, { alpha: to, duration, easing }));
+  await camera.track(animate(camera, { alpha: to, duration, ease: easing }));
 }
 
 /**

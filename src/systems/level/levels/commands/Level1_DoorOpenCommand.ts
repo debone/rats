@@ -24,7 +24,7 @@ export class Level_1_DoorOpenCommand extends Command<DoorOpenCommandResult> {
       animate(doorPos, {
         x: pos.x - 8,
         duration: 500,
-        easing: 'easeInOutQuad',
+        ease: 'inOutQuad',
         onUpdate: () => {
           b2Body_SetTransform(door, doorPos, rot);
         },

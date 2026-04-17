@@ -33,7 +33,7 @@ export class LoadScreen extends Container implements AppScreen {
     const texture = Texture.from(ASSETS.vite_vite);
     const sprite = new Sprite(texture);
     this.addChild(sprite);
-    animate(sprite, { x: 700, duration: 3000, easing: 'easeInOutSine' });
+    animate(sprite, { x: 700, duration: 3000, ease: 'inOutSine' });
 
     //const text = new Text('Loading...', { fontSize: 24, fontWeight: 'bold' });
     //this.addChild(text);
@@ -213,7 +213,7 @@ export class LoadScreen extends Container implements AppScreen {
   }
 
   public async hide(): Promise<void> {
-    await animate(this, { alpha: 0, duration: 100, easing: 'easeInOutSine' });
+    await animate(this, { alpha: 0, duration: 100, ease: 'inOutSine' });
     return Promise.resolve();
   }
 

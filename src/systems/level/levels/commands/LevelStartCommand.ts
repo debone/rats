@@ -30,8 +30,8 @@ export class Levels_LevelStartCommand extends Command<void> {
     navigation.addToLayer(startLevel, LAYER_NAMES.OVERLAY);
     yield delay(LEVEL_START_DURATION);
 
-    animate(startLevel, { alpha: 0, duration: LEVEL_START_DURATION, easing: 'linear' });
-    animate(dark, { alpha: 0, duration: LEVEL_START_DURATION, easing: 'linear' });
+    animate(startLevel, { alpha: 0, duration: LEVEL_START_DURATION, ease: 'linear' });
+    animate(dark, { alpha: 0, duration: LEVEL_START_DURATION, ease: 'linear' });
 
     setTimeout(() => {
       dark.destroy();

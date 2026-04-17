@@ -67,7 +67,7 @@ export class FirstCrewSelector extends Container implements AppScreen {
     // INSERT_YOUR_CODE
     // Fade in the gameContainer when the screen is shown using animejs
     this.alpha = 0;
-    await animate(this, { alpha: 1, duration: 250, easing: 'easeOutQuad' });
+    await animate(this, { alpha: 1, duration: 250, ease: 'outQuad' });
   }
 
   resize(_w: number, _h: number) {

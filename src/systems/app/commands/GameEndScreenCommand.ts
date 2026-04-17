@@ -17,7 +17,7 @@ export class GameEndScreenCommand extends Command<void> {
     dark.fill(0x322947);
     dark.alpha = 0;
     navigation.addToLayer(dark, LAYER_NAMES.OVERLAY);
-    yield animate(dark, { alpha: 1, duration: 500, easing: 'linear' });
+    yield animate(dark, { alpha: 1, duration: 500, ease: 'linear' });
 
     const startLevel = new Text({
       text: t.dict['game.over'],
@@ -32,8 +32,8 @@ export class GameEndScreenCommand extends Command<void> {
     navigation.addToLayer(startLevel, LAYER_NAMES.OVERLAY);
     yield delay(END_SCREEN_DURATION);
 
-    animate(startLevel, { alpha: 0, duration: END_SCREEN_DURATION, easing: 'linear' });
-    animate(dark, { alpha: 0, duration: END_SCREEN_DURATION, easing: 'linear' });
+    animate(startLevel, { alpha: 0, duration: END_SCREEN_DURATION, ease: 'linear' });
+    animate(dark, { alpha: 0, duration: END_SCREEN_DURATION, ease: 'linear' });
 
     setTimeout(() => {
       dark.destroy();
