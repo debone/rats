@@ -1,9 +1,11 @@
 import { type Asset, type AssetPipe, checkExt, createNewAssetAt, swapExt } from '@assetpack/core';
+import * as path from 'path';
 import sharp from 'sharp';
 
 import Aseprite from './lib/ase-parser.ts';
 import { extractSprites } from './processors/aseprite.ts';
 import { Atlas } from './processors/atlas.ts';
+import { generateGodotResources } from './processors/godot-resources.ts';
 
 /**
  * Generate TypeScript content for atlas config
@@ -204,6 +206,11 @@ async function processFile(asset: Asset, options: PackerOptions): Promise<Asset[
 
     assets.push(pngAsset, jsonAsset);
   }
+
+  // Generate Godot resources from the full-resolution atlas buffer.
+  // This is a side-effect write to godot/ -- not an assetpack output asset.
+  const fullResMetadata = atlas.metadata(`${path.basename(baseName)}.png`);
+  generateGodotResources(fullResMetadata, atlasBuffer, baseName);
 
   return assets;
 }

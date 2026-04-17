@@ -2,9 +2,23 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { addChildren, applyProps, createSignalBinding } from '@/core/jsx/shared';
 import type { GraphicsElement, SpriteElement, TextElement } from '@/core/jsx/types';
 import { getSignalValue, isSignal } from '@/core/reactivity/signals/signals';
+import type { LayoutStyles } from '@pixi/layout';
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 
 export const PIXI_CORE_TAGS = new Set(['container', 'sprite', 'text', 'graphics', 'mount']);
+
+/** Default `<text>` layout in flex UIs; override via `layout={{ … }}`, or `layout={false}` to disable. */
+const DEFAULT_TEXT_LAYOUT: Partial<LayoutStyles> = { flexShrink: 0, alignSelf: 'center' };
+
+function resolveTextLayout(user: TextElement['layout']): Partial<LayoutStyles> | boolean {
+  if (user === false) {
+    return false;
+  }
+  if (user === true || user === undefined) {
+    return { ...DEFAULT_TEXT_LAYOUT };
+  }
+  return { ...DEFAULT_TEXT_LAYOUT, ...user };
+}
 
 export function createCoreElement(type: string, props: Record<string, any>): Container {
   const { children, ...rest } = props;
@@ -41,14 +55,19 @@ export function createCoreElement(type: string, props: Record<string, any>): Con
     }
 
     case 'text': {
-      const { text, style, ...textRest } = rest as TextElement;
+      const { text, style, layout, ...textRest } = rest as TextElement;
       const textStyle = style ?? TEXT_STYLE_DEFAULT;
       const initialText = getSignalValue(text ?? '', '');
       element = new Text({ text: initialText as string, style: textStyle });
       if (isSignal(text)) {
         createSignalBinding(element, 'text', text, setCoreProperty);
       }
-      applyProps(element, textRest, setCoreProperty, TEXT_IGNORE);
+      applyProps(
+        element,
+        { ...textRest, layout: resolveTextLayout(layout) },
+        setCoreProperty,
+        TEXT_IGNORE,
+      );
       addChildren(element, children);
       return element;
     }
