@@ -29,7 +29,7 @@ import { CRT2Filter } from './lib/CRT/CRT';
 import { initDevtools } from '@pixi/devtools';
 import '@pixi/layout/devtools';
 
-import { CAMERA_Z_INDEX } from './consts';
+import { CAMERA_Z_INDEX, MIN_HEIGHT } from './consts';
 import { Camera } from './core/camera/camera';
 import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
@@ -64,15 +64,12 @@ async function init() {
   // Connect debug panel to ticker for FPS monitoring
   if (import.meta.env.DEV) {
     DebugPanel.connectTicker(app);
-    app.renderer.layout.enableDebug(true);
+    //app.renderer.layout.enableDebug(true);
   }
 
   await initTone();
 
   const mirror = new ReflectionFilter2({
-    // correct boundary: 0.875,
-    //boundary: 0.875,
-    boundary: 0.875,
     alpha: [1.0, 0.0],
     amplitude: [20, 200],
   });
@@ -169,9 +166,25 @@ async function init() {
     mirror.time += time.deltaMS / 200;
   });
 
+  const resizer = () => {
+    const { height } = resize(app, context);
+
+    // The game world is MIN_HEIGHT (640px) tall. When the renderer height is larger,
+    // the world is centered with equal empty space above and below.
+    // border/amplitude describe that geometry in renderer-normalized [0..1] space,
+    // which is the same coordinate space the filter shader uses (uDimensions.y = height).
+    const border = (height - MIN_HEIGHT) / 2 / height;
+    const amplitude = MIN_HEIGHT / height;
+
+    const boundaryPlace = 0.938;
+
+    const mirrorBoundary = border + amplitude * boundaryPlace;
+    mirror.boundary = mirrorBoundary;
+  };
+
   // Resize handler
-  window.addEventListener('resize', () => resize(app, context));
-  resize(app, context); // Initial resize
+  window.addEventListener('resize', resizer);
+  setTimeout(resizer, 16); // Initial resize
 
   // Visibility change handler
   document.addEventListener('visibilitychange', visibilityChange);

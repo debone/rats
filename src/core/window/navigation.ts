@@ -78,11 +78,7 @@ export class Navigation {
       screen.prepare();
     }
 
-    // Add screen's resize handler, if available
-    if (screen.resize) {
-      // Trigger a first resize
-      this.resize(this.width, this.height);
-    }
+    this.resize(this.width, this.height);
 
     // Add update function if available
     if (screen.update) {

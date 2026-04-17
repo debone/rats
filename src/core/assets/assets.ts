@@ -6,7 +6,6 @@ import {
   resolveTextureUrl,
   type AssetsManifest,
   type ResolveURLParser,
-  type UnresolvedAsset,
 } from 'pixi.js';
 
 export const resolveJsonUrl = {
@@ -61,12 +60,6 @@ export function isBundleLoaded(bundle: string) {
 
   if (!bundleManifest) {
     return false;
-  }
-
-  for (const asset of bundleManifest.assets as UnresolvedAsset[]) {
-    if (!Assets.cache.has(asset.alias as string)) {
-      return false;
-    }
   }
 
   return true;

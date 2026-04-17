@@ -203,7 +203,10 @@ export class LoadScreen extends Container implements AppScreen {
     console.log('[LoadScreen] Loading assets...');
 
     // Load all default bundles
-    await Assets.loadBundle('default');
+    // TODO: actually load assets on the loadscreen?
+    // right now they are loaded at the asset system start
+
+    //await Assets.loadBundle('default');
     console.log('[LoadScreen] Assets loaded');
 
     // Emit assets loaded event
