@@ -81,7 +81,7 @@ async function init() {
     curvature: 0,
     lineWidth: 0,
     lineContrast: 0,
-    noise: 0.1,
+    noise: 0.12,
     vignetting: 0,
   });
 
@@ -96,7 +96,7 @@ async function init() {
   //app.stage.filters = [bloom, c];
   //app.stage.filters = [c, c, bloom];
   //app.stage.filters = [mirror, c, bloom];
-  app.stage.filters = [c, mirror];
+  //app.stage.filters = [c, mirror];
   //app.stage.filters = [c, mirror, bloom];
   //app.stage.filters = [c, bloom, glow];
 
@@ -111,6 +111,8 @@ async function init() {
   const camera = new Camera();
   camera.viewport.zIndex = CAMERA_Z_INDEX;
   app.stage.addChild(camera.viewport);
+
+  camera.viewport.filters = [mirror, c];
 
   if (import.meta.env.DEV) {
     camera.debug = new CameraDebug(camera);

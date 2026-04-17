@@ -40,6 +40,13 @@ export class Navigation {
     }
   }
 
+  getLayer(layer: LayerName): Container {
+    if (this.layers && this.layers[layer]) {
+      return this.layers[layer];
+    }
+    return new Container();
+  }
+
   showLayer(layer: LayerName): void {
     if (this.layers && this.layers[layer]) {
       this.layers[layer].visible = true;

@@ -29,6 +29,8 @@ export function resize(app: Application, context: GameContext) {
   navigation.resize(width, height);
   context.systems.resize(width, height);
   context.camera.resize(width, height);
+
+  return { width, height, windowWidth, windowHeight, scale, minWidth, minHeight };
 }
 
 /** Fire when document visibility changes - lose or regain focus */

@@ -60,7 +60,7 @@ export function createGameLayers(parent: Container, camera: Camera): GameLayers 
   // Add only the requested layers to parent in z-order
   for (const name of LAYER_ORDER) {
     // Peak game dev code
-    if (name === 'game' || name === 'effects') {
+    if (name === 'background' || name === 'game' || name === 'effects') {
       camera.viewport.addChild(layers[name]);
     } else {
       parent.addChild(layers[name]);
