@@ -60,6 +60,8 @@ export interface BreakoutLevelProps {
   rubeAsset: string;
   background: BackgroundConfig;
   winBrickCount: number;
+  /** When true, ball loss never decrements lives or triggers game-over — ball always respawns. */
+  infiniteBalls?: boolean;
   onBodyLoad: (ctx: BodyHandlerContext) => boolean | void;
 }
 
@@ -173,10 +175,12 @@ export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutL
             ballBody.destroy();
 
             if (getEntitiesOfKind(ENTITY_KINDS.normBall).length === 0) {
-              await execute(Levels_LoseBallCommand);
-              if (checkLoseCondition()) {
-                onLose();
-                return;
+              if (!props.infiniteBalls) {
+                await execute(Levels_LoseBallCommand);
+                if (checkLoseCondition()) {
+                  onLose();
+                  return;
+                }
               }
               await new Promise<void>((resolve) => setTimeout(resolve, 300));
               createBall();

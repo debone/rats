@@ -30,6 +30,7 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
       rubeAsset: ASSETS.levels_level_0_rube,
       background: { tiledMap: TILED_MAPS.backgrounds_level_0 },
       winBrickCount: 5,
+      infiniteBalls: true,
       onBodyLoad({ bodyId, tag, userData, particles, addBrick, removeBrick }) {
         if (tag === 'brick') {
           const powerUp = userData?.powerup as BrickPowerUps | undefined;
