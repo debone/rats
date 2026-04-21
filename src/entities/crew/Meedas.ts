@@ -1,3 +1,8 @@
+import { getEntitiesOfKind } from '@/core/entity/entity';
+import { changeCheese } from '@/data/game-state';
+import { ENTITY_KINDS } from '@/entities/entity-kinds';
+import { Cheese } from '@/systems/level/levels/entities/Cheese';
+import { b2Body_GetPosition } from 'phaser-box2d';
 import type { CrewMemberDef } from './Crew';
 
 export const MeedasCrewMember: CrewMemberDef = {
@@ -9,12 +14,21 @@ export const MeedasCrewMember: CrewMemberDef = {
     name: 'Rubble becomes cheese',
     cost: 1,
     effect: () => {
-      console.log('Meedas ability effect');
+      const scraps = getEntitiesOfKind(ENTITY_KINDS.scrap);
+      scraps.forEach((scrap) => {
+        const pos = b2Body_GetPosition(scrap.bodyId);
+        scrap.destroy();
+        Cheese({ pos: { x: pos.x, y: pos.y }, type: 'yellow', onCollected: () => changeCheese(1) });
+      });
     },
   },
   passiveAbility: {
     name: 'Balls float',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.stats.ballSpeedRatio.update((v) => v * 0.65);
+    },
+    unmount: (runState) => {
+      runState.stats.ballSpeedRatio.update((v) => v / 0.65);
+    },
   },
 };

@@ -52,10 +52,28 @@ export interface RunState {
 
   stats: {
     boatVelocityRatio: Signal<number>;
+    ballSpeedRatio: Signal<number>;
+    brickDamage: Signal<number>;
+    cheeseStorageBonus: Signal<number>;
+    abilityDiscount: Signal<number>;
+    boatLengthRatio: Signal<number>;
   };
 
   crewBoons: {
     nuggets_nextAbilityFree: Signal<boolean>;
+    lacfree_nextBricksHaveCheese: Signal<number>;
+    lacfree_abilitiesConsumeRubbles: Signal<boolean>;
+    micesive_nextBricksHaveRubbles: Signal<number>;
+    ratfather_bricksGiveMoreCheese: Signal<boolean>;
+    mysz_ballsStickToBoat: Signal<boolean>;
+    flub_ballsAttractedToBoat: Signal<boolean>;
+    mrblu_nextCheeseIsBlue: Signal<boolean>;
+    mrblu_cheeseFloats: Signal<boolean>;
+    micesive_cheeseGivesBall: Signal<boolean>;
+    aura_cheeseBreaksBricks: Signal<boolean>;
+    pirat_boatImmobilized: Signal<boolean>;
+    littlemi_everythingFloats: Signal<boolean>;
+    ratoulie_abilitiesConsumeBalls: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -133,9 +151,27 @@ export function createGameState(): GameState {
       secondMember: signal(undefined),
       stats: {
         boatVelocityRatio: signal(1),
+        ballSpeedRatio: signal(1),
+        brickDamage: signal(1),
+        cheeseStorageBonus: signal(0),
+        abilityDiscount: signal(0),
+        boatLengthRatio: signal(1),
       },
       crewBoons: {
         nuggets_nextAbilityFree: signal(false),
+        lacfree_nextBricksHaveCheese: signal(0),
+        lacfree_abilitiesConsumeRubbles: signal(false),
+        micesive_nextBricksHaveRubbles: signal(0),
+        ratfather_bricksGiveMoreCheese: signal(false),
+        mysz_ballsStickToBoat: signal(false),
+        flub_ballsAttractedToBoat: signal(false),
+        mrblu_nextCheeseIsBlue: signal(false),
+        mrblu_cheeseFloats: signal(false),
+        micesive_cheeseGivesBall: signal(false),
+        aura_cheeseBreaksBricks: signal(false),
+        pirat_boatImmobilized: signal(false),
+        littlemi_everythingFloats: signal(false),
+        ratoulie_abilitiesConsumeBalls: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
@@ -204,7 +240,8 @@ export function changeScraps(count: number): void {
 }
 
 export function changeCheese(delta: number): void {
-  getRunState().cheeseCounter.update((value) => Math.max(0, Math.min(MAX_CHEESE, value + delta)));
+  const maxCheese = MAX_CHEESE + getRunState().stats.cheeseStorageBonus.get();
+  getRunState().cheeseCounter.update((value) => Math.max(0, Math.min(maxCheese, value + delta)));
 }
 
 export function addBallToRun(count: number): void {
@@ -234,23 +271,29 @@ export function offboardCrewMember(crewMember: CrewMemberDefKey): void {
 }
 
 export function activateCrewAbility(index: number): void {
-  const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
+  const runState = getRunState();
+  const crewMember = index === 0 ? runState.firstMember.get() : runState.secondMember.get();
 
-  if (!crewMember) {
-    return;
-  }
+  if (!crewMember) return;
 
   const def = CREW_DEFS[crewMember.defKey];
 
-  if (getRunState().crewBoons.nuggets_nextAbilityFree.get()) {
-    getRunState().crewBoons.nuggets_nextAbilityFree.set(false);
+  if (runState.crewBoons.nuggets_nextAbilityFree.get()) {
+    runState.crewBoons.nuggets_nextAbilityFree.set(false);
   } else {
-    if (def.activeAbility.cost > getRunState().cheeseCounter.get()) {
-      return;
-    }
+    const cost = Math.max(0, def.activeAbility.cost - runState.stats.abilityDiscount.get());
 
-    changeCheese(-def.activeAbility.cost);
+    if (runState.crewBoons.ratoulie_abilitiesConsumeBalls.get()) {
+      if (cost > runState.ballsRemaining.get()) return;
+      removeBallFromRun(cost);
+    } else if (runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()) {
+      if (cost > runState.scrapsCounter.get()) return;
+      changeScraps(-cost);
+    } else {
+      if (cost > runState.cheeseCounter.get()) return;
+      changeCheese(-cost);
+    }
   }
 
-  def.activeAbility.effect(getRunState());
+  def.activeAbility.effect(runState);
 }

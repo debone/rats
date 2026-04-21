@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const AuraCrewMember: CrewMemberDef = {
@@ -9,12 +11,16 @@ export const AuraCrewMember: CrewMemberDef = {
     name: 'Doubles all balls',
     cost: 1,
     effect: () => {
-      console.log('Aura ability effect');
+      getGameContext().events.emit(GameEvent.CREW_DOUBLE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Cheese can break bricks',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.crewBoons.aura_cheeseBreaksBricks.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.aura_cheeseBreaksBricks.set(false);
+    },
   },
 };

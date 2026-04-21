@@ -1,3 +1,4 @@
+import { changeCheese, removeBallFromRun } from '@/data/game-state';
 import type { CrewMemberDef } from './Crew';
 
 export const AresCapCrewMember: CrewMemberDef = {
@@ -8,13 +9,19 @@ export const AresCapCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Transforms 1 ball into 1 cheese',
     cost: 1,
-    effect: () => {
-      console.log('Ares Cap ability effect');
+    effect: (runState) => {
+      if (runState.ballsRemaining.get() <= 0) return;
+      removeBallFromRun(1);
+      changeCheese(1);
     },
   },
   passiveAbility: {
     name: 'Balls cause 2 damage',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.stats.brickDamage.update((v) => v + 1);
+    },
+    unmount: (runState) => {
+      runState.stats.brickDamage.update((v) => v - 1);
+    },
   },
 };

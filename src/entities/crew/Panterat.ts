@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const PanteratCrewMember: CrewMemberDef = {
@@ -9,12 +11,18 @@ export const PanteratCrewMember: CrewMemberDef = {
     name: 'Strengthen balls',
     cost: 1,
     effect: () => {
-      console.log('Panterat ability effect');
+      // Strengthen = speed + explosive combo (haste + explode mode)
+      getGameContext().events.emit(GameEvent.CREW_HASTE_BALLS);
+      getGameContext().events.emit(GameEvent.CREW_EXPLODE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Abilities cost 1 less',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.stats.abilityDiscount.update((v) => v + 1);
+    },
+    unmount: (runState) => {
+      runState.stats.abilityDiscount.update((v) => v - 1);
+    },
   },
 };

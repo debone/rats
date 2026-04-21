@@ -2,7 +2,7 @@ import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
-import { changeCheese } from '@/data/game-state';
+import { addBallToRun, changeCheese, getRunState } from '@/data/game-state';
 import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
@@ -58,7 +58,12 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
   const f = new b2Vec2(Math.random() * 1 - 0.5, Math.random() * 1 - 0.5);
   b2Normalize(f);
   b2Body_ApplyLinearImpulseToCenter(bodyId, f, true);
-  physics.enableGravity(bodyId);
+
+  const boons = getRunState().crewBoons;
+  const floats = boons.mrblu_cheeseFloats.get() || boons.littlemi_everythingFloats.get();
+  if (!floats) {
+    physics.enableGravity(bodyId);
+  }
   onCleanup(() => {
     physics.disableGravity(bodyId);
     physics.queueDestruction(bodyId);
@@ -70,6 +75,9 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
     tag: 'cheese',
     handlers: {
       paddle: () => {
+        if (getRunState().crewBoons.micesive_cheeseGivesBall.get()) {
+          addBallToRun(1);
+        }
         onCollected?.(cheese);
         cheese.destroy();
       },

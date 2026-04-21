@@ -8,13 +8,17 @@ export const MrBluCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Next cheese is blue',
     cost: 1,
-    effect: () => {
-      console.log('Mr. Blu ability effect');
+    effect: (runState) => {
+      runState.crewBoons.mrblu_nextCheeseIsBlue.set(true);
     },
   },
   passiveAbility: {
     name: 'Cheese floats',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.crewBoons.mrblu_cheeseFloats.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.mrblu_cheeseFloats.set(false);
+    },
   },
 };

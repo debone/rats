@@ -1,10 +1,13 @@
 import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
+import { getEntitiesOfKind } from '@/core/entity/entity';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
+import { getRunState } from '@/data/game-state';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import {
+  b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_SetLinearVelocity,
@@ -32,6 +35,9 @@ export interface NormBallProps {
   x: number;
   y: number;
 }
+
+/** Prevents multiple balls from spawning on a single CREW_SPAWN_BALL event. */
+let _spawnBallLock = false;
 
 export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity => {
   const worldId = useWorldId();
@@ -63,25 +69,88 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
   ballSprite.scale.set(0.75, 0.75);
   useBodySprite(ballSprite, bodyId!);
 
-  let timeout = 0;
-  let targetSpeed = BALL_SPEED_DEFAULT;
+  let hasteBoosted = false;
+  let hasteTimer = 0;
+  let ghostTimer = 0;
+  let explosiveTimer = 0;
+  let stickyTimer = 0;
 
-  function powerUp() {
-    timeout = 10000;
-    ballSprite.tint = 0xffff00;
-    targetSpeed = BALL_SPEED_DEFAULT * 2;
+  let speedRatio = getRunState().stats.ballSpeedRatio.get();
+  getRunState().stats.ballSpeedRatio.subscribe((v) => {
+    speedRatio = v;
+  });
+
+  function getTargetSpeed() {
+    if (hasteBoosted) return BALL_SPEED_DEFAULT * 2 * speedRatio;
+    return BALL_SPEED_DEFAULT * speedRatio;
   }
 
-  function powerDown() {
-    timeout = 0;
-    ballSprite.tint = 0xffffff;
-    targetSpeed = BALL_SPEED_DEFAULT;
+  function setHaste(duration: number) {
+    hasteBoosted = true;
+    hasteTimer = duration;
+    ballSprite.tint = 0xffff00;
+  }
+
+  function clearHaste() {
+    hasteBoosted = false;
+    hasteTimer = 0;
+    ballSprite.tint = ghostTimer > 0 ? 0x8888ff : 0xffffff;
+  }
+
+  function setGhost() {
+    ghostTimer = 2000;
+    ballSprite.tint = 0x8888ff;
+    const f = b2Shape_GetFilter(shapeId);
+    f.maskBits = 0xffff & ~0x0001; // exclude default category (bricks/walls)
+    b2Shape_SetFilter(shapeId, f);
+  }
+
+  function clearGhost() {
+    const f = b2Shape_GetFilter(shapeId);
+    f.maskBits = 0xffff;
+    b2Shape_SetFilter(shapeId, f);
+    ballSprite.tint = hasteBoosted ? 0xffff00 : 0xffffff;
   }
 
   const { start, stop } = useUpdate((delta) => {
-    timeout -= delta;
-    if (timeout <= 0) {
-      powerDown();
+    if (hasteTimer > 0) {
+      hasteTimer -= delta;
+      if (hasteTimer <= 0) clearHaste();
+    }
+
+    if (ghostTimer > 0) {
+      ghostTimer -= delta;
+      if (ghostTimer <= 0) clearGhost();
+    }
+
+    if (explosiveTimer > 0) {
+      explosiveTimer -= delta;
+      if (explosiveTimer <= 0) {
+        ballSprite.tint = hasteBoosted ? 0xffff00 : 0xffffff;
+      }
+    }
+
+    if (stickyTimer > 0) {
+      stickyTimer -= delta;
+      if (stickyTimer <= 0) {
+        // relaunch upward at target speed after sticking to paddle
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, -getTargetSpeed()));
+      } else {
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 0));
+        return;
+      }
+    }
+
+    // Flub passive: gentle horizontal attraction toward paddle
+    if (getRunState().crewBoons.flub_ballsAttractedToBoat.get()) {
+      const paddles = getEntitiesOfKind(ENTITY_KINDS.paddle);
+      if (paddles.length > 0) {
+        const paddlePos = b2Body_GetPosition(paddles[0].bodyId);
+        const ballPos = b2Body_GetPosition(bodyId);
+        const dx = paddlePos.x - ballPos.x;
+        const impulse = new b2Vec2(dx * 0.15, 0);
+        b2Body_ApplyLinearImpulseToCenter(bodyId, impulse, true);
+      }
     }
 
     const velocity = b2Body_GetLinearVelocity(bodyId);
@@ -89,6 +158,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     const absVy = Math.abs(velocity.y);
 
     const minAngleRad = (15 * Math.PI) / 180;
+    const targetSpeed = getTargetSpeed();
 
     let newVelocity = { x: velocity.x, y: velocity.y };
 
@@ -108,18 +178,73 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
 
   useCollisionHandler(bodyId, () => ({
     tag: 'ball',
-    handlers: {},
+    handlers: {
+      brick: (_self: NormBallEntity, brickEntity: any) => {
+        if (explosiveTimer > 0) {
+          const hitPos = b2Body_GetPosition(brickEntity.bodyId);
+          getEntitiesOfKind(ENTITY_KINDS.brick).forEach((b) => {
+            if (b === brickEntity) return;
+            const pos = b2Body_GetPosition(b.bodyId);
+            const dx = pos.x - hitPos.x;
+            const dy = pos.y - hitPos.y;
+            if (dx * dx + dy * dy < 9) b.hit(); // radius 3
+          });
+        }
+      },
+      paddle: () => {
+        if (getRunState().crewBoons.mysz_ballsStickToBoat.get()) {
+          stickyTimer = 250;
+        }
+      },
+    },
     entity: normBall,
   }));
 
-  useGameEvent(GameEvent.POWERUP_FASTER, () => {
-    powerUp();
+  // Crew active ability events
+  useGameEvent(GameEvent.CREW_HASTE_BALLS, () => {
+    setHaste(5000);
   });
 
-  useGameEvent(GameEvent.POWERUP_DOUBLER, () => {
+  useGameEvent(GameEvent.CREW_DOUBLE_BALLS, () => {
     const position = b2Body_GetPosition(bodyId);
     const newBall = NormBall({ x: position.x, y: position.y });
     newBall.startUpdating();
+  });
+
+  useGameEvent(GameEvent.CREW_RECALL_BALLS, () => {
+    const paddles = getEntitiesOfKind(ENTITY_KINDS.paddle);
+    if (paddles.length > 0) {
+      const paddlePos = b2Body_GetPosition(paddles[0].bodyId);
+      // teleport to just above paddle, launch upward
+      b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, -getTargetSpeed()));
+      // Note: can't set position directly mid-step; use impulse redirect instead
+      const vel = b2Body_GetLinearVelocity(bodyId);
+      const ballPos = b2Body_GetPosition(bodyId);
+      const dx = paddlePos.x - ballPos.x;
+      b2Body_ApplyLinearImpulseToCenter(bodyId, new b2Vec2(dx * 2, -Math.abs(vel.y) * 3), true);
+    }
+  });
+
+  useGameEvent(GameEvent.CREW_EXPLODE_BALLS, () => {
+    explosiveTimer = 5000;
+    ballSprite.tint = 0xff4400;
+  });
+
+  useGameEvent(GameEvent.CREW_GHOST_BALLS, () => {
+    setGhost();
+  });
+
+  useGameEvent(GameEvent.CREW_SPAWN_BALL, () => {
+    if (_spawnBallLock) return;
+    _spawnBallLock = true;
+    queueMicrotask(() => {
+      _spawnBallLock = false;
+    });
+    const paddles = getEntitiesOfKind(ENTITY_KINDS.paddle);
+    const spawnX = paddles.length > 0 ? b2Body_GetPosition(paddles[0].bodyId).x : x;
+    const newBall = NormBall({ x: spawnX, y: y });
+    newBall.startUpdating();
+    b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(0, -BALL_SPEED_DEFAULT));
   });
 
   const normBall: NormBallEntity = {

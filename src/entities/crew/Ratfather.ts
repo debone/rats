@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const RatfatherCrewMember: CrewMemberDef = {
@@ -9,12 +11,16 @@ export const RatfatherCrewMember: CrewMemberDef = {
     name: 'Ghost balls (2s)',
     cost: 1,
     effect: () => {
-      console.log('Ratfather ability effect');
+      getGameContext().events.emit(GameEvent.CREW_GHOST_BALLS);
     },
   },
   passiveAbility: {
     name: 'Bricks give more cheese',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.crewBoons.ratfather_bricksGiveMoreCheese.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.ratfather_bricksGiveMoreCheese.set(false);
+    },
   },
 };

@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const FlubCrewMember: CrewMemberDef = {
@@ -9,12 +11,16 @@ export const FlubCrewMember: CrewMemberDef = {
     name: 'Haste balls',
     cost: 1,
     effect: () => {
-      console.log('Flub ability effect');
+      getGameContext().events.emit(GameEvent.CREW_HASTE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Balls are attracted to the boat',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.crewBoons.flub_ballsAttractedToBoat.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.flub_ballsAttractedToBoat.set(false);
+    },
   },
 };

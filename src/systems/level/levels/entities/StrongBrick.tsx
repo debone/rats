@@ -5,6 +5,7 @@ import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { getRunState } from '@/data/game-state';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
@@ -88,8 +89,9 @@ export const StrongBrick = defineEntity(
           sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { volume: 0.25 });
         }
 
-        if (this.life > 1) {
-          this.life -= 1;
+        const damage = getRunState().stats.brickDamage.get();
+        if (this.life > damage) {
+          this.life -= damage;
           b2Body_SetUserData(bodyId, { type: 'strong-brick', life: this.life });
           sprite.texture = bg[`bricks_tile_4#0`];
 

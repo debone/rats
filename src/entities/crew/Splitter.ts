@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const SplitterCrewMember: CrewMemberDef = {
@@ -9,12 +11,16 @@ export const SplitterCrewMember: CrewMemberDef = {
     name: 'Double balls',
     cost: 1,
     effect: () => {
-      console.log('Splitter ability effect');
+      getGameContext().events.emit(GameEvent.CREW_DOUBLE_BALLS);
     },
   },
   passiveAbility: {
     name: '+2 cheese storage',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.stats.cheeseStorageBonus.update((v) => v + 2);
+    },
+    unmount: (runState) => {
+      runState.stats.cheeseStorageBonus.update((v) => v - 2);
+    },
   },
 };

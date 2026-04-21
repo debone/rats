@@ -52,6 +52,14 @@ export const GameEvent = {
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
 
+  // Crew ability events (fired by active abilities, handled by entities)
+  CREW_SPAWN_BALL: 'crew:spawn-ball',
+  CREW_HASTE_BALLS: 'crew:haste-balls',
+  CREW_DOUBLE_BALLS: 'crew:double-balls',
+  CREW_RECALL_BALLS: 'crew:recall-balls',
+  CREW_EXPLODE_BALLS: 'crew:explode-balls',
+  CREW_GHOST_BALLS: 'crew:ghost-balls',
+
   // System events
   SAVE_COMPLETED: 'save:completed',
   SAVE_FAILED: 'save:failed',
@@ -108,9 +116,14 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
     position: { x: number; y: number };
     score: number;
   };
-  [GameEvent.POWERUP_FASTER]: void;
-  [GameEvent.POWERUP_DOUBLER]: void;
-  [GameEvent.POWERUP_CAPTAIN]: void;
+
+  // Crew ability events
+  [GameEvent.CREW_SPAWN_BALL]: void;
+  [GameEvent.CREW_HASTE_BALLS]: void;
+  [GameEvent.CREW_DOUBLE_BALLS]: void;
+  [GameEvent.CREW_RECALL_BALLS]: void;
+  [GameEvent.CREW_EXPLODE_BALLS]: void;
+  [GameEvent.CREW_GHOST_BALLS]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;

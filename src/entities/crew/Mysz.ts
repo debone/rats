@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const MyszCrewMember: CrewMemberDef = {
@@ -9,12 +11,16 @@ export const MyszCrewMember: CrewMemberDef = {
     name: 'Recall balls',
     cost: 1,
     effect: () => {
-      console.log('Mysz ability effect');
+      getGameContext().events.emit(GameEvent.CREW_RECALL_BALLS);
     },
   },
   passiveAbility: {
     name: 'Balls stick to boat',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.crewBoons.mysz_ballsStickToBoat.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.mysz_ballsStickToBoat.set(false);
+    },
   },
 };

@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const ApprenticeCrewMember: CrewMemberDef = {
@@ -9,12 +11,16 @@ export const ApprenticeCrewMember: CrewMemberDef = {
     name: 'Shoots new ball',
     cost: 1,
     effect: () => {
-      console.log('Apprentice ability effect');
+      getGameContext().events.emit(GameEvent.CREW_SPAWN_BALL);
     },
   },
   passiveAbility: {
     name: 'Slower balls',
-    mount: (_runState) => {},
-    unmount: (_runState) => {},
+    mount: (runState) => {
+      runState.stats.ballSpeedRatio.update((v) => v * 0.75);
+    },
+    unmount: (runState) => {
+      runState.stats.ballSpeedRatio.update((v) => v / 0.75);
+    },
   },
 };

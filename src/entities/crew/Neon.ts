@@ -1,3 +1,5 @@
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const NeonCrewMember: CrewMemberDef = {
@@ -9,16 +11,16 @@ export const NeonCrewMember: CrewMemberDef = {
     name: 'Explode balls',
     cost: 2,
     effect: () => {
-      console.log('Neon ability effect');
+      getGameContext().events.emit(GameEvent.CREW_EXPLODE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Faster boat',
     mount: (runState) => {
-      runState.stats.boatVelocityRatio.update((current) => current * 1.2);
+      runState.stats.boatVelocityRatio.update((v) => v * 1.2);
     },
     unmount: (runState) => {
-      runState.stats.boatVelocityRatio.update((current) => current / 1.2);
+      runState.stats.boatVelocityRatio.update((v) => v / 1.2);
     },
   },
 };

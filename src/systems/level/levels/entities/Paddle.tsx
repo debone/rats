@@ -2,12 +2,10 @@ import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
-import { GameEvent } from '@/data/events';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import {
   useBodySprite,
   useCollisionHandler,
-  useGameEvent,
   useImmediateUpdate,
   usePhysics,
   useWorldId,
@@ -39,7 +37,6 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
-import { attachCaptainBoost } from '../attachments/paddleCaptainBoost';
 import { getRunState } from '@/data/game-state';
 
 export interface PaddleEntity extends EntityBase<typeof ENTITY_KINDS.paddle> {
@@ -126,8 +123,18 @@ export const Paddle = defineEntity(
 
     let boatForce = 0;
     let boatVelocityAdjustment = 1;
-    getRunState().stats.boatVelocityRatio.subscribe((velocity) => {
-      boatVelocityAdjustment = velocity;
+    let boatImmobilized = false;
+    let boatLengthScale = 1;
+
+    getRunState().stats.boatVelocityRatio.subscribe((v) => {
+      boatVelocityAdjustment = v;
+    });
+    getRunState().crewBoons.pirat_boatImmobilized.subscribe((v) => {
+      boatImmobilized = v;
+    });
+    getRunState().stats.boatLengthRatio.subscribe((v) => {
+      boatLengthScale = v;
+      paddleSprite.scale.x = boatLengthScale;
     });
 
     const paddle: PaddleEntity = {
@@ -161,11 +168,6 @@ export const Paddle = defineEntity(
       entity: paddle,
     }));
 
-    let captainBoostHandle: { detach: () => void } | undefined;
-    useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
-      captainBoostHandle?.detach();
-      captainBoostHandle = attachCaptainBoost(paddle);
-    });
 
     useImmediateUpdate(() => {
       b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 0));
@@ -173,20 +175,24 @@ export const Paddle = defineEntity(
       transform.q.s = 0;
       b2Body_SetTransform(bodyId, transform.p, transform.q);
 
-      if (InputDevice.keyboard.key.ArrowLeft) {
-        boatForce = Math.max(boatForce - 0.1, -1);
-      } else if (InputDevice.keyboard.key.ArrowRight) {
-        boatForce = Math.min(boatForce + 0.1, 1);
-      } else {
-        if (boatForce > 0) {
-          boatForce = Math.max(boatForce - 0.2, 0);
+      if (!boatImmobilized) {
+        if (InputDevice.keyboard.key.ArrowLeft) {
+          boatForce = Math.max(boatForce - 0.1, -1);
+        } else if (InputDevice.keyboard.key.ArrowRight) {
+          boatForce = Math.min(boatForce + 0.1, 1);
         } else {
-          boatForce = Math.min(boatForce + 0.2, 0);
+          if (boatForce > 0) {
+            boatForce = Math.max(boatForce - 0.2, 0);
+          } else {
+            boatForce = Math.min(boatForce + 0.2, 0);
+          }
         }
-      }
 
-      if (InputDevice.gamepads[0] !== undefined) {
-        boatForce = InputDevice.gamepads[0]?.leftJoystick.x ?? 0;
+        if (InputDevice.gamepads[0] !== undefined) {
+          boatForce = InputDevice.gamepads[0]?.leftJoystick.x ?? 0;
+        }
+      } else {
+        boatForce = 0;
       }
 
       if (boatForce !== 0) {
