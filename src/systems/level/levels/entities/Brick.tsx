@@ -5,9 +5,12 @@ import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { changeCheese, getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
+import { Cheese } from './Cheese';
+import { Scrap } from './Scrap';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
@@ -69,7 +72,14 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
 
   useCollisionHandler(bodyId, () => ({
     tag: 'brick',
-    handlers: { ball: () => brick.hit() },
+    handlers: {
+      ball: () => brick.hit(),
+      cheese: () => {
+        if (getRunState().crewBoons.aura_cheeseBreaksBricks.get()) {
+          brick.hit();
+        }
+      },
+    },
     entity: brick,
   }));
 
@@ -98,6 +108,26 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
       debrisEmitter.explode(8, x, y);
 
       onBreak?.(this);
+
+      // Global passive effects on brick break
+      const runState = getRunState();
+      const brickPos = b2Body_GetPosition(this.bodyId);
+
+      if (runState.crewBoons.ratfather_bricksGiveMoreCheese.get()) {
+        changeCheese(1);
+      }
+
+      if (runState.crewBoons.lacfree_nextBricksHaveCheese.get() > 0) {
+        runState.crewBoons.lacfree_nextBricksHaveCheese.update((n) => n - 1);
+        Cheese({ pos: { x: brickPos.x, y: brickPos.y }, type: 'yellow', onCollected: () => changeCheese(1) });
+      }
+
+      if (runState.crewBoons.micesive_nextBricksHaveRubbles.get() > 0) {
+        runState.crewBoons.micesive_nextBricksHaveRubbles.update((n) => n - 1);
+        for (let i = 0; i < 5; i++) {
+          Scrap({ pos: { x: brickPos.x + (Math.random() - 0.5), y: brickPos.y + (Math.random() - 0.5) } });
+        }
+      }
 
       this.destroy();
     },

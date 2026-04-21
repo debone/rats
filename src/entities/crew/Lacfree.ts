@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import type { CrewMemberDef } from './Crew';
 
 export const LacfreeCrewMember: CrewMemberDef = {
@@ -8,14 +10,18 @@ export const LacfreeCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Next 5 bricks have cheese',
     cost: 1,
-    effect: () => {
-      console.log('Lacfree ability effect');
+    effect: (runState) => {
+      sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
+      runState.crewBoons.lacfree_nextBricksHaveCheese.set(5);
     },
   },
   passiveAbility: {
     name: 'Abilities consume rubbles',
-    effect: () => {
-      console.log('Lacfree ability effect');
+    mount: (runState) => {
+      runState.crewBoons.lacfree_abilitiesConsumeRubbles.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.lacfree_abilitiesConsumeRubbles.set(false);
     },
   },
 };

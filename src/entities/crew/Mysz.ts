@@ -1,3 +1,7 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const MyszCrewMember: CrewMemberDef = {
@@ -9,13 +13,17 @@ export const MyszCrewMember: CrewMemberDef = {
     name: 'Recall balls',
     cost: 1,
     effect: () => {
-      console.log('Mysz ability effect');
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
+      getGameContext().events.emit(GameEvent.CREW_RECALL_BALLS);
     },
   },
   passiveAbility: {
     name: 'Balls stick to boat',
-    effect: () => {
-      console.log('Mysz ability effect');
+    mount: (runState) => {
+      runState.crewBoons.mysz_ballsStickToBoat.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.mysz_ballsStickToBoat.set(false);
     },
   },
 };

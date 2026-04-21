@@ -1,3 +1,7 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const NeonCrewMember: CrewMemberDef = {
@@ -9,13 +13,17 @@ export const NeonCrewMember: CrewMemberDef = {
     name: 'Explode balls',
     cost: 2,
     effect: () => {
-      console.log('Neon ability effect');
+      sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { volume: 0.5 });
+      getGameContext().events.emit(GameEvent.CREW_EXPLODE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Faster boat',
-    effect: () => {
-      console.log('Neon ability effect');
+    mount: (runState) => {
+      runState.stats.boatVelocityRatio.update((v) => v * 1.2);
+    },
+    unmount: (runState) => {
+      runState.stats.boatVelocityRatio.update((v) => v / 1.2);
     },
   },
 };

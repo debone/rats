@@ -1,3 +1,7 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const AuraCrewMember: CrewMemberDef = {
@@ -9,13 +13,17 @@ export const AuraCrewMember: CrewMemberDef = {
     name: 'Doubles all balls',
     cost: 1,
     effect: () => {
-      console.log('Aura ability effect');
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
+      getGameContext().events.emit(GameEvent.CREW_DOUBLE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Cheese can break bricks',
-    effect: () => {
-      console.log('Aura ability effect');
+    mount: (runState) => {
+      runState.crewBoons.aura_cheeseBreaksBricks.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.aura_cheeseBreaksBricks.set(false);
     },
   },
 };

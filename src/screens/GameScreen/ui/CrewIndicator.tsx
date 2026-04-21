@@ -174,8 +174,6 @@ export class CrewIndicator extends LayoutContainer {
       },
     });
 
-    this.addChild(crewContainer);
-
     const firstMemberBadge = new BadgeButton(getRunState().firstMember.get());
     computed(() => {
       const crewMember = getRunState().firstMember.get();
@@ -205,6 +203,78 @@ export class CrewIndicator extends LayoutContainer {
 
     crewContainer.addChild(firstMemberBadge.view!);
     crewContainer.addChild(secondMemberBadge.view!);
+
+    this.addChild(crewContainer);
+
+    // Active effect indicators — show running counters and passive states
+    const effectsContainer = new LayoutContainer({
+      layout: {
+        flexDirection: 'column',
+        gap: 3,
+        paddingTop: 6,
+        width: 120,
+      },
+    });
+    this.addChild(effectsContainer);
+
+    const boons = getRunState().crewBoons;
+
+    const lacfreeText = new Text({
+      text: '',
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 9 },
+      layout: true,
+    });
+    effectsContainer.addChild(lacfreeText);
+    computed(() => {
+      const n = boons.lacfree_nextBricksHaveCheese.get();
+      lacfreeText.visible = n > 0;
+      lacfreeText.text = `🧀 Lacfree: ${n} bricks left`;
+    });
+
+    const micesiveText = new Text({
+      text: '',
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 9 },
+      layout: true,
+    });
+    effectsContainer.addChild(micesiveText);
+    computed(() => {
+      const n = boons.micesive_nextBricksHaveRubbles.get();
+      micesiveText.visible = n > 0;
+      micesiveText.text = `💥 Micesive: ${n} bricks left`;
+    });
+
+    const piratText = new Text({
+      text: '⚓ Boat locked!',
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 9, fill: 0xff8822 },
+      visible: false,
+      layout: true,
+    });
+    effectsContainer.addChild(piratText);
+    computed(() => {
+      piratText.visible = boons.pirat_boatImmobilized.get();
+    });
+
+    const floatText = new Text({
+      text: '🌊 Everything floats!',
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 9, fill: 0x88ddff },
+      visible: false,
+      layout: true,
+    });
+    effectsContainer.addChild(floatText);
+    computed(() => {
+      floatText.visible = boons.littlemi_everythingFloats.get();
+    });
+
+    const ghostCheeseText = new Text({
+      text: '🔵 Cheese floats',
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 9, fill: 0x8888ff },
+      visible: false,
+      layout: true,
+    });
+    effectsContainer.addChild(ghostCheeseText);
+    computed(() => {
+      ghostCheeseText.visible = boons.mrblu_cheeseFloats.get();
+    });
   }
 
   destroy() {

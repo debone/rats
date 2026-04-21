@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import type { CrewMemberDef } from './Crew';
 
 export const MrBluCrewMember: CrewMemberDef = {
@@ -8,14 +10,18 @@ export const MrBluCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Next cheese is blue',
     cost: 1,
-    effect: () => {
-      console.log('Mr. Blu ability effect');
+    effect: (runState) => {
+      sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
+      runState.crewBoons.mrblu_nextCheeseIsBlue.set(true);
     },
   },
   passiveAbility: {
     name: 'Cheese floats',
-    effect: () => {
-      console.log('Mr. Blu ability effect');
+    mount: (runState) => {
+      runState.crewBoons.mrblu_cheeseFloats.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.mrblu_cheeseFloats.set(false);
     },
   },
 };

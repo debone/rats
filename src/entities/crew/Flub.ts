@@ -1,3 +1,7 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const FlubCrewMember: CrewMemberDef = {
@@ -9,13 +13,17 @@ export const FlubCrewMember: CrewMemberDef = {
     name: 'Haste balls',
     cost: 1,
     effect: () => {
-      console.log('Flub ability effect');
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
+      getGameContext().events.emit(GameEvent.CREW_HASTE_BALLS);
     },
   },
   passiveAbility: {
     name: 'Balls are attracted to the boat',
-    effect: () => {
-      console.log('Flub ability effect');
+    mount: (runState) => {
+      runState.crewBoons.flub_ballsAttractedToBoat.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.flub_ballsAttractedToBoat.set(false);
     },
   },
 };

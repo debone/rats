@@ -1,3 +1,7 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const SplitterCrewMember: CrewMemberDef = {
@@ -9,13 +13,17 @@ export const SplitterCrewMember: CrewMemberDef = {
     name: 'Double balls',
     cost: 1,
     effect: () => {
-      console.log('Splitter ability effect');
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
+      getGameContext().events.emit(GameEvent.CREW_DOUBLE_BALLS);
     },
   },
   passiveAbility: {
     name: '+2 cheese storage',
-    effect: () => {
-      console.log('Splitter ability effect');
+    mount: (runState) => {
+      runState.stats.cheeseStorageBonus.update((v) => v + 2);
+    },
+    unmount: (runState) => {
+      runState.stats.cheeseStorageBonus.update((v) => v - 2);
     },
   },
 };

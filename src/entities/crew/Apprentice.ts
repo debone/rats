@@ -1,3 +1,7 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
+import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const ApprenticeCrewMember: CrewMemberDef = {
@@ -9,13 +13,17 @@ export const ApprenticeCrewMember: CrewMemberDef = {
     name: 'Shoots new ball',
     cost: 1,
     effect: () => {
-      console.log('Apprentice ability effect');
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
+      getGameContext().events.emit(GameEvent.CREW_SPAWN_BALL);
     },
   },
   passiveAbility: {
     name: 'Slower balls',
-    effect: () => {
-      console.log('Apprentice ability effect');
+    mount: (runState) => {
+      runState.stats.ballSpeedRatio.update((v) => v * 0.75);
+    },
+    unmount: (runState) => {
+      runState.stats.ballSpeedRatio.update((v) => v / 0.75);
     },
   },
 };
