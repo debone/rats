@@ -51,7 +51,7 @@ export interface SpriteElement extends PixiJsxProps<Sprite> {
 }
 
 export interface TextElement extends PixiJsxProps<Text> {
-  text?: SignalValue<string>;
+  text?: SignalValue<string | undefined>;
   style?: TextStyleOptions;
   /**
    * Omitted / `true` → `{ flexShrink: 0, alignSelf: 'center' }` merged with your object when passed.
