@@ -65,7 +65,7 @@ export class DroppableLayoutContainer extends LayoutContainer implements Droppab
       animate(child, {
         x: offset,
         duration: 150,
-        easing: 'easeOutQuad',
+        ease: 'outQuad',
       });
       adjustedIndex++;
     });
@@ -77,7 +77,7 @@ export class DroppableLayoutContainer extends LayoutContainer implements Droppab
       animate(child, {
         x: 0,
         duration: 150,
-        easing: 'easeOutQuad',
+        ease: 'outQuad',
       });
     });
   }

@@ -83,15 +83,15 @@ import type { CameraDebug } from './camera-debug';
 /** Easing presets for common camera movements */
 export const CameraEasing = {
   /** Smooth in/out - good for pans */
-  smooth: 'easeInOutSine',
+  smooth: 'inOutSine',
   /** Quick start, slow end - good for impacts */
-  impact: 'easeOutExpo',
+  impact: 'outExpo',
   /** Bouncy end - good for landing */
-  bounce: 'easeOutBounce',
+  bounce: 'outBounce',
   /** Linear - good for constant speed */
   linear: 'linear',
   /** Elastic - good for wobbly effects */
-  elastic: 'easeOutElastic',
+  elastic: 'outElastic',
 } as const;
 
 export class Camera {

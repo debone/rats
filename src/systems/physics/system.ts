@@ -104,7 +104,7 @@ export class PhysicsSystem implements System {
     this.context.systems.register('update', this.updateHandler);
 
     this.ramp = 0;
-    animate(this, { ramp: 1, duration: 3000, easing: 'easeOut' });
+    animate(this, { ramp: 1, duration: 3000, ease: 'out' });
   }
 
   destroyWorld() {

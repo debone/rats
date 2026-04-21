@@ -13,9 +13,9 @@ export function ShopSection({ onPicked }: ShopSectionProps = {}) {
     <layoutContainer layout={panelLayout}>
       <text text="Hire crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
       <layoutContainer layout={{ ...panelLayout, flexDirection: 'row', gap: 10 }}>
-        <ShopCard crewMember={CREW_DEFS.faster} onPurchased={onPicked} />
-        <ShopCard crewMember={CREW_DEFS.captain} onPurchased={onPicked} />
-        <ShopCard crewMember={CREW_DEFS.doubler} onPurchased={onPicked} />
+        {Object.values(CREW_DEFS).map((crewMember) => (
+          <ShopCard crewMember={crewMember} onPurchased={onPicked} />
+        ))}
       </layoutContainer>
     </layoutContainer>
   );

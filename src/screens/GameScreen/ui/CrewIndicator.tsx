@@ -52,7 +52,7 @@ class BadgeButton extends Button {
     });
 
     const nameText = new Text({
-      text: `${def.name} - Need ${def.ability.cost} cheese`,
+      text: `${def.name} - Need ${def.activeAbility.cost} cheese`,
       style: {
         ...TEXT_STYLE_DEFAULT,
         fontSize: 14,
@@ -89,7 +89,7 @@ class BadgeButton extends Button {
     };
 
     const costText = new Text({
-      text: `${def.ability.cost}`,
+      text: `${def.activeAbility.cost}`,
       style: {
         ...TEXT_STYLE_DEFAULT,
         fontSize: 14,
@@ -142,10 +142,10 @@ class BadgeButton extends Button {
     this._sprite.texture = typedAssets.get(ASSETS.prototype).textures[def.textureName];
 
     // Update name text
-    this._nameText.text = `${def.name} - ${def.ability.cost}`;
+    this._nameText.text = `${def.name} - ${def.activeAbility.cost}`;
 
     // Update cost text
-    this._costText.text = `${def.ability.cost}`;
+    this._costText.text = `${def.activeAbility.cost}`;
   }
 }
 

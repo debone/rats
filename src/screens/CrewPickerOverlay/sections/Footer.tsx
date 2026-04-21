@@ -39,19 +39,19 @@ export function Footer() {
   const hoveredAbilityName = computed(() => {
     const def = hoveredDef.get();
     if (!def) return ''; // return 'Hover a crew member';
-    return def.ability.name;
+    return def.activeAbility.name;
   });
 
   const hoveredAbilityCost = computed(() => {
     const def = hoveredDef.get();
     if (!def) return '';
-    return `${def.ability.cost} cheese`;
+    return `${def.activeAbility.cost} cheese`;
   });
 
   const hoveredAbilityDesc = computed(() => {
     const def = hoveredDef.get();
     if (!def) return '';
-    return def.ability.description;
+    return def.activeAbility.description;
   });
 
   const footer = (

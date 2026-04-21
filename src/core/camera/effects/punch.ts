@@ -12,7 +12,7 @@ export async function punch(camera: Camera, intensity = 1.1, duration = 150): Pr
     animate(camera, {
       scale: originalScale * intensity,
       duration: duration / 2,
-      easing: CameraEasing.impact,
+      ease: CameraEasing.impact,
     }),
   );
 
@@ -21,7 +21,7 @@ export async function punch(camera: Camera, intensity = 1.1, duration = 150): Pr
     animate(camera, {
       scale: originalScale,
       duration: duration / 2,
-      easing: CameraEasing.bounce,
+      ease: CameraEasing.bounce,
     }),
   );
 }

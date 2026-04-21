@@ -56,10 +56,10 @@ export function debouncedStrategy() {
 
     const others = moves.filter((m) => m !== firstToBack);
 
-    animate(firstToBack.element.scale, { x: 2, y: 2, duration, easing: 'easeInOutQuad' });
-    await animate(firstToBack.element, { alpha: 0, duration, easing: 'easeInOutQuad' });
+    animate(firstToBack.element.scale, { x: 2, y: 2, duration, ease: 'inOutQuad' });
+    await animate(firstToBack.element, { alpha: 0, duration, ease: 'inOutQuad' });
 
-    await Promise.all(others.map((m) => animate(m.element, { y: -34, duration, easing: 'easeInOutQuad' })));
+    await Promise.all(others.map((m) => animate(m.element, { y: -34, duration, ease: 'inOutQuad' })));
 
     parent.removeChild(firstToBack.element);
     others.forEach((m) => {
@@ -68,6 +68,6 @@ export function debouncedStrategy() {
     parent.addChildAt(firstToBack.element, firstToBack.to);
 
     firstToBack.element.scale.set(1, 1);
-    await animate(firstToBack.element, { alpha: 1, duration, easing: 'easeInOutQuad' });
+    await animate(firstToBack.element, { alpha: 1, duration, ease: 'inOutQuad' });
   }
 }

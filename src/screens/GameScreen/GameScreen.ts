@@ -1,5 +1,5 @@
 import { ASSETS } from '@/assets';
-import type { PrototypeTextures } from '@/assets/frames';
+import type { Levels_level_1Textures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { navigation } from '@/core/window/navigation';
@@ -44,14 +44,14 @@ export class GameScreen extends Container implements AppScreen {
 
     // Tiling background
     const tilingSprite = new TilingSprite({
-      texture: typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['prototype_spritesheet_60#0'],
+      texture: typedAssets.get<Levels_level_1Textures>(ASSETS.levels_level_1).textures['level-1_spritesheet_2#0'],
       width: 32,
       height: 32,
     });
     this._background = tilingSprite;
 
     const context = getGameContext();
-    context.camera.setPosition(MIN_WIDTH / 2, MIN_HEIGHT / 2);
+    context.camera.setPosition(MIN_WIDTH, MIN_HEIGHT / 2);
 
     // Add content to layers
     context.navigation.addToLayer(this._background, LAYER_NAMES.BACKGROUND);
@@ -59,6 +59,9 @@ export class GameScreen extends Container implements AppScreen {
 
     // Set the container on the context so systems can use it
     context.container = this;
+
+    context.container.x = MIN_WIDTH / 2;
+    //context.container.y = MIN_HEIGHT / 2;
 
     /*
     const b = new Sprite({
@@ -91,7 +94,7 @@ export class GameScreen extends Container implements AppScreen {
     const uiLayer = new LayoutContainer({
       layout: {
         flexDirection: 'row',
-        width: MIN_WIDTH,
+        //width: MIN_WIDTH,
       },
     });
     context.navigation.addToLayer(uiLayer, LAYER_NAMES.UI);
@@ -122,7 +125,7 @@ export class GameScreen extends Container implements AppScreen {
     });
     uiLayer.addChild(countersContainer);
 
-    indicatorContainer.addChild(new BallCounter());
+    countersContainer.addChild(new BallCounter());
     countersContainer.addChild(new CheeseCounter());
     countersContainer.addChild(new ScrapCounter());
 
@@ -233,8 +236,10 @@ export class GameScreen extends Container implements AppScreen {
    */
   resize(w: number, h: number) {
     // Fit background to screen
-    this._background!.width = w;
-    this._background!.height = h;
+    this._background!.width = w * 2;
+    this._background!.height = h * 2;
+    this._background!.x = -w / 2;
+    this._background!.y = -h / 2;
 
     this._popupLayer!.layout = {
       width: w,

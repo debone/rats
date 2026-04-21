@@ -4,7 +4,7 @@ import { bgm, sfx } from '@/core/audio/audio';
 import { getEntities, type AttachHandle } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
-import { activateCrewMember, getRunState } from '@/data/game-state';
+import { activateCrewAbility, getRunState } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
@@ -92,12 +92,12 @@ export default class Level0 extends Level {
 
     KeyListener({
       key: 'KeyQ',
-      onPress: () => activateCrewMember(0),
+      onPress: () => activateCrewAbility(0),
     });
 
     KeyListener({
       key: 'KeyW',
-      onPress: () => activateCrewMember(1),
+      onPress: () => activateCrewAbility(1),
     });
 
     // Create paddle (kinematic body controlled by player)

@@ -9,24 +9,13 @@ import { MAX_CHEESE } from '@/consts';
 import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
-import { CREW_DEFS, CrewMemberInstance } from '@/entities/crew/Crew';
+import { CREW_DEFS, CrewMemberInstance, type CrewMemberDefKey } from '@/entities/crew/Crew';
 import type { LevelConfig } from '@/systems/level/Level';
-import { GameEvent } from './events';
-import { getGameContext } from './game-context';
 
 export interface GameState {
   meta: MetaGameState;
   run: RunState;
   level: LevelState;
-}
-
-/** Boon/powerup that carries across levels */
-export interface Boon {
-  id: string;
-  name: string;
-  description: string;
-  type: 'ball' | 'paddle' | 'brick' | 'meta';
-  effect: any; // Can be typed more specifically per boon
 }
 
 /** Persistent meta-game state - survives across sessions */
@@ -60,9 +49,15 @@ export interface RunState {
   crewMembers: SignalCollection<CrewMemberInstance>;
   firstMember: Signal<CrewMemberInstance | undefined>;
   secondMember: Signal<CrewMemberInstance | undefined>;
+
+  stats: {
+    boatVelocityRatio: Signal<number>;
+  };
+
+  crewBoons: {
+    nuggets_nextAbilityFree: Signal<boolean>;
+  };
   // Run-specific state
-  // activeBoons: Boon[];
-  // temporaryUpgrades: string[];
   // lives: number;
   // score: number;
 
@@ -121,7 +116,7 @@ export function createGameState(): GameState {
       levelsCompleted: [],
       ballsRemaining: signal(5),
       scrapsCounter: signal(0),
-      cheeseCounter: signal(0),
+      cheeseCounter: signal(5),
       crewMembers: createKeyedCollection([
         /**
          new DoublerCrewMember('doubler2'),
@@ -136,6 +131,12 @@ export function createGameState(): GameState {
       ]),
       firstMember: signal(undefined),
       secondMember: signal(undefined),
+      stats: {
+        boatVelocityRatio: signal(1),
+      },
+      crewBoons: {
+        nuggets_nextAbilityFree: signal(false),
+      },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
       // activeBoons: [],
@@ -218,7 +219,21 @@ export function setBallsRemaining(count: number): void {
   getRunState().ballsRemaining.set(count);
 }
 
-export function activateCrewMember(index: number): void {
+export function onboardCrewMember(crewMember: CrewMemberDefKey): void {
+  const crewMemberInstance = new CrewMemberInstance(
+    crewMember,
+    `crew-${crewMember}-${Math.random().toString(36).substring(2, 6)}`,
+  );
+  CREW_DEFS[crewMember].passiveAbility.mount(getRunState());
+
+  getRunState().firstMember.set(crewMemberInstance);
+}
+
+export function offboardCrewMember(crewMember: CrewMemberDefKey): void {
+  CREW_DEFS[crewMember].passiveAbility.unmount(getRunState());
+}
+
+export function activateCrewAbility(index: number): void {
   const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
 
   if (!crewMember) {
@@ -227,20 +242,15 @@ export function activateCrewMember(index: number): void {
 
   const def = CREW_DEFS[crewMember.defKey];
 
-  if (def.ability.cost > getRunState().cheeseCounter.get()) {
-    return;
+  if (getRunState().crewBoons.nuggets_nextAbilityFree.get()) {
+    getRunState().crewBoons.nuggets_nextAbilityFree.set(false);
+  } else {
+    if (def.activeAbility.cost > getRunState().cheeseCounter.get()) {
+      return;
+    }
+
+    changeCheese(-def.activeAbility.cost);
   }
 
-  changeCheese(-def.ability.cost);
-
-  const powerupEvent = {
-    faster: GameEvent.POWERUP_FASTER,
-    doubler: GameEvent.POWERUP_DOUBLER,
-    captain: GameEvent.POWERUP_CAPTAIN,
-  } as const;
-
-  const event = powerupEvent[crewMember.defKey as keyof typeof powerupEvent];
-  if (event) {
-    getGameContext().events.emit(event);
-  }
+  def.activeAbility.effect(getRunState());
 }

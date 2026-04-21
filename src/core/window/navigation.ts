@@ -40,6 +40,13 @@ export class Navigation {
     }
   }
 
+  getLayer(layer: LayerName): Container {
+    if (this.layers && this.layers[layer]) {
+      return this.layers[layer];
+    }
+    return new Container();
+  }
+
   showLayer(layer: LayerName): void {
     if (this.layers && this.layers[layer]) {
       this.layers[layer].visible = true;
@@ -71,11 +78,7 @@ export class Navigation {
       screen.prepare();
     }
 
-    // Add screen's resize handler, if available
-    if (screen.resize) {
-      // Trigger a first resize
-      this.resize(this.width, this.height);
-    }
+    this.resize(this.width, this.height);
 
     // Add update function if available
     if (screen.update) {

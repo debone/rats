@@ -30,11 +30,13 @@ export class BallCounter extends LayoutContainer {
 
       // Animate adds in (parallel, staggered, after removes)
       const removeTime = removes.length * 30 + 200;
-      parent.addChild(...adds.map(({ element }) => element));
-      adds.forEach(({ element }, i) => {
-        element.alpha = 0;
-        animate(element, { alpha: 1, duration: 200, delay: removeTime + i * 30 });
-      });
+      if (adds.length > 0) {
+        parent.addChild(...adds.map(({ element }) => element));
+        adds.forEach(({ element }, i) => {
+          element.alpha = 0;
+          animate(element, { alpha: 1, duration: 200, delay: removeTime + i * 30 });
+        });
+      }
 
       // Animate moves
       moves.forEach(({ element, to }) => {
