@@ -181,29 +181,4 @@ export abstract class Level {
 
     return score;
   }
-
-  /**
-   * Select boons to award after level completion
-   * Override for custom boon selection
-   */
-  protected selectBoons(): Boon[] {
-    // TODO: Implement boon selection logic
-    return [];
-  }
-
-  /**
-   * Helper: Access active boons from run state
-   */
-  protected get activeBoons(): Boon[] {
-    // const runState = getRunState();
-    // return runState ? runState.activeBoons : [];
-    return [];
-  }
-
-  /**
-   * Helper: Check if a specific boon is active
-   */
-  protected hasBoon(boonId: string): boolean {
-    return this.activeBoons.some((b) => b.id === boonId);
-  }
 }

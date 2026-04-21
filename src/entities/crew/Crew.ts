@@ -1,3 +1,4 @@
+import type { RunState } from '@/data/game-state';
 import { ApprenticeCrewMember } from './Apprentice';
 import { AresCapCrewMember } from './AresCap';
 import { AuraCrewMember } from './Aura';
@@ -21,12 +22,16 @@ import { TwoEarsCrewMember } from './TwoEars';
 export interface Ability {
   readonly name: string;
   readonly description?: string;
+}
 
-  readonly effect: () => void;
+export interface PassiveAbility extends Ability {
+  readonly mount: (runState: RunState) => void;
+  readonly unmount: (runState: RunState) => void;
 }
 
 export interface ActiveAbility extends Ability {
   readonly cost: number;
+  readonly effect: (runState: RunState) => void;
 }
 
 export const CREW_DEFS = {
@@ -61,7 +66,7 @@ export interface CrewMemberDef {
   readonly type: CrewMemberDefKey;
   readonly textureName: string;
   readonly activeAbility: ActiveAbility;
-  readonly passiveAbility: Ability;
+  readonly passiveAbility: PassiveAbility;
 
   readonly hiringCost: number;
 }

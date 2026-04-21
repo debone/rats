@@ -6,7 +6,7 @@ import { getEntities, type AttachHandle } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
 import { GameEvent } from '@/data/events';
-import { activateCrewMember, getRunState } from '@/data/game-state';
+import { activateCrewAbility, getRunState } from '@/data/game-state';
 import { t } from '@/i18n/i18n';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { Paddle, type PaddleEntity } from '@/systems/level/levels/entities/Paddle';
@@ -83,12 +83,12 @@ export default class Level2 extends Level {
 
     KeyListener({
       key: 'KeyQ',
-      onPress: () => activateCrewMember(0),
+      onPress: () => activateCrewAbility(0),
     });
 
     KeyListener({
       key: 'KeyW',
-      onPress: () => activateCrewMember(1),
+      onPress: () => activateCrewAbility(1),
     });
 
     const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');

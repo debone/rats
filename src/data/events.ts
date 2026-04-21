@@ -51,9 +51,6 @@ export const GameEvent = {
 
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
-  POWERUP_FASTER: 'powerup:faster',
-  POWERUP_DOUBLER: 'powerup:doubler',
-  POWERUP_CAPTAIN: 'powerup:captain',
 
   // System events
   SAVE_COMPLETED: 'save:completed',
