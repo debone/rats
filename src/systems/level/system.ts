@@ -1,20 +1,18 @@
-/**
- * Level System
- *
- * Manages level lifecycle - loading, updating, and unloading levels.
- */
-
 import { assert } from '@/core/common/assert';
+import { setActiveLevelChildren } from '@/core/entity/scope';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
-import { setLevelState } from '@/data/game-state';
-import type { Level } from './Level';
+import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
+import { PhysicsSystem } from '../physics/system';
+import type { BreakoutLevelEntity } from './levels/BreakoutLevel';
+import { BreakoutLevel } from './levels/BreakoutLevel';
+import { LEVEL_DEFINITIONS } from './levels/level-definitions';
 
 export class LevelSystem implements System {
   static SYSTEM_ID = 'level';
 
   private context!: GameContext;
-  private currentLevel?: Level;
+  private currentLevel?: BreakoutLevelEntity;
 
   updateHandler = this.updateLevel.bind(this);
   resizeHandler = this.resizeLevel.bind(this);
@@ -23,43 +21,38 @@ export class LevelSystem implements System {
     this.context = context;
   }
 
-  /**
-   * Load a level by ID
-   */
   async loadLevel(levelId: string): Promise<void> {
     console.log(`[LevelSystem] Loading level: ${levelId}`);
 
-    // Dynamically import the level module
-    const levelModule = await import(`./levels/${levelId}.ts`);
-    const LevelClass = levelModule.default;
+    const defFactory = LEVEL_DEFINITIONS[levelId];
+    assert(defFactory, `[LevelSystem] Unknown level: ${levelId}`);
 
-    // Instantiate level and init
-    const level = new LevelClass() as Level;
+    const level = BreakoutLevel(defFactory());
     this.currentLevel = level;
-    level.init(this.context);
 
-    setLevelState(level.createInitialState());
-
+    // Keep activeLevelChildren set for the level's entire lifetime so entities
+    // spawned during gameplay (Scrap, dropped Cheese, etc.) are also tracked.
+    setActiveLevelChildren(level.children);
     await level.load();
 
     console.log(`[LevelSystem] Level ${levelId} loaded`);
   }
 
-  /**
-   * Unload the current level
-   */
   async unloadLevel(): Promise<void> {
     assert(this.currentLevel, 'Current level is not set');
-
-    const currentLevel = this.currentLevel;
 
     console.log('[LevelSystem] Unloading level');
 
     this.context.systems.unregister('update', this.updateHandler);
     this.context.systems.unregister('resize', this.resizeHandler);
 
-    // Cleanup level
-    await currentLevel.unload();
+    // Destroy the level entity — this destroys all tracked children first, then the level itself.
+    this.currentLevel.destroy();
+    setActiveLevelChildren(null);
+
+    this.context.systems.get(PhysicsSystem).clearOrphans();
+    this.context.systems.get(EntityCollisionSystem).clear();
+
     this.currentLevel = undefined;
   }
 
@@ -80,7 +73,9 @@ export class LevelSystem implements System {
   }
 
   private resizeLevel(w: number, h: number) {
-    this.currentLevel!.resize!(w, h);
+    // resize is optional on level entities
+    void w;
+    void h;
   }
 
   destroy() {

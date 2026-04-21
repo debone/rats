@@ -14,6 +14,13 @@ const entities = new Set<EntityBase>();
 
 let activeScope: Scope | null = null;
 
+/** Set by LevelSystem before level.load() so spawned entities register as level children. */
+let activeLevelChildren: Set<EntityBase> | null = null;
+
+export function setActiveLevelChildren(set: Set<EntityBase> | null): void {
+  activeLevelChildren = set;
+}
+
 /** All live entities from `defineEntity` factories (discriminated by `kind`). */
 export function getEntities(): readonly EntityBase[] {
   return Array.from(entities);
@@ -67,6 +74,12 @@ export function defineEntity<Props, Entity extends EntityBase>(
     onCleanup(() => {
       entities.delete(entity);
     });
+
+    if (activeLevelChildren !== null) {
+      const parentSet = activeLevelChildren;
+      parentSet.add(entity);
+      onCleanup(() => parentSet.delete(entity));
+    }
 
     activeScope = prev;
     applyEffects(scope);
