@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import type { CrewMemberDef } from './Crew';
 
 export const MicesiveCrewMember: CrewMemberDef = {
@@ -9,6 +11,7 @@ export const MicesiveCrewMember: CrewMemberDef = {
     name: 'Next 5 bricks have 5 rubbles',
     cost: 1,
     effect: (runState) => {
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
       runState.crewBoons.micesive_nextBricksHaveRubbles.set(5);
     },
   },

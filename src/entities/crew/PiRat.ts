@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import { addBallToRun } from '@/data/game-state';
 import type { CrewMemberDef } from './Crew';
 
@@ -10,6 +12,7 @@ export const PiRatCrewMember: CrewMemberDef = {
     name: 'Adds ball',
     cost: 1,
     effect: () => {
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
       addBallToRun(1);
     },
   },

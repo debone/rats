@@ -31,6 +31,7 @@ import { KeyListener } from './entities/KeyListener';
 import { NormBall } from './entities/NormBall';
 import { PlusCheeseParticles } from './entities/PlusCheeseParticles';
 import { PlusClayParticles } from './entities/PlusClayParticles';
+import { CrewAbilityVFX } from './entities/CrewAbilityVFX';
 import { Scrap } from './entities/Scrap';
 import { StrongBrick, type StrongBrickEntity } from './entities/StrongBrick';
 import { WallParticles } from './entities/WallParticles';
@@ -92,6 +93,7 @@ export default class Level4 extends Level {
     const wallParticles = WallParticles().emitter;
     const plusCheeseParticles = PlusCheeseParticles().emitter;
     const plusClayParticles = PlusClayParticles().emitter;
+    CrewAbilityVFX();
 
     KeyListener({
       key: 'KeyQ',

@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import { getEntitiesOfKind } from '@/core/entity/entity';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
@@ -14,6 +16,7 @@ export const LittleMiCrewMember: CrewMemberDef = {
     name: 'Everything floats (15s)',
     cost: 1,
     effect: () => {
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
       const runState = getRunState();
       const physics = getGameContext().systems.get(PhysicsSystem);
 

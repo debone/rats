@@ -131,6 +131,8 @@ export const Paddle = defineEntity(
     });
     getRunState().crewBoons.pirat_boatImmobilized.subscribe((v) => {
       boatImmobilized = v;
+      paddleSprite.tint = v ? 0xff8822 : 0xffffff;
+      paddleShadow.tint = v ? 0xff8822 : 0xffffff;
     });
     getRunState().stats.boatLengthRatio.subscribe((v) => {
       boatLengthScale = v;

@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import { getEntitiesOfKind } from '@/core/entity/entity';
 import { changeCheese } from '@/data/game-state';
 import { ENTITY_KINDS } from '@/entities/entity-kinds';
@@ -14,6 +16,7 @@ export const MeedasCrewMember: CrewMemberDef = {
     name: 'Rubble becomes cheese',
     cost: 1,
     effect: () => {
+      sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
       const scraps = getEntitiesOfKind(ENTITY_KINDS.scrap);
       scraps.forEach((scrap) => {
         const pos = b2Body_GetPosition(scrap.bodyId);

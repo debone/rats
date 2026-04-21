@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import { getEntitiesOfKind } from '@/core/entity/entity';
 import { changeCheese, getRunState } from '@/data/game-state';
 import { ENTITY_KINDS } from '@/entities/entity-kinds';
@@ -16,8 +18,8 @@ export const RatoulieCrewMember: CrewMemberDef = {
     effect: (runState) => {
       const amount = runState.cheeseCounter.get();
       if (amount <= 0) return;
+      sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.6 });
       changeCheese(-amount);
-      // Drop cheese at paddle position
       const paddles = getEntitiesOfKind(ENTITY_KINDS.paddle);
       const spawnPos = paddles.length > 0
         ? b2Body_GetPosition(paddles[0].bodyId)

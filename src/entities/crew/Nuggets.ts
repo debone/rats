@@ -1,3 +1,5 @@
+import { sfx } from '@/core/audio/audio';
+import { ASSETS } from '@/assets';
 import type { CrewMemberDef } from './Crew';
 
 export const NuggetsCrewMember: CrewMemberDef = {
@@ -11,6 +13,7 @@ export const NuggetsCrewMember: CrewMemberDef = {
     name: 'Next ability use is free',
     cost: 1,
     effect: (runState) => {
+      sfx.play(ASSETS.sounds_Rat_Squeak_A, { volume: 0.5 });
       runState.crewBoons.nuggets_nextAbilityFree.set(true);
     },
   },

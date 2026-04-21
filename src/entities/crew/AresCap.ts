@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import { changeCheese, removeBallFromRun } from '@/data/game-state';
 import type { CrewMemberDef } from './Crew';
 
@@ -11,6 +13,7 @@ export const AresCapCrewMember: CrewMemberDef = {
     cost: 1,
     effect: (runState) => {
       if (runState.ballsRemaining.get() <= 0) return;
+      sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
       removeBallFromRun(1);
       changeCheese(1);
     },

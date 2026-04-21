@@ -1,3 +1,5 @@
+import { ASSETS } from '@/assets';
+import { sfx } from '@/core/audio/audio';
 import type { CrewMemberDef } from './Crew';
 
 export const MrBluCrewMember: CrewMemberDef = {
@@ -9,6 +11,7 @@ export const MrBluCrewMember: CrewMemberDef = {
     name: 'Next cheese is blue',
     cost: 1,
     effect: (runState) => {
+      sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
       runState.crewBoons.mrblu_nextCheeseIsBlue.set(true);
     },
   },

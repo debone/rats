@@ -209,6 +209,8 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     const position = b2Body_GetPosition(bodyId);
     const newBall = NormBall({ x: position.x, y: position.y });
     newBall.startUpdating();
+    newBall.sprite.tint = 0xffff44;
+    setTimeout(() => { newBall.sprite.tint = 0xffffff; }, 800);
   });
 
   useGameEvent(GameEvent.CREW_RECALL_BALLS, () => {
@@ -245,6 +247,8 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     const newBall = NormBall({ x: spawnX, y: y });
     newBall.startUpdating();
     b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(0, -BALL_SPEED_DEFAULT));
+    newBall.sprite.tint = 0x88ffff;
+    setTimeout(() => { newBall.sprite.tint = 0xffffff; }, 800);
   });
 
   const normBall: NormBallEntity = {
