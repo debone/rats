@@ -40,6 +40,7 @@ import {
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { attachCaptainBoost } from '../attachments/paddleCaptainBoost';
+import { getRunState } from '@/data/game-state';
 
 export interface PaddleEntity extends EntityBase<typeof ENTITY_KINDS.paddle> {
   bodyId: b2BodyId;
@@ -124,6 +125,10 @@ export const Paddle = defineEntity(
     useBodySprite(paddleShadow, bodyId, { offsetY: 5 });
 
     let boatForce = 0;
+    let boatVelocityAdjustment = 1;
+    getRunState().stats.boatVelocityRatio.subscribe((velocity) => {
+      boatVelocityAdjustment = velocity;
+    });
 
     const paddle: PaddleEntity = {
       kind: ENTITY_KINDS.paddle,
@@ -187,7 +192,7 @@ export const Paddle = defineEntity(
       if (boatForce !== 0) {
         transform.q.s = boatForce * 0.25;
         b2Body_SetTransform(bodyId, transform.p, transform.q);
-        b2Body_SetLinearVelocity(bodyId, new b2Vec2(boatForce * paddle.maxSpeed, 0));
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(boatForce * paddle.maxSpeed * boatVelocityAdjustment, 0));
       }
 
       if (InputDevice.keyboard.key.ArrowUp) {

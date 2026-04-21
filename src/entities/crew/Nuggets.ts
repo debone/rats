@@ -9,15 +9,18 @@ export const NuggetsCrewMember: CrewMemberDef = {
 
   activeAbility: {
     name: 'Next ability use is free',
-    cost: 0,
-    effect: () => {
-      console.log('Nuggets ability effect');
+    cost: 1,
+    effect: (runState) => {
+      runState.crewBoons.nuggets_nextAbilityFree.set(true);
     },
   },
   passiveAbility: {
     name: 'Slower boat',
-    effect: () => {
-      console.log('Nuggets ability effect');
+    mount: (runState) => {
+      runState.stats.boatVelocityRatio.update((current) => current * 0.8);
+    },
+    unmount: (runState) => {
+      runState.stats.boatVelocityRatio.update((current) => current / 0.8);
     },
   },
 };
