@@ -76,11 +76,11 @@ export class LevelSystem implements System {
   }
 
   private updateLevel(delta: number) {
-    this.currentLevel!.update(delta);
+    this.currentLevel?.update(delta);
   }
 
   private resizeLevel(w: number, h: number) {
-    this.currentLevel!.resize!(w, h);
+    this.currentLevel?.resize?.(w, h);
   }
 
   destroy() {

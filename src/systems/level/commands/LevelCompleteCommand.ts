@@ -1,8 +1,10 @@
 import { Command, execute } from '@/core/game/Command';
 import { delay, type Coroutine } from '@/core/game/Coroutine';
 import { addCompletedLevel, setCurrentLevelId, type LevelResult } from '@/data/game-state';
+import { CrewShopOverlay } from '@/screens/CrewPickerOverlay/CrewShopOverlay';
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { PhysicsSystem } from '@/systems/physics/system';
+import { ShowOverlayCommand } from '../../navigation/commands/ShowOverlayCommand';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { LevelSystem } from '../system';
 import { LoadLevelCommand } from './LoadLevelCommand';
@@ -20,8 +22,10 @@ export class LevelCompleteCommand extends Command<LevelResult> {
 
     // Cutscene phase
     this.context.phase = 'cutscene';
-    //yield execute(UnloadLevelCommand);
     yield delay(500);
+
+    // Crew shop: overlay pauses physics/level internally; waitForCompletion resumes once dismissed
+    yield execute(ShowOverlayCommand, { overlay: CrewShopOverlay, waitForCompletion: true });
 
     physicsSystem.stop();
     levelSystem.stop();
