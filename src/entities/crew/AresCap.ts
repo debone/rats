@@ -14,8 +14,7 @@ export const AresCapCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Balls cause 2 damage',
-    effect: () => {
-      console.log('Ares Cap ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

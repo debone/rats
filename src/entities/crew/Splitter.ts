@@ -14,8 +14,7 @@ export const SplitterCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: '+2 cheese storage',
-    effect: () => {
-      console.log('Splitter ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

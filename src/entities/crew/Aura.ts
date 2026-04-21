@@ -14,8 +14,7 @@ export const AuraCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Cheese can break bricks',
-    effect: () => {
-      console.log('Aura ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

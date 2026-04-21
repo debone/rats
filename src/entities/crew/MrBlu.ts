@@ -14,8 +14,7 @@ export const MrBluCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Cheese floats',
-    effect: () => {
-      console.log('Mr. Blu ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

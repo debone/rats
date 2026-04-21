@@ -14,8 +14,7 @@ export const ApprenticeCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Slower balls',
-    effect: () => {
-      console.log('Apprentice ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

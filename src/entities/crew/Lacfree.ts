@@ -14,8 +14,7 @@ export const LacfreeCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Abilities consume rubbles',
-    effect: () => {
-      console.log('Lacfree ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

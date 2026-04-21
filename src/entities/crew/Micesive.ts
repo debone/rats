@@ -14,8 +14,7 @@ export const MicesiveCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Cheese gives +1 ball',
-    effect: () => {
-      console.log('Micesive ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

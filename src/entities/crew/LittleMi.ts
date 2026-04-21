@@ -14,8 +14,7 @@ export const LittleMiCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Longer boat',
-    effect: () => {
-      console.log('Little Mi ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

@@ -14,8 +14,7 @@ export const RatfatherCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Bricks give more cheese',
-    effect: () => {
-      console.log('Ratfather ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

@@ -14,8 +14,7 @@ export const RatoulieCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Abilities consume balls',
-    effect: () => {
-      console.log('Ratoulie ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

@@ -14,8 +14,7 @@ export const PanteratCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Abilities cost 1 less',
-    effect: () => {
-      console.log('Panterat ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

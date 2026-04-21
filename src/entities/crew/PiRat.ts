@@ -14,8 +14,7 @@ export const PiRatCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Boat is immobilized',
-    effect: () => {
-      console.log('Pi Rat ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

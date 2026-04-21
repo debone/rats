@@ -14,8 +14,7 @@ export const MeedasCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Balls float',
-    effect: () => {
-      console.log('Meedas ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

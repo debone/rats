@@ -14,8 +14,7 @@ export const TwoEarsCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Boat can shoot',
-    effect: () => {
-      console.log('Two Ears ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

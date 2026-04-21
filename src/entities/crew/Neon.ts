@@ -14,8 +14,11 @@ export const NeonCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Faster boat',
-    effect: () => {
-      console.log('Neon ability effect');
+    mount: (runState) => {
+      runState.stats.boatVelocityRatio.update((current) => current * 1.2);
+    },
+    unmount: (runState) => {
+      runState.stats.boatVelocityRatio.update((current) => current / 1.2);
     },
   },
 };

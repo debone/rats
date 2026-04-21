@@ -14,8 +14,7 @@ export const FlubCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Balls are attracted to the boat',
-    effect: () => {
-      console.log('Flub ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };

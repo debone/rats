@@ -14,8 +14,7 @@ export const MyszCrewMember: CrewMemberDef = {
   },
   passiveAbility: {
     name: 'Balls stick to boat',
-    effect: () => {
-      console.log('Mysz ability effect');
-    },
+    mount: (_runState) => {},
+    unmount: (_runState) => {},
   },
 };
