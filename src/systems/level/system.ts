@@ -1,5 +1,5 @@
 import { assert } from '@/core/common/assert';
-import { setActiveLevelChildren } from '@/core/entity/scope';
+import { setActiveChildren } from '@/core/entity/scope';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
@@ -30,9 +30,7 @@ export class LevelSystem implements System {
     const level = BreakoutLevel(defFactory());
     this.currentLevel = level;
 
-    // Keep activeLevelChildren set for the level's entire lifetime so entities
-    // spawned during gameplay (Scrap, dropped Cheese, etc.) are also tracked.
-    setActiveLevelChildren(level.children);
+    setActiveChildren(level.children);
     await level.load();
 
     console.log(`[LevelSystem] Level ${levelId} loaded`);
@@ -48,7 +46,7 @@ export class LevelSystem implements System {
 
     // Destroy the level entity — this destroys all tracked children first, then the level itself.
     this.currentLevel.destroy();
-    setActiveLevelChildren(null);
+    setActiveChildren(null);
 
     this.context.systems.get(PhysicsSystem).clearOrphans();
     this.context.systems.get(EntityCollisionSystem).clear();
