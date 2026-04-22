@@ -41,6 +41,7 @@ import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { attachCaptainBoost } from '../attachments/paddleCaptainBoost';
 import { getRunState } from '@/data/game-state';
+import { NormBall } from './NormBall';
 
 export interface PaddleEntity extends EntityBase<typeof ENTITY_KINDS.paddle> {
   bodyId: b2BodyId;
@@ -165,6 +166,23 @@ export const Paddle = defineEntity(
     useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
       captainBoostHandle?.detach();
       captainBoostHandle = attachCaptainBoost(paddle);
+    });
+
+    useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {
+      const paddlePosition = b2Body_GetPosition(paddle.bodyId);
+      const newBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+      newBall.startUpdating();
+
+      const ballPos = b2Body_GetPosition(newBall.bodyId);
+      const paddlePos = b2Body_GetPosition(paddle.bodyId);
+      sfx.play(ASSETS.sounds_Rat_Squeak_A);
+
+      const x = ballPos.x - paddlePos.x;
+      const y = ballPos.y - paddlePos.y;
+
+      queueMicrotask(() => {
+        b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(x, y));
+      });
     });
 
     useImmediateUpdate(() => {

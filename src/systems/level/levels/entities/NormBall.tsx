@@ -2,6 +2,7 @@ import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
+import { getRunState } from '@/data/game-state';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import {
@@ -64,8 +65,15 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
   useBodySprite(ballSprite, bodyId!);
 
   let timeout = 0;
+
+  let speedRatio = getRunState().stats.ballSpeedRatio.get();
+  getRunState().stats.ballSpeedRatio.subscribe((v) => {
+    speedRatio = v;
+  });
+
   let targetSpeed = BALL_SPEED_DEFAULT;
 
+  /*
   function powerUp() {
     timeout = 10000;
     ballSprite.tint = 0xffff00;
@@ -77,11 +85,12 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     ballSprite.tint = 0xffffff;
     targetSpeed = BALL_SPEED_DEFAULT;
   }
+*/
 
   const { start, stop } = useUpdate((delta) => {
     timeout -= delta;
     if (timeout <= 0) {
-      powerDown();
+      //powerDown();
     }
 
     const velocity = b2Body_GetLinearVelocity(bodyId);
@@ -100,7 +109,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
       newVelocity = { x: clampedVx, y: clampedVy };
     } else if (Math.abs(speed - targetSpeed) > 0.01) {
       const normalizedVelocity = b2Normalize(velocity);
-      newVelocity = b2MulSV(targetSpeed, normalizedVelocity);
+      newVelocity = b2MulSV(speedRatio * targetSpeed, normalizedVelocity);
     }
 
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(newVelocity.x, newVelocity.y));
@@ -112,6 +121,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     entity: normBall,
   }));
 
+  /*
   useGameEvent(GameEvent.POWERUP_FASTER, () => {
     powerUp();
   });
@@ -121,6 +131,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     const newBall = NormBall({ x: position.x, y: position.y });
     newBall.startUpdating();
   });
+  */
 
   const normBall: NormBallEntity = {
     kind: ENTITY_KINDS.normBall,

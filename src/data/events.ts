@@ -52,6 +52,9 @@ export const GameEvent = {
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
 
+  // Crew ability events (fired by active abilities, handled by entities)
+  CREW_SHOOT_BALL: 'crew:shoot-ball',
+
   // System events
   SAVE_COMPLETED: 'save:completed',
   SAVE_FAILED: 'save:failed',
@@ -108,9 +111,8 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
     position: { x: number; y: number };
     score: number;
   };
-  [GameEvent.POWERUP_FASTER]: void;
-  [GameEvent.POWERUP_DOUBLER]: void;
-  [GameEvent.POWERUP_CAPTAIN]: void;
+
+  [GameEvent.CREW_SHOOT_BALL]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;

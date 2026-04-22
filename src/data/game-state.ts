@@ -52,6 +52,7 @@ export interface RunState {
 
   stats: {
     boatVelocityRatio: Signal<number>;
+    ballSpeedRatio: Signal<number>;
   };
 
   crewBoons: {
@@ -133,6 +134,7 @@ export function createGameState(): GameState {
       secondMember: signal(undefined),
       stats: {
         boatVelocityRatio: signal(1),
+        ballSpeedRatio: signal(1),
       },
       crewBoons: {
         nuggets_nextAbilityFree: signal(false),
@@ -219,14 +221,18 @@ export function setBallsRemaining(count: number): void {
   getRunState().ballsRemaining.set(count);
 }
 
-export function onboardCrewMember(crewMember: CrewMemberDefKey): void {
+export function onboardCrewMember(crewMember: CrewMemberDefKey, place: 'first' | 'second' = 'first'): void {
   const crewMemberInstance = new CrewMemberInstance(
     crewMember,
     `crew-${crewMember}-${Math.random().toString(36).substring(2, 6)}`,
   );
   CREW_DEFS[crewMember].passiveAbility.mount(getRunState());
 
-  getRunState().firstMember.set(crewMemberInstance);
+  if (place === 'first') {
+    getRunState().firstMember.set(crewMemberInstance);
+  } else {
+    getRunState().secondMember.set(crewMemberInstance);
+  }
 }
 
 export function offboardCrewMember(crewMember: CrewMemberDefKey): void {
