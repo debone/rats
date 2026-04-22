@@ -5,6 +5,7 @@ import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { getRunState } from '@/data/game-state';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
@@ -16,7 +17,7 @@ export interface StrongBrickEntity extends EntityBase<typeof ENTITY_KINDS.strong
   spawnPos: { x: number; y: number };
   /** Remaining hits (starts at `initialLife`, typically 2). */
   life: number;
-  hit(): void;
+  hit(points: number): void;
   destroy(): void;
 }
 
@@ -66,7 +67,7 @@ export const StrongBrick = defineEntity(
 
     useCollisionHandler(bodyId, () => ({
       tag: 'strong-brick',
-      handlers: { ball: () => strongBrick.hit() },
+      handlers: { ball: () => strongBrick.hit(getRunState().stats.ballDamage.get()) },
       entity: strongBrick,
     }));
 
@@ -79,7 +80,7 @@ export const StrongBrick = defineEntity(
       bodyId,
       spawnPos,
       life: initialLife,
-      hit() {
+      hit(points: number) {
         onHit?.(this);
 
         if (Math.random() < 0.5) {
@@ -88,8 +89,9 @@ export const StrongBrick = defineEntity(
           sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { volume: 0.25 });
         }
 
-        if (this.life > 1) {
-          this.life -= 1;
+        this.life = Math.max(this.life - points, 0);
+
+        if (this.life > 0) {
           b2Body_SetUserData(bodyId, { type: 'strong-brick', life: this.life });
           sprite.texture = bg[`bricks_tile_4#0`];
 

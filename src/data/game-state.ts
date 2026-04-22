@@ -53,6 +53,7 @@ export interface RunState {
   stats: {
     boatVelocityRatio: Signal<number>;
     ballSpeedRatio: Signal<number>;
+    ballDamage: Signal<number>;
   };
 
   crewBoons: {
@@ -135,6 +136,7 @@ export function createGameState(): GameState {
       stats: {
         boatVelocityRatio: signal(1),
         ballSpeedRatio: signal(1),
+        ballDamage: signal(1),
       },
       crewBoons: {
         nuggets_nextAbilityFree: signal(false),
@@ -214,7 +216,7 @@ export function addBallToRun(count: number): void {
 }
 
 export function removeBallFromRun(count: number): void {
-  getRunState().ballsRemaining.update((value) => value - count);
+  getRunState().ballsRemaining.update((value) => Math.max(0, value - count));
 }
 
 export function setBallsRemaining(count: number): void {
