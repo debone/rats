@@ -60,6 +60,9 @@ export const GameEvent = {
   CREW_EXPLODE_BALLS: 'crew:explode-balls',
   CREW_GHOST_BALLS: 'crew:ghost-balls',
 
+  // Title screen
+  TITLE_PLAY_PRESSED: 'title:play-pressed',
+
   // System events
   SAVE_COMPLETED: 'save:completed',
   SAVE_FAILED: 'save:failed',
@@ -124,6 +127,9 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.CREW_RECALL_BALLS]: void;
   [GameEvent.CREW_EXPLODE_BALLS]: void;
   [GameEvent.CREW_GHOST_BALLS]: void;
+
+  // Title screen
+  [GameEvent.TITLE_PLAY_PRESSED]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;

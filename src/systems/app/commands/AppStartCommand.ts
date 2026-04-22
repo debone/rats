@@ -1,6 +1,8 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { LoadScreen } from '@/screens/LoadScreen';
+import { TitleScreen } from '@/screens/TitleScreen';
+import { GameEvent } from '@/data/events';
 import { LevelSystem } from '@/systems/level/system';
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
@@ -13,9 +15,8 @@ export class AppStartCommand extends Command {
   *execute(): Coroutine {
     console.log('[Command] App Start');
 
-    // Show load screen
+    // Show load screen while assets load
     yield execute(ShowScreenCommand, { screen: LoadScreen });
-    /**/
 
     // Check for saved run
     let savedRun = yield this.context.systems.get(SaveSystem).loadRun();
@@ -28,12 +29,14 @@ export class AppStartCommand extends Command {
     this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
 
+    // Show title screen and wait for player to press Play
+    yield execute(ShowScreenCommand, { screen: TitleScreen });
+    yield this.context.events.wait(GameEvent.TITLE_PLAY_PRESSED);
+
     if (savedRun) {
       yield execute(ResumeRunCommand, { run: savedRun });
     } else {
-      //yield execute(ShowScreenCommand, { screen: TestScreen });
       yield execute(StartNewRunCommand, { startingLevelId: 'level-1' });
     }
-    /**/
   }
 }

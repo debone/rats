@@ -4,7 +4,7 @@ import { Application, TextureStyle } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 
 import { initAssets } from '@/core/assets/assets';
-import { initTone } from '@/core/audio/audio';
+import { audio, bgm, initTone, sfx } from '@/core/audio/audio';
 import { storage } from '@/core/storage/storage';
 import { resize, visibilityChange } from '@/core/window/resize';
 
@@ -131,8 +131,14 @@ async function init() {
   // Setup assets bundles and start loading
   await initAssets();
   storage.readyStorage();
-  //audio.muted(storage.getStorageItem('muted'));
-  // audio.muted(true);
+
+  // Restore audio settings from storage
+  const storedMuted = storage.getOrDefault('muted', false);
+  const storedBgmVol = storage.getOrDefault('bgm_volume', 0.15);
+  const storedSfxVol = storage.getOrDefault('sfx_volume', 1.0);
+  audio.muted(storedMuted);
+  bgm.setVolume(storedBgmVol);
+  sfx.setVolume(storedSfxVol);
 
   // Load meta state
   const savedMeta = await context.systems.get(SaveSystem).loadMeta();

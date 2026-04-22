@@ -1,11 +1,14 @@
 import { ASSETS } from '@/assets';
 import type { Levels_level_1Textures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
+import { execute } from '@/core/game/Command';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { OptionsOverlay } from '@/screens/OptionsOverlay';
+import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
@@ -128,6 +131,28 @@ export class GameScreen extends Container implements AppScreen {
     countersContainer.addChild(new BallCounter());
     countersContainer.addChild(new CheeseCounter());
     countersContainer.addChild(new ScrapCounter());
+
+    const optionsBtnBg = new LayoutContainer({
+      layout: {
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 8,
+        paddingRight: 8,
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 1,
+        borderRadius: 3,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+      },
+    });
+    optionsBtnBg.addChild(new Text({ text: '⚙ Options', style: { ...TEXT_STYLE_DEFAULT, fontSize: 10 }, layout: true }));
+    const optionsBtn = new Button(optionsBtnBg);
+    optionsBtn.onPress.connect(() => {
+      execute(ShowOverlayCommand, { overlay: OptionsOverlay });
+    });
+    countersContainer.addChild(optionsBtnBg);
 
     const popupLayer = new LayoutContainer({
       layout: {
