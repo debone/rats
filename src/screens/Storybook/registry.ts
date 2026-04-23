@@ -30,6 +30,13 @@ import { ratAbilityIntro } from './demos/cutscenes/ratAbilityIntro';
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
 
+import { clickableBricks } from './demos/interactions/clickableBricks';
+import { ballToBrick } from './demos/interactions/ballToBrick';
+import { cheeseMagnet } from './demos/interactions/cheeseMagnet';
+import { doorOpener } from './demos/interactions/doorOpener';
+import { comboCounter } from './demos/interactions/comboCounter';
+import { ballBounce } from './demos/interactions/ballBounce';
+
 export const REGISTRY: DemoEntry[] = [
   // Particles
   { id: 'particles-fountain',  category: 'particles',   name: 'Fountain',       setup: fountain },
@@ -67,4 +74,12 @@ export const REGISTRY: DemoEntry[] = [
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
   { id: 'sig-chain',           category: 'signals',     name: 'Signal Chain',   setup: signalChain },
+
+  // Interactions
+  { id: 'int-click-bricks',   category: 'interactions', name: 'Clickable Bricks', setup: clickableBricks },
+  { id: 'int-ball-to-brick',  category: 'interactions', name: 'Ball → Brick',     setup: ballToBrick },
+  { id: 'int-cheese-magnet',  category: 'interactions', name: 'Cheese Magnet',    setup: cheeseMagnet },
+  { id: 'int-door-opener',    category: 'interactions', name: 'Door Opener',      setup: doorOpener },
+  { id: 'int-combo',          category: 'interactions', name: 'Combo Counter',    setup: comboCounter },
+  { id: 'int-ball-bounce',    category: 'interactions', name: 'Mini Breakout',    setup: ballBounce },
 ];
