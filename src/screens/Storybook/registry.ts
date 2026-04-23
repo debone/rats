@@ -1,0 +1,70 @@
+import type { DemoEntry } from './demoTypes';
+
+import { fountain } from './demos/particles/fountain';
+import { explosion } from './demos/particles/explosion';
+import { rain } from './demos/particles/rain';
+import { fire } from './demos/particles/fire';
+
+import { staggerGrid } from './demos/animations/staggerGrid';
+import { sequenceChain } from './demos/animations/sequenceChain';
+import { bouncePhysics } from './demos/animations/bouncePhysics';
+import { screenWipe } from './demos/animations/screenWipe';
+import { counterTick } from './demos/animations/counterTick';
+
+import { crtControls } from './demos/shaders/crtControls';
+import { reflectionControls } from './demos/shaders/reflectionControls';
+import { colorMatrix } from './demos/shaders/colorMatrix';
+import { blurPulse } from './demos/shaders/blurPulse';
+
+import { flexPlayground } from './demos/ui/flexPlayground';
+import { buttonStates } from './demos/ui/buttonStates';
+import { counterTick as animatedCounter } from './demos/animations/counterTick';
+
+import { traumaShake } from './demos/camera/traumaShake';
+import { zoomCinematic } from './demos/camera/zoomCinematic';
+import { punchShakeFade } from './demos/camera/punchShakeFade';
+
+import { levelIntro } from './demos/cutscenes/levelIntro';
+import { ratAbilityIntro } from './demos/cutscenes/ratAbilityIntro';
+
+import { reactiveText } from './demos/signals/reactiveText';
+import { signalChain } from './demos/signals/signalChain';
+
+export const REGISTRY: DemoEntry[] = [
+  // Particles
+  { id: 'particles-fountain',  category: 'particles',   name: 'Fountain',       setup: fountain },
+  { id: 'particles-explosion', category: 'particles',   name: 'Explosion',      setup: explosion },
+  { id: 'particles-rain',      category: 'particles',   name: 'Rain',           setup: rain },
+  { id: 'particles-fire',      category: 'particles',   name: 'Fire + Smoke',   setup: fire },
+
+  // Animations
+  { id: 'anim-stagger',        category: 'animations',  name: 'Stagger Grid',   setup: staggerGrid },
+  { id: 'anim-sequence',       category: 'animations',  name: 'Sequence Chain', setup: sequenceChain },
+  { id: 'anim-bounce',         category: 'animations',  name: 'Bounce Physics', setup: bouncePhysics },
+  { id: 'anim-wipe',           category: 'animations',  name: 'Screen Wipe',    setup: screenWipe },
+  { id: 'anim-counter',        category: 'animations',  name: 'Counter Tick',   setup: counterTick },
+
+  // Shaders
+  { id: 'shader-crt',          category: 'shaders',     name: 'CRT Controls',   setup: crtControls },
+  { id: 'shader-reflect',      category: 'shaders',     name: 'Reflection',     setup: reflectionControls },
+  { id: 'shader-color',        category: 'shaders',     name: 'Color Matrix',   setup: colorMatrix },
+  { id: 'shader-blur',         category: 'shaders',     name: 'Blur Pulse',     setup: blurPulse },
+
+  // UI
+  { id: 'ui-flex',             category: 'ui',          name: 'Flex Playground', setup: flexPlayground },
+  { id: 'ui-buttons',          category: 'ui',          name: 'Button States',  setup: buttonStates },
+  { id: 'ui-counter',          category: 'ui',          name: 'Animated Counter', setup: animatedCounter },
+
+  // Camera
+  { id: 'cam-shake',           category: 'camera',      name: 'Trauma Shake',   setup: traumaShake },
+  { id: 'cam-zoom',            category: 'camera',      name: 'Zoom Cinematic', setup: zoomCinematic },
+  { id: 'cam-combo',           category: 'camera',      name: 'Punch→Shake→Fade', setup: punchShakeFade },
+
+  // Cutscenes
+  { id: 'cut-intro',           category: 'cutscenes',   name: 'Level Intro',    setup: levelIntro },
+  { id: 'cut-rat',             category: 'cutscenes',   name: 'Rat Ability',    setup: ratAbilityIntro },
+
+  // Signals
+  { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
+  { id: 'sig-chain',           category: 'signals',     name: 'Signal Chain',   setup: signalChain },
+];

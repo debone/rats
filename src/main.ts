@@ -189,8 +189,13 @@ async function init() {
   // Visibility change handler
   document.addEventListener('visibilitychange', visibilityChange);
 
-  // Start the app via command
-  execute(AppStartCommand);
+  // Dev storybook: navigate to /?storybook to open the component playground
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('storybook')) {
+    const { StorybookScreen } = await import('@/screens/Storybook/StorybookScreen');
+    navigation.showScreen(StorybookScreen);
+  } else {
+    execute(AppStartCommand);
+  }
 }
 
 // Init everything
