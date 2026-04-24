@@ -1,10 +1,11 @@
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 
 export const AuraCrewMember: CrewMemberDef = {
   type: 'aura',
   name: 'Aura',
   textureName: 'avatars-new_tile_2#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.rare,
   activeAbility: {
     name: 'Doubles all balls',
     cost: 1,

@@ -1,5 +1,5 @@
 import { GameEvent } from '@/data/events';
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 import { getGameContext } from '@/data/game-context';
 
 export const ApprenticeCrewMember: CrewMemberDef = {
@@ -7,6 +7,7 @@ export const ApprenticeCrewMember: CrewMemberDef = {
   name: 'Apprentice',
   textureName: 'avatars-new_tile_7#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.common,
   activeAbility: {
     name: 'Shoots new ball',
     cost: 1,

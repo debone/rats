@@ -5,7 +5,7 @@ import type { LayoutContainer } from '@pixi/layout/components';
 import type { Sprite, Text } from 'pixi.js';
 import { buyCrewMember, getCrewTexture, getScrapsTexture } from '../actions';
 import { CREW_PICKER_CTX, type CrewPickerCtx } from '../context';
-import { buttonLayout, panelLayoutBordered } from '../styles';
+import { buttonLayout, panelLayoutBordered, RARITY_BORDER_COLOR } from '../styles';
 
 interface ShopCardProps {
   crewMember: CrewMemberDef;
@@ -24,6 +24,8 @@ export function ShopCard({ crewMember, onPurchased }: ShopCardProps) {
       layout={{
         ...panelLayoutBordered,
         width: 110,
+        borderColor: RARITY_BORDER_COLOR[crewMember.rarity],
+        borderWidth: crewMember.rarity === 'common' ? 1 : 2,
       }}
       interactive
       onPointerover={() => hoverIntent.hoverEnter(crewMember)}

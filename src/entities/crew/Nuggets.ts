@@ -1,4 +1,4 @@
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 
 export const NuggetsCrewMember: CrewMemberDef = {
   type: 'nuggets',
@@ -6,6 +6,7 @@ export const NuggetsCrewMember: CrewMemberDef = {
   textureName: 'avatars-new_tile_6#0',
 
   hiringCost: 6,
+  rarity: CREW_RARITIES.common,
 
   activeAbility: {
     name: 'Next ability use is free',

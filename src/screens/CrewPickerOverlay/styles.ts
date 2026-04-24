@@ -1,4 +1,11 @@
 import type { LayoutStyles } from '@pixi/layout';
+import type { CrewRarity } from '@/entities/crew/Crew';
+
+export const RARITY_BORDER_COLOR: Record<CrewRarity, number> = {
+  common: 0x57294b,
+  uncommon: 0x4488ff,
+  rare: 0xffcc00,
+};
 
 export const panelLayout: Partial<LayoutStyles> = {
   gap: 10,

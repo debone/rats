@@ -1,10 +1,11 @@
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 
 export const PiRatCrewMember: CrewMemberDef = {
   type: 'pirat',
   name: 'Pi Rat',
   textureName: 'avatars-new_tile_18#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.common,
   activeAbility: {
     name: 'Adds ball',
     cost: 1,

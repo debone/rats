@@ -1,5 +1,5 @@
 import { TEXT_STYLE_DEFAULT } from '@/consts';
-import { CREW_DEFS } from '@/entities/crew/Crew';
+import { pickShopSelection } from '@/entities/crew/Crew';
 import { panelLayout } from '../styles';
 import { ShopCard } from './ShopCard';
 
@@ -9,11 +9,13 @@ interface ShopSectionProps {
 }
 
 export function ShopSection({ onPicked }: ShopSectionProps = {}) {
+  const shopSelection = pickShopSelection();
+
   return (
     <layoutContainer layout={panelLayout}>
       <text text="Hire crew" style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} layout={true} />
       <layoutContainer layout={{ ...panelLayout, flexDirection: 'row', gap: 10 }}>
-        {Object.values(CREW_DEFS).map((crewMember) => (
+        {shopSelection.map((crewMember) => (
           <ShopCard crewMember={crewMember} onPurchased={onPicked} />
         ))}
       </layoutContainer>

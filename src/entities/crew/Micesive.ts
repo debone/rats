@@ -1,10 +1,11 @@
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 
 export const MicesiveCrewMember: CrewMemberDef = {
   type: 'micesive',
   name: 'Micesive',
   textureName: 'avatars-new_tile_16#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.uncommon,
   activeAbility: {
     name: 'Next 5 bricks have 5 rubbles',
     cost: 1,

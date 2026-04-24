@@ -19,6 +19,24 @@ import { RatoulieCrewMember } from './Ratoulie';
 import { SplitterCrewMember } from './Splitter';
 import { TwoEarsCrewMember } from './TwoEars';
 
+export const CREW_RARITIES = {
+  common: 'common',
+  uncommon: 'uncommon',
+  rare: 'rare',
+} as const;
+
+export type CrewRarity = (typeof CREW_RARITIES)[keyof typeof CREW_RARITIES];
+
+// Relative pick weights — tune these to balance how often each tier appears in the shop.
+// Defaults: a common rat is picked ~5× more often than a rare rat per available slot.
+export const RARITY_WEIGHTS: Record<CrewRarity, number> = {
+  common: 5,
+  uncommon: 2,
+  rare: 1,
+};
+
+export const SHOP_SLOT_COUNT = 3;
+
 export interface Ability {
   readonly name: string;
   readonly description?: string;
@@ -67,8 +85,8 @@ export interface CrewMemberDef {
   readonly textureName: string;
   readonly activeAbility: ActiveAbility;
   readonly passiveAbility: PassiveAbility;
-
   readonly hiringCost: number;
+  readonly rarity: CrewRarity;
 }
 
 export class CrewMemberInstance {
@@ -78,7 +96,21 @@ export class CrewMemberInstance {
   ) {}
 }
 
-export function pickRandomCrewMember(): CrewMemberDef {
-  const crewMembers = Object.values(CREW_DEFS).filter((member) => member.type !== 'empty');
-  return crewMembers[Math.floor(Math.random() * crewMembers.length)];
+export function pickShopSelection(count: number = SHOP_SLOT_COUNT): CrewMemberDef[] {
+  const remaining = Object.values(CREW_DEFS).filter((m) => m.type !== 'empty');
+  const selected: CrewMemberDef[] = [];
+
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    const totalWeight = remaining.reduce((sum, m) => sum + RARITY_WEIGHTS[m.rarity], 0);
+    let roll = Math.random() * totalWeight;
+    const pickedIndex = remaining.findIndex((m) => {
+      roll -= RARITY_WEIGHTS[m.rarity];
+      return roll <= 0;
+    });
+    const idx = pickedIndex === -1 ? remaining.length - 1 : pickedIndex;
+    selected.push(remaining[idx]);
+    remaining.splice(idx, 1);
+  }
+
+  return selected;
 }

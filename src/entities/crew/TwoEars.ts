@@ -1,10 +1,11 @@
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 
 export const TwoEarsCrewMember: CrewMemberDef = {
   type: 'twoears',
   name: 'The Two Ears',
   textureName: 'avatars-new_tile_3#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.common,
   activeAbility: {
     name: 'Destroy random brick',
     cost: 1,

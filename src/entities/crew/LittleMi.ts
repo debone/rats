@@ -1,10 +1,11 @@
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 
 export const LittleMiCrewMember: CrewMemberDef = {
   type: 'littlemi',
   name: 'Little Mi',
   textureName: 'avatars-new_tile_15#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.uncommon,
   activeAbility: {
     name: 'Everything floats (15s)',
     cost: 1,

@@ -1,5 +1,5 @@
 import { changeCheese, getRunState, removeBallFromRun } from '@/data/game-state';
-import type { CrewMemberDef } from './Crew';
+import { CREW_RARITIES, type CrewMemberDef } from './Crew';
 import { MAX_CHEESE } from '@/consts';
 
 export const AresCapCrewMember: CrewMemberDef = {
@@ -7,6 +7,7 @@ export const AresCapCrewMember: CrewMemberDef = {
   name: "Yer' Ares Cap",
   textureName: 'avatars-new_tile_19#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.rare,
   activeAbility: {
     name: 'Transforms 1 ball into 1 cheese',
     cost: 1,
