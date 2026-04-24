@@ -21,6 +21,14 @@ export function setActiveChildren(set: Set<EntityBase> | null): void {
   activeChildren = set;
 }
 
+export function withActiveChildren<T>(set: Set<EntityBase> | null, fn: () => T): T {
+  const prev = activeChildren;
+  activeChildren = set;
+  const result = fn();
+  activeChildren = prev;
+  return result;
+}
+
 /** All live entities from `defineEntity` factories (discriminated by `kind`). */
 export function getEntities(): readonly EntityBase[] {
   return Array.from(entities);
