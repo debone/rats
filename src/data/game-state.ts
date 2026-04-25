@@ -11,6 +11,7 @@ import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
 import { CREW_DEFS, CrewMemberInstance, type CrewMemberDefKey } from '@/entities/crew/Crew';
 import type { LevelConfig } from '@/systems/level/Level';
+import { getGameContext } from './game-context';
 
 export interface GameState {
   meta: MetaGameState;
@@ -58,6 +59,7 @@ export interface RunState {
 
   crewBoons: {
     nuggets_nextAbilityFree: Signal<boolean>;
+    aura_cheeseBreaksBricks: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -140,6 +142,7 @@ export function createGameState(): GameState {
       },
       crewBoons: {
         nuggets_nextAbilityFree: signal(false),
+        aura_cheeseBreaksBricks: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
@@ -260,5 +263,5 @@ export function activateCrewAbility(index: number): void {
     changeCheese(-def.activeAbility.cost);
   }
 
-  def.activeAbility.effect(getRunState());
+  def.activeAbility.effect(getRunState(), getGameContext());
 }

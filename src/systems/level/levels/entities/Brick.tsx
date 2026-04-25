@@ -5,6 +5,7 @@ import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
@@ -67,9 +68,21 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
     useBodySprite(powerUpSprite, bodyId);
   }
 
+  let cheeseBreaksBricks = false;
+  getRunState().crewBoons.aura_cheeseBreaksBricks.subscribe((value) => {
+    cheeseBreaksBricks = value;
+  });
+
   useCollisionHandler(bodyId, () => ({
     tag: 'brick',
-    handlers: { ball: () => brick.hit() },
+    handlers: {
+      ball: () => brick.hit(),
+      cheese: () => {
+        if (cheeseBreaksBricks) {
+          brick.hit();
+        }
+      },
+    },
     entity: brick,
   }));
 

@@ -12,8 +12,10 @@ import {
   b2Body_SetUserData,
   b2BodyId,
   b2BodyType,
+  b2MakeRot,
   b2MulSV,
   b2Normalize,
+  b2RotateVector,
   b2Shape_GetFilter,
   b2Shape_SetFilter,
   b2Vec2,
@@ -24,6 +26,7 @@ import { Assets, Sprite } from 'pixi.js';
 export interface NormBallEntity extends EntityBase<typeof ENTITY_KINDS.normBall> {
   bodyId: b2BodyId;
   sprite: Sprite;
+  active: boolean;
   startUpdating(): void;
   stopUpdating(): void;
   destroy(): void;
@@ -133,12 +136,37 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
   });
   */
 
+  useGameEvent(GameEvent.CREW_DOUBLE_BALLS, () => {
+    const velocity = b2Body_GetLinearVelocity(bodyId);
+
+    if (!normBall.active) {
+      return;
+    }
+
+    const position = b2Body_GetPosition(bodyId);
+    const newBall = NormBall({ x: position.x, y: position.y });
+    newBall.startUpdating();
+
+    const rotatedVelocity = b2RotateVector(b2MakeRot(Math.PI), velocity);
+
+    queueMicrotask(() => {
+      b2Body_SetLinearVelocity(newBall.bodyId, rotatedVelocity);
+    });
+  });
+
   const normBall: NormBallEntity = {
     kind: ENTITY_KINDS.normBall,
+    active: false,
     bodyId,
     sprite: ballSprite,
-    startUpdating: start,
-    stopUpdating: stop,
+    startUpdating: () => {
+      normBall.active = true;
+      start();
+    },
+    stopUpdating: () => {
+      normBall.active = false;
+      stop();
+    },
     destroy() {
       unmount();
     },

@@ -65,9 +65,21 @@ export const StrongBrick = defineEntity(
     sprite.anchor.set(0.5, 0.5);
     useBodySprite(sprite, bodyId);
 
+    let cheeseBreaksBricks = false;
+    getRunState().crewBoons.aura_cheeseBreaksBricks.subscribe((value) => {
+      cheeseBreaksBricks = value;
+    });
+
     useCollisionHandler(bodyId, () => ({
       tag: 'strong-brick',
-      handlers: { ball: () => strongBrick.hit(getRunState().stats.ballDamage.get()) },
+      handlers: {
+        ball: () => strongBrick.hit(getRunState().stats.ballDamage.get()),
+        cheese: () => {
+          if (cheeseBreaksBricks) {
+            strongBrick.hit(1);
+          }
+        },
+      },
       entity: strongBrick,
     }));
 

@@ -1,3 +1,4 @@
+import type { GameContext } from '@/data/game-context';
 import type { RunState } from '@/data/game-state';
 import { ApprenticeCrewMember } from './Apprentice';
 import { AresCapCrewMember } from './AresCap';
@@ -31,7 +32,7 @@ export interface PassiveAbility extends Ability {
 
 export interface ActiveAbility extends Ability {
   readonly cost: number;
-  readonly effect: (runState: RunState) => void;
+  readonly effect: (runState: RunState, gameContext: GameContext) => void;
 }
 
 export const CREW_DEFS = {

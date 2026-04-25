@@ -54,6 +54,7 @@ export const GameEvent = {
 
   // Crew ability events (fired by active abilities, handled by entities)
   CREW_SHOOT_BALL: 'crew:shoot-ball',
+  CREW_DOUBLE_BALLS: 'crew:double-balls',
 
   // System events
   SAVE_COMPLETED: 'save:completed',
@@ -113,6 +114,7 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   };
 
   [GameEvent.CREW_SHOOT_BALL]: void;
+  [GameEvent.CREW_DOUBLE_BALLS]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;

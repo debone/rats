@@ -10,9 +10,9 @@ export const AresCapCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Transforms 1 ball into 1 cheese',
     cost: 1,
-    effect: () => {
+    effect: (runState) => {
       // lol it costs cheese to make it work?
-      if (getRunState().ballsRemaining.get() === 0 || getRunState().cheeseCounter.get() === MAX_CHEESE) {
+      if (runState.ballsRemaining.get() === 0 || runState.cheeseCounter.get() === MAX_CHEESE) {
         return;
       }
 
