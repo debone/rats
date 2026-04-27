@@ -1,7 +1,9 @@
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { useContext } from '@/core/reactivity/context';
+import type { KeyboardNav } from '@/core/ui/KeyboardNav';
 import type { CrewMemberDef } from '@/entities/crew/Crew';
 import type { LayoutContainer } from '@pixi/layout/components';
+import { DropShadowFilter } from 'pixi-filters';
 import type { Sprite, Text } from 'pixi.js';
 import { buyCrewMember, getCrewTexture, getScrapsTexture } from '../actions';
 import { CREW_PICKER_CTX, type CrewPickerCtx } from '../context';
@@ -10,16 +12,27 @@ import { buttonLayout, panelLayoutBordered, RARITY_BORDER_COLOR } from '../style
 interface ShopCardProps {
   crewMember: CrewMemberDef;
   onPurchased?: () => void;
+  keyboardNav?: KeyboardNav;
 }
 
-export function ShopCard({ crewMember, onPurchased }: ShopCardProps) {
+export function ShopCard({ crewMember, onPurchased, keyboardNav }: ShopCardProps) {
   const { hoverIntent } = useContext<CrewPickerCtx>(CREW_PICKER_CTX);
   let cardRef: LayoutContainer | undefined;
   let scrapsRef: Sprite | undefined;
   let scrapsTextRef: Text | undefined;
   let sold = false;
 
-  return (
+  const purchase = () => {
+    if (!sold && buyCrewMember(crewMember)) {
+      cardRef!.background.tint = 0x00ff00;
+      scrapsTextRef!.text = 'Sold';
+      scrapsRef!.visible = false;
+      sold = true;
+      onPurchased?.();
+    }
+  };
+
+  const element = (
     <layoutContainer
       layout={{
         ...panelLayoutBordered,
@@ -36,15 +49,7 @@ export function ShopCard({ crewMember, onPurchased }: ShopCardProps) {
       <sprite texture={getCrewTexture(crewMember.type)} layout={true} />
       <button
         layout={{ ...buttonLayout, width: 96 }}
-        onPress={() => {
-          if (!sold && buyCrewMember(crewMember)) {
-            cardRef!.background.tint = 0x00ff00;
-            scrapsTextRef!.text = 'Sold';
-            scrapsRef!.visible = false;
-            sold = true;
-            onPurchased?.();
-          }
-        }}
+        onPress={purchase}
       >
         <sprite texture={getScrapsTexture()} layout={true} ref={(el) => (scrapsRef = el)} />
         <text
@@ -56,4 +61,15 @@ export function ShopCard({ crewMember, onPurchased }: ShopCardProps) {
       </button>
     </layoutContainer>
   );
+
+  if (keyboardNav) {
+    const focusGlow = new DropShadowFilter({ color: 0xffffff, blur: 8, alpha: 0.5, offset: { x: 0, y: 0 } });
+    keyboardNav.add({
+      onFocus: () => { cardRef!.filters = [focusGlow]; },
+      onBlur:  () => { cardRef!.filters = []; },
+      onPress: purchase,
+    });
+  }
+
+  return element;
 }

@@ -1,6 +1,7 @@
 import { disposeContext, provideContext } from '@/core/reactivity/context';
 import { createHoverIntent } from '@/core/reactivity/hover-intent';
 import { signal } from '@/core/reactivity/signals/signals';
+import { KeyboardNav } from '@/core/ui/KeyboardNav';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { getGameContext } from '@/data/game-context';
 import { LevelSystem } from '@/systems/level/system';
@@ -23,6 +24,7 @@ export class CrewShopOverlay extends Container implements AppScreen {
 
   private _background: Graphics;
   private _popupBackground: LayoutContainer;
+  private _nav: KeyboardNav | null = null;
 
   constructor() {
     super({
@@ -86,8 +88,10 @@ export class CrewShopOverlay extends Container implements AppScreen {
       }, 500);
     };
 
+    this._nav = new KeyboardNav({ onEscape: resumeLevel });
+
     <mount target={this._popupBackground}>
-      <ShopSection onPicked={resumeLevel} />
+      <ShopSection onPicked={resumeLevel} keyboardNav={this._nav} />
     </mount>;
 
     this.addChild(this._popupBackground);
@@ -96,13 +100,17 @@ export class CrewShopOverlay extends Container implements AppScreen {
 
   async show() {
     await animate(this._popupBackground, { alpha: 1, duration: 500 });
+    this._nav?.enable();
   }
 
   async hide() {
+    this._nav?.disable();
     await animate(this._popupBackground.scale, { x: 0, y: 0, duration: 500, ease: 'inOutBack' });
   }
 
-  update(_time: Ticker) {}
+  update(_time: Ticker) {
+    this._nav?.update();
+  }
 
   resize(w: number, h: number) {
     this._background.width = w;
@@ -122,6 +130,10 @@ export class CrewShopOverlay extends Container implements AppScreen {
   }
 
   reset() {
+    // Reset nav before destroying children so onBlur can clear filters on live containers.
+    this._nav?.reset();
+    this._nav = null;
+
     for (let i = this.children.length - 1; i >= 0; i--) {
       this.children[i].destroy({ children: true });
     }
