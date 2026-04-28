@@ -34,6 +34,16 @@ import { scoreSummary } from './demos/cutscenes/scoreSummary';
 import { crewJoin } from './demos/cutscenes/crewJoin';
 import { secretFound } from './demos/cutscenes/secretFound';
 import { gameOver } from './demos/cutscenes/gameOver';
+import { missionBriefing } from './demos/cutscenes/missionBriefing';
+import { chapterCard } from './demos/cutscenes/chapterCard';
+import { upgradeAcquired } from './demos/cutscenes/upgradeAcquired';
+import { levelFailed } from './demos/cutscenes/levelFailed';
+import { cinematicLetterbox } from './demos/cutscenes/cinematicLetterbox';
+import { wantedPoster } from './demos/cutscenes/wantedPoster';
+import { itemPickup } from './demos/cutscenes/itemPickup';
+import { powerUpActivate } from './demos/cutscenes/powerUpActivate';
+import { ratSelect } from './demos/cutscenes/ratSelect';
+import { transmissionReceived } from './demos/cutscenes/transmissionReceived';
 
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
@@ -86,6 +96,16 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'cut-crew',            category: 'cutscenes',   name: 'Crew Join',        setup: crewJoin },
   { id: 'cut-secret',          category: 'cutscenes',   name: 'Secret Found',     setup: secretFound },
   { id: 'cut-gameover',        category: 'cutscenes',   name: 'Game Over',        setup: gameOver },
+  { id: 'cut-briefing',        category: 'cutscenes',   name: 'Mission Briefing', setup: missionBriefing },
+  { id: 'cut-chapter',         category: 'cutscenes',   name: 'Chapter Card',     setup: chapterCard },
+  { id: 'cut-upgrade',         category: 'cutscenes',   name: 'Upgrade Acquired', setup: upgradeAcquired },
+  { id: 'cut-failed',          category: 'cutscenes',   name: 'Level Failed',     setup: levelFailed },
+  { id: 'cut-letterbox',       category: 'cutscenes',   name: 'Cinematic',        setup: cinematicLetterbox },
+  { id: 'cut-wanted',          category: 'cutscenes',   name: 'Wanted Poster',    setup: wantedPoster },
+  { id: 'cut-item',            category: 'cutscenes',   name: 'Item Pickup',      setup: itemPickup },
+  { id: 'cut-powerup',         category: 'cutscenes',   name: 'Power-Up Activate', setup: powerUpActivate },
+  { id: 'cut-ratselect',       category: 'cutscenes',   name: 'Rat Select',       setup: ratSelect },
+  { id: 'cut-transmission',    category: 'cutscenes',   name: 'Transmission',     setup: transmissionReceived },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
