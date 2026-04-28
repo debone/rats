@@ -60,6 +60,7 @@ export interface RunState {
   crewBoons: {
     nuggets_nextAbilityFree: Signal<boolean>;
     aura_cheeseBreaksBricks: Signal<boolean>;
+    flub_ballsAttractedToBoat: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -143,6 +144,7 @@ export function createGameState(): GameState {
       crewBoons: {
         nuggets_nextAbilityFree: signal(false),
         aura_cheeseBreaksBricks: signal(false),
+        flub_ballsAttractedToBoat: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),

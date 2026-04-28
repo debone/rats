@@ -1,7 +1,7 @@
-import { getGameContext } from '@/data/game-context';
-import type { CrewMemberDef } from './Crew';
 import { GameEvent } from '@/data/events';
-import { addBallToRun, getRunState } from '@/data/game-state';
+import { getGameContext } from '@/data/game-context';
+import { addBallToRun } from '@/data/game-state';
+import type { CrewMemberDef } from './Crew';
 
 export const AuraCrewMember: CrewMemberDef = {
   type: 'aura',

@@ -1,11 +1,14 @@
 import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
+import { getEntitiesOfKind } from '@/core/entity/entity';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { signal } from '@/core/reactivity/signals/signals';
 import { GameEvent } from '@/data/events';
 import { getRunState } from '@/data/game-state';
 import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import {
+  b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_SetLinearVelocity,
@@ -27,6 +30,7 @@ export interface NormBallEntity extends EntityBase<typeof ENTITY_KINDS.normBall>
   bodyId: b2BodyId;
   sprite: Sprite;
   active: boolean;
+  baseSpeed: number;
   startUpdating(): void;
   stopUpdating(): void;
   destroy(): void;
@@ -36,6 +40,11 @@ export interface NormBallProps {
   x: number;
   y: number;
 }
+
+const f = signal(0, {
+  label: 'nudge force',
+  tweakpaneOptions: { readonly: true, bufferSize: 1000, interval: 100, view: 'graph', min: 0, max: 1 },
+});
 
 export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity => {
   const worldId = useWorldId();
@@ -74,8 +83,6 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     speedRatio = v;
   });
 
-  let targetSpeed = BALL_SPEED_DEFAULT;
-
   /*
   function powerUp() {
     timeout = 10000;
@@ -90,10 +97,31 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
   }
 */
 
+  let nudge = false;
+  getRunState().crewBoons.flub_ballsAttractedToBoat.subscribe((value) => {
+    nudge = value;
+  });
+
   const { start, stop } = useUpdate((delta) => {
     timeout -= delta;
     if (timeout <= 0) {
       //powerDown();
+    }
+
+    // Flub passive: gentle horizontal attraction toward paddle
+    if (nudge) {
+      const paddles = getEntitiesOfKind(ENTITY_KINDS.paddle);
+      if (paddles.length > 0) {
+        const paddlePos = b2Body_GetPosition(paddles[0].bodyId);
+        const ballPos = b2Body_GetPosition(bodyId);
+        const dx = paddlePos.x - ballPos.x;
+        const sign = Math.sign(dx);
+        const boost = Math.max(0, (5 - Math.abs(dx)) * 0.05);
+        const finalForce = Math.abs(dx) * 0.05 + boost;
+        f.set(boost);
+        const impulse = new b2Vec2(sign * finalForce, 0);
+        b2Body_ApplyLinearImpulseToCenter(bodyId, impulse, true);
+      }
     }
 
     const velocity = b2Body_GetLinearVelocity(bodyId);
@@ -110,9 +138,9 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
       const clampedVx = Math.cos(minAngleRad) * speed * signX;
       const clampedVy = Math.sin(minAngleRad) * speed * signY;
       newVelocity = { x: clampedVx, y: clampedVy };
-    } else if (Math.abs(speed - targetSpeed) > 0.01) {
+    } else if (Math.abs(speed - normBall.baseSpeed) > 0.01) {
       const normalizedVelocity = b2Normalize(velocity);
-      newVelocity = b2MulSV(speedRatio * targetSpeed, normalizedVelocity);
+      newVelocity = b2MulSV(speedRatio * normBall.baseSpeed, normalizedVelocity);
     }
 
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(newVelocity.x, newVelocity.y));
@@ -159,6 +187,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     active: false,
     bodyId,
     sprite: ballSprite,
+    baseSpeed: BALL_SPEED_DEFAULT,
     startUpdating: () => {
       normBall.active = true;
       start();

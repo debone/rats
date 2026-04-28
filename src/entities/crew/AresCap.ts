@@ -1,6 +1,6 @@
-import { changeCheese, getRunState, removeBallFromRun } from '@/data/game-state';
-import type { CrewMemberDef } from './Crew';
 import { MAX_CHEESE } from '@/consts';
+import { changeCheese, removeBallFromRun } from '@/data/game-state';
+import type { CrewMemberDef } from './Crew';
 
 export const AresCapCrewMember: CrewMemberDef = {
   type: 'arescap',
