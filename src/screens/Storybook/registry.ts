@@ -26,6 +26,14 @@ import { punchShakeFade } from './demos/camera/punchShakeFade';
 
 import { levelIntro } from './demos/cutscenes/levelIntro';
 import { ratAbilityIntro } from './demos/cutscenes/ratAbilityIntro';
+import { dialogBox } from './demos/cutscenes/dialogBox';
+import { victoryScreen } from './demos/cutscenes/victoryScreen';
+import { bossWarning } from './demos/cutscenes/bossWarning';
+import { countdown } from './demos/cutscenes/countdown';
+import { scoreSummary } from './demos/cutscenes/scoreSummary';
+import { crewJoin } from './demos/cutscenes/crewJoin';
+import { secretFound } from './demos/cutscenes/secretFound';
+import { gameOver } from './demos/cutscenes/gameOver';
 
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
@@ -68,8 +76,16 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'cam-combo',           category: 'camera',      name: 'Punch→Shake→Fade', setup: punchShakeFade },
 
   // Cutscenes
-  { id: 'cut-intro',           category: 'cutscenes',   name: 'Level Intro',    setup: levelIntro },
-  { id: 'cut-rat',             category: 'cutscenes',   name: 'Rat Ability',    setup: ratAbilityIntro },
+  { id: 'cut-intro',           category: 'cutscenes',   name: 'Level Intro',      setup: levelIntro },
+  { id: 'cut-rat',             category: 'cutscenes',   name: 'Rat Ability',      setup: ratAbilityIntro },
+  { id: 'cut-dialog',          category: 'cutscenes',   name: 'Dialog Box',       setup: dialogBox },
+  { id: 'cut-victory',         category: 'cutscenes',   name: 'Victory Screen',   setup: victoryScreen },
+  { id: 'cut-boss',            category: 'cutscenes',   name: 'Boss Warning',     setup: bossWarning },
+  { id: 'cut-countdown',       category: 'cutscenes',   name: 'Countdown 3-2-1',  setup: countdown },
+  { id: 'cut-score',           category: 'cutscenes',   name: 'Score Summary',    setup: scoreSummary },
+  { id: 'cut-crew',            category: 'cutscenes',   name: 'Crew Join',        setup: crewJoin },
+  { id: 'cut-secret',          category: 'cutscenes',   name: 'Secret Found',     setup: secretFound },
+  { id: 'cut-gameover',        category: 'cutscenes',   name: 'Game Over',        setup: gameOver },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
