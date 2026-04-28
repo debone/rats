@@ -328,6 +328,8 @@ export class GameScreen extends Container implements AppScreen {
 
     // Clear physics sprite associations (world stays alive)
     const physicsSystem = context.systems.get(PhysicsSystem);
+    physicsSystem.clearOrphans();
+    physicsSystem.flushDestructions();
     physicsSystem.clearSprites();
     physicsSystem.cleanupDebugDraw();
 
