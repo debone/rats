@@ -3,9 +3,10 @@ import { Assets, Container, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { ASSETS } from '@/assets';
 
 export function counterTick(root: Container, w: number, h: number): () => void {
-  const cheeseTexture = Assets.get('prototype').textures['cheese_tile_1#0'];
+  const cheeseTexture = Assets.get(ASSETS.prototype).textures['cheese_tile_1#0'];
 
   const proxy = { value: 0 };
   let target = 0;
@@ -56,7 +57,10 @@ export function counterTick(root: Container, w: number, h: number): () => void {
   const makeButton = (txt: string, amount: number, color: number) => {
     const bg = new LayoutContainer({
       layout: {
-        paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
+        paddingLeft: 16,
+        paddingRight: 16,
+        paddingTop: 8,
+        paddingBottom: 8,
         backgroundColor: 0x1a1a2e,
         borderColor: color,
         borderWidth: 1,
@@ -66,9 +70,15 @@ export function counterTick(root: Container, w: number, h: number): () => void {
     });
     bg.addChild(new Text({ text: txt, style: { ...TEXT_STYLE_DEFAULT, fontSize: 12, fill: color }, layout: true }));
     const btn = new Button(bg);
-    btn.onHover.connect(() => { bg.background.tint = color; });
-    btn.onOut.connect(() => { bg.background.tint = 0xffffff; });
-    btn.onPress.connect(() => { tick(Math.max(0, proxy.value + amount)); });
+    btn.onHover.connect(() => {
+      bg.background.tint = color;
+    });
+    btn.onOut.connect(() => {
+      bg.background.tint = 0xffffff;
+    });
+    btn.onPress.connect(() => {
+      tick(Math.max(0, proxy.value + amount));
+    });
     return btn.view!;
   };
 

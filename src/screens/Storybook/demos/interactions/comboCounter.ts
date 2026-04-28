@@ -4,6 +4,7 @@ import { getGameContext } from '@/data/game-context';
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS } from '@/assets';
 
 const BRICKS_PER_ROW = 6;
 const BW = 38;
@@ -13,8 +14,8 @@ const COMBO_DECAY_MS = 1800;
 
 export function comboCounter(root: Container, w: number, h: number): () => void {
   const ctx = getGameContext();
-  const brickTex = Assets.get('prototype').textures['bricks_tile_1#0'];
-  const scrapTex = Assets.get('prototype').textures['scraps#0'];
+  const brickTex = Assets.get(ASSETS.prototype).textures['bricks_tile_1#0'];
+  const scrapTex = Assets.get(ASSETS.prototype).textures['scraps#0'];
   const ballTex = Assets.get('tiles').textures.ball;
 
   // Debris emitter
@@ -90,7 +91,12 @@ export function comboCounter(root: Container, w: number, h: number): () => void 
   const brickX0 = (w - totalW) / 2;
   const brickY0 = h / 2 - 20;
 
-  interface BrickObj { sprite: Sprite; x: number; y: number; alive: boolean }
+  interface BrickObj {
+    sprite: Sprite;
+    x: number;
+    y: number;
+    alive: boolean;
+  }
   const bricks: BrickObj[] = [];
 
   const spawnBricks = () => {
@@ -110,7 +116,13 @@ export function comboCounter(root: Container, w: number, h: number): () => void 
         sprite.cursor = 'pointer';
         sprite.alpha = 0;
         root.addChild(sprite);
-        animate(sprite, { alpha: 1, scaleY: [0, 1], duration: 200, delay: (row * BRICKS_PER_ROW + col) * 30, ease: 'outBack' });
+        animate(sprite, {
+          alpha: 1,
+          scaleY: [0, 1],
+          duration: 200,
+          delay: (row * BRICKS_PER_ROW + col) * 30,
+          ease: 'outBack',
+        });
         const obj: BrickObj = { sprite, x: bx, y: by, alive: true };
         bricks.push(obj);
         sprite.on('pointertap', () => breakBrick(obj));
@@ -141,13 +153,10 @@ export function comboCounter(root: Container, w: number, h: number): () => void 
       duration: COMBO_DECAY_MS,
       ease: 'linear',
       onUpdate: () => {
-        decayBar.clear().roundRect(
-          w / 2 - DECAY_BAR_W / 2,
-          100,
-          DECAY_BAR_W * decayProxy.progress,
-          4,
-          2,
-        ).fill(0x9944bb);
+        decayBar
+          .clear()
+          .roundRect(w / 2 - DECAY_BAR_W / 2, 100, DECAY_BAR_W * decayProxy.progress, 4, 2)
+          .fill(0x9944bb);
       },
     });
 

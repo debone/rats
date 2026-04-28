@@ -2,6 +2,7 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { ASSETS } from '@/assets';
 
 const CHEESE_COUNT = 12;
 const COLLECT_AREA = { x: 0, y: 0, w: 0, h: 0 }; // set in setup
@@ -12,12 +13,15 @@ interface CheeseObj {
 }
 
 export function cheeseMagnet(root: Container, w: number, h: number): () => void {
-  const cheeseTex = Assets.get('prototype').textures['cheese_tile_1#0'];
+  const cheeseTex = Assets.get(ASSETS.prototype).textures['cheese_tile_1#0'];
   const ballTex = Assets.get('tiles').textures.ball;
 
   // Counter panel at top-center
   const panel = new Graphics();
-  panel.roundRect(w / 2 - 60, 16, 120, 36, 6).fill(0x111120).stroke({ color: 0x441133, width: 1 });
+  panel
+    .roundRect(w / 2 - 60, 16, 120, 36, 6)
+    .fill(0x111120)
+    .stroke({ color: 0x441133, width: 1 });
   root.addChild(panel);
 
   const cheeseIcon = new Sprite(cheeseTex);
@@ -78,7 +82,14 @@ export function cheeseMagnet(root: Container, w: number, h: number): () => void 
       cheeses.push(obj);
 
       // Staggered appear
-      animate(sprite, { alpha: 1, scaleX: [0, sprite.scale.x], scaleY: [0, sprite.scale.y], duration: 300, delay: i * 60, ease: 'outBack(1.5)' });
+      animate(sprite, {
+        alpha: 1,
+        scaleX: [0, sprite.scale.x],
+        scaleY: [0, sprite.scale.y],
+        duration: 300,
+        delay: i * 60,
+        ease: 'outBack(1.5)',
+      });
 
       // Gentle idle bob
       const baseY = sprite.y;

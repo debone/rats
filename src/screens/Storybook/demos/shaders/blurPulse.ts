@@ -1,6 +1,7 @@
 import { animate } from 'animejs';
 import { Assets, BlurFilter, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS } from '@/assets';
 
 export function blurPulse(root: Container, w: number, h: number): () => void {
   const blur = new BlurFilter({ strength: 0, quality: 4 });
@@ -9,7 +10,7 @@ export function blurPulse(root: Container, w: number, h: number): () => void {
   bg.roundRect(w / 2 - 80, h / 2 - 100, 160, 160, 12).fill(0x1a0d2e);
   root.addChild(bg);
 
-  const icon = new Sprite(Assets.get('prototype').textures['cheese_tile_1#0']);
+  const icon = new Sprite(Assets.get(ASSETS.prototype).textures['cheese_tile_1#0']);
   icon.anchor.set(0.5);
   icon.scale.set(3);
   icon.x = w / 2;
@@ -39,11 +40,16 @@ export function blurPulse(root: Container, w: number, h: number): () => void {
       strength: 12,
       duration: 700,
       ease: 'inSine',
-      onUpdate: () => { blur.strength = proxy.strength; label.text = 'BLUR'; },
+      onUpdate: () => {
+        blur.strength = proxy.strength;
+        label.text = 'BLUR';
+      },
     });
     if (cancelled) return;
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 400); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 400);
+    });
     if (cancelled) return;
 
     // Blur out (focus)
@@ -51,11 +57,16 @@ export function blurPulse(root: Container, w: number, h: number): () => void {
       strength: 0,
       duration: 500,
       ease: 'outSine',
-      onUpdate: () => { blur.strength = proxy.strength; label.text = 'FOCUS'; },
+      onUpdate: () => {
+        blur.strength = proxy.strength;
+        label.text = 'FOCUS';
+      },
     });
     if (cancelled) return;
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 900); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 900);
+    });
     if (!cancelled) play();
   };
 

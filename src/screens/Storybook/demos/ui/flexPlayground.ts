@@ -68,7 +68,13 @@ export function flexPlayground(root: Container, w: number, h: number): () => voi
   updateLabel();
 
   // Direction toggle
-  const makeToggle = (options: string[], getVal: () => string, setVal: (v: string) => void, label: string, y: number) => {
+  const makeToggle = (
+    options: string[],
+    getVal: () => string,
+    setVal: (v: string) => void,
+    label: string,
+    y: number,
+  ) => {
     const lbl = new Text({ text: label, style: { ...TEXT_STYLE_DEFAULT, fontSize: 8, fill: 0x8866aa } });
     lbl.x = 4;
     lbl.y = y;
@@ -77,7 +83,10 @@ export function flexPlayground(root: Container, w: number, h: number): () => voi
     const btns = options.map((opt, i) => {
       const bg = new LayoutContainer({
         layout: {
-          paddingLeft: 6, paddingRight: 6, paddingTop: 3, paddingBottom: 3,
+          paddingLeft: 6,
+          paddingRight: 6,
+          paddingTop: 3,
+          paddingBottom: 3,
           backgroundColor: getVal() === opt ? 0x441166 : 0x111122,
           borderColor: 0x442266,
           borderWidth: 1,
@@ -87,12 +96,14 @@ export function flexPlayground(root: Container, w: number, h: number): () => voi
       bg.addChild(new Text({ text: opt, style: { ...TEXT_STYLE_DEFAULT, fontSize: 7 }, layout: true }));
 
       const btn = new Button(bg);
-      btn.view!.x = 60 + i * (Math.floor((w - 68) / options.length));
+      btn.view!.x = 60 + i * Math.floor((w - 68) / options.length);
       btn.view!.y = y;
       btn.onPress.connect(() => {
         setVal(opt);
         btns.forEach((b, j) => {
-          (b.view!.children[0] as LayoutContainer).background.tint = j === i ? 0x9944bb : 0xffffff;
+          if (b.view!.children[0] instanceof LayoutContainer) {
+            (b.view!.children[0] as LayoutContainer).background.tint = j === i ? 0x9944bb : 0xffffff;
+          }
         });
         rebuild();
         updateLabel();
@@ -108,7 +119,9 @@ export function flexPlayground(root: Container, w: number, h: number): () => voi
   const dirBtns = makeToggle(
     ['row', 'column'],
     () => dir,
-    (v) => { dir = v as FlexDir; },
+    (v) => {
+      dir = v as FlexDir;
+    },
     'direction:',
     PREVIEW_H + 22,
   );
@@ -116,7 +129,9 @@ export function flexPlayground(root: Container, w: number, h: number): () => voi
   const justifyBtns = makeToggle(
     JUSTIFY,
     () => justify,
-    (v) => { justify = v as Justify; },
+    (v) => {
+      justify = v as Justify;
+    },
     'justify:',
     PREVIEW_H + 50,
   );
@@ -124,7 +139,9 @@ export function flexPlayground(root: Container, w: number, h: number): () => voi
   const alignBtns = makeToggle(
     ALIGN,
     () => align,
-    (v) => { align = v as Align; },
+    (v) => {
+      align = v as Align;
+    },
     'align:',
     PREVIEW_H + 78,
   );

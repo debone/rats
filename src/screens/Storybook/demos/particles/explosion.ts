@@ -2,10 +2,11 @@ import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { app } from '@/main';
 import { Assets, Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS } from '@/assets';
 
 export function explosion(root: Container, w: number, h: number): () => void {
   const textureBall = Assets.get('tiles').textures.ball;
-  const textureScrap = Assets.get('prototype').textures['scraps#0'];
+  const textureScrap = Assets.get(ASSETS.prototype).textures['scraps#0'];
 
   const burst = new ParticleEmitter({
     texture: textureBall,

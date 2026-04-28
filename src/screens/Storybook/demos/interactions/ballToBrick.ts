@@ -6,6 +6,7 @@ import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { ASSETS } from '@/assets';
 
 const BRICK_W = 40;
 const BRICK_H = 18;
@@ -14,8 +15,8 @@ const BRICK_GAP = 8;
 
 export function ballToBrick(root: Container, w: number, h: number): () => void {
   const ctx = getGameContext();
-  const brickTex = Assets.get('prototype').textures['bricks_tile_1#0'];
-  const scrapTex = Assets.get('prototype').textures['scraps#0'];
+  const brickTex = Assets.get(ASSETS.prototype).textures['bricks_tile_1#0'];
+  const scrapTex = Assets.get(ASSETS.prototype).textures['scraps#0'];
   const ballTex = Assets.get('tiles').textures.ball;
 
   // Debris emitter
@@ -38,7 +39,12 @@ export function ballToBrick(root: Container, w: number, h: number): () => void {
   const brickY = h / 2 - 60;
   const brickX0 = (w - totalW) / 2;
 
-  interface BrickObj { sprite: Sprite; alive: boolean; x: number; y: number }
+  interface BrickObj {
+    sprite: Sprite;
+    alive: boolean;
+    x: number;
+    y: number;
+  }
   const bricks: BrickObj[] = [];
 
   const spawnBricks = () => {
@@ -120,7 +126,9 @@ export function ballToBrick(root: Container, w: number, h: number): () => void {
       scaleY: [1, 0.7, 0],
       duration: 180,
       ease: 'inBack(2)',
-    }).then(() => { nextBrick.sprite.visible = false; });
+    }).then(() => {
+      nextBrick.sprite.visible = false;
+    });
 
     // Score popup
     const popup = new Text({
@@ -148,7 +156,9 @@ export function ballToBrick(root: Container, w: number, h: number): () => void {
   // Fire button
   const btnBg = new LayoutContainer({
     layout: {
-      width: 140, paddingTop: 10, paddingBottom: 10,
+      width: 140,
+      paddingTop: 10,
+      paddingBottom: 10,
       backgroundColor: 0x110820,
       borderColor: 0x9944bb,
       borderWidth: 2,
@@ -158,15 +168,23 @@ export function ballToBrick(root: Container, w: number, h: number): () => void {
     },
   });
   btnBg.addChild(
-    new Text({ text: '● FIRE', style: { ...TEXT_STYLE_DEFAULT, fontSize: 12, fill: 0xddaaff }, layout: true })
+    new Text({ text: '● FIRE', style: { ...TEXT_STYLE_DEFAULT, fontSize: 12, fill: 0xddaaff }, layout: true }),
   );
   const btn = new Button(btnBg);
   btn.view!.x = w / 2 - 70;
   btn.view!.y = h - 40;
-  btn.onHover.connect(() => { btnBg.background.tint = 0xcc88ff; });
-  btn.onOut.connect(() => { btnBg.background.tint = 0xffffff; });
-  btn.onDown.connect(() => { btnBg.scale.set(0.95); });
-  btn.onUp.connect(() => { btnBg.scale.set(1.0); });
+  btn.onHover.connect(() => {
+    btnBg.background.tint = 0xcc88ff;
+  });
+  btn.onOut.connect(() => {
+    btnBg.background.tint = 0xffffff;
+  });
+  btn.onDown.connect(() => {
+    btnBg.scale.set(0.95);
+  });
+  btn.onUp.connect(() => {
+    btnBg.scale.set(1.0);
+  });
   btn.onPress.connect(fire);
   root.addChild(btn.view!);
 

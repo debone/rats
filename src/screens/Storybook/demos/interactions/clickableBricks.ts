@@ -4,6 +4,7 @@ import { getGameContext } from '@/data/game-context';
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS } from '@/assets';
 
 const COLS = 5;
 const ROWS = 3;
@@ -23,8 +24,8 @@ interface BrickState {
 
 export function clickableBricks(root: Container, w: number, h: number): () => void {
   const ctx = getGameContext();
-  const brickTex = Assets.get('prototype').textures['bricks_tile_1#0'];
-  const scrapTex = Assets.get('prototype').textures['scraps#0'];
+  const brickTex = Assets.get(ASSETS.prototype).textures['bricks_tile_1#0'];
+  const scrapTex = Assets.get(ASSETS.prototype).textures['scraps#0'];
 
   const totalW = COLS * (BW + GAP_X) - GAP_X;
   const totalH = ROWS * (BH + GAP_Y) - GAP_Y;
@@ -168,7 +169,10 @@ export function clickableBricks(root: Container, w: number, h: number): () => vo
     b.flash.visible = true;
     b.sprite.scale.set(1);
     const pct = 1;
-    b.hpBar.clear().rect(0, 0, BW * pct, 2).fill(0x44ff88);
+    b.hpBar
+      .clear()
+      .rect(0, 0, BW * pct, 2)
+      .fill(0x44ff88);
     animate(b.sprite, { scaleX: [0, 1], scaleY: [0, 1], duration: 250, ease: 'outBack(1.5)' });
     alive++;
   };

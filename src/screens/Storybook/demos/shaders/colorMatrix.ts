@@ -2,16 +2,59 @@ import { Assets, ColorMatrixFilter, Container, Graphics, Sprite, Text } from 'pi
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { ASSETS } from '@/assets';
 
 const PRESETS: { label: string; apply: (f: ColorMatrixFilter) => void }[] = [
   { label: 'NORMAL', apply: (f) => f.reset() },
-  { label: 'SEPIA', apply: (f) => { f.reset(); f.sepia(true); } },
-  { label: 'GRAYSCALE', apply: (f) => { f.reset(); f.greyscale(1, true); } },
-  { label: 'INVERT', apply: (f) => { f.reset(); f.negative(true); } },
-  { label: 'SATURATE', apply: (f) => { f.reset(); f.saturate(2, true); } },
-  { label: 'HUE +90', apply: (f) => { f.reset(); f.hue(90, true); } },
-  { label: 'NIGHT', apply: (f) => { f.reset(); f.night(0.5, true); } },
-  { label: 'VINTAGE', apply: (f) => { f.reset(); f.vintage(true); } },
+  {
+    label: 'SEPIA',
+    apply: (f) => {
+      f.reset();
+      f.sepia(true);
+    },
+  },
+  {
+    label: 'GRAYSCALE',
+    apply: (f) => {
+      f.reset();
+      f.greyscale(1, true);
+    },
+  },
+  {
+    label: 'INVERT',
+    apply: (f) => {
+      f.reset();
+      f.negative(true);
+    },
+  },
+  {
+    label: 'SATURATE',
+    apply: (f) => {
+      f.reset();
+      f.saturate(2, true);
+    },
+  },
+  {
+    label: 'HUE +90',
+    apply: (f) => {
+      f.reset();
+      f.hue(90, true);
+    },
+  },
+  {
+    label: 'NIGHT',
+    apply: (f) => {
+      f.reset();
+      f.night(0.5, true);
+    },
+  },
+  {
+    label: 'VINTAGE',
+    apply: (f) => {
+      f.reset();
+      f.vintage(true);
+    },
+  },
 ];
 
 export function colorMatrix(root: Container, w: number, h: number): () => void {
@@ -22,7 +65,7 @@ export function colorMatrix(root: Container, w: number, h: number): () => void {
   subject.filters = [filter];
 
   // Cheese icon as subject
-  const cheeseTexture = Assets.get('prototype').textures['cheese_tile_1#0'];
+  const cheeseTexture = Assets.get(ASSETS.prototype).textures['cheese_tile_1#0'];
   const icon = new Sprite(cheeseTexture);
   icon.anchor.set(0.5);
   icon.scale.set(3);
@@ -69,15 +112,17 @@ export function colorMatrix(root: Container, w: number, h: number): () => void {
         justifyContent: 'center',
       },
     });
-    bg.addChild(
-      new Text({ text: preset.label, style: { ...TEXT_STYLE_DEFAULT, fontSize: 7 }, layout: true })
-    );
+    bg.addChild(new Text({ text: preset.label, style: { ...TEXT_STYLE_DEFAULT, fontSize: 7 }, layout: true }));
 
     const btn = new Button(bg);
     btn.view!.x = 4 + col * btnW;
     btn.view!.y = h - 80 + row * 36;
-    btn.onHover.connect(() => { bg.background.tint = 0x9944bb; });
-    btn.onOut.connect(() => { bg.background.tint = 0xffffff; });
+    btn.onHover.connect(() => {
+      bg.background.tint = 0x9944bb;
+    });
+    btn.onOut.connect(() => {
+      bg.background.tint = 0xffffff;
+    });
     btn.onPress.connect(() => {
       preset.apply(filter);
       filterLabel.text = preset.label;

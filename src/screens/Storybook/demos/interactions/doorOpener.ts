@@ -4,13 +4,14 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
+import { ASSETS } from '@/assets';
 
 const REQUIRED = 5;
 
 export function doorOpener(root: Container, w: number, h: number): () => void {
   const ctx = getGameContext();
-  const doorTex = Assets.get('prototype').textures['bricks_tile_2#0'];
-  const cheeseTex = Assets.get('prototype').textures['cheese_tile_1#0'];
+  const doorTex = Assets.get(ASSETS.prototype).textures['bricks_tile_2#0'];
+  const cheeseTex = Assets.get(ASSETS.prototype).textures['cheese_tile_1#0'];
   const ballTex = Assets.get('tiles').textures.ball;
 
   // Door — 4 segments side by side, sliding outward when opened
@@ -66,7 +67,10 @@ export function doorOpener(root: Container, w: number, h: number): () => void {
   root.addChild(barFill);
 
   const drawBar = (filled: number) => {
-    barFill.clear().roundRect(barX, barY, BAR_W * (filled / REQUIRED), 8, 3).fill(0x9944bb);
+    barFill
+      .clear()
+      .roundRect(barX, barY, BAR_W * (filled / REQUIRED), 8, 3)
+      .fill(0x9944bb);
   };
   drawBar(0);
 
@@ -103,7 +107,11 @@ export function doorOpener(root: Container, w: number, h: number): () => void {
   let collected = 0;
   let opened = false;
 
-  interface CheeseBrick { sprite: Sprite; icon: Sprite; done: boolean }
+  interface CheeseBrick {
+    sprite: Sprite;
+    icon: Sprite;
+    done: boolean;
+  }
   const cbricks: CheeseBrick[] = [];
 
   const collectOne = async (cb: CheeseBrick, idx: number) => {
@@ -140,7 +148,7 @@ export function doorOpener(root: Container, w: number, h: number): () => void {
   for (let i = 0; i < REQUIRED; i++) {
     const bx = cbrickX0 + i * (CBRICK_W + 6);
 
-    const sprite = new Sprite(Assets.get('prototype').textures['bricks_tile_1#0']);
+    const sprite = new Sprite(Assets.get(ASSETS.prototype).textures['bricks_tile_1#0']);
     sprite.anchor.set(0, 0);
     sprite.width = CBRICK_W;
     sprite.height = CBRICK_H;
@@ -170,7 +178,7 @@ export function doorOpener(root: Container, w: number, h: number): () => void {
     shake(ctx.camera, { intensity: 6, duration: 500, frequency: 14 });
 
     // Slide left halves left, right halves right
-    const slideAmt = DOOR_SEGS / 2 * DOOR_SEG_W + 20;
+    const slideAmt = (DOOR_SEGS / 2) * DOOR_SEG_W + 20;
     doorLeft.forEach((s, i) => {
       animate(s, { x: s.x - slideAmt - i * 10, duration: 600, ease: 'outBack(1.2)', delay: i * 60 });
     });
@@ -248,7 +256,10 @@ export function doorOpener(root: Container, w: number, h: number): () => void {
     barBg.destroy();
     barFill.destroy();
     reqText.destroy();
-    cbricks.forEach((cb) => { cb.sprite.destroy(); cb.icon.destroy(); });
+    cbricks.forEach((cb) => {
+      cb.sprite.destroy();
+      cb.icon.destroy();
+    });
     hint.destroy();
   };
 }

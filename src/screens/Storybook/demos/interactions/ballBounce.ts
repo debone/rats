@@ -7,6 +7,7 @@ import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { app } from '@/main';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS } from '@/assets';
 
 const PADDLE_W = 60;
 const PADDLE_H = 8;
@@ -18,7 +19,7 @@ const BRICK_ROWS = 3;
 const SPEED = 220; // px/s
 
 export function ballBounce(root: Container, w: number, h: number): () => void {
-  const scrapTex = Assets.get('prototype').textures['scraps#0'];
+  const scrapTex = Assets.get(ASSETS.prototype).textures['scraps#0'];
   const ballTex = Assets.get('tiles').textures.ball;
 
   // Debris
@@ -68,7 +69,13 @@ export function ballBounce(root: Container, w: number, h: number): () => void {
   const brickX0 = (w - totalBW) / 2;
   const brickY0 = 40;
 
-  interface Brick { gfx: Graphics; alive: boolean; bx: number; by: number; color: number }
+  interface Brick {
+    gfx: Graphics;
+    alive: boolean;
+    bx: number;
+    by: number;
+    color: number;
+  }
   const bricks: Brick[] = [];
 
   const COLORS = [0xff4444, 0xff8800, 0xffee22, 0x44ff88, 0x4488ff, 0xcc44ff];
@@ -114,7 +121,9 @@ export function ballBounce(root: Container, w: number, h: number): () => void {
       ball.x = bx;
     }
   });
-  overlay.on('pointertap', () => { launched = true; });
+  overlay.on('pointertap', () => {
+    launched = true;
+  });
   root.addChild(overlay);
 
   const hint = new Text({
@@ -136,9 +145,18 @@ export function ballBounce(root: Container, w: number, h: number): () => void {
     by += vy * dt;
 
     // Wall bounces
-    if (bx - BALL_R < 0) { bx = BALL_R; vx = Math.abs(vx); }
-    if (bx + BALL_R > w) { bx = w - BALL_R; vx = -Math.abs(vx); }
-    if (by - BALL_R < 0) { by = BALL_R; vy = Math.abs(vy); }
+    if (bx - BALL_R < 0) {
+      bx = BALL_R;
+      vx = Math.abs(vx);
+    }
+    if (bx + BALL_R > w) {
+      bx = w - BALL_R;
+      vx = -Math.abs(vx);
+    }
+    if (by - BALL_R < 0) {
+      by = BALL_R;
+      vy = Math.abs(vy);
+    }
 
     // Paddle bounce
     if (
@@ -170,8 +188,7 @@ export function ballBounce(root: Container, w: number, h: number): () => void {
     for (const brick of bricks) {
       if (!brick.alive) continue;
       const { bx: rx, by: ry } = brick;
-      if (bx + BALL_R > rx && bx - BALL_R < rx + BRICK_W &&
-          by + BALL_R > ry && by - BALL_R < ry + BRICK_H) {
+      if (bx + BALL_R > rx && bx - BALL_R < rx + BRICK_W && by + BALL_R > ry && by - BALL_R < ry + BRICK_H) {
         brick.alive = false;
         brick.gfx.visible = false;
 

@@ -31,7 +31,7 @@ export function crtControls(root: Container, w: number, h: number): () => void {
   root.addChild(label);
 
   // Apply filter to preview root
-  root.filters = [crt];
+  label.filters = [crt];
 
   // Controls panel (on top of filter, so we draw them in a sibling container)
   // We need to render controls OUTSIDE the filtered area, but since root is filtered,
@@ -86,15 +86,27 @@ export function crtControls(root: Container, w: number, h: number): () => void {
       const val = param.min + norm * (param.max - param.min);
       const snapped = Math.round(val / param.step) * param.step;
       (crt as any)[param.key] = snapped;
-      bar.clear().rect(BAR_X, y, BAR_W * norm, 6).fill(0x9944bb);
+      bar
+        .clear()
+        .rect(BAR_X, y, BAR_W * norm, 6)
+        .fill(0x9944bb);
       thumb.x = BAR_X + BAR_W * norm;
       valText.text = snapped.toFixed(2);
     };
 
-    thumb.on('pointerdown', (e) => { dragging = true; e.stopPropagation(); });
-    thumb.on('pointermove', (e) => { if (dragging) updateFromX(e.global.x); });
-    thumb.on('pointerup', () => { dragging = false; });
-    thumb.on('pointerupoutside', () => { dragging = false; });
+    thumb.on('pointerdown', (e) => {
+      dragging = true;
+      e.stopPropagation();
+    });
+    thumb.on('pointermove', (e) => {
+      if (dragging) updateFromX(e.global.x);
+    });
+    thumb.on('pointerup', () => {
+      dragging = false;
+    });
+    thumb.on('pointerupoutside', () => {
+      dragging = false;
+    });
 
     track.interactive = true;
     track.on('pointertap', (e) => updateFromX(e.global.x));

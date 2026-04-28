@@ -107,9 +107,9 @@ async function init() {
 
   const camera = new Camera();
   camera.viewport.zIndex = CAMERA_Z_INDEX;
-  app.stage.addChild(camera.viewport);
+  //app.stage.addChild(camera.viewport);
 
-  camera.viewport.filters = [mirror, c];
+  //camera.viewport.filters = [mirror, c];
 
   if (import.meta.env.DEV) {
     camera.debug = new CameraDebug(camera);
@@ -192,7 +192,10 @@ async function init() {
   // Dev storybook: navigate to /?storybook to open the component playground
   if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('storybook')) {
     const { StorybookScreen } = await import('@/screens/Storybook/StorybookScreen');
-    navigation.showScreen(StorybookScreen);
+    ////navigation.showScreen(StorybookScreen);
+    const screen = new StorybookScreen();
+    screen.prepare();
+    //screen.show();
   } else {
     execute(AppStartCommand);
   }

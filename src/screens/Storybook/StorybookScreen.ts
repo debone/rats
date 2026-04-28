@@ -6,6 +6,7 @@ import { Button } from '@pixi/ui';
 import { Container, Graphics, Text } from 'pixi.js';
 import type { DemoEntry } from './demoTypes';
 import { REGISTRY } from './registry';
+import { app } from '@/main';
 
 const SIDEBAR_W = 155;
 
@@ -29,18 +30,19 @@ export class StorybookScreen extends Container implements AppScreen {
     bg.rect(0, 0, this.screenW, this.screenH).fill(0x050510);
     ctx.navigation.addToLayer(bg, LAYER_NAMES.BACKGROUND);
     this.toDestroy.push(bg);
-
+    app.stage.addChild(bg);
     // Sidebar background
     const sidebarBg = new Graphics();
     sidebarBg.rect(0, 0, SIDEBAR_W, this.screenH).fill(0x0b0b1a);
     ctx.navigation.addToLayer(sidebarBg, LAYER_NAMES.UI);
     this.toDestroy.push(sidebarBg);
-
+    app.stage.addChild(sidebarBg);
     // Divider
     const div = new Graphics();
     div.rect(SIDEBAR_W, 0, 1, this.screenH).fill(0x1e0e3e);
     ctx.navigation.addToLayer(div, LAYER_NAMES.UI);
     this.toDestroy.push(div);
+    app.stage.addChild(div);
 
     // Preview area — clipped to right panel
     const previewW = this.screenW - SIDEBAR_W - 1;
@@ -51,7 +53,7 @@ export class StorybookScreen extends Container implements AppScreen {
     mask.rect(0, 0, previewW, this.screenH).fill(0xffffff);
     previewContainer.addChild(mask);
     previewContainer.mask = mask;
-    ctx.navigation.addToLayer(previewContainer, LAYER_NAMES.GAME);
+    app.stage.addChild(previewContainer);
     this.toDestroy.push(previewContainer);
 
     // Info text at top of preview
@@ -81,7 +83,8 @@ export class StorybookScreen extends Container implements AppScreen {
         overflow: 'hidden',
       },
     });
-    ctx.navigation.addToLayer(sidebar, LAYER_NAMES.UI);
+    //ctx.navigation.addToLayer(sidebar, LAYER_NAMES.UI);
+    app.stage.addChild(sidebar);
     this.toDestroy.push(sidebar);
 
     // Header
@@ -125,8 +128,12 @@ export class StorybookScreen extends Container implements AppScreen {
 
       const btn = new Button(itemBg);
       const d = demo;
-      btn.onHover.connect(() => { itemBg.background.tint = 0x9944bb; });
-      btn.onOut.connect(() => { itemBg.background.tint = 0xffffff; });
+      btn.onHover.connect(() => {
+        itemBg.background.tint = 0x9944bb;
+      });
+      btn.onOut.connect(() => {
+        itemBg.background.tint = 0xffffff;
+      });
       btn.onPress.connect(() => this.runDemo(d));
       sidebar.addChild(btn.view!);
     }
@@ -151,9 +158,15 @@ export class StorybookScreen extends Container implements AppScreen {
     const replayBtn = new Button(replayBg);
     replayBtn.view!.x = 4;
     replayBtn.view!.y = this.screenH - 22;
-    replayBtn.onHover.connect(() => { replayBg.background.tint = 0x9944bb; });
-    replayBtn.onOut.connect(() => { replayBg.background.tint = 0xffffff; });
-    replayBtn.onPress.connect(() => { if (this.currentDemo) this.runDemo(this.currentDemo); });
+    replayBtn.onHover.connect(() => {
+      replayBg.background.tint = 0x9944bb;
+    });
+    replayBtn.onOut.connect(() => {
+      replayBg.background.tint = 0xffffff;
+    });
+    replayBtn.onPress.connect(() => {
+      if (this.currentDemo) this.runDemo(this.currentDemo);
+    });
     ctx.navigation.addToLayer(replayBtn.view!, LAYER_NAMES.UI);
     this.toDestroy.push(replayBtn.view!);
 
@@ -184,7 +197,7 @@ export class StorybookScreen extends Container implements AppScreen {
   async show() {}
 
   resize(w: number, h: number) {
-    this.screenW = w;
+    this.screenW = w * 2;
     this.screenH = h;
   }
 

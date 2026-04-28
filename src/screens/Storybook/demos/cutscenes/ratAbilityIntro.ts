@@ -3,6 +3,7 @@ import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { delay } from '@/core/game/Coroutine';
+import { ASSETS } from '@/assets';
 
 const RATS = [
   { avatar: 1, name: 'NUGGETS', ability: 'Free ability once per level', color: 0xffee44 },
@@ -60,7 +61,7 @@ export function ratAbilityIntro(root: Container, w: number, h: number): () => vo
     const rat = RATS[ratIndex % RATS.length];
     ratIndex++;
 
-    avatar.texture = Assets.get('prototype').textures[`avatars_tile_${rat.avatar}#0`];
+    avatar.texture = Assets.get(ASSETS.prototype).textures[`avatars_tile_${rat.avatar}#0`];
     nameText.text = rat.name;
     nameText.style.fill = rat.color;
     abilityText.text = rat.ability;
@@ -102,7 +103,9 @@ export function ratAbilityIntro(root: Container, w: number, h: number): () => vo
     root.addChild(activeParticles.container);
     activeParticles.explode(25);
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 1400); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 1400);
+    });
     if (cancelled) return;
 
     // Slide out upward
@@ -114,7 +117,9 @@ export function ratAbilityIntro(root: Container, w: number, h: number): () => vo
     ]);
     if (cancelled) return;
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 300); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 300);
+    });
     if (!cancelled) play();
   };
 
