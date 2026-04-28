@@ -2,6 +2,7 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { ASSETS } from '@/assets';
 
 export function secretFound(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -48,7 +49,7 @@ export function secretFound(root: Container, w: number, h: number): () => void {
   root.addChild(secretText);
 
   // Cheese icon above banner
-  const icon = new Sprite(Assets.get('prototype').textures['cheese_tile_1#0']);
+  const icon = new Sprite(Assets.get(ASSETS.prototype).textures['cheese_tile_1#0']);
   icon.anchor.set(0.5);
   icon.x = cx;
   icon.y = h / 2 - 56;
@@ -121,8 +122,14 @@ export function secretFound(root: Container, w: number, h: number): () => void {
       duration: 350,
       ease: 'outQuad',
       onUpdate: () => {
-        bannerTop.clear().rect(cx - lp.w, h / 2 - 24, lp.w * 2, 1).fill({ color: 0xffee44, alpha: 0.5 });
-        bannerBot.clear().rect(cx - lp.w, h / 2 + 24, lp.w * 2, 1).fill({ color: 0x9944bb, alpha: 0.5 });
+        bannerTop
+          .clear()
+          .rect(cx - lp.w, h / 2 - 24, lp.w * 2, 1)
+          .fill({ color: 0xffee44, alpha: 0.5 });
+        bannerBot
+          .clear()
+          .rect(cx - lp.w, h / 2 + 24, lp.w * 2, 1)
+          .fill({ color: 0x9944bb, alpha: 0.5 });
       },
     });
 
@@ -144,11 +151,15 @@ export function secretFound(root: Container, w: number, h: number): () => void {
     // Idle: icon slowly spins
     const doSpin = () => {
       spinAnim = animate(icon, { rotation: Math.PI * 2, duration: 2500, ease: 'linear' });
-      spinAnim.then(() => { if (!cancelled) doSpin(); });
+      spinAnim.then(() => {
+        if (!cancelled) doSpin();
+      });
     };
     doSpin();
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 2200); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 2200);
+    });
     if (cancelled) return;
 
     spinAnim?.cancel();
@@ -164,7 +175,9 @@ export function secretFound(root: Container, w: number, h: number): () => void {
     bannerTop.clear();
     bannerBot.clear();
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 600); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 600);
+    });
     if (!cancelled) play();
   };
 

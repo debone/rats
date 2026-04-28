@@ -2,6 +2,7 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { ASSETS } from '@/assets';
 
 export function victoryScreen(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -47,7 +48,7 @@ export function victoryScreen(root: Container, w: number, h: number): () => void
 
   // Cheese icons as "stars"
   const STARS = 3;
-  const cheeseTex = Assets.get('prototype').textures['cheese_tile_1#0'];
+  const cheeseTex = Assets.get(ASSETS.prototype).textures['cheese_tile_1#0'];
   const stars: Sprite[] = [];
   const starSpacing = 26;
   const starY = h / 2 + 8;
@@ -94,8 +95,14 @@ export function victoryScreen(root: Container, w: number, h: number): () => void
       duration: 500,
       ease: 'outQuad',
       onUpdate: () => {
-        lineTop.clear().rect(w / 2 - lp.w, h / 2 - 46, lp.w * 2, 1).fill(0xffee44);
-        lineBot.clear().rect(w / 2 - lp.w, h / 2 + 58, lp.w * 2, 1).fill(0x9944bb);
+        lineTop
+          .clear()
+          .rect(w / 2 - lp.w, h / 2 - 46, lp.w * 2, 1)
+          .fill(0xffee44);
+        lineBot
+          .clear()
+          .rect(w / 2 - lp.w, h / 2 + 58, lp.w * 2, 1)
+          .fill(0x9944bb);
       },
     });
 
@@ -106,7 +113,9 @@ export function victoryScreen(root: Container, w: number, h: number): () => void
 
     // Stars pop in staggered
     for (let i = 0; i < STARS; i++) {
-      await new Promise<void>((res) => { timer = setTimeout(res, 150); });
+      await new Promise<void>((res) => {
+        timer = setTimeout(res, 150);
+      });
       if (cancelled) return;
       animate(stars[i], { scaleX: 0.72, scaleY: 0.72, duration: 350, ease: 'outBack(3)' });
     }
@@ -120,13 +129,17 @@ export function victoryScreen(root: Container, w: number, h: number): () => void
       v: 1240,
       duration: 1000,
       ease: 'outQuad',
-      onUpdate: () => { scoreText.text = `SCORE: ${Math.floor(sp.v)}`; },
+      onUpdate: () => {
+        scoreText.text = `SCORE: ${Math.floor(sp.v)}`;
+      },
     });
     if (cancelled) return;
 
     animate(scoreText, { scaleX: [1.3, 1], scaleY: [1.3, 1], duration: 300, ease: 'outBack' });
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 1600); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 1600);
+    });
     if (cancelled) return;
 
     await Promise.all([
@@ -140,7 +153,9 @@ export function victoryScreen(root: Container, w: number, h: number): () => void
     lineTop.clear();
     lineBot.clear();
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 700); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 700);
+    });
     if (!cancelled) play();
   };
 

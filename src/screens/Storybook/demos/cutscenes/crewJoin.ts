@@ -2,6 +2,7 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { ASSETS } from '@/assets';
 
 const CREW = [
   { avatar: 1, name: 'NUGGETS', ability: 'Free ability once per level', color: 0xffee44 },
@@ -102,9 +103,12 @@ export function crewJoin(root: Container, w: number, h: number): () => void {
     ringAnim?.cancel();
     const rp = { r: 34, alpha: 0.9 };
     const draw = () => {
-      glowRing.clear()
-        .circle(cx, cy, rp.r).stroke({ color, width: 3, alpha: rp.alpha })
-        .circle(cx, cy, rp.r + 10).stroke({ color, width: 1, alpha: rp.alpha * 0.3 });
+      glowRing
+        .clear()
+        .circle(cx, cy, rp.r)
+        .stroke({ color, width: 3, alpha: rp.alpha })
+        .circle(cx, cy, rp.r + 10)
+        .stroke({ color, width: 1, alpha: rp.alpha * 0.3 });
     };
     ringAnim = animate(rp, { r: 58, alpha: 0, duration: 900, loop: true, ease: 'outQuad', onUpdate: draw });
   };
@@ -127,7 +131,7 @@ export function crewJoin(root: Container, w: number, h: number): () => void {
     ringAnim?.cancel();
     glowRing.clear();
 
-    avatar.texture = Assets.get('prototype').textures[`avatars_tile_${crew.avatar}#0`];
+    avatar.texture = Assets.get(ASSETS.prototype).textures[`avatars_tile_${crew.avatar}#0`];
     nameText.text = crew.name;
     nameText.style.fill = crew.color;
     abilityText.text = crew.ability;
@@ -155,7 +159,9 @@ export function crewJoin(root: Container, w: number, h: number): () => void {
     await animate(abilityText, { alpha: 1, duration: 220 });
     if (cancelled) return;
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 1800); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 1800);
+    });
     if (cancelled) return;
 
     ringAnim?.cancel();
@@ -172,7 +178,9 @@ export function crewJoin(root: Container, w: number, h: number): () => void {
     ]);
     if (cancelled) return;
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 500); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 500);
+    });
     if (!cancelled) play();
   };
 

@@ -2,6 +2,7 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { ASSETS } from '@/assets';
 
 export function bossWarning(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -46,12 +47,14 @@ export function bossWarning(root: Container, w: number, h: number): () => void {
   const FW = 64;
   const FH = 64;
   const frame = new Graphics();
-  frame.roundRect(w / 2 - FW / 2, h / 2 - FH / 2 - 8, FW, FH, 4)
-    .fill(0x110011).stroke({ color: 0xff2222, width: 2 });
+  frame
+    .roundRect(w / 2 - FW / 2, h / 2 - FH / 2 - 8, FW, FH, 4)
+    .fill(0x110011)
+    .stroke({ color: 0xff2222, width: 2 });
   frame.alpha = 0;
   root.addChild(frame);
 
-  const bossSprite = new Sprite(Assets.get('prototype').textures['avatars_tile_3#0']);
+  const bossSprite = new Sprite(Assets.get(ASSETS.prototype).textures['avatars_tile_3#0']);
   bossSprite.anchor.set(0.5);
   bossSprite.width = 52;
   bossSprite.height = 52;
@@ -100,7 +103,9 @@ export function bossWarning(root: Container, w: number, h: number): () => void {
     for (let i = 0; i < 3; i++) {
       await animate(flash, { alpha: [0, 0.55, 0], duration: 180 });
       if (cancelled) return;
-      await new Promise<void>((res) => { timer = setTimeout(res, 70); });
+      await new Promise<void>((res) => {
+        timer = setTimeout(res, 70);
+      });
       if (cancelled) return;
     }
 
@@ -112,10 +117,14 @@ export function bossWarning(root: Container, w: number, h: number): () => void {
     // WARNING blinks in fast
     for (let i = 0; i < 4; i++) {
       warnText.alpha = 1;
-      await new Promise<void>((res) => { timer = setTimeout(res, 100); });
+      await new Promise<void>((res) => {
+        timer = setTimeout(res, 100);
+      });
       if (cancelled) return;
       warnText.alpha = 0;
-      await new Promise<void>((res) => { timer = setTimeout(res, 60); });
+      await new Promise<void>((res) => {
+        timer = setTimeout(res, 60);
+      });
       if (cancelled) return;
     }
     warnText.alpha = 1;
@@ -135,7 +144,9 @@ export function bossWarning(root: Container, w: number, h: number): () => void {
     // Warning pulses
     const pulseAnim = animate(warnText, { alpha: [1, 0.2, 1], duration: 700, loop: true });
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 2400); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 2400);
+    });
     if (cancelled) return;
     pulseAnim.cancel();
 
@@ -152,7 +163,9 @@ export function bossWarning(root: Container, w: number, h: number): () => void {
     ]);
     if (cancelled) return;
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 700); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 700);
+    });
     if (!cancelled) play();
   };
 

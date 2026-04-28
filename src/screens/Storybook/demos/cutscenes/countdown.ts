@@ -54,8 +54,7 @@ export function countdown(root: Container, w: number, h: number): () => void {
 
   const ringProxy = { r: 0, alpha: 0 };
   const drawRing = () => {
-    ring.clear().circle(cx, cy, ringProxy.r)
-      .stroke({ color: 0xffffff, width: 2, alpha: ringProxy.alpha });
+    ring?.clear().circle(cx, cy, ringProxy.r).stroke({ color: 0xffffff, width: 2, alpha: ringProxy.alpha });
   };
 
   const beatRing = () => {
@@ -106,7 +105,9 @@ export function countdown(root: Container, w: number, h: number): () => void {
 
       beatRing();
 
-      await new Promise<void>((res) => { timer = setTimeout(res, 260); });
+      await new Promise<void>((res) => {
+        timer = setTimeout(res, 260);
+      });
       if (cancelled) return;
 
       // Exit: shrink + fade
@@ -135,7 +136,9 @@ export function countdown(root: Container, w: number, h: number): () => void {
     ring.clear();
     goText.scale.set(0);
 
-    await new Promise<void>((res) => { timer = setTimeout(res, 500); });
+    await new Promise<void>((res) => {
+      timer = setTimeout(res, 500);
+    });
     if (!cancelled) play();
   };
 

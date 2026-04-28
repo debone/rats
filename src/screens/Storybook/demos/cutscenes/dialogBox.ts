@@ -1,11 +1,27 @@
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { ASSETS } from '@/assets';
 
 const PAGES = [
-  { avatar: 1, speaker: 'NUGGETS', color: 0xffee44, text: "We need to break through those walls. The cheese is on the other side, and I'm not leaving without it." },
-  { avatar: 2, speaker: 'NEON', color: 0x44ffcc, text: "Leave it to me. One burst of speed and those bricks won't know what hit them." },
-  { avatar: 3, speaker: 'RATFATHER', color: 0xcc8844, text: "Every brick has a price. Break them wisely and the cheese vault is ours." },
+  {
+    avatar: 1,
+    speaker: 'NUGGETS',
+    color: 0xffee44,
+    text: "We need to break through those walls. The cheese is on the other side, and I'm not leaving without it.",
+  },
+  {
+    avatar: 2,
+    speaker: 'NEON',
+    color: 0x44ffcc,
+    text: "Leave it to me. One burst of speed and those bricks won't know what hit them.",
+  },
+  {
+    avatar: 3,
+    speaker: 'RATFATHER',
+    color: 0xcc8844,
+    text: 'Every brick has a price. Break them wisely and the cheese vault is ours.',
+  },
 ];
 
 export function dialogBox(root: Container, w: number, h: number): () => void {
@@ -24,13 +40,17 @@ export function dialogBox(root: Container, w: number, h: number): () => void {
 
   const PY = h - PANEL_H - 8;
   const panel = new Graphics();
-  panel.roundRect(8, PY, w - 16, PANEL_H, 6)
-    .fill(0x0d0d1e).stroke({ color: 0x441166, width: 1 });
+  panel
+    .roundRect(8, PY, w - 16, PANEL_H, 6)
+    .fill(0x0d0d1e)
+    .stroke({ color: 0x441166, width: 1 });
   group.addChild(panel);
 
   const portraitBg = new Graphics();
-  portraitBg.circle(30, PY + PANEL_H / 2, 22)
-    .fill(0x1a1033).stroke({ color: 0x441166, width: 1 });
+  portraitBg
+    .circle(30, PY + PANEL_H / 2, 22)
+    .fill(0x1a1033)
+    .stroke({ color: 0x441166, width: 1 });
   group.addChild(portraitBg);
 
   const portrait = new Sprite();
@@ -74,7 +94,7 @@ export function dialogBox(root: Container, w: number, h: number): () => void {
     typingDone = false;
 
     const page = PAGES[idx % PAGES.length];
-    portrait.texture = Assets.get('prototype').textures[`avatars_tile_${page.avatar}#0`];
+    portrait.texture = Assets.get(ASSETS.prototype).textures[`avatars_tile_${page.avatar}#0`];
     speakerText.text = page.speaker;
     speakerText.style.fill = page.color;
 
@@ -88,7 +108,9 @@ export function dialogBox(root: Container, w: number, h: number): () => void {
       n: fullText.length,
       duration: fullText.length * 36,
       ease: 'linear',
-      onUpdate: () => { dialogText.text = fullText.slice(0, Math.floor(proxy.n)); },
+      onUpdate: () => {
+        dialogText.text = fullText.slice(0, Math.floor(proxy.n));
+      },
     });
     await typingAnim;
     if (cancelled) return;
