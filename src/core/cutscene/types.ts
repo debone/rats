@@ -13,7 +13,7 @@ export interface CutsceneData {
 }
 
 export interface CutsceneNode {
-  /** Godot node type: "Sprite2D", "Label", "AnimationPlayer", etc. */
+  /** Godot node type: "Sprite2D", "Label", "ColorRect", "CPUParticles2D", "AnimationPlayer", etc. */
   type: string;
   /** Resolved PixiJS frame name (e.g. "rat-boat#0") or animation name ("captain") — Sprite2D only */
   pixiTexture?: string;
@@ -25,6 +25,21 @@ export interface CutsceneNode {
   width?: number;
   /** Height of the label rect in pixels (offset_bottom − offset_top) — Label only */
   height?: number;
+  /**
+   * Fill color (Godot Color, normalized 0–1 per channel) — ColorRect only.
+   * Maps to a Graphics rect drawn in this color; animated via modulate/modulate:a tracks.
+   */
+  color?: { r: number; g: number; b: number; a: number };
+  /**
+   * Rect dimensions in pixels — ColorRect only.
+   * Static at creation time; size animation is not supported.
+   */
+  size?: { x: number; y: number };
+  /**
+   * Default burst count — CPUParticles2D only.
+   * Used when an "emitting: true" keyframe fires and no explicit count is provided.
+   */
+  amount?: number;
 }
 
 export interface CutsceneAnimation {

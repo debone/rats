@@ -24,6 +24,12 @@ export interface CutsceneNode {
   width?: number;
   /** Height of the label rect (offset_bottom − offset_top) — Label only */
   height?: number;
+  /** Fill color (Godot Color, normalized 0–1) — ColorRect only */
+  color?: { r: number; g: number; b: number; a: number };
+  /** Rect size in pixels — ColorRect only */
+  size?: { x: number; y: number };
+  /** Default burst count — CPUParticles2D only */
+  amount?: number;
 }
 
 export interface CutsceneAnimation {
@@ -136,7 +142,9 @@ function writeCutsceneTypes(cutscenes: Map<string, CutsceneData>, outputPath: st
   for (const [name, data] of cutscenes) {
     lines.push(`  '${name}': {`);
     for (const [nodeName, node] of Object.entries(data.nodes)) {
-      if (node.type === 'Sprite2D' || node.type === 'Label') lines.push(`    ${nodeName}: Container;`);
+      if (node.type === 'Sprite2D' || node.type === 'Label' || node.type === 'ColorRect') {
+        lines.push(`    ${nodeName}: Container;`);
+      }
     }
     lines.push(`  };`);
   }
@@ -272,6 +280,43 @@ export function parseTscn(content: string, spriteMap: GodotSpriteMap): CutsceneD
           node.fontSize = labelSettingsById[subId].fontSize;
         }
       }
+    }
+
+    if (type === 'ColorRect') {
+      // color property: Color(r, g, b, a) — normalized 0–1
+      const colorProp = s.props.get('color');
+      if (colorProp) {
+        const m = colorProp.match(/Color\(([^)]+)\)/);
+        if (m) {
+          const parts = m[1].split(',').map((n) => parseFloat(n.trim()));
+          node.color = { r: parts[0] ?? 0, g: parts[1] ?? 0, b: parts[2] ?? 0, a: parts[3] ?? 1 };
+        }
+      }
+
+      // size from the Vector2 "size" property (preferred) or offset_* fallback
+      const sizeProp = s.props.get('size');
+      if (sizeProp) {
+        const m = sizeProp.match(/Vector2\(([^)]+)\)/);
+        if (m) {
+          const parts = m[1].split(',').map((n) => parseFloat(n.trim()));
+          node.size = { x: parts[0] ?? 0, y: parts[1] ?? 0 };
+        }
+      }
+
+      if (!node.size) {
+        const offsetLeft = parseFloat(s.props.get('offset_left') ?? '0');
+        const offsetTop = parseFloat(s.props.get('offset_top') ?? '0');
+        const offsetRight = parseFloat(s.props.get('offset_right') ?? '0');
+        const offsetBottom = parseFloat(s.props.get('offset_bottom') ?? '0');
+        if (offsetRight > offsetLeft) {
+          node.size = { x: offsetRight - offsetLeft, y: offsetBottom - offsetTop };
+        }
+      }
+    }
+
+    if (type === 'CPUParticles2D') {
+      const amountProp = s.props.get('amount');
+      if (amountProp !== undefined) node.amount = parseInt(amountProp, 10);
     }
 
     nodes[name] = node;

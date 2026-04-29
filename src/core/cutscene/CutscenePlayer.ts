@@ -1,8 +1,9 @@
 import { createTimeline } from 'animejs';
-import { Assets, Container, Sprite, Text, Texture } from 'pixi.js';
+import { Assets, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 
 import { sfx } from '@/core/audio/audio';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import type { CutsceneAnimation, CutsceneData, CutsceneNode } from './types';
 
 export interface CutscenePlayOptions<TNodes> {
@@ -18,6 +19,23 @@ export interface CutscenePlayOptions<TNodes> {
    * Use when you need more than parenting (e.g. per-layer placement, one-off tweaks).
    */
   onSetup?: (nodes: TNodes) => void;
+  /**
+   * Particle emitters keyed by their Godot CPUParticles2D node name.
+   *
+   * The player handles two track properties for emitter nodes:
+   *   - `position`      → updates emitter.x / emitter.y (the spawn point) each frame
+   *   - `emitting:true` → calls emitter.explode(node.amount) at that keyframe time
+   *
+   * Emitter containers are automatically added to `parent` if provided.
+   * The caller owns the emitters — they are never destroyed by the player.
+   *
+   * Typical usage:
+   * ```ts
+   * const steam = new ParticleEmitter({ texture, ... });
+   * player.play(‘intro’, {}, { parent: root, emitters: { SteamVent: steam } });
+   * ```
+   */
+  emitters?: Record<string, ParticleEmitter>;
 }
 
 /**
@@ -63,7 +81,7 @@ export class CutscenePlayer<
     nodes: Partial<TNodes> = {} as Partial<TNodes>,
     options: CutscenePlayOptions<TNodes> & { cleanup?: boolean } = {},
   ): Promise<TNodes | void> {
-    const { cleanup = true, parent, onSetup } = options;
+    const { cleanup = true, parent, onSetup, emitters } = options;
 
     const animation = this.data.animations[animationName as string];
     if (!animation) {
@@ -85,12 +103,15 @@ export class CutscenePlayer<
 
     if (parent) {
       for (const node of Object.values(allNodes)) parent.addChild(node);
+      if (emitters) {
+        for (const emitter of Object.values(emitters)) parent.addChild(emitter.container);
+      }
     }
 
     onSetup?.(allNodes as TNodes);
 
-    applyInitialState(animation, allNodes);
-    await runAnimation(animation, allNodes);
+    applyInitialState(animation, allNodes, emitters);
+    await runAnimation(animation, allNodes, this.data.nodes, emitters);
 
     if (cleanup) {
       for (const name of created) allNodes[name]?.destroy();
@@ -126,6 +147,20 @@ function buildSpriteNode(name: string, nodeDef: CutsceneNode): Container | null 
     // Text anchor defaults to (0,0) — top-left, matching Godot Label position semantics
   }
 
+  if (nodeDef.type === 'ColorRect') {
+    const c = nodeDef.color ?? { r: 1, g: 1, b: 1, a: 1 };
+    // Convert Godot's 0–1 linear color to a PixiJS 0xRRGGBB hex
+    const hex = (Math.round(c.r * 255) << 16) | (Math.round(c.g * 255) << 8) | Math.round(c.b * 255);
+    const w = nodeDef.size?.x ?? 100;
+    const h = nodeDef.size?.y ?? 100;
+    const g = new Graphics({ label: name });
+    // Draw the rect in its base color; modulate:a / modulate tracks animate alpha/tint on top
+    g.rect(0, 0, w, h).fill({ color: hex, alpha: c.a });
+    // ColorRect.position in Godot is the top-left corner (Control node, not CanvasItem center)
+    return g;
+  }
+
+  // CPUParticles2D nodes are handled entirely via the `emitters` option — skip auto-creation
   return null;
 }
 
@@ -143,10 +178,26 @@ function resolveTexture(pixiTexture: string | undefined): Texture {
 // Animation
 // ---------------------------------------------------------------------------
 
-function applyInitialState(animation: CutsceneAnimation, nodes: Record<string, Container>): void {
+function applyInitialState(
+  animation: CutsceneAnimation,
+  nodes: Record<string, Container>,
+  emitters?: Record<string, ParticleEmitter>,
+): void {
   for (const track of animation.tracks) {
     const first = track.keyframes[0];
     if (!first) continue;
+
+    // Emitter initial position
+    const emitter = emitters?.[track.node];
+    if (emitter) {
+      if (track.property === 'position') {
+        const v2 = first.value as { x: number; y: number };
+        emitter.x = v2?.x ?? 0;
+        emitter.y = v2?.y ?? 0;
+      }
+      continue;
+    }
+
     const node = nodes[track.node];
     if (!node) continue;
     const { animTarget, props } = buildAnimProps(node, track.property, first.value);
@@ -157,10 +208,57 @@ function applyInitialState(animation: CutsceneAnimation, nodes: Record<string, C
   }
 }
 
-async function runAnimation(animation: CutsceneAnimation, nodes: Record<string, Container>): Promise<void> {
+async function runAnimation(
+  animation: CutsceneAnimation,
+  nodes: Record<string, Container>,
+  nodeDefs: Record<string, CutsceneNode>,
+  emitters?: Record<string, ParticleEmitter>,
+): Promise<void> {
   const tl = createTimeline();
 
   for (const track of animation.tracks) {
+    // --- Particle emitter tracks ---
+    const emitter = emitters?.[track.node];
+    if (emitter) {
+      if (track.property === 'position') {
+        // Animate a proxy and push to emitter.x/y each frame
+        const proxy = { x: emitter.x, y: emitter.y };
+        for (let i = 0; i < track.keyframes.length - 1; i++) {
+          const from = track.keyframes[i];
+          const to = track.keyframes[i + 1];
+          const toV2 = to.value as { x: number; y: number };
+          tl.add(
+            proxy,
+            {
+              x: toV2?.x ?? 0,
+              y: toV2?.y ?? 0,
+              duration: (to.time - from.time) * 1000,
+              ease: buildEasing(track.interpolation, from.transition),
+              onUpdate: () => {
+                emitter.x = proxy.x;
+                emitter.y = proxy.y;
+              },
+            },
+            from.time * 1000,
+          );
+        }
+      }
+
+      if (track.property === 'emitting') {
+        // Each "true" keyframe fires a burst; "false" keyframes are ignored for now
+        const amount = nodeDefs[track.node]?.amount ?? 20;
+        for (const kf of track.keyframes) {
+          if (kf.value === true) {
+            const t = kf.time * 1000;
+            tl.call(() => emitter.explode(amount), t);
+          }
+        }
+      }
+
+      continue; // Emitter tracks are fully handled above
+    }
+
+    // --- Regular Container tracks ---
     const node = nodes[track.node];
     if (!node) continue;
 
