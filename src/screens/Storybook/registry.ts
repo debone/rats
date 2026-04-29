@@ -72,6 +72,9 @@ import { neonSign }       from './demos/environment/neonSign';
 import { drippingWater }  from './demos/environment/drippingWater';
 import { godray }         from './demos/environment/godray';
 import { ventSteam }      from './demos/environment/ventSteam';
+import { fireflies }      from './demos/environment/fireflies';
+import { spiderweb }      from './demos/environment/spiderweb';
+import { rainStreaks }     from './demos/environment/rainStreaks';
 
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
@@ -164,6 +167,9 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'env-drip',    category: 'environment', name: 'Dripping Water',   setup: drippingWater },
   { id: 'env-godray',  category: 'environment', name: 'God Ray',          setup: godray },
   { id: 'env-steam',   category: 'environment', name: 'Vent Steam',       setup: ventSteam },
+  { id: 'env-firefly', category: 'environment', name: 'Fireflies',        setup: fireflies },
+  { id: 'env-web',     category: 'environment', name: 'Spiderweb',        setup: spiderweb },
+  { id: 'env-rain',    category: 'environment', name: 'Rain Streaks',     setup: rainStreaks },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },

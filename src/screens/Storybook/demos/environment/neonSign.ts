@@ -1,89 +1,81 @@
 /**
  * ENVIRONMENT: Neon Sign
  *
- * Neon glow is three stacked stroke passes on the same path:
- * 1. Wide (width=12), very low alpha — outer diffuse
- * 2. Medium (width=5), medium alpha — tube body
- * 3. Thin (width=1.5), high alpha — hot bright core
+ * Neon glow with Text + BlurFilter stacked in 3 passes:
+ * 1. Wide blur (strength=20) at low alpha  → outer diffuse haze
+ * 2. Tight blur (strength=6)  at mid alpha → tube body glow
+ * 3. No blur, full alpha, white tint       → hot bright core
  *
- * Flicker state machine:
- *   STABLE → (random ~4s) → FLICKER (rapid on/off over 200ms) → STABLE
- * Each tube has its own timer so they don't all flicker together.
+ * Using Text (not hand-drawn paths) means letters are always correct
+ * and scale cleanly to any preview size.
  *
- * Brick wall: rows of rounded rects with mortar gaps — a classic
- * environment background technique that takes 30 lines and reads instantly.
+ * Flicker state machine: each sign tube has its own timer so they
+ * stutter independently — synchronized flicker looks fake.
  */
-import { Container, Graphics, Text } from 'pixi.js';
+import { BlurFilter, Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 
-interface Tube {
-  path: { x: number; y: number }[];
-  color: number;
-  alpha: number;
+interface NeonLine {
+  glow1: Text;
+  glow2: Text;
+  core: Text;
+  isFlickering: boolean;
   flickerTime: number;
   flickerDuration: number;
   nextFlicker: number;
-  isFlickering: boolean;
-  rapidState: boolean;
+  rapidOn: boolean;
   rapidTimer: number;
 }
 
-function drawTube(g: Graphics, tube: Tube) {
-  if (tube.path.length < 2) return;
-  const a = tube.alpha;
-  if (a <= 0) return;
+function makeNeonLine(
+  root: Container,
+  text: string,
+  color: number,
+  x: number,
+  y: number,
+  fontSize: number,
+): NeonLine {
+  const style = { ...TEXT_STYLE_DEFAULT, fontSize, fontWeight: 'bold' as const };
 
-  // Three pass glow
-  g.moveTo(tube.path[0].x, tube.path[0].y);
-  for (let i = 1; i < tube.path.length; i++) g.lineTo(tube.path[i].x, tube.path[i].y);
-  g.stroke({ color: tube.color, width: 14, alpha: a * 0.08 });
+  const glow1 = new Text({ text, style: { ...style, fill: color } });
+  glow1.anchor.set(0.5);
+  glow1.x = x; glow1.y = y;
+  glow1.filters = [new BlurFilter({ strength: 22, quality: 3 })];
+  glow1.alpha = 0.28;
+  root.addChild(glow1);
 
-  g.moveTo(tube.path[0].x, tube.path[0].y);
-  for (let i = 1; i < tube.path.length; i++) g.lineTo(tube.path[i].x, tube.path[i].y);
-  g.stroke({ color: tube.color, width: 5, alpha: a * 0.55 });
+  const glow2 = new Text({ text, style: { ...style, fill: color } });
+  glow2.anchor.set(0.5);
+  glow2.x = x; glow2.y = y;
+  glow2.filters = [new BlurFilter({ strength: 6, quality: 3 })];
+  glow2.alpha = 0.55;
+  root.addChild(glow2);
 
-  g.moveTo(tube.path[0].x, tube.path[0].y);
-  for (let i = 1; i < tube.path.length; i++) g.lineTo(tube.path[i].x, tube.path[i].y);
-  g.stroke({ color: 0xffffff, width: 1.5, alpha: a * 0.9 });
+  const core = new Text({ text, style: { ...style, fill: 0xffffff } });
+  core.anchor.set(0.5);
+  core.x = x; core.y = y;
+  root.addChild(core);
 
-  // End caps glow
-  const first = tube.path[0];
-  const last  = tube.path[tube.path.length - 1];
-  g.circle(first.x, first.y, 4).fill({ color: tube.color, alpha: a * 0.3 });
-  g.circle(last.x,  last.y,  4).fill({ color: tube.color, alpha: a * 0.3 });
+  return {
+    glow1, glow2, core,
+    isFlickering: false,
+    flickerTime: 0,
+    flickerDuration: 0,
+    nextFlicker: 1800 + Math.random() * 3500,
+    rapidOn: true,
+    rapidTimer: 0,
+  };
 }
 
-// Build letter paths for "RATS" as stroke segments
-function makeLetterPaths(cx: number, cy: number, scale: number): { path: { x: number; y: number }[]; color: number }[] {
-  const s = scale;
-  const tubes: { path: { x: number; y: number }[]; color: number }[] = [];
+function setNeonAlpha(line: NeonLine, t: number) {
+  line.glow1.alpha = 0.28 * t;
+  line.glow2.alpha = 0.55 * t;
+  line.core.alpha  = t;
+}
 
-  // R — two vertical strokes + bump
-  const rx = cx - s * 30;
-  tubes.push({ color: 0xff44cc, path: [{ x: rx,      y: cy - s*12 }, { x: rx,      y: cy + s*12 }] }); // left vert
-  tubes.push({ color: 0xff44cc, path: [{ x: rx,      y: cy - s*12 }, { x: rx+s*10, y: cy - s*12 },
-                                         { x: rx+s*10, y: cy },        { x: rx,      y: cy }] }); // bump top
-  tubes.push({ color: 0xff44cc, path: [{ x: rx,      y: cy }, { x: rx+s*12, y: cy+s*12 }] }); // leg
-
-  // A
-  const ax = cx - s * 10;
-  tubes.push({ color: 0x44ccff, path: [{ x: ax,       y: cy + s*12 }, { x: ax+s*8,  y: cy - s*12 },
-                                         { x: ax+s*16,  y: cy + s*12 }] }); // outline
-  tubes.push({ color: 0x44ccff, path: [{ x: ax+s*4,   y: cy + s*2 }, { x: ax+s*12, y: cy + s*2 }] }); // crossbar
-
-  // T
-  const tx = cx + s * 14;
-  tubes.push({ color: 0xffcc44, path: [{ x: tx,       y: cy - s*12 }, { x: tx+s*16, y: cy - s*12 }] }); // top
-  tubes.push({ color: 0xffcc44, path: [{ x: tx+s*8,   y: cy - s*12 }, { x: tx+s*8,  y: cy + s*12 }] }); // stem
-
-  // S
-  const sx = cx + s * 38;
-  tubes.push({ color: 0x44ff88, path: [{ x: sx+s*10, y: cy - s*12 }, { x: sx,       y: cy - s*12 },
-                                         { x: sx,       y: cy },        { x: sx+s*10,  y: cy },
-                                         { x: sx+s*10,  y: cy + s*12 }, { x: sx,       y: cy + s*12 }] });
-
-  return tubes;
+function destroyNeonLine(line: NeonLine) {
+  [line.glow1, line.glow2, line.core].forEach((t) => t.destroy());
 }
 
 export function neonSign(root: Container, w: number, h: number): () => void {
@@ -93,52 +85,54 @@ export function neonSign(root: Container, w: number, h: number): () => void {
   // ─── Brick wall ───────────────────────────────────────────────────────
   const wall = new Graphics();
   wall.rect(0, 0, w, h).fill(0x100a08);
-  const brickH = 14, brickW = 32;
+  const brickH = 13, brickW = 30;
   for (let row = 0; row * brickH < h; row++) {
     const offset = (row % 2) * (brickW / 2);
     for (let col = -1; col * brickW < w + brickW; col++) {
       const bx = col * brickW + offset;
       const by = row * brickH;
       wall.roundRect(bx + 1, by + 1, brickW - 2, brickH - 2, 1)
-        .fill({ color: 0x1e0e08, alpha: 0.9 });
+          .fill({ color: 0x1c0e08 + (Math.random() > 0.8 ? 0x020202 : 0), alpha: 0.9 });
     }
   }
   root.addChild(wall);
 
-  // Sign backing board
+  // Sign board
   const board = new Graphics();
-  const brdX = w * 0.08, brdY = h * 0.28, brdW = w * 0.84, brdH = h * 0.44;
-  board.roundRect(brdX, brdY, brdW, brdH, 4).fill({ color: 0x06040a, alpha: 0.88 });
-  board.roundRect(brdX, brdY, brdW, brdH, 4).stroke({ color: 0x331122, width: 1 });
+  const margin = w * 0.06;
+  board.roundRect(margin, h * 0.15, w - margin * 2, h * 0.7, 4)
+       .fill({ color: 0x04020a, alpha: 0.9 });
+  board.roundRect(margin, h * 0.15, w - margin * 2, h * 0.7, 4)
+       .stroke({ color: 0x220a22, width: 1 });
   root.addChild(board);
 
-  // Mounting bolts
+  // Corner bolts
   const bolts = new Graphics();
-  [[brdX + 10, brdY + 10], [brdX + brdW - 10, brdY + 10],
-   [brdX + 10, brdY + brdH - 10], [brdX + brdW - 10, brdY + brdH - 10]].forEach(([bx, by]) => {
-    bolts.circle(bx, by, 3).fill(0x2a2020);
-    bolts.circle(bx, by, 3).stroke({ color: 0x441122, width: 0.5 });
+  [[margin + 8, h * 0.15 + 8], [w - margin - 8, h * 0.15 + 8],
+   [margin + 8, h * 0.85 - 8], [w - margin - 8, h * 0.85 - 8]].forEach(([bx, by]) => {
+    bolts.circle(bx, by, 3).fill(0x1a1010);
+    bolts.circle(bx, by, 3).stroke({ color: 0x331122, width: 0.5 });
   });
   root.addChild(bolts);
 
-  // ─── Neon tubes ───────────────────────────────────────────────────────
-  const neonG = new Graphics();
-  root.addChild(neonG);
+  // ─── Neon lines ───────────────────────────────────────────────────────
+  const cx = w / 2;
+  const fontSize = Math.max(22, Math.floor(w / 13));
+  const smallSize = Math.max(14, Math.floor(w / 20));
 
-  const rawPaths = makeLetterPaths(w / 2, h / 2, w / 120);
-  const tubes: Tube[] = rawPaths.map((p) => ({
-    ...p,
-    alpha: 1,
-    flickerTime: 0,
-    flickerDuration: 200 + Math.random() * 150,
-    nextFlicker: 2000 + Math.random() * 4000,
-    isFlickering: false,
-    rapidState: true,
-    rapidTimer: 0,
-  }));
+  const lines: NeonLine[] = [
+    makeNeonLine(root, 'RATS',      0xff33cc, cx, h * 0.38, fontSize),
+    makeNeonLine(root, 'SEWER CO.', 0x33ccff, cx, h * 0.56, smallSize),
+    makeNeonLine(root, '— EST. \'89 —', 0x44ff88, cx, h * 0.70, Math.floor(smallSize * 0.75)),
+  ];
+
+  // Stagger initial flicker timers
+  lines[0].nextFlicker = 2200 + Math.random() * 2000;
+  lines[1].nextFlicker = 4000 + Math.random() * 2000;
+  lines[2].nextFlicker = 1000 + Math.random() * 1500;
 
   const label = new Text({
-    text: 'ENV: NEON SIGN — 3-pass stroke glow + per-tube flicker state machine',
+    text: 'ENV: NEON SIGN — 3-layer blur glow (Text + BlurFilter) + flicker state machine',
     style: { ...TEXT_STYLE_DEFAULT, fontSize: 7, fill: 0x2a1a3a, letterSpacing: 1 },
   });
   label.x = 6;
@@ -149,38 +143,33 @@ export function neonSign(root: Container, w: number, h: number): () => void {
     if (cancelled) return;
     time += dt.deltaMS;
 
-    neonG.clear();
-
-    for (const tube of tubes) {
-      if (tube.isFlickering) {
-        tube.flickerTime += dt.deltaMS;
-        tube.rapidTimer  += dt.deltaMS;
-
-        // Rapid on/off every 40–80ms
-        if (tube.rapidTimer > 40 + Math.random() * 40) {
-          tube.rapidState = !tube.rapidState;
-          tube.rapidTimer = 0;
+    for (const line of lines) {
+      if (line.isFlickering) {
+        line.flickerTime += dt.deltaMS;
+        line.rapidTimer  += dt.deltaMS;
+        // Snap on/off every 35-75ms
+        if (line.rapidTimer > 35 + Math.random() * 40) {
+          line.rapidOn = !line.rapidOn;
+          line.rapidTimer = 0;
         }
-        tube.alpha = tube.rapidState ? 1 : 0;
-
-        if (tube.flickerTime >= tube.flickerDuration) {
-          tube.isFlickering = false;
-          tube.alpha = 1;
-          tube.nextFlicker = 2500 + Math.random() * 5000;
+        setNeonAlpha(line, line.rapidOn ? 1 : 0);
+        if (line.flickerTime >= line.flickerDuration) {
+          line.isFlickering = false;
+          setNeonAlpha(line, 1);
+          line.nextFlicker = 2500 + Math.random() * 6000;
         }
       } else {
-        tube.nextFlicker -= dt.deltaMS;
-        if (tube.nextFlicker <= 0) {
-          tube.isFlickering = true;
-          tube.flickerTime = 0;
-          tube.flickerDuration = 120 + Math.random() * 200;
-          tube.rapidState = false;
+        line.nextFlicker -= dt.deltaMS;
+        // Gentle breathing glow
+        const breathe = 0.88 + Math.sin(time * 0.0016 + lines.indexOf(line) * 1.4) * 0.1;
+        setNeonAlpha(line, breathe);
+        if (line.nextFlicker <= 0) {
+          line.isFlickering  = true;
+          line.flickerTime   = 0;
+          line.flickerDuration = 100 + Math.random() * 250;
+          line.rapidOn = false;
         }
-        // Subtle breathing when stable
-        tube.alpha = 0.88 + Math.sin(time * 0.002 + tubes.indexOf(tube) * 0.8) * 0.08;
       }
-
-      drawTube(neonG, tube);
     }
   };
 
@@ -189,6 +178,7 @@ export function neonSign(root: Container, w: number, h: number): () => void {
   return () => {
     cancelled = true;
     app.ticker.remove(tick);
-    [wall, board, bolts, neonG, label].forEach((e) => e.destroy());
+    lines.forEach(destroyNeonLine);
+    [wall, board, bolts, label].forEach((e) => e.destroy());
   };
 }
