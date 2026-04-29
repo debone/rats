@@ -66,6 +66,13 @@ import { lightningBolt } from './demos/vfx/lightningBolt';
 import { starParticles } from './demos/vfx/starParticles';
 import { magicTrail } from './demos/vfx/magicTrail';
 
+import { torchFlicker }   from './demos/environment/torchFlicker';
+import { ambientFog }     from './demos/environment/ambientFog';
+import { neonSign }       from './demos/environment/neonSign';
+import { drippingWater }  from './demos/environment/drippingWater';
+import { godray }         from './demos/environment/godray';
+import { ventSteam }      from './demos/environment/ventSteam';
+
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
 
@@ -149,6 +156,14 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'vfx-lightning',          category: 'vfx', name: 'Flash: Lightning Bolt', setup: lightningBolt },
   { id: 'vfx-star-particles',     category: 'vfx', name: 'Sprite: Star Particles', setup: starParticles },
   { id: 'vfx-magic-trail',        category: 'vfx', name: 'Sprite: Magic Trail',  setup: magicTrail },
+
+  // Environment
+  { id: 'env-torch',   category: 'environment', name: 'Torch Flicker',    setup: torchFlicker },
+  { id: 'env-fog',     category: 'environment', name: 'Ambient Fog',      setup: ambientFog },
+  { id: 'env-neon',    category: 'environment', name: 'Neon Sign',        setup: neonSign },
+  { id: 'env-drip',    category: 'environment', name: 'Dripping Water',   setup: drippingWater },
+  { id: 'env-godray',  category: 'environment', name: 'God Ray',          setup: godray },
+  { id: 'env-steam',   category: 'environment', name: 'Vent Steam',       setup: ventSteam },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },

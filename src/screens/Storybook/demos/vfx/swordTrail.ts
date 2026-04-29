@@ -139,10 +139,9 @@ export function swordTrail(root: Container, w: number, h: number): () => void {
           if (poly) {
             trail.poly(poly).fill({ color: trailColor, alpha: 0.65 });
             // Bright core line
-            trail
-              .moveTo(pts[0].x, pts[0].y)
-              .lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y)
-              .stroke({ color: 0xffffff, width: 0.8, alpha: 0.3 });
+            trail.moveTo(pts[0].x, pts[0].y);
+            for (let si = 1; si < pts.length; si++) trail.lineTo(pts[si].x, pts[si].y);
+            trail.stroke({ color: 0xffffff, width: 0.8, alpha: 0.3 });
           }
 
           drawSword(tipX, tipY, baseX, baseY);

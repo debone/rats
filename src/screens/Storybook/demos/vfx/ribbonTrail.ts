@@ -74,11 +74,11 @@ export function ribbonTrail(root: Container, w: number, h: number): () => void {
 
     g.poly(poly).fill({ color, alpha: 0.6 });
 
-    // Bright spine along center
+    // Spine follows the actual curve (not a straight shortcut between endpoints)
     if (pts.length >= 2) {
-      const tail = pts[0];
-      const head = pts[pts.length - 1];
-      g.moveTo(tail.x, tail.y).lineTo(head.x, head.y).stroke({ color: 0xffffff, width: 0.6, alpha: 0.2 });
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      g.stroke({ color: 0xffffff, width: 0.6, alpha: 0.2 });
     }
   };
 

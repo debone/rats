@@ -125,12 +125,11 @@ export function magicTrail(root: Container, w: number, h: number): () => void {
     // Two-layer trail: wide soft glow + narrow bright core
     trailG.poly(poly).fill({ color: 0x6633cc, alpha: 0.45 });
 
-    // Spine
+    // Spine follows the actual curve
     if (points.length >= 2) {
-      trailG
-        .moveTo(points[0].x, points[0].y)
-        .lineTo(points[points.length - 1].x, points[points.length - 1].y)
-        .stroke({ color: 0xccaaff, width: 0.8, alpha: 0.25 });
+      trailG.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) trailG.lineTo(points[i].x, points[i].y);
+      trailG.stroke({ color: 0xccaaff, width: 0.8, alpha: 0.25 });
     }
   };
 
