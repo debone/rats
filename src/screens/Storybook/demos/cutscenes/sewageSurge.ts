@@ -1,7 +1,8 @@
 import { animate } from 'animejs';
-import { Assets, Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { makeBubbleTexture, makeSplatTexture } from '../particleTextures';
 
 export function sewageSurge(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -9,6 +10,10 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
   let bubbleInterval: ReturnType<typeof setInterval> | undefined;
 
   const cx = w / 2;
+
+  // Bake particle textures once — destroyed in cleanup
+  const bubbleTex = makeBubbleTexture();
+  const splatTex = makeSplatTexture();
 
   const bg = new Graphics();
   bg.rect(0, 0, w, h).fill(0x040604);
@@ -39,40 +44,45 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
   walls.alpha = 0;
   root.addChild(walls);
 
-  // Sewage liquid body (filled rect, grows upward)
   const sewage = new Graphics();
   root.addChild(sewage);
 
-  // Foam / surface ripple line on top of sewage
   const surface = new Graphics();
   root.addChild(surface);
 
-  // Bubbles rising through the sewage
+  /**
+   * Bubble rings: the hollow ring outline + highlight means you can see
+   * through them as they rise — the overlapping rings read as real bubbles
+   * rather than opaque dots.
+   */
   const bubbles = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: bubbleTex,
     maxParticles: 40,
     emitting: false,
     lifespan: { min: 600, max: 1400 },
     speed: { min: 10, max: 35 },
     angle: { min: 265, max: 275 },
-    scale: { start: { min: 0.04, max: 0.12 }, end: 0 },
-    tint: { start: 0x3a5a30, end: 0x1a3018 },
-    alpha: { start: 0.6, end: 0 },
+    scale: { start: { min: 0.35, max: 0.8 }, end: 0.1 },
+    tint: { start: 0x4a8a40, end: 0x1a3018 },
+    alpha: { start: 0.7, end: 0 },
   });
   bubbles.x = cx;
   root.addChild(bubbles.container);
 
-  // Surface splatter particles
+  /**
+   * Splat surface breaks: central blob + radial micro-drops fly off the
+   * surface when bubbles pop. Reads as chunky viscous liquid, not water.
+   */
   const splatter = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: splatTex,
     maxParticles: 30,
     emitting: false,
     lifespan: { min: 200, max: 500 },
     speed: { min: 20, max: 60 },
     angle: { min: 200, max: 340 },
-    scale: { start: { min: 0.06, max: 0.14 }, end: 0 },
+    scale: { start: { min: 0.25, max: 0.55 }, end: 0 },
     tint: { start: 0x4a6a38, end: 0x2a3820 },
-    alpha: { start: 0.8, end: 0 },
+    alpha: { start: 0.9, end: 0 },
     gravityY: 80,
   });
   splatter.x = cx;
@@ -106,12 +116,10 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
       .rect(14, liquidY, w - 28, liquidH)
       .fill({ color: 0x1a3818, alpha: 0.9 });
 
-    // Lighter sheen at the very top
     sewage
       .rect(14, liquidY, w - 28, 3)
       .fill({ color: 0x3a6830, alpha: 0.5 });
 
-    // Surface foam blobs
     surface.clear();
     if (foamAlpha > 0) {
       for (let fx = 20; fx < w - 20; fx += 18) {
@@ -122,6 +130,8 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
     }
   };
 
+  const sp = { liquidY: h, foam: 0 };
+
   const play = async () => {
     if (cancelled) return;
 
@@ -131,6 +141,8 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
     surface.clear();
     warningText.alpha = 0;
     levelText.alpha = 0;
+    sp.liquidY = h;
+    sp.foam = 0;
     clearInterval(bubbleInterval);
 
     await animate(bg, { alpha: 1, duration: 400 });
@@ -145,9 +157,6 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
     await animate(levelText, { alpha: 1, duration: 300 });
     if (cancelled) return;
 
-    // Sewage rises from below — starts at bottom, surges upward
-    const sp = { liquidY: h, foam: 0 };
-
     bubbleInterval = setInterval(() => {
       if (cancelled) {
         clearInterval(bubbleInterval);
@@ -157,7 +166,6 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
       bubbles.y = sp.liquidY + 10 + Math.random() * (h - sp.liquidY - 10);
       bubbles.explode(1);
 
-      // Surface splatter occasionally
       if (Math.random() < 0.25) {
         splatter.x = 14 + Math.random() * (w - 28);
         splatter.y = sp.liquidY;
@@ -176,7 +184,6 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
     });
     if (cancelled) return;
 
-    // Surge holds at peak
     await new Promise<void>((res) => {
       timer = setTimeout(res, 800);
     });
@@ -184,7 +191,6 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
 
     clearInterval(bubbleInterval);
 
-    // Drain back down
     await animate(sp, {
       liquidY: h,
       foam: 0,
@@ -221,6 +227,8 @@ export function sewageSurge(root: Container, w: number, h: number): () => void {
     clearInterval(bubbleInterval);
     bubbles.destroy();
     splatter.destroy();
+    bubbleTex.destroy(true);
+    splatTex.destroy(true);
     [bg, walls, sewage, surface, warningText, levelText].forEach((e) => e.destroy());
   };
 }

@@ -1,9 +1,10 @@
 import { animate } from 'animejs';
-import { Assets, Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
+import { makeDropletTexture, makeShardTexture, makeSoftPuffTexture, makeSparkTexture } from '../particleTextures';
 
 export function pipeRupture(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -12,6 +13,12 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
 
   const cx = w / 2;
   const cy = h / 2 - 6;
+
+  // Bake particle textures once — destroyed in cleanup
+  const puffTex = makeSoftPuffTexture();
+  const sparkTex = makeSparkTexture();
+  const dropletTex = makeDropletTexture();
+  const shardTex = makeShardTexture();
 
   const bg = new Graphics();
   bg.rect(0, 0, w, h).fill(0x060808);
@@ -45,31 +52,58 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
   const rustStain = new Graphics();
   root.addChild(rustStain);
 
-  // Steam / high-pressure spray
+  /**
+   * Steam puff layer: soft-gradient circles billow upward.
+   * Feathered edges blend together into a convincing pressure cloud.
+   */
   const steam = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: puffTex,
     maxParticles: 80,
     emitting: false,
     lifespan: { min: 200, max: 500 },
     speed: { min: 40, max: 140 },
     angle: { min: 240, max: 300 },
-    scale: { start: { min: 0.2, max: 0.7 }, end: 1.4 },
+    scale: { start: { min: 0.2, max: 0.6 }, end: 1.2 },
     tint: { start: 0xaabbaa, end: 0x606860 },
-    alpha: { start: 0.7, end: 0 },
+    alpha: { start: 0.55, end: 0 },
   });
   steam.x = cx;
   steam.y = cy - 8;
   root.addChild(steam.container);
 
-  // Water spray sideways
+  /**
+   * Spark jets layered on top of steam: thin elongated lines shoot outward.
+   * Two emitters (puff + spark) stacked = soft cloud base with hard-edge jets.
+   * This "soft base + hard detail" pairing is standard VFX composition.
+   */
+  const steamJets = new ParticleEmitter({
+    texture: sparkTex,
+    maxParticles: 50,
+    emitting: false,
+    lifespan: { min: 100, max: 300 },
+    speed: { min: 60, max: 200 },
+    angle: { min: 245, max: 295 },
+    scale: { start: { min: 0.1, max: 0.35 }, end: 0 },
+    tint: { start: 0xddeedd, end: 0x8aaa8a },
+    alpha: { start: 0.7, end: 0 },
+    rotate: { min: -20, max: 20 },
+  });
+  steamJets.x = cx;
+  steamJets.y = cy - 8;
+  root.addChild(steamJets.container);
+
+  /**
+   * Droplet water spray: teardrop shapes fly sideways under gravity.
+   * Each droplet elongates naturally as it decelerates — more physical than circles.
+   */
   const waterSpray = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: dropletTex,
     maxParticles: 60,
     emitting: false,
     lifespan: { min: 300, max: 700 },
     speed: { min: 60, max: 180 },
     angle: { min: 150, max: 210 },
-    scale: { start: { min: 0.04, max: 0.12 }, end: 0 },
+    scale: { start: { min: 0.08, max: 0.2 }, end: 0 },
     tint: { start: 0x304848, end: 0x102828 },
     alpha: { start: 0.9, end: 0 },
     gravityY: 120,
@@ -78,15 +112,18 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
   waterSpray.y = cy;
   root.addChild(waterSpray.container);
 
-  // Debris chips
+  /**
+   * Shard debris: jagged polygon chips tumble outward under gravity.
+   * Irregular silhouette reads as concrete/pipe fragments rather than pebbles.
+   */
   const debris = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: shardTex,
     maxParticles: 40,
     emitting: false,
     lifespan: { min: 400, max: 900 },
     speed: { min: 30, max: 120 },
     angle: { min: 220, max: 320 },
-    scale: { start: { min: 0.08, max: 0.2 }, end: 0 },
+    scale: { start: { min: 0.12, max: 0.3 }, end: 0 },
     tint: { start: 0x6a5a40, end: 0x2a1a08 },
     alpha: { start: 1, end: 0 },
     rotate: { min: -300, max: 300 },
@@ -134,7 +171,6 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
   };
 
   let steamInterval: ReturnType<typeof setInterval> | undefined;
-  let waterInterval: ReturnType<typeof setInterval> | undefined;
   let warningPulse: ReturnType<typeof animate> | null = null;
 
   const play = async () => {
@@ -147,7 +183,6 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
     rustStain.clear();
     warningText.alpha = 0;
     clearInterval(steamInterval);
-    clearInterval(waterInterval);
     warningPulse?.cancel();
 
     await animate(bg, { alpha: 1, duration: 400 });
@@ -186,8 +221,9 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
     });
     if (cancelled) return;
 
-    // Burst
+    // Burst — all four emitters fire simultaneously
     steam.explode(50);
+    steamJets.explode(30);
     waterSpray.explode(40);
     debris.explode(30);
 
@@ -212,6 +248,7 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
         return;
       }
       steam.explode(3);
+      steamJets.explode(2);
       waterSpray.explode(2);
     }, 80);
 
@@ -226,7 +263,6 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
     if (cancelled) return;
 
     clearInterval(steamInterval);
-    clearInterval(waterInterval);
     warningPulse.cancel();
 
     await Promise.all([
@@ -252,11 +288,15 @@ export function pipeRupture(root: Container, w: number, h: number): () => void {
     cancelled = true;
     if (timer) clearTimeout(timer);
     clearInterval(steamInterval);
-    clearInterval(waterInterval);
     warningPulse?.cancel();
     steam.destroy();
+    steamJets.destroy();
     waterSpray.destroy();
     debris.destroy();
+    puffTex.destroy(true);
+    sparkTex.destroy(true);
+    dropletTex.destroy(true);
+    shardTex.destroy(true);
     [bg, pipe, pipeSeams, cracks, rustStain, warningText].forEach((e) => e.destroy());
   };
 }

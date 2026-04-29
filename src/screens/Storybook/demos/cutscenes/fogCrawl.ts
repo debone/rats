@@ -1,7 +1,8 @@
 import { animate } from 'animejs';
-import { Assets, Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { makeDropletTexture, makeSoftPuffTexture } from '../particleTextures';
 import { app } from '@/main';
 
 const NUM_FOG_LAYERS = 4;
@@ -14,6 +15,10 @@ export function fogCrawl(root: Container, w: number, h: number): () => void {
 
   const cx = w / 2;
   const cy = h / 2;
+
+  // Bake particle textures once — destroyed in cleanup
+  const dropletTex = makeDropletTexture();
+  // Fog layers use Graphics (not particles) so they scroll independently via ticker
 
   const bg = new Graphics();
   bg.rect(0, 0, w, h).fill(0x030406);
@@ -29,11 +34,12 @@ export function fogCrawl(root: Container, w: number, h: number): () => void {
   floor.alpha = 0;
   root.addChild(floor);
 
-  // Fog layers — each is a set of large soft circles scrolling at different speeds
+  // Fog layers — each is a set of large soft ellipses scrolling at different speeds.
+  // Using Graphics here (not particles) so each layer can be independently positioned
+  // via Container.x in the ticker — this is the "parallax fog" technique.
   interface FogLayer {
     container: Container;
     speed: number;
-    blobs: Graphics[];
     offsetX: number;
   }
   const fogLayers: FogLayer[] = [];
@@ -43,42 +49,43 @@ export function fogCrawl(root: Container, w: number, h: number): () => void {
     fogContainer.alpha = 0;
     root.addChild(fogContainer);
 
-    const blobs: Graphics[] = [];
     const NUM_BLOBS = 5;
-    const baseAlpha = 0.06 + l * 0.04;
+    const baseAlpha = 0.07 + l * 0.04;
 
     for (let b = 0; b < NUM_BLOBS; b++) {
       const blob = new Graphics();
       const bx = (b / NUM_BLOBS) * w * 1.4 - w * 0.2;
       const by = cy + 5 + (l - 1) * 6 + (b % 2) * 4;
       const rx = 30 + Math.random() * 20;
-      const ry = 10 + Math.random() * 8;
+      const ry = 11 + Math.random() * 8;
       blob
         .ellipse(bx, by, rx, ry)
         .fill({ color: 0x1a2a1a, alpha: baseAlpha });
       fogContainer.addChild(blob);
-      blobs.push(blob);
     }
 
     fogLayers.push({
       container: fogContainer,
       speed: 8 + l * 5,
-      blobs,
       offsetX: 0,
     });
   }
 
-  // Drip particles from ceiling
+  /**
+   * Ceiling drips: soft-puff in sewerDescent handled rising fog.
+   * Here we use the teardrop texture for falling drops — same emitter config,
+   * different texture = completely different read.
+   */
   const drips = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: dropletTex,
     maxParticles: 20,
     emitting: false,
     lifespan: { min: 600, max: 1200 },
     speed: { min: 30, max: 60 },
     angle: { min: 88, max: 92 },
-    scale: { start: { min: 0.02, max: 0.06 }, end: 0 },
+    scale: { start: { min: 0.18, max: 0.38 }, end: 0.04 },
     tint: { start: 0x304040, end: 0x101818 },
-    alpha: { start: 0.6, end: 0 },
+    alpha: { start: 0.7, end: 0 },
   });
   drips.y = 0;
   root.addChild(drips.container);
@@ -218,6 +225,7 @@ export function fogCrawl(root: Container, w: number, h: number): () => void {
     eyePulse?.cancel();
     app.ticker.remove(tick);
     drips.destroy();
+    dropletTex.destroy(true);
     [bg, floor, eyesContainer, warningText, ...fogLayers.map((l) => l.container)].forEach((e) => e.destroy());
   };
 }

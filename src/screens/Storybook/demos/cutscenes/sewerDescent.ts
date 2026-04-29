@@ -1,7 +1,8 @@
 import { animate } from 'animejs';
-import { Assets, Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { makeDropletTexture, makeSoftPuffTexture } from '../particleTextures';
 
 export function sewerDescent(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -11,6 +12,10 @@ export function sewerDescent(root: Container, w: number, h: number): () => void 
 
   const cx = w / 2;
   const cy = h / 2;
+
+  // Bake particle textures once — destroyed in cleanup
+  const puffTex = makeSoftPuffTexture();
+  const dropletTex = makeDropletTexture();
 
   const bg = new Graphics();
   bg.rect(0, 0, w, h).fill(0x040806);
@@ -44,33 +49,39 @@ export function sewerDescent(root: Container, w: number, h: number): () => void 
   const glow = new Graphics();
   root.addChild(glow);
 
-  // Rising fog
+  /**
+   * Soft-puff fog: feathered circles drift upward — looks like actual billowing gas
+   * rather than solid balls. The concentric alpha rings create the diffuse edge.
+   */
   const fog = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: puffTex,
     maxParticles: 50,
     emitting: false,
     lifespan: { min: 1400, max: 2800 },
     speed: { min: 4, max: 18 },
     angle: { min: 258, max: 282 },
-    scale: { start: { min: 0.6, max: 1.8 }, end: 2.4 },
+    scale: { start: { min: 0.5, max: 1.4 }, end: 1.9 },
     tint: { start: 0x1a3a20, end: 0x040806 },
-    alpha: { start: 0.35, end: 0 },
+    alpha: { start: 0.45, end: 0 },
   });
   fog.x = cx;
   fog.y = cy + 30;
   root.addChild(fog.container);
 
-  // Water drips from top
+  /**
+   * Droplet drips: teardrop shape (round head, tapered tip) falling vertically.
+   * Looks far more convincing as water than the ball sprite.
+   */
   const drips = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: dropletTex,
     maxParticles: 30,
     emitting: false,
     lifespan: { min: 500, max: 1100 },
     speed: { min: 50, max: 90 },
     angle: { min: 86, max: 94 },
-    scale: { start: { min: 0.03, max: 0.08 }, end: 0 },
+    scale: { start: { min: 0.2, max: 0.45 }, end: 0.05 },
     tint: { start: 0x304848, end: 0x102020 },
-    alpha: { start: 0.7, end: 0 },
+    alpha: { start: 0.85, end: 0 },
   });
   drips.y = 0;
   root.addChild(drips.container);
@@ -200,6 +211,8 @@ export function sewerDescent(root: Container, w: number, h: number): () => void 
     clearInterval(dripInterval);
     fog.destroy();
     drips.destroy();
+    puffTex.destroy(true);
+    dropletTex.destroy(true);
     [bg, grateGroup, glow, titleText, subText].forEach((e) => e.destroy());
   };
 }

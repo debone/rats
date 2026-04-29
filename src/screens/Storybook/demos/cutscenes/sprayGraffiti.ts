@@ -1,7 +1,8 @@
 import { animate } from 'animejs';
-import { Assets, Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { makeSplatTexture, makeSoftPuffTexture } from '../particleTextures';
 
 export function sprayGraffiti(root: Container, w: number, h: number): () => void {
   let cancelled = false;
@@ -9,6 +10,10 @@ export function sprayGraffiti(root: Container, w: number, h: number): () => void
 
   const cx = w / 2;
   const cy = h / 2;
+
+  // Bake particle textures once — destroyed in cleanup
+  const splatTex = makeSplatTexture();
+  const puffTex = makeSoftPuffTexture();
 
   const bg = new Graphics();
   bg.rect(0, 0, w, h).fill(0x080808);
@@ -31,7 +36,6 @@ export function sprayGraffiti(root: Container, w: number, h: number): () => void
   wall.alpha = 0;
   root.addChild(wall);
 
-  // Stencil text — the graffiti tag revealed under the spray
   const tagText = new Text({
     text: 'RATS RUN THIS',
     style: { ...TEXT_STYLE_DEFAULT, fontSize: 14, letterSpacing: 2, fill: 0xcc4422, fontWeight: 'bold' },
@@ -42,41 +46,47 @@ export function sprayGraffiti(root: Container, w: number, h: number): () => void
   tagText.alpha = 0;
   root.addChild(tagText);
 
-  // Drips below the text (reveals as text appears)
   const drips = new Graphics();
   root.addChild(drips);
 
-  // Spray particles that fly off the can
+  /**
+   * Splat spray: each particle is a central blob with radial micro-drops,
+   * so individual particles read as paint impacts on the wall rather than
+   * round blobs of color.
+   */
   const spray = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: splatTex,
     maxParticles: 120,
     emitting: false,
     lifespan: { min: 80, max: 250 },
     speed: { min: 10, max: 50 },
     angle: { min: 200, max: 340 },
-    scale: { start: { min: 0.04, max: 0.16 }, end: 0 },
+    scale: { start: { min: 0.25, max: 0.6 }, end: 0 },
     tint: { start: 0xdd4422, end: 0x881100 },
     alpha: { start: 0.9, end: 0 },
   });
   spray.y = cy;
   root.addChild(spray.container);
 
-  // Overspray mist
+  /**
+   * Soft-puff mist: the feathered gradient circles blend together into a
+   * real aerosol cloud around the spray zone. Stack this behind splats for
+   * the two-layer VFX composition effect.
+   */
   const mist = new ParticleEmitter({
-    texture: Assets.get('tiles').textures.ball,
+    texture: puffTex,
     maxParticles: 60,
     emitting: false,
     lifespan: { min: 300, max: 700 },
     speed: { min: 5, max: 22 },
     angle: { min: 180, max: 360 },
-    scale: { start: { min: 0.2, max: 0.6 }, end: 1.2 },
+    scale: { start: { min: 0.15, max: 0.5 }, end: 1.0 },
     tint: { start: 0xcc3318, end: 0x440800 },
-    alpha: { start: 0.18, end: 0 },
+    alpha: { start: 0.22, end: 0 },
   });
   mist.y = cy;
   root.addChild(mist.container);
 
-  // Sub-label
   const subText = new Text({
     text: 'sewer art  ·  block 7',
     style: { ...TEXT_STYLE_DEFAULT, fontSize: 7, fill: 0x6a3a2a, letterSpacing: 2 },
@@ -123,7 +133,6 @@ export function sprayGraffiti(root: Container, w: number, h: number): () => void
     });
     if (cancelled) return;
 
-    // Spray can sweeps left → right, particles fly, text reveals underneath
     const sp = { x: cx - 68, tagAlpha: 0 };
     spray.x = sp.x;
     mist.x = sp.x;
@@ -174,6 +183,8 @@ export function sprayGraffiti(root: Container, w: number, h: number): () => void
     if (timer) clearTimeout(timer);
     spray.destroy();
     mist.destroy();
+    splatTex.destroy(true);
+    puffTex.destroy(true);
     [bg, wall, tagText, subText, drips].forEach((e) => e.destroy());
   };
 }
