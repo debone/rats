@@ -83,6 +83,28 @@ export function makeSparkTexture(): RenderTexture {
   return tex;
 }
 
+/**
+ * 5-pointed star. Use for rewards, collectibles, magic effects, celebration.
+ * Shape immediately reads as "positive outcome" / "special item" to the player.
+ */
+export function makeStarTexture(): RenderTexture {
+  const g = new Graphics();
+  const R = 7, r = 3;
+  const pts: number[] = [];
+  for (let i = 0; i < 5; i++) {
+    const outerA = (i * 72 - 90) * Math.PI / 180;
+    const innerA = outerA + 36 * Math.PI / 180;
+    pts.push(Math.cos(outerA) * R, Math.sin(outerA) * R);
+    pts.push(Math.cos(innerA) * r, Math.sin(innerA) * r);
+  }
+  g.poly(pts).fill(0xffffff);
+  // Bright centre dot for readability at small scale
+  g.circle(0, 0, 1.5).fill({ color: 0xffffff, alpha: 0.7 });
+  const tex = app.renderer.generateTexture(g);
+  g.destroy();
+  return tex;
+}
+
 /** Four toe-pads + palm pad cluster. Use for rat trails and paw-print particles. */
 export function makePawPrintTexture(): RenderTexture {
   const g = new Graphics();

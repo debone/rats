@@ -55,6 +55,17 @@ import { sprayGraffiti } from './demos/cutscenes/sprayGraffiti';
 import { fogCrawl } from './demos/cutscenes/fogCrawl';
 import { heistPlanning } from './demos/cutscenes/heistPlanning';
 
+import { flipbookExplosion } from './demos/vfx/flipbookExplosion';
+import { flipbookRipple } from './demos/vfx/flipbookRipple';
+import { swordTrail } from './demos/vfx/swordTrail';
+import { ribbonTrail } from './demos/vfx/ribbonTrail';
+import { bulletStretch } from './demos/vfx/bulletStretch';
+import { arrowFlight } from './demos/vfx/arrowFlight';
+import { impactFlash } from './demos/vfx/impactFlash';
+import { lightningBolt } from './demos/vfx/lightningBolt';
+import { starParticles } from './demos/vfx/starParticles';
+import { magicTrail } from './demos/vfx/magicTrail';
+
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
 
@@ -126,6 +137,18 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'cut-spray-graffiti',  category: 'cutscenes',   name: 'Spray Graffiti',   setup: sprayGraffiti },
   { id: 'cut-fog-crawl',       category: 'cutscenes',   name: 'Fog Crawl',        setup: fogCrawl },
   { id: 'cut-heist-planning',  category: 'cutscenes',   name: 'Heist Planning',   setup: heistPlanning },
+
+  // VFX Techniques
+  { id: 'vfx-flipbook-explosion', category: 'vfx', name: 'Flipbook: Explosion',  setup: flipbookExplosion },
+  { id: 'vfx-flipbook-ripple',    category: 'vfx', name: 'Flipbook: Ripple',     setup: flipbookRipple },
+  { id: 'vfx-sword-trail',        category: 'vfx', name: 'Trail: Sword Swing',   setup: swordTrail },
+  { id: 'vfx-ribbon-trail',       category: 'vfx', name: 'Trail: Ribbon Orb',    setup: ribbonTrail },
+  { id: 'vfx-bullet-stretch',     category: 'vfx', name: 'Orient: Bullet Stretch', setup: bulletStretch },
+  { id: 'vfx-arrow-flight',       category: 'vfx', name: 'Orient: Arrow Flight', setup: arrowFlight },
+  { id: 'vfx-impact-flash',       category: 'vfx', name: 'Flash: Impact Hit',    setup: impactFlash },
+  { id: 'vfx-lightning',          category: 'vfx', name: 'Flash: Lightning Bolt', setup: lightningBolt },
+  { id: 'vfx-star-particles',     category: 'vfx', name: 'Sprite: Star Particles', setup: starParticles },
+  { id: 'vfx-magic-trail',        category: 'vfx', name: 'Sprite: Magic Trail',  setup: magicTrail },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
