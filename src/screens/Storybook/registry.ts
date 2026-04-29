@@ -44,6 +44,16 @@ import { itemPickup } from './demos/cutscenes/itemPickup';
 import { powerUpActivate } from './demos/cutscenes/powerUpActivate';
 import { ratSelect } from './demos/cutscenes/ratSelect';
 import { transmissionReceived } from './demos/cutscenes/transmissionReceived';
+import { sewerDescent } from './demos/cutscenes/sewerDescent';
+import { guardSpotlight } from './demos/cutscenes/guardSpotlight';
+import { tunnelMap } from './demos/cutscenes/tunnelMap';
+import { pipeRupture } from './demos/cutscenes/pipeRupture';
+import { sewageSurge } from './demos/cutscenes/sewageSurge';
+import { safecrack } from './demos/cutscenes/safecrack';
+import { ratHorde } from './demos/cutscenes/ratHorde';
+import { sprayGraffiti } from './demos/cutscenes/sprayGraffiti';
+import { fogCrawl } from './demos/cutscenes/fogCrawl';
+import { heistPlanning } from './demos/cutscenes/heistPlanning';
 
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
@@ -106,6 +116,16 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'cut-powerup',         category: 'cutscenes',   name: 'Power-Up Activate', setup: powerUpActivate },
   { id: 'cut-ratselect',       category: 'cutscenes',   name: 'Rat Select',       setup: ratSelect },
   { id: 'cut-transmission',    category: 'cutscenes',   name: 'Transmission',     setup: transmissionReceived },
+  { id: 'cut-sewer-descent',   category: 'cutscenes',   name: 'Sewer Descent',    setup: sewerDescent },
+  { id: 'cut-guard-spot',      category: 'cutscenes',   name: 'Guard Spotlight',  setup: guardSpotlight },
+  { id: 'cut-tunnel-map',      category: 'cutscenes',   name: 'Tunnel Map',       setup: tunnelMap },
+  { id: 'cut-pipe-rupture',    category: 'cutscenes',   name: 'Pipe Rupture',     setup: pipeRupture },
+  { id: 'cut-sewage-surge',    category: 'cutscenes',   name: 'Sewage Surge',     setup: sewageSurge },
+  { id: 'cut-safecrack',       category: 'cutscenes',   name: 'Safecrack',        setup: safecrack },
+  { id: 'cut-rat-horde',       category: 'cutscenes',   name: 'Rat Horde',        setup: ratHorde },
+  { id: 'cut-spray-graffiti',  category: 'cutscenes',   name: 'Spray Graffiti',   setup: sprayGraffiti },
+  { id: 'cut-fog-crawl',       category: 'cutscenes',   name: 'Fog Crawl',        setup: fogCrawl },
+  { id: 'cut-heist-planning',  category: 'cutscenes',   name: 'Heist Planning',   setup: heistPlanning },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
