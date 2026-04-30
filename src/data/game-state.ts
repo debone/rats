@@ -61,6 +61,8 @@ export interface RunState {
     nuggets_nextAbilityFree: Signal<boolean>;
     aura_cheeseBreaksBricks: Signal<boolean>;
     flub_ballsAttractedToBoat: Signal<boolean>;
+    lacfree_nextBricksHaveCheese: Signal<number>;
+    lacfree_abilitiesConsumeRubbles: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -145,6 +147,8 @@ export function createGameState(): GameState {
         nuggets_nextAbilityFree: signal(false),
         aura_cheeseBreaksBricks: signal(false),
         flub_ballsAttractedToBoat: signal(false),
+        lacfree_nextBricksHaveCheese: signal(0),
+        lacfree_abilitiesConsumeRubbles: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
@@ -249,20 +253,26 @@ export function offboardCrewMember(crewMember: CrewMemberDefKey): void {
 export function activateCrewAbility(index: number): void {
   const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
 
+  const runState = getRunState();
+  const amount = runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()
+    ? runState.scrapsCounter.get()
+    : runState.cheeseCounter.get();
+  const consume = runState.crewBoons.lacfree_abilitiesConsumeRubbles.get() ? changeScraps : changeCheese;
+
   if (!crewMember) {
     return;
   }
 
   const def = CREW_DEFS[crewMember.defKey];
 
-  if (getRunState().crewBoons.nuggets_nextAbilityFree.get()) {
-    getRunState().crewBoons.nuggets_nextAbilityFree.set(false);
+  if (runState.crewBoons.nuggets_nextAbilityFree.get()) {
+    runState.crewBoons.nuggets_nextAbilityFree.set(false);
   } else {
-    if (def.activeAbility.cost > getRunState().cheeseCounter.get()) {
+    if (def.activeAbility.cost > amount) {
       return;
     }
 
-    changeCheese(-def.activeAbility.cost);
+    consume(-def.activeAbility.cost);
   }
 
   def.activeAbility.effect(getRunState(), getGameContext());

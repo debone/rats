@@ -84,9 +84,19 @@ class BadgeButton extends Button {
 
     cheeseSprite.layout = {
       objectFit: 'none',
-      width: 16,
-      height: 16,
+      width: 32,
+      height: 32,
     };
+
+    getRunState().crewBoons.lacfree_abilitiesConsumeRubbles.subscribe((consumeRubbles) => {
+      if (consumeRubbles) {
+        cheeseSprite.texture = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0'];
+        cheeseSprite.layout?.forceUpdate();
+      } else {
+        cheeseSprite.texture = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'];
+        cheeseSprite.layout?.forceUpdate();
+      }
+    });
 
     const costText = new Text({
       text: `${def.activeAbility.cost}`,

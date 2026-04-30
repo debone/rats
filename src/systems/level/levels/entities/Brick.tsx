@@ -110,6 +110,12 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
       const { x, y } = BodyToScreen(this.bodyId);
       debrisEmitter.explode(8, x, y);
 
+      // TODO: improve this once all the levels are the same
+      if (getRunState().crewBoons.lacfree_nextBricksHaveCheese.get() > 0) {
+        getRunState().crewBoons.lacfree_nextBricksHaveCheese.update((v) => v - 1);
+        brick.powerUp = 'yellow';
+      }
+
       onBreak?.(this);
 
       this.destroy();

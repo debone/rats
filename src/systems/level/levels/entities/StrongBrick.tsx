@@ -117,6 +117,13 @@ export const StrongBrick = defineEntity(
         debrisEmitter.explode(12, x, y);
         shake(camera, { intensity: Math.random() * 1.25, duration: 300 });
 
+        // TODO: improve this once all the levels are the same
+        if (getRunState().crewBoons.lacfree_nextBricksHaveCheese.get() > 0) {
+          getRunState().crewBoons.lacfree_nextBricksHaveCheese.update((v) => v - 1);
+          throw new Error('TODO');
+          // strongBrick.powerUp = 'yellow';
+        }
+
         onBreak?.(this);
         this.destroy();
       },
