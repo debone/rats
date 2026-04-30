@@ -15,6 +15,11 @@ import { crtControls } from './demos/shaders/crtControls';
 import { reflectionControls } from './demos/shaders/reflectionControls';
 import { colorMatrix } from './demos/shaders/colorMatrix';
 import { blurPulse } from './demos/shaders/blurPulse';
+import { heatDistort }    from './demos/shaders/heatDistort';
+import { waterCaustics }  from './demos/shaders/waterCaustics';
+import { dissolveEffect } from './demos/shaders/dissolveEffect';
+import { glitchEffect }   from './demos/shaders/glitchEffect';
+import { spotlight }      from './demos/shaders/spotlight';
 
 import { flexPlayground } from './demos/ui/flexPlayground';
 import { buttonStates } from './demos/ui/buttonStates';
@@ -105,6 +110,11 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'shader-reflect',      category: 'shaders',     name: 'Reflection',     setup: reflectionControls },
   { id: 'shader-color',        category: 'shaders',     name: 'Color Matrix',   setup: colorMatrix },
   { id: 'shader-blur',         category: 'shaders',     name: 'Blur Pulse',     setup: blurPulse },
+  { id: 'shader-heat',         category: 'shaders',     name: 'Heat Distortion', setup: heatDistort },
+  { id: 'shader-caustics',     category: 'shaders',     name: 'Water Caustics', setup: waterCaustics },
+  { id: 'shader-dissolve',     category: 'shaders',     name: 'Dissolve Burn',  setup: dissolveEffect },
+  { id: 'shader-glitch',       category: 'shaders',     name: 'Chromatic Glitch', setup: glitchEffect },
+  { id: 'shader-spot',         category: 'shaders',     name: 'Spotlight Mask', setup: spotlight },
 
   // UI
   { id: 'ui-flex',             category: 'ui',          name: 'Flex Playground', setup: flexPlayground },
