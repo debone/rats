@@ -10,6 +10,7 @@ import type { PaddleEntity } from '@/systems/level/levels/entities/Paddle';
 import type { ScrapEntity } from '@/systems/level/levels/entities/Scrap';
 import type { StrongBrickEntity } from '@/systems/level/levels/entities/StrongBrick';
 import type { WallEntity } from '@/systems/level/levels/entities/Wall';
+import type { BreakoutLevelEntity } from '@/systems/level/levels/BreakoutLevel';
 
 /**
  * Central registry of entity discriminator strings. Use these constants (not raw
@@ -32,6 +33,8 @@ export const ENTITY_KINDS = {
 
   particleEmitter: 'entity:particle-emitter',
   keyListener: 'entity:key-listener',
+
+  breakoutLevel: 'level:breakout',
 } as const;
 
 export type EntityKind = (typeof ENTITY_KINDS)[keyof typeof ENTITY_KINDS];
@@ -55,6 +58,7 @@ export interface EntityByKind {
   [ENTITY_KINDS.particleEmitter]: ParticleEmitterEntity;
   [ENTITY_KINDS.catPiece]: CatPieceEntity;
   [ENTITY_KINDS.catTail]: CatTailEntity;
+  [ENTITY_KINDS.breakoutLevel]: BreakoutLevelEntity;
 }
 
 export type KnownEntity = EntityByKind[EntityKind];

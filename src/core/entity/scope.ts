@@ -14,6 +14,21 @@ const entities = new Set<EntityBase>();
 
 let activeScope: Scope | null = null;
 
+/** When set, every entity created by defineEntity is added to this set and removes itself on destroy. */
+let activeChildren: Set<EntityBase> | null = null;
+
+export function setActiveChildren(set: Set<EntityBase> | null): void {
+  activeChildren = set;
+}
+
+export function withActiveChildren<T>(set: Set<EntityBase> | null, fn: () => T): T {
+  const prev = activeChildren;
+  activeChildren = set;
+  const result = fn();
+  activeChildren = prev;
+  return result;
+}
+
 /** All live entities from `defineEntity` factories (discriminated by `kind`). */
 export function getEntities(): readonly EntityBase[] {
   return Array.from(entities);
@@ -67,6 +82,12 @@ export function defineEntity<Props, Entity extends EntityBase>(
     onCleanup(() => {
       entities.delete(entity);
     });
+
+    if (activeChildren !== null) {
+      const parentSet = activeChildren;
+      parentSet.add(entity);
+      onCleanup(() => parentSet.delete(entity));
+    }
 
     activeScope = prev;
     applyEffects(scope);
