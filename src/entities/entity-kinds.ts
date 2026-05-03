@@ -11,6 +11,9 @@ import type { ScrapEntity } from '@/systems/level/levels/entities/Scrap';
 import type { StrongBrickEntity } from '@/systems/level/levels/entities/StrongBrick';
 import type { WallEntity } from '@/systems/level/levels/entities/Wall';
 import type { BreakoutLevelEntity } from '@/systems/level/levels/BreakoutLevel';
+import type { InfiniteBallRulesEntity } from '@/systems/level/levels/entities/InfiniteBallRules';
+import type { LivesBallRulesEntity } from '@/systems/level/levels/entities/LivesBallRules';
+import type { ExitWinEntity } from '@/systems/level/levels/entities/ExitWin';
 
 /**
  * Central registry of entity discriminator strings. Use these constants (not raw
@@ -35,6 +38,10 @@ export const ENTITY_KINDS = {
   keyListener: 'entity:key-listener',
 
   breakoutLevel: 'level:breakout',
+
+  infiniteBallRules: 'entity:infinite-ball-rules',
+  livesBallRules: 'entity:lives-ball-rules',
+  exitWin: 'entity:exit-win',
 } as const;
 
 export type EntityKind = (typeof ENTITY_KINDS)[keyof typeof ENTITY_KINDS];
@@ -59,6 +66,9 @@ export interface EntityByKind {
   [ENTITY_KINDS.catPiece]: CatPieceEntity;
   [ENTITY_KINDS.catTail]: CatTailEntity;
   [ENTITY_KINDS.breakoutLevel]: BreakoutLevelEntity;
+  [ENTITY_KINDS.infiniteBallRules]: InfiniteBallRulesEntity;
+  [ENTITY_KINDS.livesBallRules]: LivesBallRulesEntity;
+  [ENTITY_KINDS.exitWin]: ExitWinEntity;
 }
 
 export type KnownEntity = EntityByKind[EntityKind];

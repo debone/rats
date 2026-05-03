@@ -51,6 +51,8 @@ export const GameEvent = {
 
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
+  BALL_LOST: 'ball:lost',
+  BALL_EXITED: 'ball:exited',
 
   // System events
   SAVE_COMPLETED: 'save:completed',
@@ -111,6 +113,8 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.POWERUP_FASTER]: void;
   [GameEvent.POWERUP_DOUBLER]: void;
   [GameEvent.POWERUP_CAPTAIN]: void;
+  [GameEvent.BALL_LOST]: void;
+  [GameEvent.BALL_EXITED]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;

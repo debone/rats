@@ -7,18 +7,23 @@ import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition } from 'phaser-box2d';
 import { state } from '@/core/state/state';
 
+import { useLevelOutcome } from '../Level';
 import type { BreakoutLevelProps } from './BreakoutLevel';
 import { Brick, type BrickEntity } from './entities/Brick';
 import { CatPiece } from './entities/CatBody';
 import { CatTail } from './entities/CatTail';
 import { BlueCheese, GreenCheese, YellowCheese } from './entities/Cheese';
 import { Door, type DoorEntity } from './entities/Door';
+import { ExitWin } from './entities/ExitWin';
+import { InfiniteBallRules } from './entities/InfiniteBallRules';
+import { LivesBallRules } from './entities/LivesBallRules';
 import { Scrap } from './entities/Scrap';
 import { StrongBrick, type StrongBrickEntity } from './entities/StrongBrick';
 
 /** Each value is a factory so every level load starts with fresh closure state. */
 export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
   'level-0': () => {
+    const { onWin } = useLevelOutcome('level-0');
     let doorA: DoorEntity | undefined;
     let doorB: DoorEntity | undefined;
     let doorC: DoorEntity | undefined;
@@ -29,12 +34,13 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
       name: t.dict['level-0.name'],
       rubeAsset: ASSETS.levels_level_0_rube,
       background: { tiledMap: TILED_MAPS.backgrounds_level_0 },
-      winBrickCount: 5,
-      infiniteBalls: true,
-      onBodyLoad({ bodyId, tag, userData, particles, addBrick, removeBrick }) {
+      onLoad() {
+        InfiniteBallRules({});
+        ExitWin({ onWin });
+      },
+      onBodyLoad({ bodyId, tag, userData, particles }) {
         if (tag === 'brick') {
           const powerUp = userData?.powerup as BrickPowerUps | undefined;
-          addBrick();
 
           if (powerUp) {
             let brickBodyId: typeof bodyId | undefined = bodyId;
@@ -55,13 +61,12 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
             state(
               {
                 brick: (transition) => {
-                  addBrick();
                   Brick({
                     bodyId: brickBodyId,
                     spawnPos: { x: brickSpawnX, y: brickSpawnY },
                     debrisEmitter: particles.brickDebris,
                     powerUp,
-                    onBreak: () => { removeBrick(); transition('cheese'); },
+                    onBreak: () => { transition('cheese'); },
                   });
                 },
                 cheese: (transition) => {
@@ -83,7 +88,6 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
               onBreak: (brick: BrickEntity) => {
                 Scrap({ pos: { x: brick.spawnPos.x - 0.25, y: brick.spawnPos.y } });
                 Scrap({ pos: { x: brick.spawnPos.x + 0.25, y: brick.spawnPos.y } });
-                removeBrick();
               },
             });
           }
@@ -110,22 +114,25 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
   },
 
   'level-1': () => {
+    const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-1');
     let door: DoorEntity | undefined;
+    let bricks = 0;
 
     return {
       levelId: 'level-1',
       name: t.dict['level-1.name'],
       rubeAsset: ASSETS.level_1_rube,
       background: { tiledMap: TILED_MAPS.backgrounds_level_1 },
-      winBrickCount: 5,
-      onBodyLoad({ bodyId, tag, userData, particles, addBrick, removeBrick }) {
+      onLoad() {
+        LivesBallRules({ onLose, checkLoseCondition });
+        ExitWin({ onWin });
+      },
+      onBodyLoad({ bodyId, tag, particles }) {
         if (tag === 'brick') {
-          const powerUp = userData?.powerup as BrickPowerUps | undefined;
-          addBrick();
+          bricks++;
           Brick({
             bodyId,
             debrisEmitter: particles.brickDebris,
-            powerUp,
             onBreak: (brick: BrickEntity) => {
               const { x, y } = brick.spawnPos;
               if (brick.powerUp) {
@@ -139,7 +146,8 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
                 else if (r < 0.5) { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
                 else Scrap({ pos: { x, y } });
               }
-              if (removeBrick()) door?.open();
+              bricks--;
+              if (bricks <= 5) door?.open();
             },
           });
           return true;
@@ -161,124 +169,135 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
     };
   },
 
-  'level-2': () => ({
-    levelId: 'level-2',
-    name: t.dict['level-2.name'],
-    rubeAsset: ASSETS.levels_level_2_split_rube,
-    background: { tiledMap: TILED_MAPS.backgrounds_level_2_split, includeBroadBg: true },
-    winBrickCount: 5,
-    onBodyLoad({ bodyId, tag, particles, addBrick, removeBrick }) {
-      const ctx = getGameContext();
+  'level-2': () => {
+    const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-2');
 
-      if (tag === 'brick') {
-        addBrick();
-        Brick({
-          bodyId,
-          debrisEmitter: particles.brickDebris,
-          onBreak: (brick: BrickEntity) => {
-            const { x, y } = brick.spawnPos;
-            ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
-            const r = Math.random();
-            if (r < 0.35) YellowCheese({ pos: { x, y } });
-            else if (r < 0.7) { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
-            else Scrap({ pos: { x, y } });
-            removeBrick();
-          },
-        });
-        return true;
-      }
+    return {
+      levelId: 'level-2',
+      name: t.dict['level-2.name'],
+      rubeAsset: ASSETS.levels_level_2_split_rube,
+      background: { tiledMap: TILED_MAPS.backgrounds_level_2_split, includeBroadBg: true },
+      onLoad() {
+        LivesBallRules({ onLose, checkLoseCondition });
+        ExitWin({ onWin });
+      },
+      onBodyLoad({ bodyId, tag, particles }) {
+        const ctx = getGameContext();
 
-      if (tag === 'strong-brick') {
-        addBrick();
-        StrongBrick({
-          bodyId,
-          debrisEmitter: particles.brickDebris,
-          initialLife: 2,
-          onBreak: (brick: StrongBrickEntity) => {
-            const { x, y } = brick.spawnPos;
-            ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
-            if (Math.random() < 0.55) YellowCheese({ pos: { x, y } });
-            else { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
-            removeBrick();
-          },
-        });
-        return true;
-      }
+        if (tag === 'brick') {
+          Brick({
+            bodyId,
+            debrisEmitter: particles.brickDebris,
+            onBreak: (brick: BrickEntity) => {
+              const { x, y } = brick.spawnPos;
+              ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
+              const r = Math.random();
+              if (r < 0.35) YellowCheese({ pos: { x, y } });
+              else if (r < 0.7) { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
+              else Scrap({ pos: { x, y } });
+            },
+          });
+          return true;
+        }
 
-      return false;
-    },
-  }),
+        if (tag === 'strong-brick') {
+          StrongBrick({
+            bodyId,
+            debrisEmitter: particles.brickDebris,
+            initialLife: 2,
+            onBreak: (brick: StrongBrickEntity) => {
+              const { x, y } = brick.spawnPos;
+              ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
+              if (Math.random() < 0.55) YellowCheese({ pos: { x, y } });
+              else { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
+            },
+          });
+          return true;
+        }
 
-  'level-3': () => ({
-    levelId: 'level-3',
-    name: t.dict['level-3.name'],
-    rubeAsset: ASSETS.levels_level_3_rube,
-    background: { tiledMap: TILED_MAPS.backgrounds_level_3, includeBroadBg: true },
-    winBrickCount: 5,
-    onBodyLoad({ bodyId, tag, particles, addBrick, removeBrick }) {
-      const ctx = getGameContext();
+        return false;
+      },
+    };
+  },
 
-      if (tag === 'brick') {
-        addBrick();
-        Brick({
-          bodyId,
-          debrisEmitter: particles.brickDebris,
-          onBreak: (brick: BrickEntity) => {
-            const { x, y } = brick.spawnPos;
-            ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
-            const r = Math.random();
-            if (r < 0.3) YellowCheese({ pos: { x, y } });
-            else if (r < 0.5) { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
-            else Scrap({ pos: { x, y } });
-            removeBrick();
-          },
-        });
-        return true;
-      }
+  'level-3': () => {
+    const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-3');
 
-      if (tag === 'strong-brick') {
-        addBrick();
-        StrongBrick({
-          bodyId,
-          debrisEmitter: particles.brickDebris,
-          initialLife: 2,
-          onBreak: (brick: StrongBrickEntity) => {
-            const { x, y } = brick.spawnPos;
-            ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
-            if (Math.random() < 0.55) YellowCheese({ pos: { x, y } });
-            else { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
-            removeBrick();
-          },
-        });
-        return true;
-      }
+    return {
+      levelId: 'level-3',
+      name: t.dict['level-3.name'],
+      rubeAsset: ASSETS.levels_level_3_rube,
+      background: { tiledMap: TILED_MAPS.backgrounds_level_3, includeBroadBg: true },
+      onLoad() {
+        LivesBallRules({ onLose, checkLoseCondition });
+        ExitWin({ onWin });
+      },
+      onBodyLoad({ bodyId, tag, particles }) {
+        const ctx = getGameContext();
 
-      if (tag === 'door') {
-        const pos = b2Body_GetPosition(bodyId);
-        ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
-        Door({ spawnPos: { x: pos.x, y: pos.y }, length: 1 });
-        return true;
-      }
+        if (tag === 'brick') {
+          Brick({
+            bodyId,
+            debrisEmitter: particles.brickDebris,
+            onBreak: (brick: BrickEntity) => {
+              const { x, y } = brick.spawnPos;
+              ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
+              const r = Math.random();
+              if (r < 0.3) YellowCheese({ pos: { x, y } });
+              else if (r < 0.5) { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
+              else Scrap({ pos: { x, y } });
+            },
+          });
+          return true;
+        }
 
-      return false;
-    },
-  }),
+        if (tag === 'strong-brick') {
+          StrongBrick({
+            bodyId,
+            debrisEmitter: particles.brickDebris,
+            initialLife: 2,
+            onBreak: (brick: StrongBrickEntity) => {
+              const { x, y } = brick.spawnPos;
+              ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
+              if (Math.random() < 0.55) YellowCheese({ pos: { x, y } });
+              else { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
+            },
+          });
+          return true;
+        }
+
+        if (tag === 'door') {
+          const pos = b2Body_GetPosition(bodyId);
+          ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
+          Door({ spawnPos: { x: pos.x, y: pos.y }, length: 1 });
+          return true;
+        }
+
+        return false;
+      },
+    };
+  },
 
   'level-4': () => {
+    const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-4');
     let door: DoorEntity | undefined;
+    let bricks = 0;
 
     return {
       levelId: 'level-4',
       name: t.dict['level-4.name'],
       rubeAsset: ASSETS.levels_level_4_rube,
       background: { tiledMap: TILED_MAPS.backgrounds_level_4 },
-      winBrickCount: 5,
-      onBodyLoad({ bodyId, tag, userData, particles, addBrick, removeBrick }) {
+      onLoad() {
+        LivesBallRules({ onLose, checkLoseCondition });
+        ExitWin({ onWin });
+      },
+      onBodyLoad({ bodyId, tag, userData, particles }) {
         const ctx = getGameContext();
 
         if (tag === 'brick') {
           const powerUp = userData?.powerup as BrickPowerUps | undefined;
-          addBrick();
+          bricks++;
           Brick({
             bodyId,
             debrisEmitter: particles.brickDebris,
@@ -296,14 +315,15 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
                 else if (r < 0.5) { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
                 else Scrap({ pos: { x, y } });
               }
-              if (removeBrick()) door?.open();
+              bricks--;
+              if (bricks <= 5) door?.open();
             },
           });
           return true;
         }
 
         if (tag === 'strong-brick') {
-          addBrick();
+          bricks++;
           StrongBrick({
             bodyId,
             debrisEmitter: particles.brickDebris,
@@ -312,7 +332,8 @@ export const LEVEL_DEFINITIONS: Record<string, () => BreakoutLevelProps> = {
               const { x, y } = brick.spawnPos;
               if (Math.random() < 0.55) YellowCheese({ pos: { x, y } });
               else { Scrap({ pos: { x: x - 0.25, y } }); Scrap({ pos: { x: x + 0.25, y } }); }
-              removeBrick();
+              bricks--;
+              if (bricks <= 5) door?.open();
             },
           });
           return true;

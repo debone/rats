@@ -1,4 +1,4 @@
-import { ASSETS, TILED_MAPS, type PrototypeTextures } from '@/assets';
+import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { assert } from '@/core/common/assert';
@@ -7,25 +7,23 @@ import { defineEntity, getUnmount, type AttachHandle } from '@/core/entity/scope
 import { execute } from '@/core/game/Command';
 import { TiledResource } from '@/core/tiled';
 import type { TiledMapDefinition } from '@/core/tiled/tiled-resource';
+import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { activateCrewAbility, setLevelState } from '@/data/game-state';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
+import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 
-import { useLevelOutcome } from '../Level';
 import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
-import { Levels_BallExitedLevelCommand } from './commands/BallExitedCommand';
 import { Levels_LevelStartCommand } from './commands/LevelStartCommand';
-import { Levels_LoseBallCommand } from './commands/LoseBallCommand';
 import { BrickDebrisParticles } from './entities/BrickDebrisParticles';
 import { KeyListener } from './entities/KeyListener';
 import { NormBall } from './entities/NormBall';
-import { Paddle, type PaddleEntity } from './entities/Paddle';
+import { Paddle } from './entities/Paddle';
 import { PlusCheeseParticles } from './entities/PlusCheeseParticles';
 import { PlusClayParticles } from './entities/PlusClayParticles';
 import { Wall, wallSparkOnBall } from './entities/Wall';
@@ -45,8 +43,6 @@ export interface BodyHandlerContext {
   tag: string | undefined;
   userData: { type: string; powerup?: BrickPowerUps; doorName?: string } | null;
   particles: LevelParticles;
-  addBrick(): void;
-  removeBrick(): boolean;
 }
 
 export interface BackgroundConfig {
@@ -59,9 +55,7 @@ export interface BreakoutLevelProps {
   name: string;
   rubeAsset: string;
   background: BackgroundConfig;
-  winBrickCount: number;
-  /** When true, ball loss never decrements lives or triggers game-over — ball always respawns. */
-  infiniteBalls?: boolean;
+  onLoad?: (ctx: { particles: LevelParticles }) => void;
   onBodyLoad: (ctx: BodyHandlerContext) => boolean | void;
 }
 
@@ -69,33 +63,22 @@ export interface BreakoutLevelEntity extends EntityBase<typeof ENTITY_KINDS.brea
   readonly children: Set<EntityBase>;
   load(): Promise<void>;
   update(delta: number): void;
+  createBall(): void;
 }
 
 export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutLevelEntity => {
   const unmount = getUnmount();
   const children = new Set<EntityBase>();
 
-  let paddleEntity: PaddleEntity | undefined;
   let ballSnap: AttachHandle<{ launch: () => void; jointId: b2JointId }> | undefined;
-  let bricksCount = 0;
-
-  const { onWin, onLose, checkLoseCondition } = useLevelOutcome(props.levelId);
-
-  function addBrick(): void {
-    bricksCount++;
-  }
-
-  function removeBrick(): boolean {
-    bricksCount--;
-    return bricksCount <= props.winBrickCount;
-  }
 
   function createBall(): void {
-    assert(paddleEntity, `${props.levelId} createBall: paddleEntity must be defined`);
-    const paddlePosition = b2Body_GetPosition(paddleEntity.bodyId);
+    const paddle = getEntitiesOfKind(ENTITY_KINDS.paddle)[0];
+    assert(paddle, `${props.levelId} createBall: no paddle entity`);
+    const paddlePosition = b2Body_GetPosition(paddle.bodyId);
     const normBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
     ballSnap?.detach();
-    ballSnap = attachPaddleBallSnap(paddleEntity, normBall);
+    ballSnap = attachPaddleBallSnap(paddle, normBall);
   }
 
   async function load(): Promise<void> {
@@ -124,16 +107,16 @@ export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutL
     const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
     assert(paddleJoint, `${props.levelId}: paddle-joint not found in RUBE`);
 
-    paddleEntity = Paddle({
+    Paddle({
       jointId: paddleJoint,
       brickDebrisEmitter: particles.brickDebris,
       plusClayEmitter: particles.plusClay,
       plusCheeseEmitter: particles.plusCheese,
     });
 
-    createBall();
+    props.onLoad?.({ particles });
 
-    let exitExecuted = false;
+    createBall();
 
     loadedBodies.forEach((bodyId) => {
       if (!b2Body_IsValid(bodyId)) return;
@@ -150,18 +133,15 @@ export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutL
       } else if (tag === 'exit') {
         Wall({
           bodyId,
-          wallCollisionTag: tag,
+          wallCollisionTag: 'exit',
           onBall: async () => {
-            if (exitExecuted) return;
-            exitExecuted = true;
-            await execute(Levels_BallExitedLevelCommand);
-            onWin();
+            ctx.events.emit(GameEvent.BALL_EXITED);
           },
         });
       } else if (tag === 'bottom-wall') {
         Wall({
           bodyId,
-          wallCollisionTag: tag,
+          wallCollisionTag: 'bottom-wall',
           onCheese: async ({ cheeseBody }) => {
             const { x, y } = BodyToScreen(cheeseBody.bodyId);
             particles.water.explode(25, x, y);
@@ -175,15 +155,7 @@ export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutL
             ballBody.destroy();
 
             if (getEntitiesOfKind(ENTITY_KINDS.normBall).length === 0) {
-              if (!props.infiniteBalls) {
-                await execute(Levels_LoseBallCommand);
-                if (checkLoseCondition()) {
-                  onLose();
-                  return;
-                }
-              }
-              await new Promise<void>((resolve) => setTimeout(resolve, 300));
-              createBall();
+              ctx.events.emit(GameEvent.BALL_LOST);
             }
           },
           onScrap: async ({ scrapBody }) => {
@@ -199,8 +171,6 @@ export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutL
           tag,
           userData,
           particles,
-          addBrick,
-          removeBrick,
         });
         if (!handled) {
           ctx.systems.get(PhysicsSystem).registerOrphanBody(bodyId);
@@ -217,6 +187,7 @@ export const BreakoutLevel = defineEntity((props: BreakoutLevelProps): BreakoutL
     children,
     load,
     update(_delta) {},
+    createBall,
     destroy() {
       Array.from(children).forEach((e) => e.destroy());
       unmount();
