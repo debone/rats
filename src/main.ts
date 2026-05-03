@@ -35,6 +35,7 @@ import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
 import { navigation } from './core/window/navigation';
 import { ReflectionFilter2 } from './lib/ReflectionFilter/ReflectionFilter';
+import { ScheduleSystem } from './systems/app/ScheduleSystem';
 
 export const app = new Application();
 
@@ -124,6 +125,7 @@ async function init() {
 
   context.systems.add(NavigationSystem);
   context.systems.add(SaveSystem);
+  context.systems.add(ScheduleSystem);
 
   // Initialize all systems
   context.systems.init(context);

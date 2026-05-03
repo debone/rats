@@ -71,6 +71,7 @@ export default class Level3 extends Level {
 
     setTimeout(() => {
       console.log('[sound]');
+      onboardCrewMember('littlemi');
     }, 1000);
 
     setTimeout(() => {

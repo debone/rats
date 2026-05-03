@@ -2,6 +2,7 @@ import { Command, execute } from '@/core/game/Command';
 import { delay, type Coroutine } from '@/core/game/Coroutine';
 import { addCompletedLevel, setCurrentLevelId, type LevelResult } from '@/data/game-state';
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
+import { SCHEDULE_CONTEXTS, ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { LevelSystem } from '../system';
@@ -14,6 +15,7 @@ export class LevelCompleteCommand extends Command<LevelResult> {
 
     const physicsSystem = this.context.systems.get(PhysicsSystem);
     const levelSystem = this.context.systems.get(LevelSystem);
+    const scheduleSystem = this.context.systems.get(ScheduleSystem);
 
     // Update run state
     addCompletedLevel(result.levelId);
@@ -23,6 +25,7 @@ export class LevelCompleteCommand extends Command<LevelResult> {
     //yield execute(UnloadLevelCommand);
     yield delay(500);
 
+    scheduleSystem.clearClocks(SCHEDULE_CONTEXTS.LEVEL);
     physicsSystem.stop();
     levelSystem.stop();
 
