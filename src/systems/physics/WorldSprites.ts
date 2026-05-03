@@ -236,6 +236,7 @@ export function BodyToSprite(
 }
 
 export function BodyToScreen(bodyId: b2BodyId): { x: number; y: number } {
+  if (!b2Body_IsValid(bodyId)) return { x: 0, y: -99999 };
   const transform = b2Body_GetTransform(bodyId);
   const { x, y } = WorldToScreen(transform.p.x, transform.p.y);
   const origin = GetWorldOrigin();

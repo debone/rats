@@ -22,6 +22,7 @@ export const ENTITY_KINDS = {
   brick: 'entity:brick',
   strongBrick: 'entity:strong-brick',
   wall: 'entity:wall',
+  waterBottom: 'entity:water-bottom',
   paddle: 'entity:paddle',
   cheese: 'entity:cheese',
   door: 'entity:door',

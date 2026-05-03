@@ -63,6 +63,8 @@ export interface RunState {
     flub_ballsAttractedToBoat: Signal<boolean>;
     lacfree_nextBricksHaveCheese: Signal<number>;
     lacfree_abilitiesConsumeRubbles: Signal<boolean>;
+    littlemi_everythingFloats: Signal<boolean>;
+    littlemi_longerBoat: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -149,6 +151,8 @@ export function createGameState(): GameState {
         flub_ballsAttractedToBoat: signal(false),
         lacfree_nextBricksHaveCheese: signal(0),
         lacfree_abilitiesConsumeRubbles: signal(false),
+        littlemi_everythingFloats: signal(false),
+        littlemi_longerBoat: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),

@@ -12,7 +12,6 @@ import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { Paddle, type PaddleEntity } from '@/systems/level/levels/entities/Paddle';
 import { Wall, wallSparkOnBall } from '@/systems/level/levels/entities/Wall';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 
@@ -32,6 +31,7 @@ import { PlusClayParticles } from './entities/PlusClayParticles';
 import { Scrap } from './entities/Scrap';
 import { StrongBrick, type StrongBrickEntity } from './entities/StrongBrick';
 import { WallParticles } from './entities/WallParticles';
+import { WaterBottom } from './entities/WaterBottom';
 import { WaterParticles } from './entities/WaterParticles';
 
 /**
@@ -226,20 +226,13 @@ export default class Level3 extends Level {
           },
         });
       } else if (tag === 'bottom-wall') {
-        Wall({
+        WaterBottom({
           bodyId,
-          wallCollisionTag: tag,
+          waterParticles,
           onCheese: async ({ cheeseBody }) => {
-            const { x, y } = BodyToScreen(cheeseBody.bodyId);
-            waterParticles.explode(25, x, y);
-            sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
             cheeseBody.destroy();
           },
           onBall: async ({ ballBody }) => {
-            const { x, y } = BodyToScreen(ballBody.bodyId);
-            waterParticles.explode(100, x, y);
-            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
-
             ballBody.destroy();
 
             this.ballsCount--;
@@ -256,9 +249,6 @@ export default class Level3 extends Level {
             }
           },
           onScrap: async ({ scrapBody }) => {
-            const { x, y } = BodyToScreen(scrapBody.bodyId);
-            waterParticles.explode(10, x, y);
-            sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
             scrapBody.destroy();
           },
         });
