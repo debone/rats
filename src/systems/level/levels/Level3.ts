@@ -1,16 +1,14 @@
 import { ASSETS, TILED_MAPS } from '@/assets';
-import { defineEntity, getUnmount } from '@/core/entity/scope';
+import { defineEntity } from '@/core/entity/scope';
 import { getGameContext } from '@/data/game-context';
 import { GameEvent } from '@/data/events';
 import { setLevelState } from '@/data/game-state';
-import { ENTITY_KINDS } from '@/entities/entity-kinds';
 import { useChildren } from '@/hooks/hooks';
 import { t } from '@/i18n/i18n';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition } from 'phaser-box2d';
 
 import { useLevelOutcome } from '../Level';
-import type { BreakoutLevelEntity } from './BreakoutLevel';
 import { Background } from './entities/Background';
 import { BreakoutPhysics } from './entities/BreakoutPhysics';
 import { Brick, type BrickEntity } from './entities/Brick';
@@ -21,8 +19,7 @@ import { LivesBallRules } from './entities/LivesBallRules';
 import { Scrap } from './entities/Scrap';
 import { StrongBrick, type StrongBrickEntity } from './entities/StrongBrick';
 
-export const Level3 = defineEntity((_: object): BreakoutLevelEntity => {
-  const unmount = getUnmount();
+export const Level3 = defineEntity((_: object) => {
   const { withChildren } = useChildren();
   const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-3');
 
@@ -81,10 +78,5 @@ export const Level3 = defineEntity((_: object): BreakoutLevelEntity => {
     });
   });
 
-  return {
-    kind: ENTITY_KINDS.breakoutLevel,
-    destroy() {
-      unmount();
-    },
-  };
+  return {};
 });

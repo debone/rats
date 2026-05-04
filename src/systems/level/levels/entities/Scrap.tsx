@@ -2,7 +2,7 @@ import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { changeScraps } from '@/data/game-state';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_ApplyLinearImpulseToCenter,
@@ -17,9 +17,8 @@ import {
 } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface ScrapEntity extends EntityBase<typeof ENTITY_KINDS.scrap> {
+export interface ScrapEntity extends EntityBase {
   bodyId: b2BodyId;
-  destroy(): void;
 }
 
 export interface ScrapProps {
@@ -28,10 +27,10 @@ export interface ScrapProps {
   onCollected?: (scrap: ScrapEntity) => void;
 }
 
-export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntity => {
+export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps) => {
   const worldId = useWorldId();
   const physics = usePhysics();
-  const unmount = getUnmount();
+  const destroy = getUnmount();
 
   const { bodyId, shapeId } = CreateCircle({
     worldId,
@@ -59,13 +58,17 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
 
   b2Body_SetUserData(bodyId, { type: 'scrap' });
 
+  const scrap = {
+    bodyId,
+  };
+
   useCollisionHandler(bodyId, () => ({
     tag: 'scrap',
     handlers: {
       paddle: () => {
-        onCollected?.(scrap);
+        onCollected?.(scrap as ScrapEntity);
         changeScraps(Math.floor(Math.random() * 1) + 3);
-        scrap.destroy();
+        destroy();
       },
     },
     entity: scrap,
@@ -75,15 +78,6 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
   const sprite = new Sprite({ texture, scale: Math.random() * 0.3 + 0.8 });
   sprite.anchor.set(0.5, 0.5);
   useBodySprite(sprite, bodyId);
-
-  const scrap: ScrapEntity = {
-    kind: ENTITY_KINDS.scrap,
-    bodyId,
-
-    destroy() {
-      unmount();
-    },
-  };
 
   return scrap;
 });

@@ -1,9 +1,9 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import {
   useBodySprite,
   useCollisionHandler,
@@ -42,11 +42,10 @@ import { InputDevice } from 'pixijs-input-devices';
 import { attachCaptainBoost } from '../attachments/paddleCaptainBoost';
 import { getRunState } from '@/data/game-state';
 
-export interface PaddleEntity extends EntityBase<typeof ENTITY_KINDS.paddle> {
+export interface PaddleEntity extends EntityBase {
   bodyId: b2BodyId;
   sprite: Sprite;
   maxSpeed: number;
-  destroy(): void;
 }
 
 export interface PaddleProps {
@@ -57,10 +56,9 @@ export interface PaddleProps {
 }
 
 export const Paddle = defineEntity(
-  ({ jointId, brickDebrisEmitter, plusClayEmitter, plusCheeseEmitter }: PaddleProps): PaddleEntity => {
+  ({ jointId, brickDebrisEmitter, plusClayEmitter, plusCheeseEmitter }: PaddleProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
-    const unmount = getUnmount();
 
     const anchorBodyId = b2Joint_GetBodyA(jointId);
     const tempBodyId = b2Joint_GetBodyB(jointId);
@@ -130,14 +128,10 @@ export const Paddle = defineEntity(
       boatVelocityAdjustment = velocity;
     });
 
-    const paddle: PaddleEntity = {
-      kind: ENTITY_KINDS.paddle,
+    const paddle = {
       bodyId,
       sprite: paddleSprite,
       maxSpeed: 15,
-      destroy() {
-        unmount();
-      },
     };
 
     useCollisionHandler(bodyId, () => ({
@@ -164,7 +158,7 @@ export const Paddle = defineEntity(
     let captainBoostHandle: { detach: () => void } | undefined;
     useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
       captainBoostHandle?.detach();
-      captainBoostHandle = attachCaptainBoost(paddle);
+      captainBoostHandle = attachCaptainBoost(paddle as PaddleEntity);
     });
 
     useImmediateUpdate(() => {

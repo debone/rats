@@ -2,8 +2,7 @@ import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
-import { defineEntity, getUnmount, mountEffect, onCleanup } from '@/core/entity/scope';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { defineEntity, mountEffect, onCleanup } from '@/core/entity/scope';
 import { useBodySprite, useCamera, usePhysics, useWorldId } from '@/hooks/hooks';
 import { animate } from 'animejs';
 import {
@@ -18,15 +17,6 @@ import {
 } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface DoorEntity extends EntityBase<typeof ENTITY_KINDS.door> {
-  bodyIds: b2BodyId[];
-  spawnPos: { x: number; y: number };
-  closed: boolean;
-  length: number;
-  openingDirection: 'left' | 'right';
-  open(): void;
-}
-
 export interface DoorProps {
   spawnPos: { x: number; y: number };
   length: number;
@@ -36,11 +26,10 @@ export interface DoorProps {
 }
 
 export const Door = defineEntity(
-  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps): DoorEntity => {
+  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
     const camera = useCamera();
-    const unmount = getUnmount();
 
     const doorPos = new b2Vec2(spawnPos.x, spawnPos.y);
 
@@ -71,25 +60,21 @@ export const Door = defineEntity(
       });
     });
 
-    const door: DoorEntity = {
-      kind: ENTITY_KINDS.door,
-      destroy() {
-        unmount();
-      },
+    const door = {
       bodyIds,
       spawnPos,
       closed: true,
       length,
       openingDirection,
       open() {
-        this.closed = false;
+        door.closed = false;
         const duration = 1500;
 
         if (sound) {
           sfx.playPitched(sound, { speed: 0.6, volume: 0.5 });
         }
 
-        const openingDirectionFactor = this.openingDirection === 'left' ? 1 : -1;
+        const openingDirectionFactor = door.openingDirection === 'left' ? 1 : -1;
 
         shake(camera, { intensity: 1, frequency: 25, duration });
 
@@ -120,3 +105,5 @@ export const Door = defineEntity(
     return door;
   },
 );
+
+export type DoorEntity = ReturnType<typeof Door>;

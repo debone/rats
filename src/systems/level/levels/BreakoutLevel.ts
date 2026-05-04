@@ -1,3 +1,7 @@
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { defineEntity } from '@/core/entity/scope';
 
-export interface BreakoutLevelEntity extends EntityBase<typeof ENTITY_KINDS.breakoutLevel> {}
+export const BreakoutLevel = defineEntity((_: object) => {
+  return {};
+});
+
+export type BreakoutLevelEntity = ReturnType<typeof BreakoutLevel>;

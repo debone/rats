@@ -4,7 +4,7 @@ import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { changeCheese } from '@/data/game-state';
 import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { CrewPickerOverlay } from '@/screens/CrewPickerOverlay/CrewPickerOverlay';
 import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
@@ -21,10 +21,9 @@ import {
 } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface CheeseEntity extends EntityBase<typeof ENTITY_KINDS.cheese> {
+export interface CheeseEntity extends EntityBase {
   bodyId: b2BodyId;
   type: CheeseType;
-  destroy(): void;
 }
 
 export interface CheeseProps {
@@ -35,10 +34,10 @@ export interface CheeseProps {
   onLost?: (cheese: CheeseEntity) => void;
 }
 
-export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheeseProps): CheeseEntity => {
+export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheeseProps) => {
   const worldId = useWorldId();
   const physics = usePhysics();
-  const unmount = getUnmount();
+  const destroy = getUnmount();
 
   const { bodyId, shapeId } = CreateCircle({
     worldId,
@@ -66,16 +65,21 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
 
   b2Body_SetUserData(bodyId, { type: 'cheese', cheeseType: 'blue' });
 
+  const cheese = {
+    bodyId,
+    type,
+  };
+
   useCollisionHandler(bodyId, () => ({
     tag: 'cheese',
     handlers: {
       paddle: () => {
-        onCollected?.(cheese);
-        cheese.destroy();
+        onCollected?.(cheese as CheeseEntity);
+        destroy();
       },
       'bottom-wall': () => {
-        onLost?.(cheese);
-        cheese.destroy();
+        onLost?.(cheese as CheeseEntity);
+        destroy();
       },
     },
     entity: cheese,
@@ -86,16 +90,6 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
   sprite.anchor.set(0.5, 0.5);
 
   useBodySprite(sprite, bodyId);
-
-  const cheese: CheeseEntity = {
-    kind: ENTITY_KINDS.cheese,
-    bodyId,
-    type,
-
-    destroy() {
-      unmount();
-    },
-  };
 
   return cheese;
 });

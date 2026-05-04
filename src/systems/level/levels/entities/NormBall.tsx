@@ -1,8 +1,8 @@
 import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, onCleanup } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_GetLinearVelocity,
@@ -20,12 +20,11 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 
-export interface NormBallEntity extends EntityBase<typeof ENTITY_KINDS.normBall> {
+export interface NormBallEntity extends EntityBase {
   bodyId: b2BodyId;
   sprite: Sprite;
   startUpdating(): void;
   stopUpdating(): void;
-  destroy(): void;
 }
 
 export interface NormBallProps {
@@ -33,9 +32,8 @@ export interface NormBallProps {
   y: number;
 }
 
-export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity => {
+export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
   const worldId = useWorldId();
-  const unmount = getUnmount();
   const physics = usePhysics();
 
   const { bodyId, shapeId } = CreateCircle({
@@ -106,6 +104,13 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(newVelocity.x, newVelocity.y));
   });
 
+  const normBall = {
+    bodyId,
+    sprite: ballSprite,
+    startUpdating: start,
+    stopUpdating: stop,
+  };
+
   useCollisionHandler(bodyId, () => ({
     tag: 'ball',
     handlers: {},
@@ -121,17 +126,6 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     const newBall = NormBall({ x: position.x, y: position.y });
     newBall.startUpdating();
   });
-
-  const normBall: NormBallEntity = {
-    kind: ENTITY_KINDS.normBall,
-    bodyId,
-    sprite: ballSprite,
-    startUpdating: start,
-    stopUpdating: stop,
-    destroy() {
-      unmount();
-    },
-  };
 
   return normBall;
 });

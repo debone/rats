@@ -66,17 +66,11 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
     useBodySprite(powerUpSprite, bodyId);
   }
 
-  useCollisionHandler(bodyId, () => ({
-    tag: 'brick',
-    handlers: { ball: () => brick.hit() },
-    entity: brick,
-  }));
-
   onCleanup(() => {
     physics.queueDestruction(bodyId);
   });
 
-  const brick: BrickEntity = {
+  const brick = {
     bodyId,
     powerUp,
     spawnPos,
@@ -100,6 +94,12 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
       destroy();
     },
   };
+
+  useCollisionHandler(bodyId, () => ({
+    tag: 'brick',
+    handlers: { ball: () => brick.hit() },
+    entity: brick,
+  }));
 
   return brick;
 });

@@ -5,19 +5,18 @@ import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface StrongBrickEntity extends EntityBase<typeof ENTITY_KINDS.strongBrick> {
+export interface StrongBrickEntity extends EntityBase {
   bodyId: b2BodyId;
   spawnPos: { x: number; y: number };
   /** Remaining hits (starts at `initialLife`, typically 2). */
   life: number;
   hit(): void;
-  destroy(): void;
 }
 
 export interface StrongBrickProps {
@@ -31,10 +30,10 @@ export interface StrongBrickProps {
 }
 
 export const StrongBrick = defineEntity(
-  ({ bodyId, spawnPos, debrisEmitter, initialLife = 2, onHit, onBreak }: StrongBrickProps): StrongBrickEntity => {
+  ({ bodyId, spawnPos, debrisEmitter, initialLife = 2, onHit, onBreak }: StrongBrickProps) => {
     const physics = usePhysics();
     const camera = useCamera();
-    const unmount = getUnmount();
+    const destroy = getUnmount();
 
     if (!spawnPos && !bodyId) {
       throw new Error('Spawn position or body ID is required');
@@ -64,23 +63,16 @@ export const StrongBrick = defineEntity(
     sprite.anchor.set(0.5, 0.5);
     useBodySprite(sprite, bodyId);
 
-    useCollisionHandler(bodyId, () => ({
-      tag: 'strong-brick',
-      handlers: { ball: () => strongBrick.hit() },
-      entity: strongBrick,
-    }));
-
     onCleanup(() => {
       physics.queueDestruction(bodyId);
     });
 
-    const strongBrick: StrongBrickEntity = {
-      kind: ENTITY_KINDS.strongBrick,
+    const strongBrick = {
       bodyId,
       spawnPos,
       life: initialLife,
       hit() {
-        onHit?.(this);
+        onHit?.(strongBrick as StrongBrickEntity);
 
         if (Math.random() < 0.5) {
           sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10, { volume: 0.25 });
@@ -88,28 +80,31 @@ export const StrongBrick = defineEntity(
           sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { volume: 0.25 });
         }
 
-        if (this.life > 1) {
-          this.life -= 1;
-          b2Body_SetUserData(bodyId, { type: 'strong-brick', life: this.life });
+        if (strongBrick.life > 1) {
+          strongBrick.life -= 1;
+          b2Body_SetUserData(bodyId, { type: 'strong-brick', life: strongBrick.life });
           sprite.texture = bg[`bricks_tile_4#0`];
 
-          const { x, y } = BodyToScreen(this.bodyId);
+          const { x, y } = BodyToScreen(strongBrick.bodyId);
           debrisEmitter.explode(2, x, y);
           shake(camera, { intensity: Math.random() * 0.25, duration: 300 });
           return;
         }
 
-        const { x, y } = BodyToScreen(this.bodyId);
+        const { x, y } = BodyToScreen(strongBrick.bodyId);
         debrisEmitter.explode(12, x, y);
         shake(camera, { intensity: Math.random() * 1.25, duration: 300 });
 
-        onBreak?.(this);
-        this.destroy();
-      },
-      destroy() {
-        unmount();
+        onBreak?.(strongBrick as StrongBrickEntity);
+        destroy();
       },
     };
+
+    useCollisionHandler(bodyId, () => ({
+      tag: 'strong-brick',
+      handlers: { ball: () => strongBrick.hit() },
+      entity: strongBrick,
+    }));
 
     return strongBrick;
   },

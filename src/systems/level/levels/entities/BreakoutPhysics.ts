@@ -7,7 +7,6 @@ import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { activateCrewAbility } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
-import type { EntityBase } from '@/entities/entity-kinds';
 import { useChildren } from '@/hooks/hooks';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
@@ -50,13 +49,7 @@ export interface BreakoutPhysicsProps {
   rubeAsset: string;
 }
 
-export interface BreakoutPhysicsEntity extends EntityBase {
-  bodies: BodyEntry[];
-  particles: LevelParticles;
-  createBall(): void;
-}
-
-export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps): BreakoutPhysicsEntity => {
+export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps) => {
   const { withChildren } = useChildren();
   const ctx = getGameContext();
 
@@ -166,3 +159,5 @@ export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps): Break
     createBall,
   };
 });
+
+export type BreakoutPhysicsEntity = ReturnType<typeof BreakoutPhysics>;

@@ -1,6 +1,6 @@
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useCollisionHandler, usePhysics } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import type { b2BodyId } from 'phaser-box2d';
@@ -10,10 +10,9 @@ import type { ScrapEntity } from './Scrap';
 
 export type WallTag = 'left-wall' | 'right-wall' | 'top-wall' | 'bottom-wall' | 'exit';
 
-export interface WallEntity extends EntityBase<typeof ENTITY_KINDS.wall> {
+export interface WallEntity extends EntityBase {
   bodyId: b2BodyId;
   wallCollisionTag: string;
-  destroy(): void;
 }
 
 export interface WallProps {
@@ -24,17 +23,12 @@ export interface WallProps {
   onScrap?: (ctx: WallScrapContext) => void | Promise<void>;
 }
 
-export const Wall = defineEntity(({ bodyId, wallCollisionTag, onBall, onCheese, onScrap }: WallProps): WallEntity => {
+export const Wall = defineEntity(({ bodyId, wallCollisionTag, onBall, onCheese, onScrap }: WallProps) => {
   const physics = usePhysics();
-  const unmount = getUnmount();
 
-  const wall: WallEntity = {
-    kind: ENTITY_KINDS.wall,
+  const wall = {
     bodyId,
     wallCollisionTag,
-    destroy() {
-      unmount();
-    },
   };
 
   onCleanup(() => {
@@ -45,13 +39,13 @@ export const Wall = defineEntity(({ bodyId, wallCollisionTag, onBall, onCheese, 
     tag: wallCollisionTag,
     handlers: {
       ball: (_self: WallEntity, ballBody: NormBallEntity) => {
-        onBall?.({ wall, ballBody });
+        onBall?.({ wall: wall as WallEntity, ballBody });
       },
       cheese: (_self: WallEntity, cheeseBody: CheeseEntity) => {
-        onCheese?.({ wall, cheeseBody });
+        onCheese?.({ wall: wall as WallEntity, cheeseBody });
       },
       scrap: (_self: WallEntity, scrapBody: ScrapEntity) => {
-        onScrap?.({ wall, scrapBody: scrapBody });
+        onScrap?.({ wall: wall as WallEntity, scrapBody: scrapBody });
       },
     },
     entity: wall,
