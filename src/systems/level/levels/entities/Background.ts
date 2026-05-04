@@ -1,20 +1,16 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, onCleanup } from '@/core/entity/scope';
 import { TiledResource } from '@/core/tiled';
 import type { TiledMapDefinition } from '@/core/tiled/tiled-resource';
 import { getGameContext } from '@/data/game-context';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 
 export interface BackgroundProps {
   tiledMap: TiledMapDefinition;
   includeBroadBg?: boolean;
 }
 
-export interface BackgroundEntity extends EntityBase<typeof ENTITY_KINDS.background> {}
-
-export const Background = defineEntity((props: BackgroundProps): BackgroundEntity => {
-  const unmount = getUnmount();
+export const Background = defineEntity((props: BackgroundProps) => {
   const ctx = getGameContext();
 
   const bg = typedAssets.get<PrototypeTextures>(ASSETS.levels_level_1).textures;
@@ -48,10 +44,7 @@ export const Background = defineEntity((props: BackgroundProps): BackgroundEntit
     map.container.destroy({ children: true });
   });
 
-  return {
-    kind: ENTITY_KINDS.background,
-    destroy() {
-      unmount();
-    },
-  };
+  return {};
 });
+
+export type BackgroundEntity = ReturnType<typeof Background>;

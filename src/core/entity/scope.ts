@@ -1,4 +1,7 @@
-import type { EntityBase } from '@/entities/entity-kinds';
+export interface EntityBase {
+  readonly kind: symbol;
+  destroy(): void;
+}
 
 type Effect = () => (() => void) | void;
 
@@ -8,18 +11,12 @@ interface Scope {
   unmount: () => void;
 }
 
-/** Root scope for each entity created by `defineEntity` — used by `attach`. */
 const entityScopes = new WeakMap<object, Scope>();
 const entities = new Set<EntityBase>();
+const entityRegistry = new Map<symbol, Set<EntityBase>>();
 
 let activeScope: Scope | null = null;
-
-/** When set, every entity created by defineEntity is added to this set and removes itself on destroy. */
 let activeChildren: Set<EntityBase> | null = null;
-
-export function setActiveChildren(set: Set<EntityBase> | null): void {
-  activeChildren = set;
-}
 
 export function withActiveChildren<T>(set: Set<EntityBase> | null, fn: () => T): T {
   const prev = activeChildren;
@@ -29,9 +26,12 @@ export function withActiveChildren<T>(set: Set<EntityBase> | null, fn: () => T):
   return result;
 }
 
-/** All live entities from `defineEntity` factories (discriminated by `kind`). */
 export function getEntities(): readonly EntityBase[] {
   return Array.from(entities);
+}
+
+export function getEntitiesForKind(kind: symbol): readonly EntityBase[] {
+  return Array.from(entityRegistry.get(kind) ?? []);
 }
 
 function createScope(): Scope {
@@ -64,29 +64,41 @@ export function onCleanup(fn: () => void) {
   activeScope.cleanups.push(fn);
 }
 
+/** Returns the current entity's destroy function, for entities that need to self-destruct from callbacks. */
 export function getUnmount(): () => void {
   if (!activeScope) throw new Error('getUnmount called outside defineEntity scope');
   return activeScope.unmount;
 }
 
-export function defineEntity<Props, Entity extends EntityBase>(
-  factory: (props: Props) => Entity,
-): (props: Props) => Entity {
-  return (props: Props) => {
+export type EntityFactory<Props extends object, API extends object> =
+  ((props: Props) => EntityBase & API) & { readonly kind: symbol };
+
+export function defineEntity<Props extends object, API extends object>(
+  factory: (props: Props) => API,
+): EntityFactory<Props, API> {
+  const kind = Symbol(factory.name);
+
+  const wrappedFactory = (props: Props): EntityBase & API => {
     const scope = createScope();
     const prev = activeScope;
     activeScope = scope;
 
-    const entity = factory(props);
+    const api = factory(props) as object;
 
-    onCleanup(() => {
+    const entity = Object.assign(api, {
+      kind,
+      destroy() { scope.unmount(); },
+    }) as EntityBase & API;
+
+    scope.cleanups.push(() => {
       entities.delete(entity);
+      entityRegistry.get(kind)?.delete(entity);
     });
 
     if (activeChildren !== null) {
       const parentSet = activeChildren;
       parentSet.add(entity);
-      onCleanup(() => parentSet.delete(entity));
+      scope.cleanups.push(() => parentSet.delete(entity));
     }
 
     activeScope = prev;
@@ -94,8 +106,16 @@ export function defineEntity<Props, Entity extends EntityBase>(
     entityScopes.set(entity, scope);
     entities.add(entity);
 
+    let kindSet = entityRegistry.get(kind);
+    if (!kindSet) { kindSet = new Set(); entityRegistry.set(kind, kindSet); }
+    kindSet.add(entity);
+
     return entity;
   };
+
+  Object.defineProperty(wrappedFactory, 'kind', { value: kind, writable: false, enumerable: true });
+
+  return wrappedFactory as EntityFactory<Props, API>;
 }
 
 export type AttachHandle<R> = R extends void | undefined
@@ -104,13 +124,6 @@ export type AttachHandle<R> = R extends void | undefined
     ? R & { detach: () => void }
     : { detach: () => void; value: R };
 
-/**
- * Run a behavior in a child scope bound to an entity from `defineEntity`.
- * Child effects/cleanups run with the same `mountEffect` / `onCleanup` rules.
- *
- * - Calling `detach()` tears down only this attachment.
- * - Destroying the entity runs all attachments first (prepended so teardown happens before body/sprite cleanup).
- */
 export function attach<Entity extends EntityBase, R>(entity: Entity, behavior: (entity: Entity) => R): AttachHandle<R> {
   const parentScope = entityScopes.get(entity);
   if (!parentScope) {
@@ -137,14 +150,12 @@ export function attach<Entity extends EntityBase, R>(entity: Entity, behavior: (
     if (idx !== -1) parentScope.cleanups.splice(idx, 1);
   };
 
-  /** Wrapper so we can remove it from parent's cleanups list by reference. */
   function detachFromParent() {
     if (detached) return;
     detached = true;
     childUnmount();
   }
 
-  // Run attachment teardown before later entity cleanups (body destroy, etc.)
   parentScope.cleanups.unshift(detachFromParent);
 
   if (result === undefined || result === null) {
@@ -158,7 +169,6 @@ export function attach<Entity extends EntityBase, R>(entity: Entity, behavior: (
   return { detach, value: result } as AttachHandle<R>;
 }
 
-/** True if `entity` was created with `defineEntity` (can use `attach`). */
 export function hasEntityScope(entity: object): boolean {
   return entityScopes.has(entity);
 }

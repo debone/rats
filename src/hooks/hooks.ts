@@ -1,5 +1,4 @@
-import { mountEffect, onCleanup, withActiveChildren } from '@/core/entity/scope';
-import type { EntityBase } from '@/entities/entity-kinds';
+import { mountEffect, onCleanup, withActiveChildren, type EntityBase } from '@/core/entity/scope';
 import type { GameEventName, GameEventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { EntityCollisionSystem, type EntityCollisionConfig } from '@/systems/physics/EntityCollisionSystem';

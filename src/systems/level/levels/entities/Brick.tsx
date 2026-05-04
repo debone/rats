@@ -6,18 +6,17 @@ import { assert } from '@/core/common/assert';
 import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface BrickEntity extends EntityBase<typeof ENTITY_KINDS.brick> {
+export interface BrickEntity extends EntityBase {
   bodyId: b2BodyId;
   powerUp: BrickPowerUps | undefined;
   spawnPos: { x: number; y: number };
   hit(): void;
-  destroy(): void;
 }
 
 export interface BrickProps {
@@ -32,7 +31,7 @@ export interface BrickProps {
 export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, onHit, onBreak }: BrickProps) => {
   const physics = usePhysics();
   const camera = useCamera();
-  const unmount = getUnmount();
+  const destroy = getUnmount();
 
   if (!spawnPos && !bodyId) {
     throw new Error('Spawn position or body ID is required');
@@ -78,13 +77,12 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
   });
 
   const brick: BrickEntity = {
-    kind: ENTITY_KINDS.brick,
     bodyId,
     powerUp,
     spawnPos,
 
     hit() {
-      onHit?.(this);
+      onHit?.(brick as BrickEntity);
 
       if (Math.random() < 0.5) {
         sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10, { volume: 0.25 });
@@ -94,15 +92,12 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
 
       shake(camera, { intensity: Math.random() * 1, duration: 300 });
 
-      const { x, y } = BodyToScreen(this.bodyId);
+      const { x, y } = BodyToScreen(brick.bodyId);
       debrisEmitter.explode(8, x, y);
 
-      onBreak?.(this);
+      onBreak?.(brick as BrickEntity);
 
-      this.destroy();
-    },
-    destroy() {
-      unmount();
+      destroy();
     },
   };
 

@@ -1,5 +1,4 @@
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { defineEntity, onCleanup } from '@/core/entity/scope';
 import { Container } from 'pixi.js';
 import { type EmitterConfig, ParticleEmitter } from './ParticleEmitter';
 
@@ -8,15 +7,8 @@ export interface ParticleEmitterProps {
   config: EmitterConfig;
 }
 
-export interface ParticleEmitterEntity extends EntityBase<typeof ENTITY_KINDS.particleEmitter> {
-  emitter: ParticleEmitter;
-  destroy(): void;
-}
-
 export const ParticleEmitterEntity = defineEntity(
-  ({ container, config }: ParticleEmitterProps): ParticleEmitterEntity => {
-    const unmount = getUnmount();
-
+  ({ container, config }: ParticleEmitterProps) => {
     const emitter = new ParticleEmitter(config);
     emitter.container.zIndex = 1000;
     container.addChild(emitter.container);
@@ -25,12 +17,8 @@ export const ParticleEmitterEntity = defineEntity(
       emitter.destroy();
     });
 
-    return {
-      kind: ENTITY_KINDS.particleEmitter,
-      emitter,
-      destroy() {
-        unmount();
-      },
-    };
+    return { emitter };
   },
 );
+
+export type ParticleEmitterEntityType = ReturnType<typeof ParticleEmitterEntity>;

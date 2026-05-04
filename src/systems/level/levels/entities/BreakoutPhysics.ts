@@ -1,13 +1,13 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { assert } from '@/core/common/assert';
-import { getEntitiesOfKind } from '@/core/entity/entity';
-import { defineEntity, getUnmount, type AttachHandle } from '@/core/entity/scope';
+import { getEntitiesOf } from '@/core/entity/entity';
+import { defineEntity, type AttachHandle } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { activateCrewAbility } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import type { EntityBase } from '@/entities/entity-kinds';
 import { useChildren } from '@/hooks/hooks';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
@@ -50,14 +50,13 @@ export interface BreakoutPhysicsProps {
   rubeAsset: string;
 }
 
-export interface BreakoutPhysicsEntity extends EntityBase<typeof ENTITY_KINDS.breakoutPhysics> {
+export interface BreakoutPhysicsEntity extends EntityBase {
   bodies: BodyEntry[];
   particles: LevelParticles;
   createBall(): void;
 }
 
 export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps): BreakoutPhysicsEntity => {
-  const unmount = getUnmount();
   const { withChildren } = useChildren();
   const ctx = getGameContext();
 
@@ -95,7 +94,7 @@ export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps): Break
 
   function createBall(): void {
     withChildren(() => {
-      const paddle = getEntitiesOfKind(ENTITY_KINDS.paddle)[0];
+      const paddle = getEntitiesOf(Paddle)[0];
       assert(paddle, `${props.levelId} createBall: no paddle entity`);
       const paddlePosition = b2Body_GetPosition(paddle.bodyId);
       const normBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
@@ -142,7 +141,7 @@ export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps): Break
             particles.water.explode(100, x, y);
             sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
             ballBody.destroy();
-            if (getEntitiesOfKind(ENTITY_KINDS.normBall).length === 0) {
+            if (getEntitiesOf(NormBall).length === 0) {
               ctx.events.emit(GameEvent.BALL_LOST);
             }
           },
@@ -162,12 +161,8 @@ export const BreakoutPhysics = defineEntity((props: BreakoutPhysicsProps): Break
   createBall();
 
   return {
-    kind: ENTITY_KINDS.breakoutPhysics,
     bodies: nonStandardBodies,
     particles,
     createBall,
-    destroy() {
-      unmount();
-    },
   };
 });
