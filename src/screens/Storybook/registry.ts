@@ -84,6 +84,15 @@ import { rainStreaks }     from './demos/environment/rainStreaks';
 import { reactiveText } from './demos/signals/reactiveText';
 import { signalChain } from './demos/signals/signalChain';
 
+import { meshRopeTrail }        from './demos/meshes/meshRopeTrail';
+import { meshPlaneFlag }         from './demos/meshes/meshPlaneFlag';
+import { renderTextureLightMap } from './demos/meshes/renderTextureLightMap';
+import { clothSim }              from './demos/meshes/clothSim';
+import { groundRipple }          from './demos/meshes/groundRipple';
+import { snakeBody }             from './demos/meshes/snakeBody';
+import { morphShape }            from './demos/meshes/morphShape';
+import { screenBulge }           from './demos/meshes/screenBulge';
+
 import { clickableBricks } from './demos/interactions/clickableBricks';
 import { ballToBrick } from './demos/interactions/ballToBrick';
 import { cheeseMagnet } from './demos/interactions/cheeseMagnet';
@@ -180,6 +189,16 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'env-firefly', category: 'environment', name: 'Fireflies',        setup: fireflies },
   { id: 'env-web',     category: 'environment', name: 'Spiderweb',        setup: spiderweb },
   { id: 'env-rain',    category: 'environment', name: 'Rain Streaks',     setup: rainStreaks },
+
+  // Meshes
+  { id: 'mesh-rope-trail',   category: 'meshes', name: 'MeshRope Trail',    setup: meshRopeTrail },
+  { id: 'mesh-plane-flag',   category: 'meshes', name: 'Waving Flag',       setup: meshPlaneFlag },
+  { id: 'mesh-lightmap',     category: 'meshes', name: 'RT Light Map',      setup: renderTextureLightMap },
+  { id: 'mesh-cloth',        category: 'meshes', name: 'Cloth Sim',         setup: clothSim },
+  { id: 'mesh-ripple',       category: 'meshes', name: 'Ground Ripple',     setup: groundRipple },
+  { id: 'mesh-snake',        category: 'meshes', name: 'Snake Body',        setup: snakeBody },
+  { id: 'mesh-morph',        category: 'meshes', name: 'Shape Morph',       setup: morphShape },
+  { id: 'mesh-bulge',        category: 'meshes', name: 'Screen Bulge',      setup: screenBulge },
 
   // Signals
   { id: 'sig-reactive',        category: 'signals',     name: 'Reactive Text',  setup: reactiveText },
