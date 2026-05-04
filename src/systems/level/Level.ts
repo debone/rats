@@ -1,8 +1,6 @@
-import { execute } from '@/core/game/Command';
 import { getGameContext } from '@/data/game-context';
 import { GameEvent } from '@/data/events';
 import { getRunState, type LevelResult } from '@/data/game-state';
-import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 
 export interface LevelConfig {
   id: string;
@@ -17,7 +15,6 @@ export function useLevelOutcome(levelId: string) {
     finished = true;
     const result: LevelResult = { levelId, success: true };
     getGameContext().events.emit(GameEvent.LEVEL_WON, result);
-    execute(LevelFinishedCommand, result);
   }
 
   function onLose(): void {
@@ -25,7 +22,6 @@ export function useLevelOutcome(levelId: string) {
     finished = true;
     const result: LevelResult = { levelId, success: false };
     getGameContext().events.emit(GameEvent.LEVEL_LOST, result);
-    execute(LevelFinishedCommand, result);
   }
 
   function checkLoseCondition(): boolean {
