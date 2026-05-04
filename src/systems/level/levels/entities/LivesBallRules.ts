@@ -22,7 +22,7 @@ export const LivesBallRules = defineEntity((props: LivesBallRulesProps): LivesBa
       props.onLose();
       return;
     }
-    getEntitiesOfKind(ENTITY_KINDS.breakoutLevel)[0]?.createBall();
+    getEntitiesOfKind(ENTITY_KINDS.breakoutPhysics)[0]?.createBall();
   });
 
   return {

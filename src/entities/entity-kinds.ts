@@ -10,6 +10,8 @@ import type { PaddleEntity } from '@/systems/level/levels/entities/Paddle';
 import type { ScrapEntity } from '@/systems/level/levels/entities/Scrap';
 import type { StrongBrickEntity } from '@/systems/level/levels/entities/StrongBrick';
 import type { WallEntity } from '@/systems/level/levels/entities/Wall';
+import type { BackgroundEntity } from '@/systems/level/levels/entities/Background';
+import type { BreakoutPhysicsEntity } from '@/systems/level/levels/entities/BreakoutPhysics';
 import type { BreakoutLevelEntity } from '@/systems/level/levels/BreakoutLevel';
 import type { InfiniteBallRulesEntity } from '@/systems/level/levels/entities/InfiniteBallRules';
 import type { LivesBallRulesEntity } from '@/systems/level/levels/entities/LivesBallRules';
@@ -37,6 +39,8 @@ export const ENTITY_KINDS = {
   particleEmitter: 'entity:particle-emitter',
   keyListener: 'entity:key-listener',
 
+  background: 'entity:background',
+  breakoutPhysics: 'entity:breakout-physics',
   breakoutLevel: 'level:breakout',
 
   infiniteBallRules: 'entity:infinite-ball-rules',
@@ -65,6 +69,8 @@ export interface EntityByKind {
   [ENTITY_KINDS.particleEmitter]: ParticleEmitterEntity;
   [ENTITY_KINDS.catPiece]: CatPieceEntity;
   [ENTITY_KINDS.catTail]: CatTailEntity;
+  [ENTITY_KINDS.background]: BackgroundEntity;
+  [ENTITY_KINDS.breakoutPhysics]: BreakoutPhysicsEntity;
   [ENTITY_KINDS.breakoutLevel]: BreakoutLevelEntity;
   [ENTITY_KINDS.infiniteBallRules]: InfiniteBallRulesEntity;
   [ENTITY_KINDS.livesBallRules]: LivesBallRulesEntity;

@@ -11,7 +11,7 @@ export const InfiniteBallRules = defineEntity((_: object): InfiniteBallRulesEnti
 
   useGameEvent(GameEvent.BALL_LOST, async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 300));
-    getEntitiesOfKind(ENTITY_KINDS.breakoutLevel)[0]?.createBall();
+    getEntitiesOfKind(ENTITY_KINDS.breakoutPhysics)[0]?.createBall();
   });
 
   return {

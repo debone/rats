@@ -1,11 +1,11 @@
 import { assert } from '@/core/common/assert';
-import { setActiveChildren } from '@/core/entity/scope';
+import { execute } from '@/core/game/Command';
 import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
 import { PhysicsSystem } from '../physics/system';
+import { Levels_LevelStartCommand } from './levels/commands/LevelStartCommand';
 import type { BreakoutLevelEntity } from './levels/BreakoutLevel';
-import { BreakoutLevel } from './levels/BreakoutLevel';
 import { LEVEL_DEFINITIONS } from './levels/level-definitions';
 
 export class LevelSystem implements System {
@@ -13,9 +13,6 @@ export class LevelSystem implements System {
 
   private context!: GameContext;
   private currentLevel?: BreakoutLevelEntity;
-
-  updateHandler = this.updateLevel.bind(this);
-  resizeHandler = this.resizeLevel.bind(this);
 
   init(context: GameContext) {
     this.context = context;
@@ -27,11 +24,9 @@ export class LevelSystem implements System {
     const defFactory = LEVEL_DEFINITIONS[levelId];
     assert(defFactory, `[LevelSystem] Unknown level: ${levelId}`);
 
-    const level = BreakoutLevel(defFactory());
-    this.currentLevel = level;
+    this.currentLevel = defFactory();
 
-    setActiveChildren(level.children);
-    await level.load();
+    await execute(Levels_LevelStartCommand);
 
     console.log(`[LevelSystem] Level ${levelId} loaded`);
   }
@@ -41,12 +36,7 @@ export class LevelSystem implements System {
 
     console.log('[LevelSystem] Unloading level');
 
-    this.context.systems.unregister('update', this.updateHandler);
-    this.context.systems.unregister('resize', this.resizeHandler);
-
-    // Destroy the level entity — this destroys all tracked children first, then the level itself.
     this.currentLevel.destroy();
-    setActiveChildren(null);
 
     this.context.systems.get(PhysicsSystem).clearOrphans();
     this.context.systems.get(EntityCollisionSystem).clear();
@@ -56,30 +46,11 @@ export class LevelSystem implements System {
 
   stop() {
     console.log('[LevelSystem] Stopping current level...');
-    this.context.systems.unregister('update', this.updateHandler);
-    this.context.systems.unregister('resize', this.resizeHandler);
   }
 
   start() {
     console.log('[LevelSystem] Starting current level...');
-    this.context.systems.register('update', this.updateHandler);
-    this.context.systems.register('resize', this.resizeHandler);
   }
 
-  private updateLevel(delta: number) {
-    this.currentLevel!.update(delta);
-  }
-
-  private resizeLevel(w: number, h: number) {
-    // resize is optional on level entities
-    void w;
-    void h;
-  }
-
-  destroy() {
-    if (this.currentLevel && this.context) {
-      this.context.systems.unregister('update', this.updateHandler);
-      this.context.systems.unregister('resize', this.resizeHandler);
-    }
-  }
+  destroy() {}
 }
