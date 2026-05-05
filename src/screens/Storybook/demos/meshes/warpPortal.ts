@@ -111,7 +111,7 @@ export function warpPortal(root: Container, w: number, h: number): () => void {
   root.addChild(mesh);
 
   const { buffer: posBuf } = geo.getAttribute('aPosition');
-  const { buffer: uvBuf  } = geo.getAttribute('aTexCoord');
+  const { buffer: uvBuf  } = geo.getAttribute('aUV');
 
   // Cache rest angles and radii
   const restR: number[] = [0];

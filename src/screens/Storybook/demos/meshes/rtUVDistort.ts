@@ -66,7 +66,7 @@ export function rtUVDistort(root: Container, w: number, h: number): () => void {
   plane.y = 16;
   root.addChild(plane);
 
-  const { buffer: uvBuf } = geo.getAttribute('aTexCoord');
+  const { buffer: uvBuf } = geo.getAttribute('aUV');
 
   // Cache rest UVs
   const restU = new Float32Array(VX * VY);
