@@ -20,6 +20,7 @@
  * sigma controls the radius of influence (larger = wider lens).
  */
 import { Container, Graphics, Mesh, PlaneGeometry, RenderTexture, Text } from 'pixi.js';
+import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 
@@ -80,9 +81,8 @@ export function screenBulge(root: Container, w: number, h: number): () => void {
   let mouseX = w / 2, mouseY = PREVIEW_H / 2;
 
   const onMove = (e: MouseEvent) => {
-    const bounds = app.canvas.getBoundingClientRect();
-    mouseX = (e.clientX - bounds.left) * (w / bounds.width);
-    mouseY = (e.clientY - bounds.top) * (h / bounds.height) - 16;
+    const { x, y } = demoMouse(e);
+    mouseX = x; mouseY = y;
   };
   window.addEventListener('mousemove', onMove);
 

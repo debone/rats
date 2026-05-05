@@ -19,6 +19,7 @@
  * doesn't stretch as the snake moves.
  */
 import { Container, Graphics, MeshRope, Point, Texture, Text } from 'pixi.js';
+import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 
@@ -88,9 +89,8 @@ export function snakeBody(root: Container, w: number, h: number): () => void {
   let targetX = cx, targetY = cy;
 
   const onMove = (e: MouseEvent) => {
-    const bounds = app.canvas.getBoundingClientRect();
-    targetX = (e.clientX - bounds.left) * (w / bounds.width);
-    targetY = (e.clientY - bounds.top) * (h / bounds.height);
+    const { x, y } = demoMouse(e);
+    targetX = x; targetY = y;
   };
   window.addEventListener('mousemove', onMove);
 

@@ -15,6 +15,7 @@
  * → stiffer cloth. Wind adds a sine-wave horizontal force to non-pinned nodes.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
+import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 
@@ -96,9 +97,7 @@ export function clothSim(root: Container, w: number, h: number): () => void {
   let dragIdx = -1;
   let mouseX = 0, mouseY = 0;
   const onDown = (e: MouseEvent) => {
-    const bounds = app.canvas.getBoundingClientRect();
-    const mx = (e.clientX - bounds.left) * (w / bounds.width);
-    const my = (e.clientY - bounds.top) * (h / bounds.height);
+    const { x: mx, y: my } = demoMouse(e);
     let best = 400, bi = -1;
     for (let i = 0; i < N; i++) {
       const d = Math.hypot(px[i] - mx, py[i] - my);
@@ -107,9 +106,8 @@ export function clothSim(root: Container, w: number, h: number): () => void {
     if (best < 24) { dragIdx = bi; mouseX = mx; mouseY = my; }
   };
   const onMove = (e: MouseEvent) => {
-    const bounds = app.canvas.getBoundingClientRect();
-    mouseX = (e.clientX - bounds.left) * (w / bounds.width);
-    mouseY = (e.clientY - bounds.top) * (h / bounds.height);
+    const { x, y } = demoMouse(e);
+    mouseX = x; mouseY = y;
   };
   const onUp = () => { dragIdx = -1; };
   window.addEventListener('mousedown', onDown);

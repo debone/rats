@@ -14,6 +14,7 @@
  * The texture tiles horizontally (a stone/floor pattern) giving spatial context.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
+import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 
@@ -76,9 +77,7 @@ export function groundRipple(root: Container, w: number, h: number): () => void 
   const ripples: Ripple[] = [];
 
   const onClick = (e: MouseEvent) => {
-    const bounds = app.canvas.getBoundingClientRect();
-    const mx = (e.clientX - bounds.left) * (w / bounds.width);
-    const my = (e.clientY - bounds.top) * (h / bounds.height) - 16;
+    const { x: mx, y: my } = demoMouse(e);
     if (my < 0 || my > PREVIEW_H) return;
     ripples.push({ cx: mx, cy: my, age: 0 });
     if (ripples.length > 6) ripples.shift();

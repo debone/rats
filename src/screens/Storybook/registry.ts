@@ -93,6 +93,14 @@ import { snakeBody }             from './demos/meshes/snakeBody';
 import { morphShape }            from './demos/meshes/morphShape';
 import { screenBulge }           from './demos/meshes/screenBulge';
 
+import { gerstnerOcean }    from './demos/meshes/gerstnerOcean';
+import { electricArcs }     from './demos/meshes/electricArcs';
+import { slashTrail }       from './demos/meshes/slashTrail';
+import { warpPortal }       from './demos/meshes/warpPortal';
+import { softBlob }         from './demos/meshes/softBlob';
+import { shockwaveImpact }  from './demos/meshes/shockwaveImpact';
+import { rtUVDistort }      from './demos/meshes/rtUVDistort';
+
 import { clickableBricks } from './demos/interactions/clickableBricks';
 import { ballToBrick } from './demos/interactions/ballToBrick';
 import { cheeseMagnet } from './demos/interactions/cheeseMagnet';
@@ -190,9 +198,18 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'env-web',     category: 'environment', name: 'Spiderweb',        setup: spiderweb },
   { id: 'env-rain',    category: 'environment', name: 'Rain Streaks',     setup: rainStreaks },
 
-  // Meshes
-  { id: 'mesh-rope-trail',   category: 'meshes', name: 'MeshRope Trail',    setup: meshRopeTrail },
-  { id: 'mesh-plane-flag',   category: 'meshes', name: 'Waving Flag',       setup: meshPlaneFlag },
+  // Meshes — Visual VFX
+  { id: 'mesh-ocean',        category: 'meshes', name: 'Gerstner Ocean',    setup: gerstnerOcean },
+  { id: 'mesh-arcs',         category: 'meshes', name: 'Electric Arcs',     setup: electricArcs },
+  { id: 'mesh-slash',        category: 'meshes', name: 'Slash Trail',       setup: slashTrail },
+  { id: 'mesh-portal',       category: 'meshes', name: 'Warp Portal',       setup: warpPortal },
+  { id: 'mesh-blob',         category: 'meshes', name: 'Soft Blob',         setup: softBlob },
+  { id: 'mesh-shockwave',    category: 'meshes', name: 'Shockwave Impact',  setup: shockwaveImpact },
+  { id: 'mesh-uv-distort',   category: 'meshes', name: 'UV Distortion RT',  setup: rtUVDistort },
+
+  // Meshes — Technique Demos
+  { id: 'mesh-rope-trail',   category: 'meshes', name: 'Rope Trail',        setup: meshRopeTrail },
+  { id: 'mesh-plane-flag',   category: 'meshes', name: 'Flag Wave',         setup: meshPlaneFlag },
   { id: 'mesh-lightmap',     category: 'meshes', name: 'RT Light Map',      setup: renderTextureLightMap },
   { id: 'mesh-cloth',        category: 'meshes', name: 'Cloth Sim',         setup: clothSim },
   { id: 'mesh-ripple',       category: 'meshes', name: 'Ground Ripple',     setup: groundRipple },

@@ -19,6 +19,7 @@
  *   3. Sprite(rt) with blendMode='multiply' sits above the scene.
  */
 import { Container, Graphics, RenderTexture, Sprite, Text } from 'pixi.js';
+import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 
@@ -104,11 +105,9 @@ export function renderTextureLightMap(root: Container, w: number, h: number): ()
 
   // Track mouse in root-local space
   const onMove = (e: MouseEvent) => {
-    const bounds = app.canvas.getBoundingClientRect();
-    const px = (e.clientX - bounds.left) * (w / bounds.width);
-    const py = (e.clientY - bounds.top) * (h / bounds.height) - 16;
-    torchLight.x = px;
-    torchLight.y = py;
+    const { x, y } = demoMouse(e);
+    torchLight.x = x;
+    torchLight.y = y;
   };
   window.addEventListener('mousemove', onMove);
 
