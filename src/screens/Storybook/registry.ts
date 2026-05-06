@@ -59,6 +59,11 @@ import { ratHorde } from './demos/cutscenes/ratHorde';
 import { sprayGraffiti } from './demos/cutscenes/sprayGraffiti';
 import { fogCrawl } from './demos/cutscenes/fogCrawl';
 import { heistPlanning } from './demos/cutscenes/heistPlanning';
+import { sewerChannel }   from './demos/cutscenes/sewerChannel';
+import { toxicLeak }      from './demos/cutscenes/toxicLeak';
+import { tunnelCollapse } from './demos/cutscenes/tunnelCollapse';
+import { floodBurst }     from './demos/cutscenes/floodBurst';
+import { dangerScan }     from './demos/cutscenes/dangerScan';
 
 import { flipbookExplosion } from './demos/vfx/flipbookExplosion';
 import { flipbookRipple } from './demos/vfx/flipbookRipple';
@@ -174,6 +179,11 @@ export const REGISTRY: DemoEntry[] = [
   { id: 'cut-spray-graffiti',  category: 'cutscenes',   name: 'Spray Graffiti',   setup: sprayGraffiti },
   { id: 'cut-fog-crawl',       category: 'cutscenes',   name: 'Fog Crawl',        setup: fogCrawl },
   { id: 'cut-heist-planning',  category: 'cutscenes',   name: 'Heist Planning',   setup: heistPlanning },
+  { id: 'cut-sewer-channel',   category: 'cutscenes',   name: 'Sewer Channel',    setup: sewerChannel },
+  { id: 'cut-toxic-leak',      category: 'cutscenes',   name: 'Toxic Leak',       setup: toxicLeak },
+  { id: 'cut-tunnel-collapse', category: 'cutscenes',   name: 'Tunnel Collapse',  setup: tunnelCollapse },
+  { id: 'cut-flood-burst',     category: 'cutscenes',   name: 'Flood Burst',      setup: floodBurst },
+  { id: 'cut-danger-scan',     category: 'cutscenes',   name: 'Danger Scan',      setup: dangerScan },
 
   // VFX Techniques
   { id: 'vfx-flipbook-explosion', category: 'vfx', name: 'Flipbook: Explosion',  setup: flipbookExplosion },
