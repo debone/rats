@@ -1,11 +1,10 @@
 import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
-import { getEntitiesOfKind } from '@/core/entity/entity';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { getEntitiesOf } from '@/core/entity/entity';
+import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { signal } from '@/core/reactivity/signals/signals';
 import { GameEvent } from '@/data/events';
 import { getRunState } from '@/data/game-state';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_ApplyLinearImpulseToCenter,
@@ -25,15 +24,15 @@ import {
   CreateCircle,
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
+import { Paddle } from './Paddle';
 
-export interface NormBallEntity extends EntityBase<typeof ENTITY_KINDS.normBall> {
+export interface NormBallEntity extends EntityBase {
   bodyId: b2BodyId;
   sprite: Sprite;
   active: boolean;
   baseSpeed: number;
   startUpdating(): void;
   stopUpdating(): void;
-  destroy(): void;
 }
 
 export interface NormBallProps {
@@ -46,9 +45,8 @@ const f = signal(0, {
   tweakpaneOptions: { readonly: true, bufferSize: 1000, interval: 100, view: 'graph', min: 0, max: 1 },
 });
 
-export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity => {
+export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
   const worldId = useWorldId();
-  const unmount = getUnmount();
   const physics = usePhysics();
 
   const { bodyId, shapeId } = CreateCircle({
@@ -110,7 +108,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
 
     // Flub passive: gentle horizontal attraction toward paddle
     if (nudge) {
-      const paddles = getEntitiesOfKind(ENTITY_KINDS.paddle);
+      const paddles = getEntitiesOf(Paddle);
       if (paddles.length > 0) {
         const paddlePos = b2Body_GetPosition(paddles[0].bodyId);
         const ballPos = b2Body_GetPosition(bodyId);
@@ -152,18 +150,6 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     entity: normBall,
   }));
 
-  /*
-  useGameEvent(GameEvent.POWERUP_FASTER, () => {
-    powerUp();
-  });
-
-  useGameEvent(GameEvent.POWERUP_DOUBLER, () => {
-    const position = b2Body_GetPosition(bodyId);
-    const newBall = NormBall({ x: position.x, y: position.y });
-    newBall.startUpdating();
-  });
-  */
-
   useGameEvent(GameEvent.CREW_DOUBLE_BALLS, () => {
     const velocity = b2Body_GetLinearVelocity(bodyId);
 
@@ -182,8 +168,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
     });
   });
 
-  const normBall: NormBallEntity = {
-    kind: ENTITY_KINDS.normBall,
+  const normBall = entity<NormBallEntity>({
     active: false,
     bodyId,
     sprite: ballSprite,
@@ -196,10 +181,7 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps): NormBallEntity =
       normBall.active = false;
       stop();
     },
-    destroy() {
-      unmount();
-    },
-  };
+  });
 
   return normBall;
 });

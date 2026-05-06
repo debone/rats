@@ -1,4 +1,4 @@
-import { mountEffect, onCleanup } from '@/core/entity/scope';
+import { mountEffect, onCleanup, withActiveChildren, type EntityBase } from '@/core/entity/scope';
 import type { GameEventName, GameEventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { EntityCollisionSystem, type EntityCollisionConfig } from '@/systems/physics/EntityCollisionSystem';
@@ -105,6 +105,20 @@ export function useImmediateUpdate(handler: (delta: number) => void) {
     stop() {
       if (clean) return;
       systems.unregister('update', handler);
+    },
+  };
+}
+
+export function useChildren() {
+  const children = new Set<EntityBase>();
+
+  onCleanup(() => {
+    children.forEach((child) => child.destroy());
+  });
+
+  return {
+    withChildren<T>(fn: () => T): T {
+      return withActiveChildren(children, fn);
     },
   };
 }

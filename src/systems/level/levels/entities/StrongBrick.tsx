@@ -3,16 +3,15 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getRunState } from '@/data/game-state';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface StrongBrickEntity extends EntityBase<typeof ENTITY_KINDS.strongBrick> {
+export interface StrongBrickEntity extends EntityBase {
   bodyId: b2BodyId;
   spawnPos: { x: number; y: number };
   /** Remaining hits (starts at `initialLife`, typically 2). */
@@ -32,10 +31,9 @@ export interface StrongBrickProps {
 }
 
 export const StrongBrick = defineEntity(
-  ({ bodyId, spawnPos, debrisEmitter, initialLife = 2, onHit, onBreak }: StrongBrickProps): StrongBrickEntity => {
+  ({ bodyId, spawnPos, debrisEmitter, initialLife = 2, onHit, onBreak }: StrongBrickProps) => {
     const physics = usePhysics();
     const camera = useCamera();
-    const unmount = getUnmount();
 
     if (!spawnPos && !bodyId) {
       throw new Error('Spawn position or body ID is required');
@@ -87,8 +85,7 @@ export const StrongBrick = defineEntity(
       physics.queueDestruction(bodyId);
     });
 
-    const strongBrick: StrongBrickEntity = {
-      kind: ENTITY_KINDS.strongBrick,
+    const strongBrick = entity<StrongBrickEntity>({
       bodyId,
       spawnPos,
       life: initialLife,
@@ -127,10 +124,7 @@ export const StrongBrick = defineEntity(
         onBreak?.(this);
         this.destroy();
       },
-      destroy() {
-        unmount();
-      },
-    };
+    });
 
     return strongBrick;
   },

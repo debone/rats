@@ -1,8 +1,7 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { changeScraps } from '@/data/game-state';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_ApplyLinearImpulseToCenter,
@@ -17,9 +16,8 @@ import {
 } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface ScrapEntity extends EntityBase<typeof ENTITY_KINDS.scrap> {
+export interface ScrapEntity extends EntityBase {
   bodyId: b2BodyId;
-  destroy(): void;
 }
 
 export interface ScrapProps {
@@ -31,7 +29,6 @@ export interface ScrapProps {
 export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntity => {
   const worldId = useWorldId();
   const physics = usePhysics();
-  const unmount = getUnmount();
 
   const { bodyId, shapeId } = CreateCircle({
     worldId,
@@ -76,14 +73,9 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
   sprite.anchor.set(0.5, 0.5);
   useBodySprite(sprite, bodyId);
 
-  const scrap: ScrapEntity = {
-    kind: ENTITY_KINDS.scrap,
+  const scrap = entity<ScrapEntity>({
     bodyId,
-
-    destroy() {
-      unmount();
-    },
-  };
+  });
 
   return scrap;
 });

@@ -1,4 +1,39 @@
-import type { EntityBase } from '@/entities/entity-kinds';
+export interface EntityBase {
+  readonly kind: symbol;
+  destroy(): void;
+}
+
+/**
+ * The members you need to supply when building an entity of type `T` inside
+ * `defineEntity`. Strips the `EntityBase` members (`kind`, `destroy`) from the
+ * required shape — `defineEntity` injects those automatically — while
+ * `ThisType<T>` makes `this` inside every method resolve to the full entity
+ * type, so you can call `this.destroy()`, `this.bodyId`, etc. without
+ * redeclaring them.
+ *
+ * @example
+ * const brick = { bodyId, hit() { this.destroy(); } } satisfies EntityBody<BrickEntity>;
+ */
+export type EntityBody<T extends EntityBase> = Omit<T, keyof EntityBase> & ThisType<T>;
+
+/**
+ * Declare an entity's body inside `defineEntity` without re-specifying `kind`
+ * or `destroy` — those are injected by `defineEntity` at construction time.
+ *
+ * Unlike `satisfies EntityBody<T>`, this returns the variable typed as the
+ * full `T`, so you can pass it to callbacks or call `entity.destroy()` from
+ * closures without any casting.
+ *
+ * `ThisType<T>` is still in effect for all methods, so `this.destroy()`,
+ * `this.bodyId`, etc. resolve correctly inside those methods.
+ *
+ * @example
+ * const cheese = entityBody<CheeseEntity>({ type, bodyId });
+ * cheese.destroy(); // ✓ — typed as CheeseEntity even without declaring destroy
+ */
+export function entity<T extends EntityBase>(body: EntityBody<T>): T {
+  return body as unknown as T;
+}
 
 type Effect = () => (() => void) | void;
 
@@ -11,12 +46,26 @@ interface Scope {
 /** Root scope for each entity created by `defineEntity` — used by `attach`. */
 const entityScopes = new WeakMap<object, Scope>();
 const entities = new Set<EntityBase>();
+const entityRegistry = new Map<symbol, Set<EntityBase>>();
 
 let activeScope: Scope | null = null;
+let activeChildren: Set<EntityBase> | null = null;
+
+export function withActiveChildren<T>(set: Set<EntityBase> | null, fn: () => T): T {
+  const prev = activeChildren;
+  activeChildren = set;
+  const result = fn();
+  activeChildren = prev;
+  return result;
+}
 
 /** All live entities from `defineEntity` factories (discriminated by `kind`). */
 export function getEntities(): readonly EntityBase[] {
   return Array.from(entities);
+}
+
+export function getEntitiesForKind(kind: symbol): readonly EntityBase[] {
+  return Array.from(entityRegistry.get(kind) || []);
 }
 
 function createScope(): Scope {
@@ -54,27 +103,60 @@ export function getUnmount(): () => void {
   return activeScope.unmount;
 }
 
-export function defineEntity<Props, Entity extends EntityBase>(
-  factory: (props: Props) => Entity,
-): (props: Props) => Entity {
-  return (props: Props) => {
+export type EntityFactory<Props extends object, API extends object> = ((props: Props) => EntityBase & API) & {
+  readonly kind: symbol;
+};
+
+export function defineEntity<Props extends object, API extends object>(
+  factory: (props: Props) => API & ThisType<EntityBase & API>,
+): EntityFactory<Props, API> {
+  const kind = Symbol(factory.name);
+
+  const wrappedFactory = (props: Props): EntityBase & API => {
     const scope = createScope();
     const prev = activeScope;
     activeScope = scope;
 
-    const entity = factory(props);
+    const api = factory(props) as object;
 
-    onCleanup(() => {
+    const entity = Object.assign(api, {
+      kind,
+      destroy: () => {
+        scope.unmount();
+      },
+    }) as EntityBase & API;
+
+    scope.cleanups.push(() => {
       entities.delete(entity);
+      entityRegistry.get(kind)?.delete(entity);
     });
+
+    if (activeChildren !== null) {
+      const parentSet = activeChildren;
+      parentSet.add(entity);
+      scope.cleanups.push(() => {
+        parentSet.delete(entity);
+      });
+    }
 
     activeScope = prev;
     applyEffects(scope);
     entityScopes.set(entity, scope);
     entities.add(entity);
 
+    let kindSet = entityRegistry.get(kind);
+    if (!kindSet) {
+      kindSet = new Set();
+      entityRegistry.set(kind, kindSet);
+    }
+    kindSet.add(entity);
+
     return entity;
   };
+
+  Object.defineProperty(wrappedFactory, 'kind', { value: kind, writable: false, enumerable: true });
+
+  return wrappedFactory as EntityFactory<Props, API>;
 }
 
 export type AttachHandle<R> = R extends void | undefined

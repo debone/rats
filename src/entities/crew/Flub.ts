@@ -1,6 +1,6 @@
-import { getEntitiesOfKind } from '@/core/entity/entity';
+import { getEntitiesOf } from '@/core/entity/entity';
 import type { CrewMemberDef } from './Crew';
-import { ENTITY_KINDS } from '../entity-kinds';
+import { NormBall } from '@/systems/level/levels/entities/NormBall';
 
 export const FlubCrewMember: CrewMemberDef = {
   type: 'flub',
@@ -11,7 +11,7 @@ export const FlubCrewMember: CrewMemberDef = {
     name: 'Haste active balls',
     cost: 1,
     effect: () => {
-      getEntitiesOfKind(ENTITY_KINDS.normBall).forEach((ball) => {
+      getEntitiesOf(NormBall).forEach((ball) => {
         if (ball.active) {
           ball.baseSpeed = ball.baseSpeed * 1.1;
           ball.sprite.tint = Math.max(0x00ff00, ball.sprite.tint - 0x660066);

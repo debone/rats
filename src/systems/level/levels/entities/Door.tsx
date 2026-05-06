@@ -2,8 +2,7 @@ import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
-import { defineEntity, getUnmount, mountEffect, onCleanup } from '@/core/entity/scope';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { defineEntity, entity, mountEffect, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { useBodySprite, useCamera, usePhysics, useWorldId } from '@/hooks/hooks';
 import { animate } from 'animejs';
 import {
@@ -18,7 +17,7 @@ import {
 } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface DoorEntity extends EntityBase<typeof ENTITY_KINDS.door> {
+export interface DoorEntity extends EntityBase {
   bodyIds: b2BodyId[];
   spawnPos: { x: number; y: number };
   closed: boolean;
@@ -36,11 +35,10 @@ export interface DoorProps {
 }
 
 export const Door = defineEntity(
-  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps): DoorEntity => {
+  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
     const camera = useCamera();
-    const unmount = getUnmount();
 
     const doorPos = new b2Vec2(spawnPos.x, spawnPos.y);
 
@@ -71,11 +69,7 @@ export const Door = defineEntity(
       });
     });
 
-    const door: DoorEntity = {
-      kind: ENTITY_KINDS.door,
-      destroy() {
-        unmount();
-      },
+    const door = entity<DoorEntity>({
       bodyIds,
       spawnPos,
       closed: true,
@@ -107,7 +101,7 @@ export const Door = defineEntity(
           });
         }
       },
-    };
+    });
 
     mountEffect(() => {
       if (startOpen) {

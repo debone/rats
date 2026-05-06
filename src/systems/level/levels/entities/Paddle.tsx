@@ -1,9 +1,9 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { getRunState } from '@/data/game-state';
 import {
   useBodySprite,
   useCollisionHandler,
@@ -39,15 +39,12 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
-import { attachCaptainBoost } from '../attachments/paddleCaptainBoost';
-import { getRunState } from '@/data/game-state';
 import { NormBall } from './NormBall';
 
-export interface PaddleEntity extends EntityBase<typeof ENTITY_KINDS.paddle> {
+export interface PaddleEntity extends EntityBase {
   bodyId: b2BodyId;
   sprite: Sprite;
   maxSpeed: number;
-  destroy(): void;
 }
 
 export interface PaddleProps {
@@ -58,10 +55,9 @@ export interface PaddleProps {
 }
 
 export const Paddle = defineEntity(
-  ({ jointId, brickDebrisEmitter, plusClayEmitter, plusCheeseEmitter }: PaddleProps): PaddleEntity => {
+  ({ jointId, brickDebrisEmitter, plusClayEmitter, plusCheeseEmitter }: PaddleProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
-    const unmount = getUnmount();
 
     const anchorBodyId = b2Joint_GetBodyA(jointId);
     const tempBodyId = b2Joint_GetBodyB(jointId);
@@ -131,15 +127,11 @@ export const Paddle = defineEntity(
       boatVelocityAdjustment = velocity;
     });
 
-    const paddle: PaddleEntity = {
-      kind: ENTITY_KINDS.paddle,
+    const paddle = entity<PaddleEntity>({
       bodyId,
       sprite: paddleSprite,
       maxSpeed: 15,
-      destroy() {
-        unmount();
-      },
-    };
+    });
 
     useCollisionHandler(bodyId, () => ({
       tag: 'paddle',
@@ -163,10 +155,11 @@ export const Paddle = defineEntity(
     }));
 
     let captainBoostHandle: { detach: () => void } | undefined;
+    /*
     useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
       captainBoostHandle?.detach();
       captainBoostHandle = attachCaptainBoost(paddle);
-    });
+    });*/
 
     useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {
       const paddlePosition = b2Body_GetPosition(paddle.bodyId);

@@ -3,22 +3,20 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
-import { defineEntity, getUnmount, onCleanup } from '@/core/entity/scope';
+import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
 import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
-export interface BrickEntity extends EntityBase<typeof ENTITY_KINDS.brick> {
+export interface BrickEntity extends EntityBase {
   bodyId: b2BodyId;
   powerUp: BrickPowerUps | undefined;
   spawnPos: { x: number; y: number };
   hit(): void;
-  destroy(): void;
 }
 
 export interface BrickProps {
@@ -33,7 +31,6 @@ export interface BrickProps {
 export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, onHit, onBreak }: BrickProps) => {
   const physics = usePhysics();
   const camera = useCamera();
-  const unmount = getUnmount();
 
   if (!spawnPos && !bodyId) {
     throw new Error('Spawn position or body ID is required');
@@ -90,8 +87,7 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
     physics.queueDestruction(bodyId);
   });
 
-  const brick: BrickEntity = {
-    kind: ENTITY_KINDS.brick,
+  const brick = entity<BrickEntity>({
     bodyId,
     powerUp,
     spawnPos,
@@ -120,10 +116,7 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
 
       this.destroy();
     },
-    destroy() {
-      unmount();
-    },
-  };
+  });
 
   return brick;
 });

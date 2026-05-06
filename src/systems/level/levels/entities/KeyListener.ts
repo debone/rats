@@ -1,5 +1,4 @@
-import { defineEntity, getUnmount } from '@/core/entity/scope';
-import { ENTITY_KINDS, type EntityBase } from '@/entities/entity-kinds';
+import { defineEntity, entity, type EntityBase } from '@/core/entity/scope';
 import { useImmediateUpdate } from '@/hooks/hooks';
 import { InputDevice } from 'pixijs-input-devices';
 
@@ -12,9 +11,7 @@ export interface KeyListenerProps {
   debounceMs?: number;
 }
 
-export interface KeyListenerEntity extends EntityBase<typeof ENTITY_KINDS.keyListener> {
-  destroy(): void;
-}
+export interface KeyListenerEntity extends EntityBase {}
 
 /**
  * Per-binding edge state for debounced key handling.
@@ -48,12 +45,5 @@ function useKeyListenerBindings(props: KeyListenerProps): void {
 export const KeyListener = defineEntity((props: KeyListenerProps): KeyListenerEntity => {
   useKeyListenerBindings(props);
 
-  const unmount = getUnmount();
-
-  return {
-    kind: ENTITY_KINDS.keyListener,
-    destroy() {
-      unmount();
-    },
-  };
+  return entity<KeyListenerEntity>({});
 });
