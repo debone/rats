@@ -9,8 +9,51 @@ import type { System } from '@/core/game/System';
 import type { GameContext } from '@/data/game-context';
 import { setLevelState } from '@/data/game-state';
 import type { Level } from './Level';
+import type { BreakoutLevelEntity } from './levels/BreakoutLevel';
+import { LEVEL_DEFINITIONS } from './levels/level-definitions';
+import { Levels_LevelStartCommand } from './levels/commands/LevelStartCommand';
+import { execute } from '@/core/game/Command';
+import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
+import { PhysicsSystem } from '../physics/system';
 
 export class LevelSystem implements System {
+  static SYSTEM_ID = 'level';
+  private context!: GameContext;
+  private currentLevel?: BreakoutLevelEntity;
+
+  init(context: GameContext) {
+    this.context = context;
+  }
+
+  async loadLevel(levelId: string): Promise<void> {
+    console.log(`[LevelSystem] Loading level: ${levelId}`);
+
+    const levelDefinition = LEVEL_DEFINITIONS[levelId];
+    assert(levelDefinition, `Level definition for ${levelId} not found`);
+
+    const level = levelDefinition();
+    this.currentLevel = level;
+    await execute(Levels_LevelStartCommand);
+  }
+
+  async unloadLevel(): Promise<void> {
+    assert(this.currentLevel, 'Current level is not set');
+    this.currentLevel.destroy();
+
+    this.context.systems.get(PhysicsSystem).clearOrphans();
+    this.context.systems.get(EntityCollisionSystem).clear();
+
+    this.currentLevel = undefined;
+  }
+
+  stop() {}
+
+  start() {}
+
+  destroy() {}
+}
+
+export class LevelSystemWorking implements System {
   static SYSTEM_ID = 'level';
 
   private context!: GameContext;

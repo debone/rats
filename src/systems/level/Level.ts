@@ -2,7 +2,7 @@ import type { FollowResult } from '@/core/camera/effects/follow';
 import { getEntities } from '@/core/entity/scope';
 import { execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
-import type { GameContext } from '@/data/game-context';
+import { getGameContext, type GameContext } from '@/data/game-context';
 import { getLevelState, getRunState, type Boon, type LevelResult } from '@/data/game-state';
 import { EntityCollisionSystem } from '../physics/EntityCollisionSystem';
 import { PhysicsSystem } from '../physics/system';
@@ -12,6 +12,31 @@ import { LevelFinishedCommand } from './commands/LevelFinishedCommand';
 export interface LevelConfig {
   id: string;
   name: string;
+}
+
+export function useLevelOutcome(levelId: string) {
+  let finished = false;
+
+  const onWin = () => {
+    if (finished) return;
+    finished = true;
+    const result = { levelId, success: true };
+    getGameContext().events.emit(GameEvent.LEVEL_WON, result);
+  };
+
+  const onLose = () => {
+    if (finished) return;
+    finished = true;
+    const result = { levelId, success: false };
+    getGameContext().events.emit(GameEvent.LEVEL_LOST, result);
+  };
+
+  const checkLoseCondition = () => {
+    const runState = getRunState();
+    return runState ? runState.ballsRemaining.get() <= 0 : false;
+  };
+
+  return { onWin, onLose, checkLoseCondition };
 }
 
 /**

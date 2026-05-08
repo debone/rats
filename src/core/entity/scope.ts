@@ -103,7 +103,9 @@ export function getUnmount(): () => void {
   return activeScope.unmount;
 }
 
-export type EntityFactory<Props extends object, API extends object> = ((props: Props) => EntityBase & API) & {
+export type EntityFactory<Props extends object, API extends object> = (
+  {} extends Props ? (props?: Props) => EntityBase & API : (props: Props) => EntityBase & API
+) & {
   readonly kind: symbol;
 };
 
@@ -112,12 +114,12 @@ export function defineEntity<Props extends object, API extends object>(
 ): EntityFactory<Props, API> {
   const kind = Symbol(factory.name);
 
-  const wrappedFactory = (props: Props): EntityBase & API => {
+  const wrappedFactory = (props: Props = {} as Props): EntityBase & API => {
     const scope = createScope();
     const prev = activeScope;
     activeScope = scope;
 
-    const api = factory(props) as object;
+    const api = (factory(props) ?? {}) as object;
 
     const entity = Object.assign(api, {
       kind,

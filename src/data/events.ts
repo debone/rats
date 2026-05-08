@@ -56,6 +56,9 @@ export const GameEvent = {
   CREW_SHOOT_BALL: 'crew:shoot-ball',
   CREW_DOUBLE_BALLS: 'crew:double-balls',
 
+  CAMPAIGN_LEVEL_WON: 'campaign:level-won',
+  CAMPAIGN_LEVEL_LOST: 'campaign:level-lost',
+
   // System events
   SAVE_COMPLETED: 'save:completed',
   SAVE_FAILED: 'save:failed',
@@ -115,6 +118,9 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
 
   [GameEvent.CREW_SHOOT_BALL]: void;
   [GameEvent.CREW_DOUBLE_BALLS]: void;
+
+  [GameEvent.CAMPAIGN_LEVEL_WON]: { levelId: string };
+  [GameEvent.CAMPAIGN_LEVEL_LOST]: void;
 
   // System events
   [GameEvent.SAVE_COMPLETED]: void;
