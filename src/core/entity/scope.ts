@@ -68,6 +68,10 @@ export function getEntitiesForKind(kind: symbol): readonly EntityBase[] {
   return Array.from(entityRegistry.get(kind) || []);
 }
 
+export function getEntitiesOf<P extends object, A extends object>(factory: EntityFactory<P, A>): Array<EntityBase & A> {
+  return getEntitiesForKind(factory.kind) as Array<EntityBase & A>;
+}
+
 function createScope(): Scope {
   const scope: Scope = {
     effects: [],
@@ -103,14 +107,14 @@ export function getUnmount(): () => void {
   return activeScope.unmount;
 }
 
-export type EntityFactory<Props extends object, API extends object> = (
-  {} extends Props ? (props?: Props) => EntityBase & API : (props: Props) => EntityBase & API
-) & {
+export type EntityFactory<Props extends object, API extends object> = ({} extends Props
+  ? (props?: Props) => EntityBase & API
+  : (props: Props) => EntityBase & API) & {
   readonly kind: symbol;
 };
 
 export function defineEntity<Props extends object, API extends object>(
-  factory: (props: Props) => API & ThisType<EntityBase & API>,
+  factory: (props: Props) => (API & ThisType<EntityBase & API>) | void,
 ): EntityFactory<Props, API> {
   const kind = Symbol(factory.name);
 

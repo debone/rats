@@ -3,7 +3,6 @@ import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT, TEXT_STYLE_TITLE } from '@/c
 import { typedAssets } from '@/core/assets/typed-assets';
 import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
-import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { Assets, Container, Texture, TilingSprite } from 'pixi.js';
 
 export class RatsList extends Container implements AppScreen {

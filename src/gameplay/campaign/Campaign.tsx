@@ -1,10 +1,10 @@
 import { defineEntity, getUnmount } from '@/core/entity/scope';
 import { addCompletedLevel } from '@/data/game-state';
 import { useGameEvent } from '@/hooks/hooks';
-import { GameOverCommand } from '../app/commands/GameOverCommand';
 import { execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
-import { LevelTransitionCommand } from '../level/commands/LevelTransitionCommand';
+import { GameOverCommand } from '@/gameplay/levels/commands/GameOverCommand';
+import { LevelTransitionCommand } from '@/gameplay/levels/commands/LevelTransitionCommand';
 
 export interface CampaignProps {
   levels: string[];

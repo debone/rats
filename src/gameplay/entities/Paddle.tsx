@@ -154,8 +154,8 @@ export const Paddle = defineEntity(
       entity: paddle,
     }));
 
-    let captainBoostHandle: { detach: () => void } | undefined;
     /*
+    let captainBoostHandle: { detach: () => void } | undefined;
     useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
       captainBoostHandle?.detach();
       captainBoostHandle = attachCaptainBoost(paddle);

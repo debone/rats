@@ -1,7 +1,6 @@
 import { ASSETS } from '@/assets';
 import { BALL_SPEED_DEFAULT } from '@/consts';
-import { getEntitiesOf } from '@/core/entity/entity';
-import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import { defineEntity, entity, getEntitiesOf, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { signal } from '@/core/reactivity/signals/signals';
 import { GameEvent } from '@/data/events';
 import { getRunState } from '@/data/game-state';

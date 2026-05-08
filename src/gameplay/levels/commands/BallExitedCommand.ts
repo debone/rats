@@ -6,7 +6,7 @@ import { t } from '@/i18n/i18n';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { animate } from 'animejs';
 import { Graphics, Text } from 'pixi.js';
-import { LevelSystem } from '../../system';
+import { LevelSystem } from '@/systems/level/system';
 
 export class Levels_BallExitedLevelCommand extends Command<void> {
   *execute() {
@@ -38,6 +38,7 @@ export class Levels_BallExitedLevelCommand extends Command<void> {
 
     this.context.systems.get(PhysicsSystem).stop();
     this.context.systems.get(LevelSystem).stop();
+
     yield delay(isDemo ? 5000 : 2500);
     animate(dark, { alpha: 1, duration: 500, ease: 'linear' });
     yield animate(endLevel, { alpha: 0, duration: 500, ease: 'linear' });

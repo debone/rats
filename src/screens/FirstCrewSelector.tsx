@@ -1,10 +1,9 @@
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
-import { execute } from '@/core/game/Command';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
+import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { onboardCrewMember } from '@/data/game-state';
 import { type CrewMemberDefKey } from '@/entities/crew/Crew';
-import { LevelSelectedCommand } from '@/systems/app/commands/LevelSelectedCommand';
 import { LayoutContainer } from '@pixi/layout/components';
 import { animate } from 'animejs';
 import { Container } from 'pixi.js';
@@ -31,7 +30,8 @@ export class FirstCrewSelector extends Container implements AppScreen {
 
   selectCrewMember(crewMember: CrewMemberDefKey) {
     onboardCrewMember(crewMember);
-    execute(LevelSelectedCommand, { levelId: 'level-1' });
+    //execute(LevelSelectedCommand, { levelId: 'level-1' });
+    getGameContext().events.emit(GameEvent.START_NEW_RUN, { startingLevelId: 'level-1' });
   }
 
   async prepare() {
@@ -51,14 +51,14 @@ export class FirstCrewSelector extends Container implements AppScreen {
       </button>
     </mount>;
 
-    execute(LevelSelectedCommand, { levelId: 'level-1' });
+    // Screens are now children of scenes, we talk events
+    // execute(LevelSelectedCommand, { levelId: 'level-1' });
+    getGameContext().events.emit(GameEvent.START_NEW_RUN, { startingLevelId: 'level-1' });
   }
 
   gameContainer?: LayoutContainer;
 
   async show(): Promise<void> {
-    // INSERT_YOUR_CODE
-    // Fade in the gameContainer when the screen is shown using animejs
     this.alpha = 0;
     await animate(this, { alpha: 1, duration: 250, ease: 'outQuad' });
   }

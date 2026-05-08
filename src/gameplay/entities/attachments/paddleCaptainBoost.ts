@@ -1,6 +1,6 @@
 import { attach, onCleanup } from '@/core/entity/scope';
 import { useUpdate } from '@/hooks/hooks';
-import type { PaddleEntity } from '@/systems/level/levels/entities/Paddle';
+import type { PaddleEntity } from '@/gameplay/entities/Paddle';
 
 /**
  * Captain powerup: faster paddle + tint (level-0 rewrite path).

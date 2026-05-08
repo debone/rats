@@ -10,8 +10,8 @@ import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signa
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
 import { CREW_DEFS, CrewMemberInstance, type CrewMemberDefKey } from '@/entities/crew/Crew';
-import type { LevelConfig } from '@/systems/level/Level';
 import { getGameContext } from './game-context';
+import type { LevelConfig } from '@/systems/level/system';
 
 export interface GameState {
   meta: MetaGameState;
@@ -126,7 +126,7 @@ export function createGameState(): GameState {
       ballsRemaining: signal(5),
       scrapsCounter: signal(0),
       cheeseCounter: signal(5),
-      crewMembers: createKeyedCollection([
+      crewMembers: createKeyedCollection<CrewMemberInstance>([
         /**
          new DoublerCrewMember('doubler2'),
          new DoublerCrewMember('doubler3'),

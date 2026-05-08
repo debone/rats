@@ -9,7 +9,6 @@ import { storage } from '@/core/storage/storage';
 import { resize, visibilityChange } from '@/core/window/resize';
 
 // Game Core
-import { execute } from '@/core/game/Command';
 import { EventContext, EventEmitter } from '@/core/game/EventEmitter';
 import { SystemRunner } from '@/core/game/SystemRunner';
 import type { GameContext } from '@/data/game-context';
@@ -21,7 +20,6 @@ import { NavigationSystem } from '@/systems/navigation/system';
 import { SaveSystem } from '@/systems/save/system';
 
 // Commands
-import { AppStartCommand } from '@/systems/app/commands/AppStartCommand';
 
 import { BloomFilter } from 'pixi-filters';
 import { CRT2Filter } from './lib/CRT/CRT';
@@ -35,6 +33,7 @@ import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
 import { navigation } from './core/window/navigation';
 import { ReflectionFilter2 } from './lib/ReflectionFilter/ReflectionFilter';
+import { HomeScene } from './scenes/HomeScene';
 import { ScheduleSystem } from './systems/app/ScheduleSystem';
 
 export const app = new Application();
@@ -191,8 +190,8 @@ async function init() {
   // Visibility change handler
   document.addEventListener('visibilitychange', visibilityChange);
 
-  // Start the app via command
-  execute(AppStartCommand);
+  // Start the app
+  HomeScene();
 }
 
 // Init everything

@@ -4,7 +4,7 @@ import { setCurrentLevelId } from '@/data/game-state';
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { Campaign } from '@/systems/campaign/Campaign';
 import { LoadLevelCommand } from '@/systems/level/commands/LoadLevelCommand';
-import { CAMPAIGN_LEVELS } from '@/systems/level/levels/campaign-def';
+import { CAMPAIGN_LEVELS } from '@/gameplay/campaign/campaign-def';
 import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';
 
 export class LevelSelectedCommand extends Command<{ levelId: string }> {

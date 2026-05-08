@@ -1,6 +1,6 @@
-import { getEntitiesOf } from '@/core/entity/entity';
+import { getEntitiesOf } from '@/core/entity/scope';
+import { NormBall } from '@/gameplay/entities/NormBall';
 import type { CrewMemberDef } from './Crew';
-import { NormBall } from '@/systems/level/levels/entities/NormBall';
 
 export const FlubCrewMember: CrewMemberDef = {
   type: 'flub',

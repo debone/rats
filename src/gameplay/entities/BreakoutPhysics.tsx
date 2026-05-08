@@ -1,27 +1,32 @@
-import { defineEntity, type AttachHandle } from '@/core/entity/scope';
+import { ASSETS } from '@/assets';
+import { assert } from '@/core/common/assert';
+import { defineEntity, getEntitiesOf, type AttachHandle } from '@/core/entity/scope';
 import { getGameContext } from '@/data/game-context';
+import { activateCrewAbility } from '@/data/game-state';
+import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren } from '@/hooks/hooks';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
-import { Assets } from 'pixi.js';
-import { BrickDebrisParticles } from './BrickDebrisParticles';
-import { WaterParticles } from './WaterParticles';
-import { WallParticles } from './WallParticles';
-import { PlusClayParticles } from './PlusClayParticles';
-import { PlusCheeseParticles } from './PlusCheeseParticles';
-import { KeyListener } from './KeyListener';
-import { activateCrewAbility } from '@/data/game-state';
-import { Paddle } from './Paddle';
-import { assert } from '@/core/common/assert';
+import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
-import { getEntitiesOf } from '@/core/entity/entity';
+import { Assets } from 'pixi.js';
+import { KeyListener } from '../../systems/keyboard/KeyListener';
+import { Brick, type BrickEntity } from './Brick';
+import { BlueCheese, GreenCheese, YellowCheese } from './Cheese';
+import { Door } from './Door';
 import { NormBall } from './NormBall';
-import { attachPaddleBallSnap } from '../attachments/paddleBallSnap';
-import type { BrickPowerUps } from '@/entities/bricks/Brick';
+import { Paddle } from './Paddle';
+import { Scrap } from './Scrap';
 import { Wall, wallSparkOnBall } from './Wall';
+import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
+import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
+import { PlusCheeseParticles } from './particles/PlusCheeseParticles';
+import { PlusClayParticles } from './particles/PlusClayParticles';
+import { WallParticles } from './particles/WallParticles';
+import { WaterParticles } from './particles/WaterParticles';
 
 export interface BodyUserData {
   type: string;
-  powerUp?: BrickPowerUps;
+  powerup?: BrickPowerUps;
   doorName?: string;
 }
 
@@ -104,6 +109,40 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
         // TODO
       } else if (tag === 'bottom-wall') {
         // TODO
+      } else if (tag === 'door') {
+        const pos = b2Body_GetPosition(bodyId);
+        ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
+        Door({ spawnPos: { x: pos.x, y: pos.y }, length: 4, sound: ASSETS.sounds_Chest_Open_Creak_3_1 });
+      } else if (tag === 'brick') {
+        const powerUp = userData?.powerup as BrickPowerUps | undefined;
+        Brick({
+          bodyId,
+          powerUp,
+          debrisEmitter: particles.brickDebris.emitter,
+          onBreak: (brick: BrickEntity) => {
+            const { x, y } = brick.spawnPos;
+            if (brick.powerUp) {
+              const pu = brick.powerUp;
+              if (pu === 'blue') {
+                BlueCheese({ pos: { x, y } });
+              } else if (pu === 'green') {
+                GreenCheese({ pos: { x, y } });
+              } else {
+                YellowCheese({ pos: { x, y } });
+              }
+            } else {
+              const r = Math.random();
+              if (r < 0.2) {
+                YellowCheese({ pos: { x, y } });
+              } else if (r < 0.5) {
+                Scrap({ pos: { x: x - 0.25, y } });
+                Scrap({ pos: { x: x + 0.25, y } });
+              } else {
+                Scrap({ pos: { x, y } });
+              }
+            }
+          },
+        });
       } else {
         nonStandardBodies.push({ bodyId, tag, userData });
       }

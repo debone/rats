@@ -1,7 +1,7 @@
 import { defineEntity } from '@/core/entity/scope';
 
 // Marker entity
-export const BreakoutLevel = defineEntity((_: object) => {
+export const BreakoutLevel = defineEntity(() => {
   return {};
 });
 
