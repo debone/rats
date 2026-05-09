@@ -1,4 +1,5 @@
-import { mountEffect, onCleanup, withActiveChildren, type EntityBase } from '@/core/entity/scope';
+import { mountEffect, onCleanup, registerChildren, withActiveChildren, type EntityBase } from '@/core/entity/scope';
+import { EventEmitter } from '@/core/game/EventEmitter';
 import type { GameEventName, GameEventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { EntityCollisionSystem, type EntityCollisionConfig } from '@/systems/physics/EntityCollisionSystem';
@@ -111,6 +112,7 @@ export function useImmediateUpdate(handler: (delta: number) => void) {
 
 export function useChildren() {
   const children = new Set<EntityBase>();
+  registerChildren(children);
 
   onCleanup(() => {
     children.forEach((child) => child.destroy());
@@ -121,4 +123,29 @@ export function useChildren() {
       return withActiveChildren(children, fn);
     },
   };
+}
+
+/**
+ * Create an `EventEmitter` whose lifetime is tied to the current entity scope.
+ * The emitter is cleared automatically when the entity is destroyed.
+ */
+export function useEmitter<TMap extends Record<string, any>>(): EventEmitter<TMap> {
+  const emitter = new EventEmitter<TMap>();
+  onCleanup(() => emitter.clear());
+  return emitter;
+}
+
+/**
+ * Subscribe to an emitter inside a `defineEntity` / `attach` scope.
+ * The subscription is removed when the scope is torn down.
+ */
+export function useSubscribe<TMap extends Record<string, any>, K extends keyof TMap>(
+  emitter: EventEmitter<TMap>,
+  event: K,
+  fn: (payload: TMap[K]) => void,
+): void {
+  mountEffect(() => {
+    emitter.on(event, fn);
+    return () => emitter.off(event, fn);
+  });
 }

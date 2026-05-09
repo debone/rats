@@ -40,6 +40,8 @@ type Effect = () => (() => void) | void;
 interface Scope {
   effects: Effect[];
   cleanups: Array<() => void>;
+  /** Populated by `registerChildren` (called from `useChildren`). */
+  children: Set<EntityBase> | null;
   unmount: () => void;
 }
 
@@ -72,10 +74,43 @@ export function getEntitiesOf<P extends object, A extends object>(factory: Entit
   return getEntitiesForKind(factory.kind) as Array<EntityBase & A>;
 }
 
+/**
+ * Register a `Set` as the children collection of the currently-active entity
+ * scope. Called once by `useChildren` so that `getChildrenOf` can query it
+ * later from outside the entity.
+ */
+export function registerChildren(set: Set<EntityBase>): void {
+  if (!activeScope) throw new Error('registerChildren called outside defineEntity scope');
+  activeScope.children = set;
+}
+
+/**
+ * Return all live children of `parent` that were created by `factory`.
+ *
+ * Requires the parent entity to have called `useChildren()` during its setup —
+ * that call registers the child set against the entity's scope.
+ *
+ * @example
+ * const bricks = getChildrenOf(physics, Brick);
+ */
+export function getChildrenOf<P extends object, A extends object>(
+  parent: EntityBase,
+  factory: EntityFactory<P, A>,
+): Array<EntityBase & A> {
+  const scope = entityScopes.get(parent);
+  if (!scope?.children) return [];
+  const out: Array<EntityBase & A> = [];
+  for (const child of scope.children) {
+    if (child.kind === factory.kind) out.push(child as EntityBase & A);
+  }
+  return out;
+}
+
 function createScope(): Scope {
   const scope: Scope = {
     effects: [],
     cleanups: [],
+    children: null,
     unmount() {
       scope.cleanups.forEach((c) => c());
       scope.cleanups.length = 0;

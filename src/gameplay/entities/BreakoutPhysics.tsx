@@ -10,12 +10,10 @@ import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { KeyListener } from '../../systems/keyboard/KeyListener';
-import { Brick, type BrickEntity } from './Brick';
-import { BlueCheese, GreenCheese, YellowCheese } from './Cheese';
+import { Brick } from './Brick';
 import { Door } from './Door';
 import { NormBall } from './NormBall';
 import { Paddle } from './Paddle';
-import { Scrap } from './Scrap';
 import { Wall, wallSparkOnBall } from './Wall';
 import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
@@ -119,29 +117,6 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
           bodyId,
           powerUp,
           debrisEmitter: particles.brickDebris.emitter,
-          onBreak: (brick: BrickEntity) => {
-            const { x, y } = brick.spawnPos;
-            if (brick.powerUp) {
-              const pu = brick.powerUp;
-              if (pu === 'blue') {
-                BlueCheese({ pos: { x, y } });
-              } else if (pu === 'green') {
-                GreenCheese({ pos: { x, y } });
-              } else {
-                YellowCheese({ pos: { x, y } });
-              }
-            } else {
-              const r = Math.random();
-              if (r < 0.2) {
-                YellowCheese({ pos: { x, y } });
-              } else if (r < 0.5) {
-                Scrap({ pos: { x: x - 0.25, y } });
-                Scrap({ pos: { x: x + 0.25, y } });
-              } else {
-                Scrap({ pos: { x, y } });
-              }
-            }
-          },
         });
       } else {
         nonStandardBodies.push({ bodyId, tag, userData });

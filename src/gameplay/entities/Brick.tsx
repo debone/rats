@@ -4,18 +4,25 @@ import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import type { EventEmitter } from '@/core/game/EventEmitter';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
-import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
+import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
+
+export type BrickEvents = {
+  hit: void;
+  broken: { x: number; y: number; powerUp: BrickPowerUps | undefined };
+};
 
 export interface BrickEntity extends EntityBase {
   bodyId: b2BodyId;
   powerUp: BrickPowerUps | undefined;
   spawnPos: { x: number; y: number };
+  events: EventEmitter<BrickEvents>;
   hit(): void;
 }
 
@@ -24,7 +31,9 @@ export interface BrickProps {
   spawnPos?: { x: number; y: number };
   debrisEmitter: ParticleEmitter;
   powerUp?: BrickPowerUps;
+  /** @deprecated Use `brick.events.on('hit', ...)` instead. */
   onHit?: (brick: BrickEntity) => void;
+  /** @deprecated Use `brick.events.on('broken', ...)` instead. */
   onBreak?: (brick: BrickEntity) => void;
 }
 
@@ -53,6 +62,8 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
 
   assert(bodyId, 'Body ID is required');
   assert(spawnPos, 'Spawn position is required');
+
+  const events = useEmitter<BrickEvents>();
 
   const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
   const sprite = new Sprite(bg[`bricks_tile_1#0`]);
@@ -91,8 +102,10 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
     bodyId,
     powerUp,
     spawnPos,
+    events,
 
     hit() {
+      events.emit('hit');
       onHit?.(this);
 
       if (Math.random() < 0.5) {
@@ -106,12 +119,12 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
       const { x, y } = BodyToScreen(this.bodyId);
       debrisEmitter.explode(8, x, y);
 
-      // TODO: improve this once all the levels are the same
       if (getRunState().crewBoons.lacfree_nextBricksHaveCheese.get() > 0) {
         getRunState().crewBoons.lacfree_nextBricksHaveCheese.update((v) => v - 1);
         brick.powerUp = 'yellow';
       }
 
+      events.emit('broken', { x: this.spawnPos.x, y: this.spawnPos.y, powerUp: this.powerUp });
       onBreak?.(this);
 
       this.destroy();
