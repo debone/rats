@@ -1,22 +1,17 @@
 import { ASSETS, TILED_MAPS } from '@/assets';
-import { defineEntity } from '@/core/entity/scope';
-import { getGameContext } from '@/data/game-context';
-import { GameEvent } from '@/data/events';
+import { attach, defineEntity, getChildrenOf } from '@/core/entity/scope';
 import { setLevelState } from '@/data/game-state';
-import { useChildren } from '@/hooks/hooks';
-import { t } from '@/i18n/i18n';
-import { PhysicsSystem } from '@/systems/physics/system';
-import { b2Body_GetPosition } from 'phaser-box2d';
-
 import { Background } from '@/gameplay/entities/Background';
 import { BreakoutPhysics } from '@/gameplay/entities/BreakoutPhysics';
-import { Brick, type BrickEntity } from '@/gameplay/entities/Brick';
+import { Brick } from '@/gameplay/entities/Brick';
 import { BlueCheese, GreenCheese, YellowCheese } from '@/gameplay/entities/Cheese';
-import { Door, type DoorEntity } from '@/gameplay/entities/Door';
+import { Door } from '@/gameplay/entities/Door';
 import { ExitWin } from '@/gameplay/entities/ExitWin';
 import { LivesBallRules } from '@/gameplay/entities/LivesBallRules';
 import { Scrap } from '@/gameplay/entities/Scrap';
 import { useLevelOutcome } from '@/gameplay/levels/hooks/useLevelOutcome';
+import { useChildren, useSubscribe } from '@/hooks/hooks';
+import { t } from '@/i18n/i18n';
 
 export const Level1 = defineEntity(() => {
   const { withChildren } = useChildren();
@@ -24,68 +19,45 @@ export const Level1 = defineEntity(() => {
 
   setLevelState({ id: 'level-1', name: t.dict['level-1.name'] });
 
-  let door: DoorEntity | undefined;
-  let remaining = 0;
-
   withChildren(() => {
     Background({ tiledMap: TILED_MAPS.backgrounds_level_1 });
-
-    const pg = BreakoutPhysics({ levelId: 'level-1', rubeAsset: ASSETS.level_1_rube });
+    const physics = BreakoutPhysics({ levelId: 'level-1', rubeAsset: ASSETS.level_1_rube });
 
     LivesBallRules({ onLose, checkLoseCondition });
     ExitWin({ onWin });
 
-    const ctx = getGameContext();
+    const bricks = getChildrenOf(physics, Brick);
+    const [door] = getChildrenOf(physics, Door);
 
-    pg.bodies.forEach(({ bodyId, tag, userData }) => {
-      if (tag === 'brick') {
-        const powerUp = userData?.powerup;
-        remaining++;
-        Brick({
-          bodyId,
-          powerUp,
-          debrisEmitter: pg.particles.brickDebris.emitter,
-          onBreak: (brick: BrickEntity) => {
-            const { x, y } = brick.spawnPos;
-            ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
-            if (powerUp === 'blue') {
-              BlueCheese({ pos: { x, y } });
-            } else if (powerUp === 'green') {
-              GreenCheese({ pos: { x, y } });
-            } else if (powerUp === 'yellow') {
+    let remaining = bricks.length;
+
+    for (const brick of bricks) {
+      attach(brick, (b) => {
+        useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
+          if (powerUp === 'blue') {
+            BlueCheese({ pos: { x, y } });
+          } else if (powerUp === 'green') {
+            GreenCheese({ pos: { x, y } });
+          } else if (powerUp === 'yellow') {
+            YellowCheese({ pos: { x, y } });
+          } else {
+            const r = Math.random();
+            if (r < 0.2) {
               YellowCheese({ pos: { x, y } });
+            } else if (r < 0.5) {
+              Scrap({ pos: { x: x - 0.25, y } });
+              Scrap({ pos: { x: x + 0.25, y } });
             } else {
-              const r = Math.random();
-              if (r < 0.2) {
-                YellowCheese({ pos: { x, y } });
-              } else if (r < 0.5) {
-                Scrap({ pos: { x: x - 0.25, y } });
-                Scrap({ pos: { x: x + 0.25, y } });
-              } else {
-                Scrap({ pos: { x, y } });
-              }
+              Scrap({ pos: { x, y } });
             }
-            remaining--;
-            if (remaining <= 48 && door?.closed) {
-              door?.open();
-            }
-          },
-        });
-        return;
-      }
+          }
 
-      if (tag === 'door') {
-        const pos = b2Body_GetPosition(bodyId);
-        ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
-        door = Door({
-          spawnPos: { x: pos.x, y: pos.y },
-          length: 4,
-          sound: ASSETS.sounds_Chest_Open_Creak_3_1,
+          remaining--;
+          if (remaining <= 48 && door?.closed) {
+            door?.open();
+          }
         });
-        return;
-      }
-
-      ctx.systems.get(PhysicsSystem).registerOrphanBody(bodyId);
-    });
+      });
+    }
   });
 });

@@ -23,19 +23,21 @@ export interface DoorEntity extends EntityBase {
   closed: boolean;
   length: number;
   openingDirection: 'left' | 'right';
+  name: string | undefined;
   open(): void;
 }
 
 export interface DoorProps {
   spawnPos: { x: number; y: number };
   length: number;
+  name?: string;
   openingDirection?: 'left' | 'right';
   startOpen?: boolean;
   sound?: string;
 }
 
 export const Door = defineEntity(
-  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
+  ({ spawnPos, length, name, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
     const camera = useCamera();
@@ -75,6 +77,7 @@ export const Door = defineEntity(
       closed: true,
       length,
       openingDirection,
+      name,
       open() {
         this.closed = false;
         const duration = 1500;

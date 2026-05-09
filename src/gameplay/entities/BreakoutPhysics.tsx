@@ -8,12 +8,16 @@ import { activateCrewAbility } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren } from '@/hooks/hooks';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
+import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { KeyListener } from '../../systems/keyboard/KeyListener';
+import { Brick } from './Brick';
+import { Door } from './Door';
 import { NormBall } from './NormBall';
 import { Paddle } from './Paddle';
+import { StrongBrick } from './StrongBrick';
 import { Wall, wallSparkOnBall } from './Wall';
 import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
@@ -26,6 +30,8 @@ export interface BodyUserData {
   type: string;
   powerup?: BrickPowerUps;
   doorName?: string;
+  doorLength?: number;
+  doorOpeningDirection?: 'left' | 'right';
 }
 
 export interface BodyEntry {
@@ -135,6 +141,21 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
             scrapBody.destroy();
           },
         });
+      } else if (tag === 'door') {
+        const pos = b2Body_GetPosition(bodyId);
+        ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
+        Door({
+          spawnPos: { x: pos.x, y: pos.y },
+          length: userData?.doorLength ?? 4,
+          name: userData?.doorName,
+          openingDirection: userData?.doorOpeningDirection,
+          sound: ASSETS.sounds_Chest_Open_Creak_3_1,
+        });
+      } else if (tag === 'brick') {
+        const powerUp = userData?.powerup;
+        Brick({ bodyId, powerUp, debrisEmitter: particles.brickDebris.emitter });
+      } else if (tag === 'strong-brick') {
+        StrongBrick({ bodyId, debrisEmitter: particles.brickDebris.emitter });
       } else {
         nonStandardBodies.push({ bodyId, tag, userData });
       }
