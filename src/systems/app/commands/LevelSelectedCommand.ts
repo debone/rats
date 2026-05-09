@@ -2,7 +2,7 @@ import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { setCurrentLevelId } from '@/data/game-state';
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
-import { Campaign } from '@/systems/campaign/Campaign';
+import { Campaign } from '@/gameplay/campaign/Campaign';
 import { LoadLevelCommand } from '@/systems/level/commands/LoadLevelCommand';
 import { CAMPAIGN_LEVELS } from '@/gameplay/campaign/campaign-def';
 import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';

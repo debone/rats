@@ -1,17 +1,17 @@
 import { ASSETS } from '@/assets';
 import { assert } from '@/core/common/assert';
 import { defineEntity, getEntitiesOf, type AttachHandle } from '@/core/entity/scope';
+import { sfx } from '@/core/audio/audio';
 import { getGameContext } from '@/data/game-context';
+import { GameEvent } from '@/data/events';
 import { activateCrewAbility } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren } from '@/hooks/hooks';
 import { loadSceneIntoWorld } from '@/lib/loadrube';
-import { PhysicsSystem } from '@/systems/physics/system';
+import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { KeyListener } from '../../systems/keyboard/KeyListener';
-import { Brick } from './Brick';
-import { Door } from './Door';
 import { NormBall } from './NormBall';
 import { Paddle } from './Paddle';
 import { Wall, wallSparkOnBall } from './Wall';
@@ -104,19 +104,36 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
       if (tag === 'left-wall' || tag === 'right-wall' || tag === 'top-wall') {
         Wall({ bodyId, wallCollisionTag: tag, onBall: wallSparkOnBall(tag, particles.wall.emitter) });
       } else if (tag === 'exit') {
-        // TODO
-      } else if (tag === 'bottom-wall') {
-        // TODO
-      } else if (tag === 'door') {
-        const pos = b2Body_GetPosition(bodyId);
-        ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
-        Door({ spawnPos: { x: pos.x, y: pos.y }, length: 4, sound: ASSETS.sounds_Chest_Open_Creak_3_1 });
-      } else if (tag === 'brick') {
-        const powerUp = userData?.powerup as BrickPowerUps | undefined;
-        Brick({
+        Wall({
           bodyId,
-          powerUp,
-          debrisEmitter: particles.brickDebris.emitter,
+          wallCollisionTag: 'exit',
+          onBall: () => {
+            ctx.events.emit(GameEvent.BALL_EXITED);
+          },
+        });
+      } else if (tag === 'bottom-wall') {
+        Wall({
+          bodyId,
+          wallCollisionTag: 'bottom-wall',
+          onBall: ({ ballBody }) => {
+            const { x, y } = BodyToScreen(ballBody.bodyId);
+            particles.water.emitter.explode(100, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
+            ballBody.destroy();
+            ctx.events.emit(GameEvent.BALL_LOST);
+          },
+          onCheese: ({ cheeseBody }) => {
+            const { x, y } = BodyToScreen(cheeseBody.bodyId);
+            particles.water.emitter.explode(25, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
+            cheeseBody.destroy();
+          },
+          onScrap: ({ scrapBody }) => {
+            const { x, y } = BodyToScreen(scrapBody.bodyId);
+            particles.water.emitter.explode(10, x, y);
+            sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
+            scrapBody.destroy();
+          },
         });
       } else {
         nonStandardBodies.push({ bodyId, tag, userData });

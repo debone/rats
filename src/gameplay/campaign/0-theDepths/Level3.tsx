@@ -11,63 +11,61 @@ import { b2Body_GetPosition } from 'phaser-box2d';
 import { Background } from '@/gameplay/entities/Background';
 import { BreakoutPhysics } from '@/gameplay/entities/BreakoutPhysics';
 import { Brick, type BrickEntity } from '@/gameplay/entities/Brick';
-import { BlueCheese, GreenCheese, YellowCheese } from '@/gameplay/entities/Cheese';
-import { Door, type DoorEntity } from '@/gameplay/entities/Door';
+import { YellowCheese } from '@/gameplay/entities/Cheese';
+import { Door } from '@/gameplay/entities/Door';
 import { ExitWin } from '@/gameplay/entities/ExitWin';
 import { LivesBallRules } from '@/gameplay/entities/LivesBallRules';
 import { Scrap } from '@/gameplay/entities/Scrap';
+import { StrongBrick, type StrongBrickEntity } from '@/gameplay/entities/StrongBrick';
 import { useLevelOutcome } from '@/gameplay/levels/hooks/useLevelOutcome';
 
-export const Level1 = defineEntity(() => {
+export const Level3 = defineEntity(() => {
   const { withChildren } = useChildren();
-  const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-1');
+  const { onWin, onLose, checkLoseCondition } = useLevelOutcome('level-3');
 
-  setLevelState({ id: 'level-1', name: t.dict['level-1.name'] });
-
-  let door: DoorEntity | undefined;
-  let remaining = 0;
+  setLevelState({ id: 'level-3', name: t.dict['level-3.name'] });
 
   withChildren(() => {
-    Background({ tiledMap: TILED_MAPS.backgrounds_level_1 });
+    Background({ tiledMap: TILED_MAPS.backgrounds_level_3, includeBroadBg: true });
 
-    const pg = BreakoutPhysics({ levelId: 'level-1', rubeAsset: ASSETS.level_1_rube });
+    const pg = BreakoutPhysics({ levelId: 'level-3', rubeAsset: ASSETS.levels_level_3_rube });
 
     LivesBallRules({ onLose, checkLoseCondition });
     ExitWin({ onWin });
 
     const ctx = getGameContext();
 
-    pg.bodies.forEach(({ bodyId, tag, userData }) => {
+    pg.bodies.forEach(({ bodyId, tag }) => {
       if (tag === 'brick') {
-        const powerUp = userData?.powerup;
-        remaining++;
         Brick({
           bodyId,
-          powerUp,
           debrisEmitter: pg.particles.brickDebris.emitter,
           onBreak: (brick: BrickEntity) => {
             const { x, y } = brick.spawnPos;
             ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
-            if (powerUp === 'blue') {
-              BlueCheese({ pos: { x, y } });
-            } else if (powerUp === 'green') {
-              GreenCheese({ pos: { x, y } });
-            } else if (powerUp === 'yellow') {
-              YellowCheese({ pos: { x, y } });
-            } else {
-              const r = Math.random();
-              if (r < 0.2) {
-                YellowCheese({ pos: { x, y } });
-              } else if (r < 0.5) {
-                Scrap({ pos: { x: x - 0.25, y } });
-                Scrap({ pos: { x: x + 0.25, y } });
-              } else {
-                Scrap({ pos: { x, y } });
-              }
-            }
-            remaining--;
-            if (remaining <= 48 && door?.closed) {
-              door?.open();
+            const r = Math.random();
+            if (r < 0.3) YellowCheese({ pos: { x, y } });
+            else if (r < 0.5) {
+              Scrap({ pos: { x: x - 0.25, y } });
+              Scrap({ pos: { x: x + 0.25, y } });
+            } else Scrap({ pos: { x, y } });
+          },
+        });
+        return;
+      }
+
+      if (tag === 'strong-brick') {
+        StrongBrick({
+          bodyId,
+          debrisEmitter: pg.particles.brickDebris.emitter,
+          initialLife: 2,
+          onBreak: (brick: StrongBrickEntity) => {
+            const { x, y } = brick.spawnPos;
+            ctx.events.emit(GameEvent.BRICK_DESTROYED, { brickId: String(brick.bodyId), position: { x, y }, score: 100 });
+            if (Math.random() < 0.55) YellowCheese({ pos: { x, y } });
+            else {
+              Scrap({ pos: { x: x - 0.25, y } });
+              Scrap({ pos: { x: x + 0.25, y } });
             }
           },
         });
@@ -77,11 +75,7 @@ export const Level1 = defineEntity(() => {
       if (tag === 'door') {
         const pos = b2Body_GetPosition(bodyId);
         ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
-        door = Door({
-          spawnPos: { x: pos.x, y: pos.y },
-          length: 4,
-          sound: ASSETS.sounds_Chest_Open_Creak_3_1,
-        });
+        Door({ spawnPos: { x: pos.x, y: pos.y }, length: 1 });
         return;
       }
 

@@ -51,6 +51,8 @@ export const GameEvent = {
 
   // Gameplay events
   BRICK_DESTROYED: 'brick:destroyed',
+  BALL_LOST: 'ball:lost',
+  BALL_EXITED: 'ball:exited',
 
   // Crew ability events (fired by active abilities, handled by entities)
   CREW_SHOOT_BALL: 'crew:shoot-ball',
@@ -118,6 +120,8 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
 
   [GameEvent.CREW_SHOOT_BALL]: void;
   [GameEvent.CREW_DOUBLE_BALLS]: void;
+  [GameEvent.BALL_LOST]: void;
+  [GameEvent.BALL_EXITED]: void;
 
   [GameEvent.CAMPAIGN_LEVEL_WON]: { levelId: string };
   [GameEvent.CAMPAIGN_LEVEL_LOST]: void;

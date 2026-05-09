@@ -1,0 +1,24 @@
+import { defineEntity, getEntitiesOf } from '@/core/entity/scope';
+import { execute } from '@/core/game/Command';
+import { GameEvent } from '@/data/events';
+import { useGameEvent } from '@/hooks/hooks';
+import { Levels_LoseBallCommand } from '@/gameplay/levels/commands/LoseBallCommand';
+import { BreakoutPhysics } from './BreakoutPhysics';
+
+export interface LivesBallRulesProps {
+  onLose: () => void;
+  checkLoseCondition: () => boolean;
+}
+
+export const LivesBallRules = defineEntity((props: LivesBallRulesProps) => {
+  useGameEvent(GameEvent.BALL_LOST, async () => {
+    await execute(Levels_LoseBallCommand);
+    if (props.checkLoseCondition()) {
+      props.onLose();
+      return;
+    }
+    getEntitiesOf(BreakoutPhysics)[0]?.createBall();
+  });
+
+  return {};
+});
