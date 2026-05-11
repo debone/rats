@@ -1,11 +1,11 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
-import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
 import { getRunState } from '@/data/game-state';
 import {
   useBodySprite,
+  useChildren,
   useCollisionHandler,
   useGameEvent,
   useImmediateUpdate,
@@ -40,6 +40,9 @@ import {
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
 import { NormBall } from './NormBall';
+import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
+import { PlusCheeseParticles } from './particles/PlusCheeseParticles';
+import { PlusClayParticles } from './particles/PlusClayParticles';
 
 export interface PaddleEntity extends EntityBase {
   bodyId: b2BodyId;
@@ -49,172 +52,174 @@ export interface PaddleEntity extends EntityBase {
 
 export interface PaddleProps {
   jointId: b2JointId;
-  brickDebrisEmitter: ParticleEmitter;
-  plusClayEmitter: ParticleEmitter;
-  plusCheeseEmitter: ParticleEmitter;
 }
 
-export const Paddle = defineEntity(
-  ({ jointId, brickDebrisEmitter, plusClayEmitter, plusCheeseEmitter }: PaddleProps) => {
-    const worldId = useWorldId();
-    const physics = usePhysics();
+export const Paddle = defineEntity(({ jointId }: PaddleProps) => {
+  const worldId = useWorldId();
+  const physics = usePhysics();
+  const { withChildren } = useChildren();
 
-    const anchorBodyId = b2Joint_GetBodyA(jointId);
-    const tempBodyId = b2Joint_GetBodyB(jointId);
-    const pos = b2Body_GetPosition(tempBodyId);
+  const { brickDebris, plusClay, plusCheese } = withChildren(() => ({
+    brickDebris: BrickDebrisParticles(),
+    plusClay: PlusClayParticles(),
+    plusCheese: PlusCheeseParticles(),
+  }));
 
-    const paddleVertices = [
-      new b2Vec2(2, -0.25),
-      new b2Vec2(1.8, 0.2),
-      new b2Vec2(0.5, 0.5),
-      new b2Vec2(-0.5, 0.5),
-      new b2Vec2(-1.8, 0.2),
-      new b2Vec2(-2, -0.25),
-    ];
+  const anchorBodyId = b2Joint_GetBodyA(jointId);
+  const tempBodyId = b2Joint_GetBodyB(jointId);
+  const pos = b2Body_GetPosition(tempBodyId);
 
-    const { bodyId, shapeId } = CreatePolygon({
-      position: new b2Vec2(pos.x, pos.y),
-      type: b2BodyType.b2_dynamicBody,
-      vertices: paddleVertices,
-      density: 10,
-      friction: 0.5,
-      worldId,
-    });
+  const paddleVertices = [
+    new b2Vec2(2, -0.25),
+    new b2Vec2(1.8, 0.2),
+    new b2Vec2(0.5, 0.5),
+    new b2Vec2(-0.5, 0.5),
+    new b2Vec2(-1.8, 0.2),
+    new b2Vec2(-2, -0.25),
+  ];
 
-    const paddleFilter = b2Shape_GetFilter(shapeId);
-    paddleFilter.categoryBits = 0x0007;
-    b2Shape_SetFilter(shapeId, paddleFilter);
+  const { bodyId, shapeId } = CreatePolygon({
+    position: new b2Vec2(pos.x, pos.y),
+    type: b2BodyType.b2_dynamicBody,
+    vertices: paddleVertices,
+    density: 10,
+    friction: 0.5,
+    worldId,
+  });
 
-    b2Body_SetUserData(bodyId, { type: 'paddle' });
+  const paddleFilter = b2Shape_GetFilter(shapeId);
+  paddleFilter.categoryBits = 0x0007;
+  b2Shape_SetFilter(shapeId, paddleFilter);
 
-    const prismaticJointDef2 = b2DefaultPrismaticJointDef();
-    prismaticJointDef2.bodyIdA = anchorBodyId;
-    prismaticJointDef2.bodyIdB = bodyId;
-    prismaticJointDef2.collideConnected = false;
-    prismaticJointDef2.localAnchorA = b2Joint_GetLocalAnchorA(jointId).clone();
-    prismaticJointDef2.localAnchorB = b2Joint_GetLocalAnchorB(jointId).clone();
-    prismaticJointDef2.enableLimit = true;
-    prismaticJointDef2.lowerTranslation = b2PrismaticJoint_GetLowerLimit(jointId);
-    prismaticJointDef2.upperTranslation = b2PrismaticJoint_GetUpperLimit(jointId);
-    b2CreatePrismaticJoint(worldId, prismaticJointDef2);
+  b2Body_SetUserData(bodyId, { type: 'paddle' });
 
-    b2DestroyJoint(jointId);
-    b2DestroyBody(tempBodyId);
+  const prismaticJointDef2 = b2DefaultPrismaticJointDef();
+  prismaticJointDef2.bodyIdA = anchorBodyId;
+  prismaticJointDef2.bodyIdB = bodyId;
+  prismaticJointDef2.collideConnected = false;
+  prismaticJointDef2.localAnchorA = b2Joint_GetLocalAnchorA(jointId).clone();
+  prismaticJointDef2.localAnchorB = b2Joint_GetLocalAnchorB(jointId).clone();
+  prismaticJointDef2.enableLimit = true;
+  prismaticJointDef2.lowerTranslation = b2PrismaticJoint_GetLowerLimit(jointId);
+  prismaticJointDef2.upperTranslation = b2PrismaticJoint_GetUpperLimit(jointId);
+  b2CreatePrismaticJoint(worldId, prismaticJointDef2);
 
-    onCleanup(() => {
-      physics.queueDestruction(bodyId);
-    });
+  b2DestroyJoint(jointId);
+  b2DestroyBody(tempBodyId);
 
-    const paddleShadowBack = new Sprite(Assets.get(ASSETS.entities_rats).textures['shadow-back#0']);
-    paddleShadowBack.anchor.set(0.5, 0);
-    // @ts-ignore
-    paddleShadowBack.shouldRotate = false;
-    useBodySprite(paddleShadowBack, bodyId, { offsetY: 4 });
+  onCleanup(() => {
+    physics.queueDestruction(bodyId);
+  });
 
-    const paddleSprite = new Sprite(Assets.get(ASSETS.entities_rats).textures['rat-boat#0']);
-    paddleSprite.anchor.set(0.5, 0);
-    useBodySprite(paddleSprite, bodyId, { offsetY: -19 });
+  const paddleShadowBack = new Sprite(Assets.get(ASSETS.entities_rats).textures['shadow-back#0']);
+  paddleShadowBack.anchor.set(0.5, 0);
+  // @ts-ignore
+  paddleShadowBack.shouldRotate = false;
+  useBodySprite(paddleShadowBack, bodyId, { offsetY: 4 });
 
-    const paddleShadow = new Sprite(Assets.get(ASSETS.entities_rats).textures['shadow#0']);
-    paddleShadow.anchor.set(0.5, 0);
-    // @ts-ignore
-    paddleShadow.shouldRotate = false;
-    useBodySprite(paddleShadow, bodyId, { offsetY: 5 });
+  const paddleSprite = new Sprite(Assets.get(ASSETS.entities_rats).textures['rat-boat#0']);
+  paddleSprite.anchor.set(0.5, 0);
+  useBodySprite(paddleSprite, bodyId, { offsetY: -19 });
 
-    let boatForce = 0;
-    let boatVelocityAdjustment = 1;
-    getRunState().stats.boatVelocityRatio.subscribe((velocity) => {
-      boatVelocityAdjustment = velocity;
-    });
+  const paddleShadow = new Sprite(Assets.get(ASSETS.entities_rats).textures['shadow#0']);
+  paddleShadow.anchor.set(0.5, 0);
+  // @ts-ignore
+  paddleShadow.shouldRotate = false;
+  useBodySprite(paddleShadow, bodyId, { offsetY: 5 });
 
-    const paddle = entity<PaddleEntity>({
-      bodyId,
-      sprite: paddleSprite,
-      maxSpeed: 15,
-    });
+  let boatForce = 0;
+  let boatVelocityAdjustment = 1;
+  getRunState().stats.boatVelocityRatio.subscribe((velocity) => {
+    boatVelocityAdjustment = velocity;
+  });
 
-    useCollisionHandler(bodyId, () => ({
-      tag: 'paddle',
-      handlers: {
-        ball: () => {
-          sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A, { volume: 0.25 });
-        },
-        scrap: () => {
-          sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A, { volume: 0.25 });
-          const { x, y } = BodyToScreen(bodyId);
-          brickDebrisEmitter!.explode(10, x, y + 4);
-          plusClayEmitter!.explode(1, x, y - 5);
-        },
-        cheese: () => {
-          sfx.playPitched(ASSETS.sounds_Sell_Building_A, { volume: 0.25 });
-          const { x, y } = BodyToScreen(bodyId);
-          plusCheeseEmitter!.explode(1, x, y - 5);
-        },
+  const paddle = entity<PaddleEntity>({
+    bodyId,
+    sprite: paddleSprite,
+    maxSpeed: 15,
+  });
+
+  useCollisionHandler(bodyId, () => ({
+    tag: 'paddle',
+    handlers: {
+      ball: () => {
+        sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A, { volume: 0.25 });
       },
-      entity: paddle,
-    }));
+      scrap: () => {
+        sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A, { volume: 0.25 });
+        const { x, y } = BodyToScreen(bodyId);
+        brickDebris.emitter.explode(10, x, y + 4);
+        plusClay.emitter.explode(1, x, y - 5);
+      },
+      cheese: () => {
+        sfx.playPitched(ASSETS.sounds_Sell_Building_A, { volume: 0.25 });
+        const { x, y } = BodyToScreen(bodyId);
+        plusCheese.emitter.explode(1, x, y - 5);
+      },
+    },
+    entity: paddle,
+  }));
 
-    /*
+  /*
     let captainBoostHandle: { detach: () => void } | undefined;
     useGameEvent(GameEvent.POWERUP_CAPTAIN, () => {
       captainBoostHandle?.detach();
       captainBoostHandle = attachCaptainBoost(paddle);
     });*/
 
-    useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {
-      const paddlePosition = b2Body_GetPosition(paddle.bodyId);
-      const newBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
-      newBall.startUpdating();
+  useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {
+    const paddlePosition = b2Body_GetPosition(paddle.bodyId);
+    const newBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+    newBall.startUpdating();
 
-      const ballPos = b2Body_GetPosition(newBall.bodyId);
-      const paddlePos = b2Body_GetPosition(paddle.bodyId);
-      sfx.play(ASSETS.sounds_Rat_Squeak_A);
+    const ballPos = b2Body_GetPosition(newBall.bodyId);
+    const paddlePos = b2Body_GetPosition(paddle.bodyId);
+    sfx.play(ASSETS.sounds_Rat_Squeak_A);
 
-      const x = ballPos.x - paddlePos.x;
-      const y = ballPos.y - paddlePos.y;
+    const x = ballPos.x - paddlePos.x;
+    const y = ballPos.y - paddlePos.y;
 
-      queueMicrotask(() => {
-        b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(x, y));
-      });
+    queueMicrotask(() => {
+      b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(x, y));
     });
+  });
 
-    useImmediateUpdate(() => {
-      b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 0));
-      const transform = b2Body_GetTransform(bodyId);
-      transform.q.s = 0;
-      b2Body_SetTransform(bodyId, transform.p, transform.q);
+  useImmediateUpdate(() => {
+    b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 0));
+    const transform = b2Body_GetTransform(bodyId);
+    transform.q.s = 0;
+    b2Body_SetTransform(bodyId, transform.p, transform.q);
 
-      if (InputDevice.keyboard.key.ArrowLeft) {
-        boatForce = Math.max(boatForce - 0.1, -1);
-      } else if (InputDevice.keyboard.key.ArrowRight) {
-        boatForce = Math.min(boatForce + 0.1, 1);
+    if (InputDevice.keyboard.key.ArrowLeft) {
+      boatForce = Math.max(boatForce - 0.1, -1);
+    } else if (InputDevice.keyboard.key.ArrowRight) {
+      boatForce = Math.min(boatForce + 0.1, 1);
+    } else {
+      if (boatForce > 0) {
+        boatForce = Math.max(boatForce - 0.2, 0);
       } else {
-        if (boatForce > 0) {
-          boatForce = Math.max(boatForce - 0.2, 0);
-        } else {
-          boatForce = Math.min(boatForce + 0.2, 0);
-        }
+        boatForce = Math.min(boatForce + 0.2, 0);
       }
+    }
 
-      if (InputDevice.gamepads[0] !== undefined) {
-        boatForce = InputDevice.gamepads[0]?.leftJoystick.x ?? 0;
-      }
+    if (InputDevice.gamepads[0] !== undefined) {
+      boatForce = InputDevice.gamepads[0]?.leftJoystick.x ?? 0;
+    }
 
-      if (boatForce !== 0) {
-        transform.q.s = boatForce * 0.25;
-        b2Body_SetTransform(bodyId, transform.p, transform.q);
-        b2Body_SetLinearVelocity(bodyId, new b2Vec2(boatForce * paddle.maxSpeed * boatVelocityAdjustment, 0));
-      }
+    if (boatForce !== 0) {
+      transform.q.s = boatForce * 0.25;
+      b2Body_SetTransform(bodyId, transform.p, transform.q);
+      b2Body_SetLinearVelocity(bodyId, new b2Vec2(boatForce * paddle.maxSpeed * boatVelocityAdjustment, 0));
+    }
 
-      if (InputDevice.keyboard.key.ArrowUp) {
-        b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 10));
-      }
+    if (InputDevice.keyboard.key.ArrowUp) {
+      b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, 10));
+    }
 
-      if (InputDevice.keyboard.key.ArrowDown) {
-        b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, -10));
-      }
-    });
+    if (InputDevice.keyboard.key.ArrowDown) {
+      b2Body_SetLinearVelocity(bodyId, new b2Vec2(0, -10));
+    }
+  });
 
-    return paddle;
-  },
-);
+  return paddle;
+});

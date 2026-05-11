@@ -5,7 +5,9 @@ import { Background } from '@/gameplay/entities/Background';
 import { BreakoutPhysics } from '@/gameplay/entities/BreakoutPhysics';
 import { Brick } from '@/gameplay/entities/Brick';
 import { BlueCheese, GreenCheese, YellowCheese } from '@/gameplay/entities/Cheese';
+import { CrewAbilities } from '@/gameplay/entities/CrewAbilities';
 import { Door } from '@/gameplay/entities/Door';
+import { PaddleAndBall } from '@/gameplay/entities/PaddleBall';
 import { Scrap } from '@/gameplay/entities/Scrap';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
 import { t } from '@/i18n/i18n';
@@ -17,13 +19,19 @@ export const Level1 = defineEntity(() => {
 
   withChildren(() => {
     Background({ tiledMap: TILED_MAPS.backgrounds_level_1 });
+
     const physics = BreakoutPhysics({ levelId: 'level-1', rubeAsset: ASSETS.level_1_rube });
+
+    withChildren(() => CrewAbilities());
+
+    const paddleBall = withChildren(() => PaddleAndBall({ levelId: 'level-1', paddleJoint: physics.paddleJoint }));
+
+    paddleBall.createBall();
 
     const bricks = getChildrenOf(physics, Brick);
     const [door] = getChildrenOf(physics, Door);
 
     let remaining = bricks.length;
-    console.log('remaining', remaining);
 
     for (const brick of bricks) {
       attach(brick, (b) => {
