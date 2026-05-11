@@ -16,6 +16,7 @@ import { Sprite } from 'pixi.js';
 export type BrickEvents = {
   hit: void;
   broken: { x: number; y: number; powerUp: BrickPowerUps | undefined };
+  unbroken: BrickEntity;
 };
 
 export interface BrickEntity extends EntityBase {
@@ -24,6 +25,7 @@ export interface BrickEntity extends EntityBase {
   spawnPos: { x: number; y: number };
   events: EventEmitter<BrickEvents>;
   hit(): void;
+  unbreak(): BrickEntity;
 }
 
 export interface BrickProps {
@@ -128,6 +130,14 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
       onBreak?.(this);
 
       this.destroy();
+    },
+
+    unbreak(): BrickEntity {
+      return Brick({
+        spawnPos,
+        debrisEmitter,
+        powerUp,
+      });
     },
   });
 

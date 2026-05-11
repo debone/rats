@@ -18,15 +18,18 @@ import {
 import { Sprite } from 'pixi.js';
 
 export interface DoorEntity extends EntityBase {
+  name?: string;
   bodyIds: b2BodyId[];
   spawnPos: { x: number; y: number };
   closed: boolean;
   length: number;
+  setLength(length: number): void;
   openingDirection: 'left' | 'right';
   open(): void;
 }
 
 export interface DoorProps {
+  name?: string;
   spawnPos: { x: number; y: number };
   length: number;
   openingDirection?: 'left' | 'right';
@@ -35,7 +38,7 @@ export interface DoorProps {
 }
 
 export const Door = defineEntity(
-  ({ spawnPos, length, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
+  ({ spawnPos, length, name, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
     const camera = useCamera();
@@ -46,22 +49,7 @@ export const Door = defineEntity(
 
     const doorWidth = 2;
     const doorVertices = [new b2Vec2(-1, 0.5), new b2Vec2(1, 0.5), new b2Vec2(1, -0.5), new b2Vec2(-1, -0.5)];
-    const bodyIds: b2BodyId[] = [];
-
-    for (let i = 0; i < length; i++) {
-      const { bodyId } = CreatePolygon({
-        position: new b2Vec2(doorPos.x + i * doorWidth, doorPos.y),
-        type: b2BodyType.b2_staticBody,
-        vertices: doorVertices,
-        worldId,
-      });
-      b2Body_SetUserData(bodyId, { type: 'door' });
-      bodyIds.push(bodyId);
-
-      const sprite = new Sprite(bg[`bricks_tile_2#0`]);
-      sprite.anchor.set(0.5, 0.5);
-      useBodySprite(sprite, bodyId);
-    }
+    let bodyIds: b2BodyId[] = [];
 
     onCleanup(() => {
       bodyIds.forEach((bodyId) => {
@@ -69,14 +57,24 @@ export const Door = defineEntity(
       });
     });
 
+    mountEffect(() => {
+      door.setLength(length);
+    });
+
     const door = entity<DoorEntity>({
+      name,
       bodyIds,
       spawnPos,
       closed: true,
       length,
       openingDirection,
       open() {
+        if (!this.closed) {
+          return;
+        }
+
         this.closed = false;
+
         const duration = 1500;
 
         if (sound) {
@@ -93,12 +91,36 @@ export const Door = defineEntity(
           const rot = new b2Rot(1, 0);
 
           animate(rootPos, {
-            x: pos.x - length * doorWidth * openingDirectionFactor,
+            x: pos.x - door.length * doorWidth * openingDirectionFactor,
             duration,
             onUpdate: () => {
               b2Body_SetTransform(bodyId, rootPos, rot);
             },
           });
+        }
+      },
+      setLength(length: number) {
+        door.length = length;
+
+        bodyIds.forEach((bodyId) => {
+          physics.queueDestruction(bodyId);
+        });
+
+        bodyIds = [];
+
+        for (let i = 0; i < length; i++) {
+          const { bodyId } = CreatePolygon({
+            position: new b2Vec2(doorPos.x + i * doorWidth, doorPos.y),
+            type: b2BodyType.b2_staticBody,
+            vertices: doorVertices,
+            worldId,
+          });
+          b2Body_SetUserData(bodyId, { type: 'door' });
+          bodyIds.push(bodyId);
+
+          const sprite = new Sprite(bg[`bricks_tile_2#0`]);
+          sprite.anchor.set(0.5, 0.5);
+          useBodySprite(sprite, bodyId);
         }
       },
     });

@@ -64,7 +64,12 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
       } else if (tag === 'door') {
         const pos = b2Body_GetPosition(bodyId);
         ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
-        Door({ spawnPos: { x: pos.x, y: pos.y }, length: 4, sound: ASSETS.sounds_Chest_Open_Creak_3_1 });
+        Door({
+          spawnPos: { x: pos.x, y: pos.y },
+          length: 4,
+          name: userData?.doorName,
+          sound: ASSETS.sounds_Chest_Open_Creak_3_1,
+        });
       } else if (tag === 'brick') {
         const powerUp = userData?.powerup as BrickPowerUps | undefined;
         Brick({

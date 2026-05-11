@@ -1,12 +1,9 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
-import { execute } from '@/core/game/Command';
 import { changeCheese } from '@/data/game-state';
 import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
-import { CrewPickerOverlay } from '@/screens/CrewPickerOverlay/CrewPickerOverlay';
-import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_SetUserData,
@@ -23,6 +20,7 @@ import { Sprite } from 'pixi.js';
 export interface CheeseEntity extends EntityBase {
   type: CheeseType;
   bodyId: b2BodyId;
+  lose(): void;
 }
 
 export interface CheeseProps {
@@ -84,7 +82,14 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
 
   useBodySprite(sprite, bodyId);
 
-  const cheese = entity<CheeseEntity>({ type, bodyId });
+  const cheese = entity<CheeseEntity>({
+    type,
+    bodyId,
+    lose() {
+      onLost?.(this);
+      this.destroy();
+    },
+  });
 
   return cheese;
 });
@@ -101,9 +106,12 @@ export const BlueCheese = ({ pos, onCollected, onLost }: TypeCheeseProps): Chees
     type: 'blue',
     onCollected: (cheese) => {
       changeCheese(1);
+      onCollected?.(cheese);
+      /*
       execute(ShowOverlayCommand, { overlay: CrewPickerOverlay, waitForCompletion: true }).then(() => {
         onCollected?.(cheese);
       });
+      */
     },
     onLost,
   });
