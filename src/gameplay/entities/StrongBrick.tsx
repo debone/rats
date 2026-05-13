@@ -4,20 +4,25 @@ import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import type { EventEmitter } from '@/core/game/EventEmitter';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getRunState } from '@/data/game-state';
-import { useBodySprite, useCamera, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
+import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
+
+export type StrongBrickEvents = {
+  broken: { x: number; y: number };
+};
 
 export interface StrongBrickEntity extends EntityBase {
   bodyId: b2BodyId;
   spawnPos: { x: number; y: number };
   /** Remaining hits (starts at `initialLife`, typically 2). */
   life: number;
+  events: EventEmitter<StrongBrickEvents>;
   hit(points: number): void;
-  destroy(): void;
 }
 
 export interface StrongBrickProps {
@@ -58,6 +63,8 @@ export const StrongBrick = defineEntity(
     assert(bodyId, 'Body ID is required');
     assert(spawnPos, 'Spawn position is required');
 
+    const events = useEmitter<StrongBrickEvents>();
+
     const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
     const sprite = new Sprite(bg[`bricks_tile_3#0`]);
     sprite.anchor.set(0.5, 0.5);
@@ -88,8 +95,10 @@ export const StrongBrick = defineEntity(
     const strongBrick = entity<StrongBrickEntity>({
       bodyId,
       spawnPos,
+      events,
       life: initialLife,
       hit(points: number) {
+        // TODO: events.emit('hit');
         onHit?.(this);
 
         if (Math.random() < 0.5) {
@@ -121,7 +130,9 @@ export const StrongBrick = defineEntity(
           // strongBrick.powerUp = 'yellow';
         }
 
+        events.emit('broken', { x: this.spawnPos.x, y: this.spawnPos.y });
         onBreak?.(this);
+
         this.destroy();
       },
     });

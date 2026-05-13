@@ -43,13 +43,6 @@
     
     {
       "class" : "body",
-      "displayName" : "size",
-      "name" : "size",
-      "type" : "int"
-    },
-    
-    {
-      "class" : "body",
       "displayName" : "Type",
       "name" : "type",
       "type" : "string"
@@ -60,6 +53,13 @@
       "displayName" : "powerup",
       "name" : "powerup",
       "type" : "string"
+    },
+    
+    {
+      "class" : "body",
+      "displayName" : "size",
+      "name" : "size",
+      "type" : "int"
     }
   ],
   "metaworld" : 
@@ -176,8 +176,8 @@
               ],
               "y" : 
               [
-                18.31896209716797,
-                18.31896209716797,
+                15.21401977539062,
+                15.21401977539062,
                 22.56896209716797,
                 22.56896209716797
               ]
@@ -190,7 +190,7 @@
         "position" : 
         {
           "x" : -0.001794305280782282,
-          "y" : -40.56896209716797
+          "y" : -40.07524871826172
         },
         "type" : "static"
       },

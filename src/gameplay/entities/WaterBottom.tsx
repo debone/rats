@@ -1,10 +1,11 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import type { EventEmitter } from '@/core/game/EventEmitter';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
-import { useCollisionHandler, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
+import { useCollisionHandler, useEmitter, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import {
@@ -27,25 +28,36 @@ import type { CheeseEntity } from './Cheese';
 import type { NormBallEntity } from './NormBall';
 import type { ScrapEntity } from './Scrap';
 
+export type WaterBottomEvents = {
+  ballCollided: WaterBottomCollisionContext<NormBallEntity>;
+  cheeseCollided: WaterBottomCollisionContext<CheeseEntity>;
+  scrapCollided: WaterBottomCollisionContext<ScrapEntity>;
+};
+
+export interface WaterBottomCollisionContext<T> {
+  waterBottom: WaterBottomEntity;
+  object: T;
+}
+
 export interface WaterBottomEntity extends EntityBase {
   bodyId: b2BodyId;
+  events: EventEmitter<WaterBottomEvents>;
   destroy(): void;
 }
 
 export interface WaterBottomProps {
   bodyId: b2BodyId;
-  onBall?: (ctx: WaterBottomBallContext) => void | Promise<void>;
-  onCheese?: (ctx: WaterBottomCheeseContext) => void | Promise<void>;
-  onScrap?: (ctx: WaterBottomScrapContext) => void | Promise<void>;
   waterParticles: ParticleEmitter;
 }
 
-export const WaterBottom = defineEntity(({ bodyId, onBall, onCheese, onScrap, waterParticles }: WaterBottomProps) => {
+export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottomProps) => {
   const physics = usePhysics();
   const worldId = useWorldId();
+  const events = useEmitter<WaterBottomEvents>();
 
   const waterBottom = entity<WaterBottomEntity>({
     bodyId,
+    events,
   });
 
   const filter = b2DefaultQueryFilter();
@@ -106,21 +118,21 @@ export const WaterBottom = defineEntity(({ bodyId, onBall, onCheese, onScrap, wa
           const { x, y } = BodyToScreen(body);
           waterParticles.explode(10, x, y);
 
-          onCheese?.({ waterBottom, cheeseBody: entity?.entity });
+          events.emit('cheeseCollided', { waterBottom, object: entity?.entity });
         }
         if (userData?.type === 'scrap') {
           const entity = entityCollisions.get(body);
           const { x, y } = BodyToScreen(body);
           waterParticles.explode(10, x, y);
 
-          onScrap?.({ waterBottom, scrapBody: entity?.entity });
+          events.emit('scrapCollided', { waterBottom, object: entity?.entity });
         }
         if (userData?.type === 'ball') {
           const entity = entityCollisions.get(body);
           const { x, y } = BodyToScreen(body);
           waterParticles.explode(10, x, y);
 
-          onBall?.({ waterBottom, ballBody: entity?.entity });
+          events.emit('ballCollided', { waterBottom, object: entity?.entity });
         }
       },
       null,
@@ -151,7 +163,7 @@ export const WaterBottom = defineEntity(({ bodyId, onBall, onCheese, onScrap, wa
         sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
 
         if (!everythingFloats) {
-          onBall?.({ waterBottom, ballBody });
+          events.emit('ballCollided', { waterBottom, object: ballBody });
         }
       },
       cheese: (_self: WaterBottomEntity, cheeseBody: CheeseEntity) => {
@@ -160,7 +172,7 @@ export const WaterBottom = defineEntity(({ bodyId, onBall, onCheese, onScrap, wa
         sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
 
         if (!everythingFloats) {
-          onCheese?.({ waterBottom, cheeseBody });
+          events.emit('cheeseCollided', { waterBottom, object: cheeseBody });
         }
       },
       scrap: (_self: WaterBottomEntity, scrapBody: ScrapEntity) => {
@@ -169,7 +181,7 @@ export const WaterBottom = defineEntity(({ bodyId, onBall, onCheese, onScrap, wa
         sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
 
         if (!everythingFloats) {
-          onScrap?.({ waterBottom, scrapBody });
+          events.emit('scrapCollided', { waterBottom, object: scrapBody });
         }
       },
     },
@@ -182,18 +194,3 @@ export const WaterBottom = defineEntity(({ bodyId, onBall, onCheese, onScrap, wa
 
   return waterBottom;
 });
-
-export interface WaterBottomBallContext {
-  waterBottom: WaterBottomEntity;
-  ballBody: NormBallEntity;
-}
-
-export interface WaterBottomCheeseContext {
-  waterBottom: WaterBottomEntity;
-  cheeseBody: CheeseEntity;
-}
-
-export interface WaterBottomScrapContext {
-  waterBottom: WaterBottomEntity;
-  scrapBody: ScrapEntity;
-}

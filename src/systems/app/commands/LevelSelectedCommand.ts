@@ -1,10 +1,10 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
 import { setCurrentLevelId } from '@/data/game-state';
-import { GameScreen } from '@/screens/GameScreen/GameScreen';
-import { Campaign } from '@/systems/campaign/Campaign';
-import { LoadLevelCommand } from '@/systems/level/commands/LoadLevelCommand';
+import { Campaign } from '@/gameplay/campaign/Campaign';
 import { CAMPAIGN_LEVELS } from '@/gameplay/campaign/campaign-def';
+import { GameScreen } from '@/screens/GameScreen/GameScreen';
+import { LoadLevelCommand } from '@/systems/level/commands/LoadLevelCommand';
 import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';
 
 export class LevelSelectedCommand extends Command<{ levelId: string }> {

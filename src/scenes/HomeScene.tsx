@@ -11,7 +11,7 @@ import { LevelSystem } from '@/systems/level/system';
 import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { GameScene } from './gameScene';
+import { GameScene } from './GameScene';
 
 export const HomeScene = defineEntity(() => {
   const destroy = getUnmount();

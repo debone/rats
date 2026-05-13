@@ -28,7 +28,8 @@ export class SaveSystem implements System {
     }, 30000);
 
     // Save on important events (notifications)
-    context.events.on(GameEvent.LEVEL_WON, () => this.save());
+    context.events.on(GameEvent.CAMPAIGN_LEVEL_WON, () => this.save());
+    context.events.on(GameEvent.CAMPAIGN_LEVEL_LOST, () => this.save());
   }
 
   /**

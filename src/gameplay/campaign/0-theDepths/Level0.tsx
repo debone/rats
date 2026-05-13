@@ -1,4 +1,4 @@
-import { TILED_MAPS, ASSETS } from '@/assets';
+import { ASSETS, TILED_MAPS } from '@/assets';
 import { attach, defineEntity, getChildrenOf } from '@/core/entity/scope';
 import { setLevelState } from '@/data/game-state';
 import { Background } from '@/gameplay/entities/Background';
@@ -8,23 +8,32 @@ import { BlueCheese, GreenCheese, YellowCheese } from '@/gameplay/entities/Chees
 import { CrewAbilities } from '@/gameplay/entities/CrewAbilities';
 import { Door } from '@/gameplay/entities/Door';
 import { PaddleAndBall } from '@/gameplay/entities/PaddleBall';
+import { ExitWin } from '@/gameplay/entities/rules/ExitWin';
+import { InfiniteBallRules } from '@/gameplay/entities/rules/InfiniteBallsRule';
 import { Scrap } from '@/gameplay/entities/Scrap';
+import { useLevelOutcome } from '@/gameplay/levels/hooks/useLevelOutcome';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
 import { t } from '@/i18n/i18n';
 
 export const Level0 = defineEntity(() => {
   const { withChildren } = useChildren();
 
+  const { onWin } = useLevelOutcome('level-0');
   setLevelState({ id: 'level-0', name: t.dict['level-0.name'] });
 
   withChildren(() => {
     Background({ tiledMap: TILED_MAPS.backgrounds_level_0 });
 
+    InfiniteBallRules();
+    ExitWin({
+      onWin,
+    });
+
+    CrewAbilities();
+
     const physics = BreakoutPhysics({ levelId: 'level-0', rubeAsset: ASSETS.levels_level_0_rube });
 
-    withChildren(() => CrewAbilities());
-
-    const paddleBall = withChildren(() => PaddleAndBall({ levelId: 'level-0', paddleJoint: physics.paddleJoint }));
+    const paddleBall = PaddleAndBall({ levelId: 'level-0', paddleJoint: physics.paddleJoint });
 
     paddleBall.createBall();
 

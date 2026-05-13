@@ -4,8 +4,6 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { createRefs } from '@/core/reactivity/refs/ref-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { AppScreen } from '@/core/window/types';
-import { GameEvent } from '@/data/events';
-import { getGameContext, hasGameContext } from '@/data/game-context';
 import { LayoutContainer, LayoutSprite, LayoutText } from '@pixi/layout/components';
 import { CompositeTilemap } from '@pixi/tilemap';
 import { animate } from 'animejs';
@@ -208,11 +206,6 @@ export class LoadScreen extends Container implements AppScreen {
 
     //await Assets.loadBundle('default');
     console.log('[LoadScreen] Assets loaded');
-
-    // Emit assets loaded event
-    if (hasGameContext()) {
-      getGameContext().events.emit(GameEvent.ASSETS_LOADED);
-    }
   }
 
   public async hide(): Promise<void> {

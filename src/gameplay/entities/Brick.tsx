@@ -33,13 +33,9 @@ export interface BrickProps {
   spawnPos?: { x: number; y: number };
   debrisEmitter: ParticleEmitter;
   powerUp?: BrickPowerUps;
-  /** @deprecated Use `brick.events.on('hit', ...)` instead. */
-  onHit?: (brick: BrickEntity) => void;
-  /** @deprecated Use `brick.events.on('broken', ...)` instead. */
-  onBreak?: (brick: BrickEntity) => void;
 }
 
-export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, onHit, onBreak }: BrickProps) => {
+export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp }: BrickProps) => {
   const physics = usePhysics();
   const camera = useCamera();
 
@@ -108,7 +104,6 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
 
     hit() {
       events.emit('hit');
-      onHit?.(this);
 
       if (Math.random() < 0.5) {
         sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10, { volume: 0.25 });
@@ -127,7 +122,6 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp, o
       }
 
       events.emit('broken', { x: this.spawnPos.x, y: this.spawnPos.y, powerUp: this.powerUp });
-      onBreak?.(this);
 
       this.destroy();
     },

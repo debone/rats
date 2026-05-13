@@ -7,8 +7,7 @@
  * Event names are exported as constants so you can cmd+click to find all usages.
  */
 
-import type { AppScreenConstructor } from '@/core/window/types';
-import type { LevelResult, MapSelection } from './game-state';
+import type { LevelResult, MapSelection, RunState } from './game-state';
 
 /**
  * Event name constants - use these for cmd+click navigation
@@ -18,29 +17,21 @@ import type { LevelResult, MapSelection } from './game-state';
  * events.on(GameEvent.LEVEL_WON, (result) => { ... });
  */
 export const GameEvent = {
-  // App lifecycle
-  APP_START: 'app:start',
-  ASSETS_LOADED: 'assets:loaded',
+  // System events
+  SAVE_COMPLETED: 'save:completed',
+  SAVE_FAILED: 'save:failed',
 
   // Screen navigation
-  SHOW_SCREEN: 'screen:show',
-  UNLOAD_SCREEN: 'screen:unload',
   SCREEN_READY: 'screen:ready',
   SCREEN_UNLOADED: 'screen:unloaded',
-
-  SHOW_OVERLAY: 'overlay:show',
-  DISMISS_OVERLAY: 'overlay:dismiss',
   OVERLAY_READY: 'overlay:ready',
   OVERLAY_UNLOADED: 'overlay:unloaded',
 
   // Run lifecycle
   START_NEW_RUN: 'run:start-new',
   RESUME_RUN: 'run:resume',
-
-  // Level events
-  LEVEL_STARTED: 'level:started',
-  LEVEL_WON: 'level:won',
-  LEVEL_LOST: 'level:lost',
+  CAMPAIGN_LEVEL_WON: 'campaign:level-won',
+  CAMPAIGN_LEVEL_LOST: 'campaign:level-lost',
 
   // Game flow events
   GAME_SHOW_MAP: 'game:show-map',
@@ -50,18 +41,12 @@ export const GameEvent = {
   GAME_QUIT: 'game:quit',
 
   // Gameplay events
-  BRICK_DESTROYED: 'brick:destroyed',
+  BALL_EXITED: 'ball:exited',
+  BALL_LOST: 'ball:lost',
 
   // Crew ability events (fired by active abilities, handled by entities)
   CREW_SHOOT_BALL: 'crew:shoot-ball',
   CREW_DOUBLE_BALLS: 'crew:double-balls',
-
-  CAMPAIGN_LEVEL_WON: 'campaign:level-won',
-  CAMPAIGN_LEVEL_LOST: 'campaign:level-lost',
-
-  // System events
-  SAVE_COMPLETED: 'save:completed',
-  SAVE_FAILED: 'save:failed',
 } as const;
 
 /**
@@ -72,29 +57,21 @@ type GameEventKeys = keyof typeof GameEvent;
 type EnsureAllGameEventKeys<T extends Record<GameEventKeys, any>> = T;
 
 export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
-  // App lifecycle
-  [GameEvent.APP_START]: void;
-  [GameEvent.ASSETS_LOADED]: void;
+  // System events
+  [GameEvent.SAVE_COMPLETED]: void;
+  [GameEvent.SAVE_FAILED]: { error: Error };
 
   // Screen navigation
-  [GameEvent.SHOW_SCREEN]: { screen: AppScreenConstructor };
   [GameEvent.SCREEN_READY]: { screenId: string };
-  [GameEvent.UNLOAD_SCREEN]: { screen: AppScreenConstructor };
   [GameEvent.SCREEN_UNLOADED]: { screenId: string };
-
-  [GameEvent.SHOW_OVERLAY]: { overlay: AppScreenConstructor };
-  [GameEvent.DISMISS_OVERLAY]: void;
   [GameEvent.OVERLAY_READY]: { overlayId: string };
   [GameEvent.OVERLAY_UNLOADED]: { overlayId: string };
 
   // Run lifecycle
   [GameEvent.START_NEW_RUN]: { startingLevelId: string };
-  [GameEvent.RESUME_RUN]: { run: import('./game-state').RunState };
-
-  // Level events
-  [GameEvent.LEVEL_STARTED]: { levelId: string };
-  [GameEvent.LEVEL_WON]: LevelResult;
-  [GameEvent.LEVEL_LOST]: LevelResult;
+  [GameEvent.RESUME_RUN]: { run: RunState };
+  [GameEvent.CAMPAIGN_LEVEL_WON]: { levelId: string };
+  [GameEvent.CAMPAIGN_LEVEL_LOST]: void;
 
   // Game flow events
   [GameEvent.GAME_SHOW_MAP]: {
@@ -110,21 +87,12 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.GAME_QUIT]: void;
 
   // Gameplay events
-  [GameEvent.BRICK_DESTROYED]: {
-    brickId: string;
-    position: { x: number; y: number };
-    score: number;
-  };
+  [GameEvent.BALL_EXITED]: void;
+  [GameEvent.BALL_LOST]: void;
 
+  // Crew ability events
   [GameEvent.CREW_SHOOT_BALL]: void;
   [GameEvent.CREW_DOUBLE_BALLS]: void;
-
-  [GameEvent.CAMPAIGN_LEVEL_WON]: { levelId: string };
-  [GameEvent.CAMPAIGN_LEVEL_LOST]: void;
-
-  // System events
-  [GameEvent.SAVE_COMPLETED]: void;
-  [GameEvent.SAVE_FAILED]: { error: Error };
 }
 
 /**

@@ -8,15 +8,13 @@ export function useLevelOutcome(levelId: string) {
   const onWin = () => {
     if (finished) return;
     finished = true;
-    const result = { levelId, success: true };
-    getGameContext().events.emit(GameEvent.LEVEL_WON, result);
+    getGameContext().events.emit(GameEvent.CAMPAIGN_LEVEL_WON, { levelId });
   };
 
   const onLose = () => {
     if (finished) return;
     finished = true;
-    const result = { levelId, success: false };
-    getGameContext().events.emit(GameEvent.LEVEL_LOST, result);
+    getGameContext().events.emit(GameEvent.CAMPAIGN_LEVEL_LOST);
   };
 
   const checkLoseCondition = () => {

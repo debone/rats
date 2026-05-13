@@ -50,15 +50,15 @@
     
     {
       "class" : "body",
-      "displayName" : "powerup",
-      "name" : "powerup",
+      "displayName" : "Type",
+      "name" : "type",
       "type" : "string"
     },
     
     {
       "class" : "body",
-      "displayName" : "Type",
-      "name" : "type",
+      "displayName" : "powerup",
+      "name" : "powerup",
       "type" : "string"
     }
   ],
@@ -176,8 +176,8 @@
               ],
               "y" : 
               [
-                18.31896209716797,
-                18.31896209716797,
+                14.27611732482910,
+                14.27611732482910,
                 22.56900024414062,
                 22.56900024414062
               ]
@@ -190,7 +190,7 @@
         "position" : 
         {
           "x" : -0.001794305280782282,
-          "y" : -40.56896209716797
+          "y" : -40.08361816406250
         },
         "type" : "static"
       },

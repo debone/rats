@@ -43,16 +43,9 @@
     
     {
       "class" : "body",
-      "displayName" : "doorName",
-      "name" : "doorName",
+      "displayName" : "behaviour",
+      "name" : "behaviour",
       "type" : "string"
-    },
-    
-    {
-      "class" : "body",
-      "displayName" : "size",
-      "name" : "size",
-      "type" : "int"
     },
     
     {
@@ -66,6 +59,20 @@
       "class" : "body",
       "displayName" : "Type",
       "name" : "type",
+      "type" : "string"
+    },
+    
+    {
+      "class" : "body",
+      "displayName" : "size",
+      "name" : "size",
+      "type" : "int"
+    },
+    
+    {
+      "class" : "body",
+      "displayName" : "doorName",
+      "name" : "doorName",
       "type" : "string"
     }
   ],
@@ -138,8 +145,8 @@
               ],
               "y" : 
               [
-                18.06896209716797,
-                18.06896209716797,
+                16.15663719177246,
+                16.15663719177246,
                 22.56896209716797,
                 22.56896209716797
               ]
@@ -152,7 +159,7 @@
         "position" : 
         {
           "x" : 0,
-          "y" : -40.28642654418945
+          "y" : -40.07490158081055
         },
         "type" : "static"
       },
@@ -289,6 +296,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -334,6 +346,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -377,6 +394,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -574,6 +596,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "powerup",
             "string" : "yellow"
           },
@@ -622,6 +649,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "powerup",
@@ -674,6 +706,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "powerup",
             "string" : "yellow"
           },
@@ -722,6 +759,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "powerup",
@@ -774,6 +816,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "powerup",
             "string" : "yellow"
           },
@@ -822,6 +869,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "powerup",
@@ -874,6 +926,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -919,6 +976,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -952,76 +1014,6 @@
         {
           "x" : -9,
           "y" : -7.5
-        },
-        "type" : "static"
-      },
-      
-      {
-        "angle" : -1.570796251296997,
-        "angularVelocity" : 0,
-        "awake" : true,
-        "customProperties" : 
-        [
-          
-          {
-            "int" : 10,
-            "name" : "size"
-          },
-          
-          {
-            "name" : "type",
-            "string" : "top-wall"
-          }
-        ],
-        "fixture" : 
-        [
-          
-          {
-            "density" : 1,
-            "id" : 29,
-            "name" : "fixture0",
-            "restitution" : 1,
-            "shapes" : 
-            [
-              
-              {
-                "type" : "polygon"
-              }
-            ],
-            "vertices" : 
-            {
-              "x" : 
-              [
-                4.974735260009766,
-                4.974736213684082,
-                2.974735021591187,
-                -0.02526530437171459,
-                -0.02526538074016571,
-                3.974735021591187,
-                5.974735736846924,
-                5.974735260009766
-              ],
-              "y" : 
-              [
-                2.515961408615112,
-                -0.4840388298034668,
-                -4.484038352966309,
-                -7.484038352966309,
-                -8.484038352966309,
-                -4.484038829803467,
-                -0.4840383529663086,
-                2.515961408615112
-              ]
-            }
-          }
-        ],
-        "id" : 29,
-        "linearVelocity" : 0,
-        "name" : "walls",
-        "position" : 
-        {
-          "x" : 42.15172958374023,
-          "y" : 6.850825309753418
         },
         "type" : "static"
       },
@@ -1097,81 +1089,16 @@
       },
       
       {
-        "angle" : 1.570796251296997,
-        "angularVelocity" : 0,
-        "awake" : true,
-        "customProperties" : 
-        [
-          
-          {
-            "int" : 10,
-            "name" : "size"
-          },
-          
-          {
-            "name" : "type",
-            "string" : "top-wall"
-          }
-        ],
-        "fixture" : 
-        [
-          
-          {
-            "density" : 1,
-            "id" : 30,
-            "name" : "fixture0",
-            "restitution" : 1,
-            "shapes" : 
-            [
-              
-              {
-                "type" : "polygon"
-              }
-            ],
-            "vertices" : 
-            {
-              "x" : 
-              [
-                -15.42321777343750,
-                -15.42321681976318,
-                -13.42321681976318,
-                -9.423216819763184,
-                -9.423216819763184,
-                -12.42321681976318,
-                -14.42321777343750,
-                -14.42321777343750
-              ],
-              "y" : 
-              [
-                -3.044087886810303,
-                -6.044086933135986,
-                -10.04408740997314,
-                -14.04408740997314,
-                -13.04408740997314,
-                -10.04408740997314,
-                -6.044087886810303,
-                -3.044087409973145
-              ]
-            }
-          }
-        ],
-        "id" : 31,
-        "linearVelocity" : 0,
-        "name" : "walls",
-        "position" : 
-        {
-          "x" : 15.62360382080078,
-          "y" : 16.29930877685547
-        },
-        "type" : "static"
-      },
-      
-      {
         "angle" : 0,
         "angularVelocity" : 0,
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1219,6 +1146,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1262,6 +1194,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1309,6 +1246,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1352,6 +1294,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1399,6 +1346,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1442,6 +1394,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1489,6 +1446,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1532,6 +1494,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1579,6 +1546,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1622,6 +1594,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1669,6 +1646,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1712,6 +1694,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1809,6 +1796,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1852,6 +1844,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -1899,6 +1896,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -1942,6 +1944,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "type",
@@ -2201,6 +2208,11 @@
         [
           
           {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
+          
+          {
             "name" : "type",
             "string" : "brick"
           }
@@ -2244,6 +2256,11 @@
         "awake" : true,
         "customProperties" : 
         [
+          
+          {
+            "name" : "behaviour",
+            "string" : "Level0"
+          },
           
           {
             "name" : "powerup",
