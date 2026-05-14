@@ -27,13 +27,15 @@ export function useCamera() {
 export function useBodySprite(
   sprite: Sprite,
   bodyId: b2BodyId,
-  options?: { offsetX?: number; offsetY?: number; z?: number },
+  options?: { offsetX?: number; offsetY?: number; z?: number; localRotation?: number },
 ) {
   const ctx = getGameContext();
-  const offsetX = options?.offsetX ?? 0;
-  const offsetY = options?.offsetY ?? 0;
   mountEffect(() => {
-    AddSpriteToWorld(ctx.worldId!, sprite, bodyId, offsetX, offsetY);
+    AddSpriteToWorld(ctx.worldId!, sprite, bodyId, {
+      offsetX: options?.offsetX ?? 0,
+      offsetY: options?.offsetY ?? 0,
+      localRotation: options?.localRotation,
+    });
     if (options?.z) {
       ctx.container!.addChildAt(sprite, options.z);
     } else {

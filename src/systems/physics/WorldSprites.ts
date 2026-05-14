@@ -24,9 +24,18 @@ export interface SpriteObject {
 /** Entry storing body reference and optional metadata */
 interface SpriteEntry {
   bodyId: b2BodyId;
-  /** Offset from body center in pixels (after scaling) */
+  /** Offset from body center in pixels (after scaling), rotates with the body */
   offsetX?: number;
   offsetY?: number;
+  /** Extra rotation added on top of the body's screen rotation, in radians */
+  localRotation?: number;
+}
+
+export interface AddSpriteOptions {
+  offsetX?: number;
+  offsetY?: number;
+  /** Additional rotation applied on top of the body's screen rotation (radians) */
+  localRotation?: number;
 }
 
 /** Map of sprites to their body entries per world */
@@ -82,18 +91,27 @@ export function AddSpriteToWorld(
   worldId: b2WorldId,
   sprite: SpriteObject,
   bodyId: b2BodyId,
-  offsetX = 0,
+  offsetX: number | AddSpriteOptions = 0,
   offsetY = 0,
 ): void {
   if (!WorldSprites.has(worldId)) {
     WorldSprites.set(worldId, new Map());
   }
 
-  WorldSprites.get(worldId)!.set(sprite, {
-    bodyId,
-    offsetX,
-    offsetY,
-  });
+  if (typeof offsetX === 'object') {
+    WorldSprites.get(worldId)!.set(sprite, {
+      bodyId,
+      offsetX: offsetX.offsetX ?? 0,
+      offsetY: offsetX.offsetY ?? 0,
+      localRotation: offsetX.localRotation,
+    });
+  } else {
+    WorldSprites.get(worldId)!.set(sprite, {
+      bodyId,
+      offsetX,
+      offsetY,
+    });
+  }
 }
 
 /**
@@ -197,7 +215,7 @@ export function UpdateWorldSprites(worldId: b2WorldId): void {
       return;
     }
 
-    BodyToSprite(entry.bodyId, sprite, origin, entry.offsetX, entry.offsetY);
+    BodyToSprite(entry.bodyId, sprite, origin, entry.offsetX, entry.offsetY, entry.localRotation);
   });
 }
 
@@ -220,18 +238,30 @@ export function BodyToSprite(
   origin = { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 },
   offsetX = 0,
   offsetY = 0,
+  localRotation = 0,
 ): void {
   const transform = b2Body_GetTransform(bodyId);
 
   const { x, y } = WorldToScreen(transform.p.x, transform.p.y);
 
-  // Convert position: scale and flip Y axis
-  sprite.x = x + origin.x + offsetX;
-  sprite.y = y + origin.y + offsetY;
+  // Body's screen-space rotation (negate because Y is flipped)
+  const bodyScreenAngle = -Math.atan2(transform.q.s, transform.q.c);
 
-  // Convert rotation: negate because Y is flipped
+  // Rotate the offset by the body's screen angle so the sprite tracks the body
+  // through rotation. When offsetX/Y are 0 this collapses to the body's screen
+  // position; non-zero offsets rotate around the body's center.
+  if (offsetX !== 0 || offsetY !== 0) {
+    const cosR = Math.cos(bodyScreenAngle);
+    const sinR = Math.sin(bodyScreenAngle);
+    sprite.x = x + origin.x + cosR * offsetX - sinR * offsetY;
+    sprite.y = y + origin.y + sinR * offsetX + cosR * offsetY;
+  } else {
+    sprite.x = x + origin.x;
+    sprite.y = y + origin.y;
+  }
+
   if (sprite.shouldRotate !== false) {
-    sprite.rotation = -Math.atan2(transform.q.s, transform.q.c);
+    sprite.rotation = bodyScreenAngle + localRotation;
   }
 }
 

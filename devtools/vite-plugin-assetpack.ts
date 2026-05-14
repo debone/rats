@@ -6,7 +6,9 @@ import { packer } from './packer';
 import { generateManifestTypes } from './packer/processors/manifest-types';
 import { copyGodotSounds, generateGodotResourcesFromManifest } from './packer/processors/godot-resources';
 import { injectCutsceneAssetsIntoManifest } from './packer/processors/cutscene-manifest';
+import { injectGeometryAssetsIntoManifest } from './packer/processors/geometry-manifest';
 import { generateCutsceneJsonFiles } from './packer/processors/godot-scene';
+import { generateGeometryJsonFiles } from './packer/processors/godot-geometry';
 import { generateTiledTypes } from './packer/processors/tiled-types';
 import { generateAtlasTypes } from './packer/processors/typescript';
 import { rube } from './rube';
@@ -52,6 +54,7 @@ export function assetpackPlugin(): Plugin {
   let ap: AssetPack | undefined;
   let manifestWatcher: fs.FSWatcher | undefined;
   let tscnWatcher: fs.FSWatcher | undefined;
+  let geometryWatcher: fs.FSWatcher | undefined;
 
   /**
    * Generate all TypeScript definitions and Godot resources after assets are processed
@@ -68,6 +71,11 @@ export function assetpackPlugin(): Plugin {
     // Godot: convert authored cutscenes to runtime JSON + generate types
     generateCutsceneJsonFiles('./godot/cutscenes', './public/assets/cutscenes', './godot/sprite-map.json', './src/assets/cutscenes.ts');
     injectCutsceneAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/cutscenes');
+
+    // Godot: convert authored geometry (.tscn with Box2D bodies/joints) → runtime JSON
+    generateGeometryJsonFiles('./godot/geometry', './public/assets/geometry', './godot/sprite-map.json', './src/assets/geometry.ts');
+    injectGeometryAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/geometry');
+
     generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
   }
 
@@ -102,6 +110,19 @@ export function assetpackPlugin(): Plugin {
             }
           });
         }
+
+        // Watch godot/geometry/ for .tscn changes
+        const geometryDir = './godot/geometry';
+        if (fs.existsSync(geometryDir)) {
+          geometryWatcher = fs.watch(geometryDir, (_, filename) => {
+            if (filename?.endsWith('.tscn')) {
+              console.log(`[Godot] ${filename} changed, regenerating geometry...`);
+              generateGeometryJsonFiles(geometryDir, './public/assets/geometry', './godot/sprite-map.json', './src/assets/geometry.ts');
+              injectGeometryAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/geometry');
+              generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
+            }
+          });
+        }
       } else {
         await new AssetPack(apConfig).run();
         generateTypeDefinitions();
@@ -115,6 +136,10 @@ export function assetpackPlugin(): Plugin {
       if (tscnWatcher) {
         tscnWatcher.close();
         tscnWatcher = undefined;
+      }
+      if (geometryWatcher) {
+        geometryWatcher.close();
+        geometryWatcher = undefined;
       }
       if (ap) {
         await ap.stop();

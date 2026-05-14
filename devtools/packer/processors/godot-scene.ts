@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import type { GodotSpriteMap } from './godot-resources.ts';
+import { parseTscnSections, unquote, type TscnSection } from './godot-tscn.ts';
 
 // ---------------------------------------------------------------------------
 // Output types (consumed by the runtime in Phase 4)
@@ -57,19 +58,6 @@ export interface CutsceneKeyframe {
   value: unknown;
   /** Godot easing curve value (1 = linear) */
   transition: number;
-}
-
-// ---------------------------------------------------------------------------
-// Internal parser types
-// ---------------------------------------------------------------------------
-
-interface TscnSection {
-  /** Section type: "gd_scene", "ext_resource", "sub_resource", "node" */
-  type: string;
-  /** Attributes from the section header, still quoted */
-  attrs: Record<string, string>;
-  /** Key=value pairs from the section body */
-  props: Map<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -162,7 +150,7 @@ function writeCutsceneTypes(cutscenes: Map<string, CutsceneData>, outputPath: st
  * Exported for testing.
  */
 export function parseTscn(content: string, spriteMap: GodotSpriteMap): CutsceneData {
-  const sections = parseSections(content);
+  const sections: TscnSection[] = parseTscnSections(content);
 
   // Build reverse lookup: res:// path → PixiJS name
   const godotPathToPixi: Record<string, string> = {};
@@ -287,83 +275,6 @@ export function parseTscn(content: string, spriteMap: GodotSpriteMap): CutsceneD
   }
 
   return { nodes, animations };
-}
-
-// ---------------------------------------------------------------------------
-// Section parser
-// ---------------------------------------------------------------------------
-
-function parseSections(content: string): TscnSection[] {
-  const headerRe = /^\[([^\]]+)\]/gm;
-  const matches = [...content.matchAll(headerRe)];
-  const sections: TscnSection[] = [];
-
-  for (let i = 0; i < matches.length; i++) {
-    const m = matches[i];
-    const headerContent = m[1];
-    const bodyStart = m.index! + m[0].length;
-    const bodyEnd = i + 1 < matches.length ? matches[i + 1].index! : content.length;
-    const body = content.slice(bodyStart, bodyEnd);
-
-    // First token of the header is the section type
-    const spaceIdx = headerContent.search(/\s/);
-    const type = spaceIdx >= 0 ? headerContent.slice(0, spaceIdx) : headerContent;
-    const attrStr = spaceIdx >= 0 ? headerContent.slice(spaceIdx) : '';
-
-    // Parse key="value" or key=bareValue attributes from header
-    const attrs: Record<string, string> = {};
-    const attrRe = /(\w+)=("(?:[^"\\]|\\.)*"|[\w./:{}@-]+)/g;
-    let am: RegExpExecArray | null;
-    while ((am = attrRe.exec(attrStr)) !== null) {
-      attrs[am[1]] = am[2];
-    }
-
-    sections.push({ type, attrs, props: parseProps(body) });
-  }
-
-  return sections;
-}
-
-/**
- * Parse a section body into key → value pairs.
- * Handles multi-line brace-enclosed blocks (e.g. tracks/N/keys = { ... }).
- */
-function parseProps(body: string): Map<string, string> {
-  const result = new Map<string, string>();
-  const lines = body.split('\n');
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-    const eqIdx = line.indexOf(' = ');
-    if (eqIdx < 0) { i++; continue; }
-
-    const key = line.slice(0, eqIdx).trim();
-    let value = line.slice(eqIdx + 3).trimEnd();
-
-    // Multi-line block: accumulate until brace depth returns to 0
-    if (value.trimStart().startsWith('{')) {
-      let depth = countChar(value, '{') - countChar(value, '}');
-      i++;
-      while (i < lines.length && depth > 0) {
-        value += '\n' + lines[i];
-        depth += countChar(lines[i], '{') - countChar(lines[i], '}');
-        i++;
-      }
-    } else {
-      i++;
-    }
-
-    if (key) result.set(key, value.trim());
-  }
-
-  return result;
-}
-
-function countChar(str: string, ch: string): number {
-  let n = 0;
-  for (let i = 0; i < str.length; i++) if (str[i] === ch) n++;
-  return n;
 }
 
 // ---------------------------------------------------------------------------
@@ -564,10 +475,3 @@ function parseAnimLibraryData(dataStr: string, out: Record<string, string>): voi
   }
 }
 
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function unquote(s: string): string {
-  return s.replace(/^"|"$/g, '');
-}
