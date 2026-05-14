@@ -96,6 +96,18 @@ group. Use them for organisation, lockable layers, hidden reference art,
 etc. The exporter walks the whole tree to find Box2D bodies — group depth
 doesn't matter.
 
+## Hiding collision geometry
+
+While composing a scene it's useful to hide all the collision shapes and
+see only the art. Going node-by-node is slow — use `Box2DVisibility` instead.
+
+1. Add a `Node2D` to your scene root and attach the script
+   `res://box2d/box2d_visibility.gd` (class name `Box2DVisibility`).
+2. In the Inspector, toggle **Show Collision** on/off. Every
+   `CollisionPolygon2D` and `CollisionShape2D` in the scene instantly appears
+   or disappears, leaving sprites fully visible.
+3. The node is editor-only state — it never exports to the geometry JSON.
+
 ## Editing tips
 
 - **Move just the collision shape** (without moving the body): select the

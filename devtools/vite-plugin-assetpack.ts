@@ -11,7 +11,6 @@ import { generateCutsceneJsonFiles } from './packer/processors/godot-scene';
 import { generateGeometryJsonFiles } from './packer/processors/godot-geometry';
 import { generateTiledTypes } from './packer/processors/tiled-types';
 import { generateAtlasTypes } from './packer/processors/typescript';
-import { rube } from './rube';
 import { tiled } from './tiled';
 
 const pixis = pixiPipes({
@@ -47,7 +46,7 @@ export function assetpackPlugin(): Plugin {
     entry: './assets',
     output: './public/assets/',
     ignore: ['**/*.tiled-project', '**/*.tiled-session', '**/.gitkeep'],
-    pipes: [packer(), rube(), tiled(), ...pxPipes],
+    pipes: [packer(), tiled(), ...pxPipes],
   };
 
   let mode: ResolvedConfig['command'];

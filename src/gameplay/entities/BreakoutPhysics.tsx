@@ -6,7 +6,6 @@ import { getGameContext } from '@/data/game-context';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
 import { type Box2DGeometry, loadGodotGeometry } from '@/lib/loadGodotGeometry';
-import { loadSceneIntoWorld } from '@/lib/loadrube';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
@@ -40,30 +39,18 @@ export interface BodyEntry {
 
 export interface BreakoutPhysicsProps {
   levelId: string;
-  rubeAsset?: string;
   /** Pixi alias for a Godot-authored geometry JSON, e.g. 'geometry/level-1.json'. */
-  geometryAsset?: string;
+  geometryAsset: string;
 }
 
-export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset, geometryAsset }: BreakoutPhysicsProps) => {
+export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: BreakoutPhysicsProps) => {
   const { withChildren } = useChildren();
   const ctx = getGameContext();
 
-  let loadedBodies: b2BodyId[];
-  let loadedJoints: b2JointId[];
-  if (geometryAsset) {
-    const geo = Assets.get<Box2DGeometry>(geometryAsset);
-    const result = loadGodotGeometry(geo, ctx.worldId!, { container: ctx.container ?? undefined });
-    loadedBodies = result.bodies;
-    loadedJoints = result.joints;
-  } else if (rubeAsset) {
-    const rube = Assets.get(rubeAsset);
-    const loaded = loadSceneIntoWorld(rube, ctx.worldId!);
-    loadedBodies = loaded.loadedBodies;
-    loadedJoints = loaded.loadedJoints;
-  } else {
-    throw new Error(`${levelId}: BreakoutPhysics requires either rubeAsset or geometryAsset`);
-  }
+  const geo = Assets.get<Box2DGeometry>(geometryAsset);
+  const { bodies: loadedBodies, joints: loadedJoints } = loadGodotGeometry(geo, ctx.worldId!, {
+    container: ctx.container ?? undefined,
+  });
 
   const particles = withChildren(() => ({
     brickDebris: BrickDebrisParticles(),
@@ -72,7 +59,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset, geometryAsset
   }));
 
   const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
-  assert(paddleJoint, `${levelId}: paddle-joint not found in RUBE`);
+  assert(paddleJoint, `${levelId}: paddle-joint not found in geometry`);
 
   const nonStandardBodies: BodyEntry[] = [];
 
@@ -188,7 +175,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset, geometryAsset
   });
 
   return {
-    /** Joint from the RUBE scene — pass to `BreakoutPaddle` to create the paddle. */
+    /** Paddle prismatic joint — pass to `BreakoutPaddle` to create the paddle. */
     paddleJoint: paddleJoint as b2JointId,
     bodies: nonStandardBodies,
     particles,

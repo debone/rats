@@ -37,9 +37,16 @@ func _draw() -> void:
 	# Hinge marker — outer circle + inner pivot dot
 	draw_arc(Vector2.ZERO, 6.0, 0.0, TAU, 24, _COLOR, 1.5)
 	draw_circle(Vector2.ZERO, 2.0, _COLOR)
-	# Limit arc, if enabled
-	if enable_limit and upper_limit > lower_limit:
-		# Note: Godot Y-down means CW rotations are positive — opposite of Box2D.
-		# The exporter swaps and negates these limits before they reach Box2D, so
-		# what we draw here is what the author sees in editor space.
-		draw_arc(Vector2.ZERO, 12.0, lower_limit, upper_limit, 16, _COLOR, 1.5)
+	# Limit arc, if enabled. Angles are Godot CW radians (0 = right, PI/2 = down).
+	if enable_limit:
+		var lo := minf(lower_limit, upper_limit)
+		var hi := maxf(lower_limit, upper_limit)
+		if hi - lo < 0.001:
+			# Locked rotation — draw a single tick at the limit angle
+			draw_line(Vector2.ZERO, Vector2(cos(lo), sin(lo)) * 14.0, _COLOR, 1.5)
+		else:
+			var pts := maxi(8, int((hi - lo) / TAU * 48) + 2)
+			draw_arc(Vector2.ZERO, 12.0, lo, hi, pts, _COLOR, 1.5)
+			# Sector radii so the allowed range reads as a wedge
+			draw_line(Vector2.ZERO, Vector2(cos(lo), sin(lo)) * 12.0, _COLOR, 1.5)
+			draw_line(Vector2.ZERO, Vector2(cos(hi), sin(hi)) * 12.0, _COLOR, 1.5)

@@ -1,4 +1,4 @@
-import { ASSETS, TILED_MAPS } from '@/assets';
+import { TILED_MAPS } from '@/assets';
 import { defineEntity } from '@/core/entity/scope';
 import { onboardCrewMember, setLevelState } from '@/data/game-state';
 import { Background } from '@/gameplay/entities/Background';
@@ -34,7 +34,7 @@ export const Level4 = defineEntity(() => {
 
     CrewAbilities();
 
-    const physics = BreakoutPhysics({ levelId: 'level-4', rubeAsset: ASSETS.levels_level_4_rube });
+    const physics = BreakoutPhysics({ levelId: 'level-4', geometryAsset: 'geometry/level-4.json' });
 
     const paddleBall = PaddleAndBall({ levelId: 'level-3', paddleJoint: physics.paddleJoint });
 

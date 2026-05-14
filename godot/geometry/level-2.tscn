@@ -1,0 +1,588 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="1_b2d"]
+[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_b2d"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon_fixture.gd" id="3_b2d"]
+[ext_resource type="Script" path="res://box2d/box2d_prismatic_joint.gd" id="4_b2d"]
+
+[node name="Geometry" type="Node2D"]
+metadata/gravity = Vector2(0, -10)
+
+[node name="walls" type="StaticBody2D" parent="."]
+position = Vector2(-0.02870888449251651, 649.1033935546875)
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "bottom-wall"
+}
+
+[node name="fixture0" type="CollisionPolygon2D" parent="walls"]
+polygon = PackedVector2Array(-207.97129821777344, -345.1033935546875, 208.02870178222656, -345.1033935546875, 208.02870178222656, -361.1033935546875, -207.97129821777344, -361.1033935546875)
+script = ExtResource("3_b2d")
+is_sensor = true
+
+[node name="walls_2" type="StaticBody2D" parent="."]
+position = Vector2(-232.02870178222656, 129.1033935546875)
+rotation = 1.570796251296997
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "left-wall"
+}
+
+[node name="fixture0_2" type="CollisionPolygon2D" parent="walls_2"]
+polygon = PackedVector2Array(-241.10339355468753, -24.028717041015632, 158.8966064453125, -24.028684616088864, 158.8966064453125, -40.02868652343751, -241.10339355468753, -40.02871704101563)
+script = ExtResource("3_b2d")
+density = 10
+restitution = 1
+
+[node name="walls_3" type="StaticBody2D" parent="."]
+position = Vector2(231.97129821777344, 129.1033935546875)
+rotation = 1.570796251296997
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "right-wall"
+}
+
+[node name="fixture0_3" type="CollisionPolygon2D" parent="walls_3"]
+polygon = PackedVector2Array(-241.10339355468753, 39.9712791442871, 158.8966064453125, 39.97131347656249, 158.8966064453125, 23.971315383911136, -241.10339355468753, 23.971282958984368)
+script = ExtResource("3_b2d")
+density = 10
+restitution = 1
+
+[node name="brick" type="StaticBody2D" parent="."]
+position = Vector2(-112, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1" type="CollisionPolygon2D" parent="brick"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="walls_4" type="StaticBody2D" parent="."]
+position = Vector2(-192, -128)
+rotation = -1.570796251296997
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "top-wall"
+}
+
+[node name="fixture0_4" type="CollisionPolygon2D" parent="walls_4"]
+polygon = PackedVector2Array(-16, 0.000008773866284172982, 112, 128, 112, 112, -16, -16)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="walls_5" type="StaticBody2D" parent="."]
+position = Vector2(-64, -240)
+rotation = -1.570796251296997
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "top-wall"
+}
+
+[node name="fixture0_5" type="CollisionPolygon2D" parent="walls_5"]
+polygon = PackedVector2Array(0.00000762939453125, 0.0000075658999776351266, 192, -0.000014940687833586708, 192, -16, 0.00000762939453125, -16)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="walls_6" type="StaticBody2D" parent="."]
+position = Vector2(80, -288)
+rotation = -1.570796251296997
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "top-wall"
+}
+
+[node name="fixture0_6" type="CollisionPolygon2D" parent="walls_6"]
+polygon = PackedVector2Array(-48, 0.0000035604048207460433, 144, -0.00001131678800447844, 144, -16, -48, -16)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="walls_7" type="StaticBody2D" parent="."]
+position = Vector2(192, -128)
+rotation = 1.570796251296997
+script = ExtResource("1_b2d")
+user_data = {
+"size": 10,
+"type": "top-wall"
+}
+
+[node name="fixture0_7" type="CollisionPolygon2D" parent="walls_7"]
+polygon = PackedVector2Array(16, -16, -112, 112, -112.0000228881836, 128, 16, 0.000012652058103412855)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_2" type="StaticBody2D" parent="."]
+position = Vector2(-80, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_2" type="CollisionPolygon2D" parent="brick_2"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_3" type="StaticBody2D" parent="."]
+position = Vector2(-112, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_3" type="CollisionPolygon2D" parent="brick_3"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_4" type="StaticBody2D" parent="."]
+position = Vector2(-80, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_4" type="CollisionPolygon2D" parent="brick_4"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="paddle-joint-holder" type="StaticBody2D" parent="."]
+position = Vector2(-0.02870888449251651, 337.1033935546875)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "paddle-joint-holder"
+}
+
+[node name="fixture1_5" type="CollisionPolygon2D" parent="paddle-joint-holder"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="paddle-joint-temp" type="RigidBody2D" parent="."]
+position = Vector2(-0.02870888449251651, 273.1033935546875)
+script = ExtResource("2_b2d")
+user_data = {
+"type": "paddle-joint-temp"
+}
+
+[node name="fixture1_6" type="CollisionPolygon2D" parent="paddle-joint-temp"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_5" type="StaticBody2D" parent="."]
+position = Vector2(-80, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_7" type="CollisionPolygon2D" parent="brick_5"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_6" type="StaticBody2D" parent="."]
+position = Vector2(-112, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_8" type="CollisionPolygon2D" parent="brick_6"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick" type="StaticBody2D" parent="."]
+position = Vector2(-112, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_9" type="CollisionPolygon2D" parent="strong-brick"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_2" type="StaticBody2D" parent="."]
+position = Vector2(-80, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_10" type="CollisionPolygon2D" parent="strong-brick_2"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_7" type="StaticBody2D" parent="."]
+position = Vector2(48, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_11" type="CollisionPolygon2D" parent="brick_7"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_8" type="StaticBody2D" parent="."]
+position = Vector2(16, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_12" type="CollisionPolygon2D" parent="brick_8"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_9" type="StaticBody2D" parent="."]
+position = Vector2(-48, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_13" type="CollisionPolygon2D" parent="brick_9"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_10" type="StaticBody2D" parent="."]
+position = Vector2(-16, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_14" type="CollisionPolygon2D" parent="brick_10"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_11" type="StaticBody2D" parent="."]
+position = Vector2(16, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_15" type="CollisionPolygon2D" parent="brick_11"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_12" type="StaticBody2D" parent="."]
+position = Vector2(48, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_16" type="CollisionPolygon2D" parent="brick_12"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_13" type="StaticBody2D" parent="."]
+position = Vector2(-48, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_17" type="CollisionPolygon2D" parent="brick_13"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_14" type="StaticBody2D" parent="."]
+position = Vector2(48, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_18" type="CollisionPolygon2D" parent="brick_14"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_3" type="StaticBody2D" parent="."]
+position = Vector2(-16, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_19" type="CollisionPolygon2D" parent="strong-brick_3"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_15" type="StaticBody2D" parent="."]
+position = Vector2(-16, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_20" type="CollisionPolygon2D" parent="brick_15"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_16" type="StaticBody2D" parent="."]
+position = Vector2(-16, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_21" type="CollisionPolygon2D" parent="brick_16"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_17" type="StaticBody2D" parent="."]
+position = Vector2(-48, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_22" type="CollisionPolygon2D" parent="brick_17"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_4" type="StaticBody2D" parent="."]
+position = Vector2(16, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_23" type="CollisionPolygon2D" parent="strong-brick_4"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_5" type="StaticBody2D" parent="."]
+position = Vector2(48, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_24" type="CollisionPolygon2D" parent="strong-brick_5"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_18" type="StaticBody2D" parent="."]
+position = Vector2(16, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_25" type="CollisionPolygon2D" parent="brick_18"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_6" type="StaticBody2D" parent="."]
+position = Vector2(-48, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_26" type="CollisionPolygon2D" parent="strong-brick_6"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_19" type="StaticBody2D" parent="."]
+position = Vector2(112, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_27" type="CollisionPolygon2D" parent="brick_19"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_7" type="StaticBody2D" parent="."]
+position = Vector2(80, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_28" type="CollisionPolygon2D" parent="strong-brick_7"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_20" type="StaticBody2D" parent="."]
+position = Vector2(80, -40)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_29" type="CollisionPolygon2D" parent="brick_20"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_21" type="StaticBody2D" parent="."]
+position = Vector2(80, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_30" type="CollisionPolygon2D" parent="brick_21"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_22" type="StaticBody2D" parent="."]
+position = Vector2(112, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_31" type="CollisionPolygon2D" parent="brick_22"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_23" type="StaticBody2D" parent="."]
+position = Vector2(112, -56)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_32" type="CollisionPolygon2D" parent="brick_23"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="brick_24" type="StaticBody2D" parent="."]
+position = Vector2(80, -24)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "brick"
+}
+
+[node name="fixture1_33" type="CollisionPolygon2D" parent="brick_24"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="strong-brick_8" type="StaticBody2D" parent="."]
+position = Vector2(112, -8)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "strong-brick"
+}
+
+[node name="fixture1_34" type="CollisionPolygon2D" parent="strong-brick_8"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="door" type="StaticBody2D" parent="."]
+position = Vector2(-48, -248)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "door"
+}
+
+[node name="fixture1_35" type="CollisionPolygon2D" parent="door"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="door_2" type="StaticBody2D" parent="."]
+position = Vector2(-16, -248)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "door"
+}
+
+[node name="fixture1_36" type="CollisionPolygon2D" parent="door_2"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="door_3" type="StaticBody2D" parent="."]
+position = Vector2(16, -248)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "door"
+}
+
+[node name="fixture1_37" type="CollisionPolygon2D" parent="door_3"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="door_4" type="StaticBody2D" parent="."]
+position = Vector2(48, -248)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "door"
+}
+
+[node name="fixture1_38" type="CollisionPolygon2D" parent="door_4"]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+
+[node name="exit" type="StaticBody2D" parent="."]
+position = Vector2(0, -320)
+script = ExtResource("1_b2d")
+user_data = {
+"type": "exit"
+}
+
+[node name="fixture1_39" type="CollisionPolygon2D" parent="exit"]
+polygon = PackedVector2Array(-64, 8, 64, 8, 64, -8, -64, -8)
+script = ExtResource("3_b2d")
+restitution = 1
+is_sensor = true
+
+[node name="paddle-joint" type="Node2D" parent="."]
+position = Vector2(-0.02870888449251651, 273.1033935546875)
+script = ExtResource("4_b2d")
+body_a = NodePath("paddle-joint-holder")
+body_b = NodePath("paddle-joint-temp")
+local_axis_a = Vector2(1, 0)
+enable_limit = true
+lower_limit = -160
+upper_limit = 160
+enable_motor = false
