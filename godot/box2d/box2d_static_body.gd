@@ -1,14 +1,14 @@
 @tool
-extends Node2D
+@icon("res://box2d/icons/box2d_static_body.svg")
+extends StaticBody2D
 class_name Box2DStaticBody
 
-## A Box2D static body. Authored in Godot, exported to JSON, instantiated at runtime.
-## Add CollisionShape2D / CollisionPolygon2D children for fixtures.
-## Add Sprite2D / AnimatedSprite2D children for sprite bindings.
-## Set per-node metadata to carry gameplay tags (type, powerup, doorName, ...).
+## A Box2D static body. Authored in Godot, exported to JSON, instantiated at
+## runtime against phaser-box2d. Static bodies do not move.
+##
+## Add Box2DPolygonFixture / Box2DShapeFixture children for collision geometry.
+## Add Sprite2D / AnimatedSprite2D children to bind sprites to this body.
 
-func _get_configuration_warnings() -> PackedStringArray:
-	var warnings: PackedStringArray = []
-	if get_child_count() == 0:
-		warnings.append("Static body has no children. Add a CollisionShape2D or CollisionPolygon2D.")
-	return warnings
+## Gameplay tags / arbitrary key→value data carried into the runtime body's
+## userData. The runtime entity dispatch reads `user_data.type`.
+@export var user_data: Dictionary = {}

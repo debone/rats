@@ -174,11 +174,14 @@ export function generateGeometryJsonFiles(
 
   const tscnFiles = fs.readdirSync(geometryDir).filter((f) => f.endsWith('.tscn'));
   const parsed = new Map<string, Box2DGeometry>();
+  const godotRoot = path.resolve(path.dirname(path.resolve(geometryDir)));
+  const subsceneCache = new Map<string, Box2DGeometry>();
 
   for (const file of tscnFiles) {
     const name = file.replace('.tscn', '');
-    const content = fs.readFileSync(path.join(geometryDir, file), 'utf-8');
-    const geometry = parseGeometryTscn(content, spriteMap);
+    const filePath = path.join(geometryDir, file);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const geometry = parseGeometryTscn(content, spriteMap, { godotRoot, subsceneCache });
     fs.writeFileSync(path.join(outputDir, `${name}.json`), JSON.stringify(geometry, null, 2));
     parsed.set(name, geometry);
     console.log(
@@ -232,19 +235,37 @@ interface NodeInfo {
   fullPath: string; // ".", "Body", "Body/Shape"
   scriptResId?: string;
   scriptResPath?: string; // resolved res:// path
+  /** When set, this node is an instance of another .tscn (PackedScene). */
+  instanceResPath?: string;
   props: Map<string, string>;
 }
 
-export function parseGeometryTscn(content: string, spriteMap: GodotSpriteMap): Box2DGeometry {
+export interface ParseGeometryOptions {
+  /** Absolute path to the godot/ project root, used to resolve `res://` paths. */
+  godotRoot?: string;
+  /** Cache of already-parsed subscenes, keyed by absolute path. */
+  subsceneCache?: Map<string, Box2DGeometry>;
+}
+
+export function parseGeometryTscn(
+  content: string,
+  spriteMap: GodotSpriteMap,
+  options: ParseGeometryOptions = {},
+): Box2DGeometry {
   const sections: TscnSection[] = parseTscnSections(content);
 
-  // Resolve ExtResources: id → res:// path
+  // Resolve ExtResources: id → { path, type }
   const extResources: Record<string, string> = {};
+  const extResourceTypes: Record<string, string> = {};
   for (const s of sections) {
     if (s.type !== 'ext_resource') continue;
     const id = unquote(s.attrs.id ?? '');
     const resPath = unquote(s.attrs.path ?? '');
-    if (id && resPath) extResources[id] = resPath;
+    const resType = unquote(s.attrs.type ?? '');
+    if (id && resPath) {
+      extResources[id] = resPath;
+      if (resType) extResourceTypes[id] = resType;
+    }
   }
 
   // Resolve sub_resource shapes: id → shape data
@@ -268,7 +289,6 @@ export function parseGeometryTscn(content: string, spriteMap: GodotSpriteMap): B
 
   // Build node list with resolved full paths
   const nodes: NodeInfo[] = [];
-  let rootName = '';
   for (const s of sections) {
     if (s.type !== 'node') continue;
     const name = unquote(s.attrs.name ?? '');
@@ -276,29 +296,22 @@ export function parseGeometryTscn(content: string, spriteMap: GodotSpriteMap): B
     const parentAttr = s.attrs.parent !== undefined ? unquote(s.attrs.parent) : '';
     const scriptResId = s.props.get('script')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
     const scriptResPath = scriptResId ? extResources[scriptResId] : undefined;
+    const instanceMatch = s.attrs.instance?.match(/ExtResource\("([^"]+)"\)/);
+    const instanceResId = instanceMatch?.[1];
+    const instanceResPath =
+      instanceResId && extResourceTypes[instanceResId] === 'PackedScene' ? extResources[instanceResId] : undefined;
 
     const parentPath = parentAttr; // '' for root, '.' for direct children of root, 'Body' for grand-children, etc.
     let fullPath: string;
     if (parentPath === '') {
       fullPath = '.';
-      rootName = name;
     } else if (parentPath === '.') {
       fullPath = name;
     } else {
       fullPath = `${parentPath}/${name}`;
     }
-    nodes.push({ name, type, parentPath, fullPath, scriptResId, scriptResPath, props: s.props });
+    nodes.push({ name, type, parentPath, fullPath, scriptResId, scriptResPath, instanceResPath, props: s.props });
   }
-  void rootName;
-
-  // Identify body nodes
-  const bodyNodes: NodeInfo[] = nodes.filter(
-    (n) => n.scriptResPath !== undefined && n.scriptResPath in SCRIPT_TO_BODY_TYPE,
-  );
-
-  // Map from fullPath → body index in output bodies array
-  const bodyPathToIndex = new Map<string, number>();
-  bodyNodes.forEach((n, i) => bodyPathToIndex.set(n.fullPath, i));
 
   // Pre-compute global transforms for all nodes (Godot pixel space)
   const nodeByPath = new Map<string, NodeInfo>();
@@ -312,13 +325,74 @@ export function parseGeometryTscn(content: string, spriteMap: GodotSpriteMap): B
     godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation };
   }
 
-  // Build body defs
+  // Identify local body nodes
+  const bodyNodes: NodeInfo[] = nodes.filter(
+    (n) => n.scriptResPath !== undefined && n.scriptResPath in SCRIPT_TO_BODY_TYPE,
+  );
+
+  // Build local body defs
   const bodies: Box2DBodyDef[] = bodyNodes.map((bodyNode) =>
     buildBodyDef(bodyNode, nodes, subShapes, extResources, godotPathToPixi, globalTransforms),
   );
 
-  // Build joint defs
+  // Map from local body fullPath → body index in output bodies array
+  const bodyPathToIndex = new Map<string, number>();
+  bodyNodes.forEach((n, i) => bodyPathToIndex.set(n.fullPath, i));
+
   const joints: Box2DJointDef[] = [];
+
+  // Inline subscene instances. For each instance node:
+  //   - load (and cache) the subscene's Box2DGeometry
+  //   - apply the instance's global transform to each subscene body's position/angle
+  //   - prefix subscene body names with "<instance>/" to keep them unique
+  //   - shift joint bodyA/bodyB indices by the current bodies array length
+  // Subscene NodePaths are already resolved internally (during the recursive
+  // parseGeometryTscn call), so we don't need to re-rewrite them.
+  const instanceNodes = nodes.filter((n) => n.instanceResPath !== undefined);
+  for (const instNode of instanceNodes) {
+    const subPath = resolveResPath(instNode.instanceResPath!, options.godotRoot);
+    if (!subPath) continue;
+    let subGeo = options.subsceneCache?.get(subPath);
+    if (!subGeo) {
+      if (!fs.existsSync(subPath)) {
+        console.warn(`[Godot] Subscene not found: ${subPath}`);
+        continue;
+      }
+      const subContent = fs.readFileSync(subPath, 'utf-8');
+      subGeo = parseGeometryTscn(subContent, spriteMap, options);
+      options.subsceneCache?.set(subPath, subGeo);
+    }
+    const instGT = globalTransforms.get(instNode.fullPath)!;
+    const baseIndex = bodies.length;
+    for (const subBody of subGeo.bodies) {
+      // subBody.position is in subscene root's Box2D meters. Transform by the
+      // instance's global Godot transform, then convert to outer Box2D meters.
+      const subPxX = subBody.position.x * PXM;
+      const subPxY = -subBody.position.y * PXM;
+      const cosI = Math.cos(instGT.rotation);
+      const sinI = Math.sin(instGT.rotation);
+      const worldPxX = instGT.origin.x + cosI * subPxX - sinI * subPxY;
+      const worldPxY = instGT.origin.y + sinI * subPxX + cosI * subPxY;
+      bodies.push({
+        ...subBody,
+        name: `${instNode.name}/${subBody.name}`,
+        position: { x: worldPxX / PXM, y: -worldPxY / PXM },
+        angle: subBody.angle - instGT.rotation,
+      });
+    }
+    for (const subJoint of subGeo.joints) {
+      // Shift body indices to point into the merged array; everything else
+      // (anchors are body-local, limits are scalar) stays unchanged.
+      joints.push({
+        ...subJoint,
+        name: `${instNode.name}/${subJoint.name}`,
+        bodyA: subJoint.bodyA + baseIndex,
+        bodyB: subJoint.bodyB + baseIndex,
+      } as Box2DJointDef);
+    }
+  }
+
+  // Build local joint defs (after subscene merge so indices are stable)
   for (const n of nodes) {
     if (!n.scriptResPath || !(n.scriptResPath in SCRIPT_TO_JOINT_TYPE)) continue;
     const j = buildJointDef(n, nodes, bodyPathToIndex, globalTransforms);
@@ -826,6 +900,15 @@ const FIXTURE_MATERIAL_KEYS = new Set([
 ]);
 
 function collectUserData(node: NodeInfo, isFixture = false): Record<string, unknown> {
+  // Prefer the typed `user_data` Dictionary export (from the new authoring
+  // kit). Fall back to metadata/* for scenes that haven't migrated yet.
+  const typed = node.props.get('user_data');
+  if (typed !== undefined) {
+    const decoded = decodeGodotValue(typed);
+    if (decoded && typeof decoded === 'object' && !('x' in (decoded as object))) {
+      return decoded as Record<string, unknown>;
+    }
+  }
   const out: Record<string, unknown> = {};
   for (const [k, v] of node.props) {
     if (!k.startsWith('metadata/')) continue;
@@ -838,40 +921,68 @@ function collectUserData(node: NodeInfo, isFixture = false): Record<string, unkn
 }
 
 function collectMaterial(shape: NodeInfo): Material {
-  const readNum = (key: string, fallback: number): number => {
-    const raw = shape.props.get(`metadata/${key}`);
-    if (raw === undefined) return fallback;
-    const v = decodeGodotValue(raw);
-    return typeof v === 'number' ? v : fallback;
+  // Prefer typed @export properties from Box2DPolygonFixture/Box2DShapeFixture.
+  // Fall back to metadata/* for plain CollisionPolygon2D / CollisionShape2D.
+  const readNum = (typedKey: string, metaKey: string, fallback: number): number => {
+    const direct = shape.props.get(typedKey);
+    if (direct !== undefined) {
+      const v = decodeGodotValue(direct);
+      if (typeof v === 'number') return v;
+    }
+    const meta = shape.props.get(`metadata/${metaKey}`);
+    if (meta !== undefined) {
+      const v = decodeGodotValue(meta);
+      if (typeof v === 'number') return v;
+    }
+    return fallback;
   };
-  const readBool = (key: string, fallback: boolean): boolean => {
-    const raw = shape.props.get(`metadata/${key}`);
-    if (raw === undefined) return fallback;
-    const v = decodeGodotValue(raw);
-    return typeof v === 'boolean' ? v : fallback;
+  const readBool = (typedKey: string, metaKey: string, fallback: boolean): boolean => {
+    const direct = shape.props.get(typedKey);
+    if (direct !== undefined) {
+      const v = decodeGodotValue(direct);
+      if (typeof v === 'boolean') return v;
+    }
+    const meta = shape.props.get(`metadata/${metaKey}`);
+    if (meta !== undefined) {
+      const v = decodeGodotValue(meta);
+      if (typeof v === 'boolean') return v;
+    }
+    return fallback;
   };
   const out: Material = {
-    density: readNum('density', 1),
-    friction: readNum('friction', 0.2),
-    restitution: readNum('restitution', 0),
-    sensor: readBool('sensor', false),
+    density: readNum('density', 'density', 1),
+    friction: readNum('friction', 'friction', 0.2),
+    restitution: readNum('restitution', 'restitution', 0),
+    sensor: readBool('is_sensor', 'sensor', false),
   };
-  const cb = shape.props.get('metadata/category_bits');
-  if (cb !== undefined) {
-    const v = decodeGodotValue(cb);
-    if (typeof v === 'number') out.categoryBits = v;
-  }
-  const mb = shape.props.get('metadata/mask_bits');
-  if (mb !== undefined) {
-    const v = decodeGodotValue(mb);
-    if (typeof v === 'number') out.maskBits = v;
-  }
-  const gi = shape.props.get('metadata/group_index');
-  if (gi !== undefined) {
-    const v = decodeGodotValue(gi);
-    if (typeof v === 'number') out.groupIndex = v;
-  }
+  const readOptInt = (typedKey: string, metaKey: string): number | undefined => {
+    const direct = shape.props.get(typedKey);
+    if (direct !== undefined) {
+      const v = decodeGodotValue(direct);
+      if (typeof v === 'number') return v;
+    }
+    const meta = shape.props.get(`metadata/${metaKey}`);
+    if (meta !== undefined) {
+      const v = decodeGodotValue(meta);
+      if (typeof v === 'number') return v;
+    }
+    return undefined;
+  };
+  const cb = readOptInt('category_bits', 'category_bits');
+  if (cb !== undefined) out.categoryBits = cb;
+  const mb = readOptInt('mask_bits', 'mask_bits');
+  if (mb !== undefined) out.maskBits = mb;
+  const gi = readOptInt('group_index', 'group_index');
+  if (gi !== undefined) out.groupIndex = gi;
   return out;
+}
+
+/** Resolve a `res://...` path to an absolute filesystem path under the godot project root. */
+function resolveResPath(resPath: string, godotRoot?: string): string | null {
+  if (!godotRoot) return null;
+  const m = resPath.match(/^res:\/\/(.+)$/);
+  if (!m) return null;
+  return path.join(godotRoot, m[1]);
 }
 
 function resolveNodePath(fromPath: string, relativePath: string, allNodes: NodeInfo[]): string | null {

@@ -34,7 +34,8 @@ export function parseTscnSections(content: string): TscnSection[] {
     const attrStr = spaceIdx >= 0 ? headerContent.slice(spaceIdx) : '';
 
     const attrs: Record<string, string> = {};
-    const attrRe = /(\w+)=("(?:[^"\\]|\\.)*"|[\w./:{}@-]+)/g;
+    // Matches: key="quoted", key=ExtResource("..."), key=SubResource("..."), key=bareValue
+    const attrRe = /(\w+)=("(?:[^"\\]|\\.)*"|(?:Ext|Sub)Resource\("[^"]+"\)|[\w./:{}@-]+)/g;
     let am: RegExpExecArray | null;
     while ((am = attrRe.exec(attrStr)) !== null) {
       attrs[am[1]] = am[2];
@@ -164,8 +165,8 @@ export function extractMetadata(props: Map<string, string>): Record<string, stri
 }
 
 /**
- * Decode a Godot literal value (number, bool, string, Vector2) into the
- * matching JS value. Used for metadata values.
+ * Decode a Godot literal value (number, bool, string, Vector2, Dictionary)
+ * into the matching JS value. Used for metadata values and @export properties.
  */
 export function decodeGodotValue(raw: string): unknown {
   const trimmed = raw.trim();
@@ -175,8 +176,76 @@ export function decodeGodotValue(raw: string): unknown {
   if (/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)) return parseFloat(trimmed);
   const v2 = parseVector2(trimmed);
   if (v2) return v2;
+  if (trimmed.startsWith('{')) {
+    return parseGodotDictionary(trimmed);
+  }
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
     return unquote(trimmed).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
   }
   return trimmed;
+}
+
+/**
+ * Parse a Godot 4 Dictionary literal: `{"key1": value1, "key2": value2, ...}`.
+ * Keys may be plain strings ("foo") or StringNames (&"foo"). Values are decoded
+ * via decodeGodotValue. Multi-line is supported (the parseProps caller already
+ * accumulates the full brace block).
+ */
+export function parseGodotDictionary(raw: string): Record<string, unknown> {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return {};
+  const inner = trimmed.slice(1, -1).trim();
+  if (!inner) return {};
+
+  const segments = splitTopLevel(inner, ',');
+  const out: Record<string, unknown> = {};
+  for (const seg of segments) {
+    const colonIdx = findTopLevelColon(seg);
+    if (colonIdx < 0) continue;
+    const keyRaw = seg.slice(0, colonIdx).trim();
+    const valRaw = seg.slice(colonIdx + 1).trim();
+    let key: string | null = null;
+    if (keyRaw.startsWith('&"') && keyRaw.endsWith('"')) {
+      key = keyRaw.slice(2, -1).replace(/\\"/g, '"');
+    } else if (keyRaw.startsWith('"') && keyRaw.endsWith('"')) {
+      key = keyRaw.slice(1, -1).replace(/\\"/g, '"');
+    }
+    if (key !== null) out[key] = decodeGodotValue(valRaw);
+  }
+  return out;
+}
+
+/** Split a string at top-level occurrences of `sep`, respecting brackets and quoted strings. */
+function splitTopLevel(s: string, sep: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let inString = false;
+  let segStart = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' && (i === 0 || s[i - 1] !== '\\')) inString = !inString;
+    if (inString) continue;
+    if (c === '{' || c === '[' || c === '(') depth++;
+    else if (c === '}' || c === ']' || c === ')') depth--;
+    else if (c === sep && depth === 0) {
+      out.push(s.slice(segStart, i));
+      segStart = i + 1;
+    }
+  }
+  if (segStart <= s.length) out.push(s.slice(segStart));
+  return out;
+}
+
+function findTopLevelColon(s: string): number {
+  let depth = 0;
+  let inString = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' && (i === 0 || s[i - 1] !== '\\')) inString = !inString;
+    if (inString) continue;
+    if (c === '{' || c === '[' || c === '(') depth++;
+    else if (c === '}' || c === ']' || c === ')') depth--;
+    else if (c === ':' && depth === 0) return i;
+  }
+  return -1;
 }

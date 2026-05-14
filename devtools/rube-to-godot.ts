@@ -16,10 +16,15 @@ import * as path from 'path';
 // Must match src/consts.ts PXM
 const PXM = 16;
 
-const BODY_TYPE_TO_SCRIPT: Record<number, { kind: 'static' | 'kinematic' | 'dynamic'; res: string }> = {
-  0: { kind: 'static', res: 'res://box2d/box2d_static_body.gd' },
-  1: { kind: 'kinematic', res: 'res://box2d/box2d_kinematic_body.gd' },
-  2: { kind: 'dynamic', res: 'res://box2d/box2d_dynamic_body.gd' },
+// Body scripts extend Godot's CollisionObject2D types so child collision
+// shapes don't trip the "needs a CollisionObject2D parent" warning.
+const BODY_TYPE_TO_SCRIPT: Record<
+  number,
+  { kind: 'static' | 'kinematic' | 'dynamic'; res: string; godotType: string }
+> = {
+  0: { kind: 'static', res: 'res://box2d/box2d_static_body.gd', godotType: 'StaticBody2D' },
+  1: { kind: 'kinematic', res: 'res://box2d/box2d_kinematic_body.gd', godotType: 'CharacterBody2D' },
+  2: { kind: 'dynamic', res: 'res://box2d/box2d_dynamic_body.gd', godotType: 'RigidBody2D' },
 };
 
 const JOINT_TYPE_TO_SCRIPT: Record<string, string> = {
@@ -28,6 +33,9 @@ const JOINT_TYPE_TO_SCRIPT: Record<string, string> = {
   distance: 'res://box2d/box2d_distance_joint.gd',
   weld: 'res://box2d/box2d_weld_joint.gd',
 };
+
+const POLYGON_FIXTURE_SCRIPT = 'res://box2d/box2d_polygon_fixture.gd';
+const SHAPE_FIXTURE_SCRIPT = 'res://box2d/box2d_shape_fixture.gd';
 
 interface V2 {
   x: number;
@@ -57,18 +65,23 @@ interface CustomProp {
   vec2?: V2;
 }
 
-function customPropsToMeta(props: CustomProp[] | undefined, prefix: 'metadata' = 'metadata'): string[] {
-  if (!props) return [];
-  const out: string[] = [];
+/**
+ * Emit a Godot Dictionary literal for the body/fixture's `user_data` @export.
+ * Returns an empty string if there are no entries.
+ */
+function customPropsToDict(props: CustomProp[] | undefined): string {
+  if (!props || props.length === 0) return '';
+  const entries: string[] = [];
   for (const p of props) {
     let v: string | null = null;
     if (p.string !== undefined) v = JSON.stringify(p.string);
     else if (p.int !== undefined) v = String(p.int);
     else if (p.float !== undefined) v = String(p.float);
     else if (p.bool !== undefined) v = p.bool ? 'true' : 'false';
-    if (v !== null) out.push(`${prefix}/${p.name} = ${v}`);
+    if (v !== null) entries.push(`"${p.name}": ${v}`);
   }
-  return out;
+  if (entries.length === 0) return '';
+  return `user_data = {\n${entries.join(',\n')}\n}`;
 }
 
 interface RubeBody {
@@ -157,16 +170,18 @@ function normalizeBodyType(t: number | string | undefined): 'static' | 'kinemati
   return 'static';
 }
 
-function fixtureMetadata(fx: RubeFixture): string[] {
+/** Emit typed @export lines on the fixture script. */
+function fixtureExports(fx: RubeFixture): string[] {
   const out: string[] = [];
-  if (fx.density !== undefined && fx.density !== 1) out.push(`metadata/density = ${fx.density}`);
-  if (fx.friction !== undefined && fx.friction !== 0.2) out.push(`metadata/friction = ${fx.friction}`);
-  if (fx.restitution !== undefined && fx.restitution !== 0) out.push(`metadata/restitution = ${fx.restitution}`);
-  if (fx.sensor === true) out.push(`metadata/sensor = true`);
-  if (fx['filter-categoryBits'] !== undefined) out.push(`metadata/category_bits = ${fx['filter-categoryBits']}`);
-  if (fx['filter-maskBits'] !== undefined) out.push(`metadata/mask_bits = ${fx['filter-maskBits']}`);
-  if (fx['filter-groupIndex'] !== undefined) out.push(`metadata/group_index = ${fx['filter-groupIndex']}`);
-  out.push(...customPropsToMeta(fx.customProperties));
+  if (fx.density !== undefined && fx.density !== 1) out.push(`density = ${fx.density}`);
+  if (fx.friction !== undefined && fx.friction !== 0.2) out.push(`friction = ${fx.friction}`);
+  if (fx.restitution !== undefined && fx.restitution !== 0) out.push(`restitution = ${fx.restitution}`);
+  if (fx.sensor === true) out.push(`is_sensor = true`);
+  if (fx['filter-categoryBits'] !== undefined) out.push(`category_bits = ${fx['filter-categoryBits']}`);
+  if (fx['filter-maskBits'] !== undefined) out.push(`mask_bits = ${fx['filter-maskBits']}`);
+  if (fx['filter-groupIndex'] !== undefined) out.push(`group_index = ${fx['filter-groupIndex']}`);
+  const ud = customPropsToDict(fx.customProperties);
+  if (ud) out.push(ud);
   return out;
 }
 
@@ -187,12 +202,21 @@ function convert(rube: RubeWorld): string {
   const joints = meta.metajoint ?? [];
   const gravity = meta.gravity ?? { x: 0, y: -10 };
 
-  // Resolve ExtResource ids for the seven scripts we may emit.
+  // Resolve ExtResource ids for every script we may emit.
   const usedScripts = new Set<string>();
+  let anyShapeFixture = false;
+  let anyPolygonFixture = false;
   for (const b of bodies) {
     const t = normalizeBodyType(b.type);
     usedScripts.add(BODY_TYPE_TO_SCRIPT[t === 'dynamic' ? 2 : t === 'kinematic' ? 1 : 0].res);
+    for (const fx of b.fixture ?? []) {
+      const norm = normalizeFixtureShape(fx);
+      if (norm?.kind === 'circle') anyShapeFixture = true;
+      else if (norm?.kind === 'polygon' || norm?.kind === 'chain') anyPolygonFixture = true;
+    }
   }
+  if (anyShapeFixture) usedScripts.add(SHAPE_FIXTURE_SCRIPT);
+  if (anyPolygonFixture) usedScripts.add(POLYGON_FIXTURE_SCRIPT);
   for (const j of joints) {
     const s = JOINT_TYPE_TO_SCRIPT[j.type === 'rope' ? 'distance' : j.type];
     if (s) usedScripts.add(s);
@@ -244,11 +268,11 @@ function convert(rube: RubeWorld): string {
   const usedFixtureNames = new Map<string, number>();
   for (const bm of bodyMeta) {
     const t = normalizeBodyType(bm.rube.type);
-    const scriptRes = BODY_TYPE_TO_SCRIPT[t === 'dynamic' ? 2 : t === 'kinematic' ? 1 : 0].res;
-    const sId = scriptId.get(scriptRes)!;
+    const bodyEntry = BODY_TYPE_TO_SCRIPT[t === 'dynamic' ? 2 : t === 'kinematic' ? 1 : 0];
+    const sId = scriptId.get(bodyEntry.res)!;
 
     const bodyLines: string[] = [];
-    bodyLines.push(`[node name="${bm.name}" type="Node2D" parent="."]`);
+    bodyLines.push(`[node name="${bm.name}" type="${bodyEntry.godotType}" parent="."]`);
     if (bm.godotPos.x !== 0 || bm.godotPos.y !== 0) {
       bodyLines.push(`position = Vector2(${bm.godotPos.x}, ${bm.godotPos.y})`);
     }
@@ -256,6 +280,8 @@ function convert(rube: RubeWorld): string {
       bodyLines.push(`rotation = ${bm.godotAngle}`);
     }
     bodyLines.push(`script = ExtResource("${sId}")`);
+    const ud = customPropsToDict(bm.rube.customProperties);
+    if (ud) bodyLines.push(ud);
     if (bm.rube.fixedRotation === true) bodyLines.push(`fixed_rotation = true`);
     if (bm.rube.bullet === true) bodyLines.push(`bullet = true`);
     if (t === 'dynamic') {
@@ -265,22 +291,23 @@ function convert(rube: RubeWorld): string {
       if (bm.rube.angularDamping !== undefined && bm.rube.angularDamping !== 0)
         bodyLines.push(`angular_damping = ${bm.rube.angularDamping}`);
     }
-    for (const m of customPropsToMeta(bm.rube.customProperties)) bodyLines.push(m);
     nodeSections.push(bodyLines.join('\n') + '\n');
 
-    // Fixtures as child nodes
+    // Fixtures as child nodes — use the typed Box2D{Polygon,Shape}Fixture scripts.
     const fixtures = bm.rube.fixture ?? [];
     for (const fx of fixtures) {
       const normalized = normalizeFixtureShape(fx);
       if (!normalized) continue;
       const rawFxName = fx.name ?? 'fixture';
       const fxName = uniqueName(rawFxName, usedFixtureNames);
+      const exports = fixtureExports(fx);
 
       if (normalized.kind === 'circle') {
         const c = normalized.data as { center: V2; radius: number };
         const subId = issueSubId('CircleShape2D');
         subResources.push(`[sub_resource type="CircleShape2D" id="${subId}"]\nradius = ${c.radius * PXM}\n`);
         const godotCenter = box2dToGodotPos(c.center);
+        const fxScriptId = scriptId.get(SHAPE_FIXTURE_SCRIPT)!;
         const lines: string[] = [
           `[node name="${fxName}" type="CollisionShape2D" parent="${bm.name}"]`,
         ];
@@ -288,7 +315,8 @@ function convert(rube: RubeWorld): string {
           lines.push(`position = Vector2(${godotCenter.x}, ${godotCenter.y})`);
         }
         lines.push(`shape = SubResource("${subId}")`);
-        for (const m of fixtureMetadata(fx)) lines.push(m);
+        lines.push(`script = ExtResource("${fxScriptId}")`);
+        for (const e of exports) lines.push(e);
         nodeSections.push(lines.join('\n') + '\n');
       } else if (normalized.kind === 'polygon') {
         const p = normalized.data as { vertices: { x: number[]; y: number[] } };
@@ -299,11 +327,13 @@ function convert(rube: RubeWorld): string {
           // Vertices are body-local Box2D meters → body-local Godot pixels
           pts.push(`${xs[i] * PXM}, ${-ys[i] * PXM}`);
         }
+        const fxScriptId = scriptId.get(POLYGON_FIXTURE_SCRIPT)!;
         const lines: string[] = [
           `[node name="${fxName}" type="CollisionPolygon2D" parent="${bm.name}"]`,
           `polygon = PackedVector2Array(${pts.join(', ')})`,
+          `script = ExtResource("${fxScriptId}")`,
         ];
-        for (const m of fixtureMetadata(fx)) lines.push(m);
+        for (const e of exports) lines.push(e);
         nodeSections.push(lines.join('\n') + '\n');
       } else if (normalized.kind === 'chain') {
         const p = normalized.data as { vertices: { x: number[]; y: number[] } };
@@ -313,12 +343,14 @@ function convert(rube: RubeWorld): string {
         for (let i = 0; i < xs.length; i++) {
           pts.push(`${xs[i] * PXM}, ${-ys[i] * PXM}`);
         }
+        const fxScriptId = scriptId.get(POLYGON_FIXTURE_SCRIPT)!;
         const lines: string[] = [
           `[node name="${fxName}" type="CollisionPolygon2D" parent="${bm.name}"]`,
           `build_mode = 1`,
           `polygon = PackedVector2Array(${pts.join(', ')})`,
+          `script = ExtResource("${fxScriptId}")`,
         ];
-        for (const m of fixtureMetadata(fx)) lines.push(m);
+        for (const e of exports) lines.push(e);
         nodeSections.push(lines.join('\n') + '\n');
       }
     }

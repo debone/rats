@@ -1,56 +1,110 @@
 # Box2D node scripts
 
 Authoring kit for building Box2D geometry in the Godot editor. Drop one of
-these node types in the "Create Node" dialog and start authoring.
+these node types from the "Create Node" dialog and start authoring.
 
 ## Bodies
+
+Three node types, each extending the matching Godot `CollisionObject2D`
+subtype so child collision shapes don't trip the "needs a CollisionObject2D
+parent" warning. The exporter only cares about the script class, not Godot's
+own physics behaviour, so none of Godot's physics settings (mass, friction,
+collision layers …) affect the runtime — set them via the Box2D-specific
+`@export` properties below.
+
 - `Box2DStaticBody` — non-moving collider (walls, bricks, scenery).
 - `Box2DKinematicBody` — script-moved body (kinematic platforms).
 - `Box2DDynamicBody` — full physics body.
 
-## Fixtures
-Use Godot's native `CollisionShape2D` (with `CircleShape2D`, `RectangleShape2D`,
-or `ConvexPolygonShape2D` resources) and `CollisionPolygon2D` as **children** of
-a body. The collision node's transform is in pixel-space relative to the body;
-the exporter converts to Box2D meters via `PXM = 16`.
+`@export` properties on each body:
+- `user_data: Dictionary` — gameplay tags. The runtime entity dispatch reads
+  `user_data.type`. Other keys (`powerup`, `doorName`, `behaviour`, …) are
+  carried verbatim into the body's runtime userData.
+- `fixed_rotation: bool`, `bullet: bool` — kinematic and dynamic.
+- `allow_sleep: bool`, `linear_damping: float`, `angular_damping: float`,
+  `gravity_scale: float` — dynamic only.
 
-Per-fixture Box2D material properties go in node Metadata
-(Inspector → Node → Metadata):
+## Fixtures
+
+Two node types extending Godot's collision nodes:
+
+- `Box2DPolygonFixture` — extends `CollisionPolygon2D`. Use `build_mode =
+  SOLIDS` for filled (convex/concave) polygons, `SEGMENTS` for chain shapes.
+  Concave polygons are decomposed at export time.
+- `Box2DShapeFixture` — extends `CollisionShape2D`. Set `shape` to a
+  `CircleShape2D`, `RectangleShape2D`, or `ConvexPolygonShape2D`.
+
+Both expose Box2D fixture material directly:
 - `density: float` (default 1)
 - `friction: float` (default 0.2)
 - `restitution: float` (default 0)
-- `sensor: bool` (default false)
+- `is_sensor: bool` (default false)
 - `category_bits: int`, `mask_bits: int`, `group_index: int`
+- `user_data: Dictionary` — per-fixture gameplay tags.
+
+(Plain `CollisionPolygon2D`/`CollisionShape2D` without our scripts also
+work; the exporter falls back to reading material props from node Metadata.)
 
 ## Sprites
-Drop a `Sprite2D` or `AnimatedSprite2D` as a child of a body to bind a sprite
-to it. Position/rotation/scale of the sprite is relative to the body and is
-preserved at runtime — the sprite tracks the physics body through any
-rotation/translation.
+
+Drop a `Sprite2D` or `AnimatedSprite2D` as a child of a body to bind a
+sprite to it. Position/rotation/scale of the sprite is relative to the body
+and is preserved at runtime — the sprite tracks the physics body through
+any rotation/translation. This is the workflow the editor enables: drop the
+sprite first to see the art, then trace the collision polygon over it with
+Godot's polygon editing tools.
 
 To mark a sprite as editor-only (silhouette/reference art you're tracing),
 set its metadata `reference = true`. It won't be exported.
 
 ## Joints
+
 - `Box2DRevoluteJoint` — hinge.
-- `Box2DPrismaticJoint` — slider.
+- `Box2DPrismaticJoint` — slider. `lower_limit`/`upper_limit` are in pixels
+  (the exporter divides by PXM = 16 to get Box2D meters). The editor gizmo
+  draws the axis line at the actual range of motion.
 - `Box2DDistanceJoint` — spring/cable.
 - `Box2DWeldJoint` — rigid lock.
 
-Set `body_a` and `body_b` to NodePaths pointing at the two bodies. The joint
-Node2D's global position is the anchor; the exporter resolves it into each
-body's local space.
-
-## Gameplay tags
-A body's `metadata/type` string drives gameplay dispatch (`brick`, `wall`,
-`door`, `exit`, …). Other metadata fields are carried into the body's
-runtime `userData`:
-- `metadata/type = "brick"`
-- `metadata/powerup = "yellow"` / `"blue"` / `"green"`
-- `metadata/doorName = "main"`
-- `metadata/behaviour = "Level0"`
+Set `body_a` and `body_b` to NodePaths pointing at the two bodies. The
+joint Node2D's global position is the anchor; the exporter resolves it into
+each body's local space. The editor gizmos draw dashed lines from the
+anchor to each connected body so you can see at a glance what's wired up.
 
 ## Coordinate system
-Godot is Y-down pixels; Box2D is Y-up meters with `PXM = 16`. Conversion
-happens at export time. Author wherever feels natural — bodies, fixtures,
-sprites, and joint anchors all share the same Godot pixel space.
+
+Godot is Y-down pixels; Box2D is Y-up meters with `PXM = 16`. The exporter
+flips Y and divides by 16 — author wherever feels natural. Bodies,
+fixtures, sprites, and joint anchors all share the same Godot pixel space.
+
+## Composing scenes (subscene instances)
+
+Save a piece of geometry as its own `.tscn` (e.g. `godot/geometry/cat.tscn`
+with a Box2DDynamicBody root, child polygon, child sprite). To use it in a
+larger scene, drag the file into another scene's tree, or use Scene → Add
+Child Node → Instantiate Child Scene. The exporter follows `instance=`
+references and inlines the subscene's bodies and joints, applying the
+instance's transform. Names are prefixed: a body called `head` inside
+`cat.tscn` instanced as `Cat` becomes `Cat/head` in the runtime
+`bodiesByName` map. Joints inside the subscene continue to wire to the
+correct bodies.
+
+## Logical grouping
+
+Any `Node2D` (or plain `Node`) can hold child Box2D bodies as a logical
+group. Use them for organisation, lockable layers, hidden reference art,
+etc. The exporter walks the whole tree to find Box2D bodies — group depth
+doesn't matter.
+
+## Editing tips
+
+- **Move just the collision shape** (without moving the body): select the
+  `Box2DPolygonFixture`/`Box2DShapeFixture` child directly in the scene
+  tree, then drag it. Selecting the parent body moves the whole subtree.
+- **Move just the body's origin** (so its sprite/collision children stay in
+  place): in Godot's editor, hold Alt while dragging the body's pivot
+  handle.
+- **Lock a node** so it doesn't move accidentally: right-click in scene
+  tree → "Lock node".
+- **Hide reference art** while editing: toggle the eye icon next to a
+  Sprite2D or group node.
