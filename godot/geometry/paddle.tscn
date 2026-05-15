@@ -1,11 +1,12 @@
-[gd_scene load_steps=7 format=3 uid="uid://box2d_paddle_geometry"]
+[gd_scene load_steps=8 format=3 uid="uid://box2d_paddle_geometry"]
 
 [ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
 [ext_resource type="Script" path="res://box2d/box2d_polygon_fixture.gd" id="3_poly"]
-[ext_resource type="Texture2D" path="res://sprites/rats/rat-boat.tres" id="4_rat"]
-[ext_resource type="Texture2D" path="res://sprites/rats/shadow-back.tres" id="5_shadowback"]
-[ext_resource type="Texture2D" path="res://sprites/rats/shadow.tres" id="6_shadow"]
+[ext_resource type="Script" path="res://box2d/box2d_sprite.gd" id="4_sprite"]
+[ext_resource type="Texture2D" path="res://sprites/rats/rat-boat.tres" id="5_rat"]
+[ext_resource type="Texture2D" path="res://sprites/rats/shadow-back.tres" id="6_shadowback"]
+[ext_resource type="Texture2D" path="res://sprites/rats/shadow.tres" id="7_shadow"]
 
 [node name="Geometry" type="Node2D"]
 script = ExtResource("1_root")
@@ -24,14 +25,17 @@ category_bits = 7
 
 [node name="shadow-back" type="Sprite2D" parent="paddle"]
 position = Vector2(0, 11.5)
-texture = ExtResource("5_shadowback")
-metadata/rotate = false
+texture = ExtResource("6_shadowback")
+script = ExtResource("4_sprite")
+should_rotate = false
 
 [node name="rat-boat" type="Sprite2D" parent="paddle"]
 position = Vector2(0, -6.5)
-texture = ExtResource("4_rat")
+texture = ExtResource("5_rat")
+script = ExtResource("4_sprite")
 
 [node name="shadow" type="Sprite2D" parent="paddle"]
 position = Vector2(0, 9.5)
-texture = ExtResource("6_shadow")
-metadata/rotate = false
+texture = ExtResource("7_shadow")
+script = ExtResource("4_sprite")
+should_rotate = false

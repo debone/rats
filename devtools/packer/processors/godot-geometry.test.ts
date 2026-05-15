@@ -207,6 +207,50 @@ user_data = {
   });
 });
 
+describe('parseGeometryTscn — Box2DSprite typed flags', () => {
+  it('reads `should_rotate = false` from the typed @export', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://t.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://box2d/box2d_sprite.gd" id="3_sprite"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="RigidBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="shadow" type="Sprite2D" parent="body"]
+texture = ExtResource("1_tex")
+script = ExtResource("3_sprite")
+should_rotate = false
+`;
+    const geo = parseGeometryTscn(tscn, { t: { godotPath: 'res://t.tres', type: 'AtlasTexture', pixiFrame: 't#0' } });
+    expect(geo.bodies[0].sprites[0].shouldRotate).toBe(false);
+  });
+
+  it('skips export when `attached = false` (editor-only reference art)', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://t.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://box2d/box2d_sprite.gd" id="3_sprite"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="RigidBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="trace-art" type="Sprite2D" parent="body"]
+texture = ExtResource("1_tex")
+script = ExtResource("3_sprite")
+attached = false
+`;
+    const geo = parseGeometryTscn(tscn, { t: { godotPath: 'res://t.tres', type: 'AtlasTexture', pixiFrame: 't#0' } });
+    expect(geo.bodies[0].sprites).toEqual([]);
+  });
+});
+
 describe('parseGeometryTscn — sprite `shouldRotate`', () => {
   it('reads `metadata/rotate = false` and emits shouldRotate=false', () => {
     const tscn = `[gd_scene load_steps=2 format=3]

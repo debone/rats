@@ -55,15 +55,33 @@ work; the exporter falls back to reading material props from node Metadata.)
 
 ## Sprites
 
-Drop a `Sprite2D` or `AnimatedSprite2D` as a child of a body to bind a
-sprite to it. Position/rotation/scale of the sprite is relative to the body
-and is preserved at runtime — the sprite tracks the physics body through
-any rotation/translation. This is the workflow the editor enables: drop the
-sprite first to see the art, then trace the collision polygon over it with
-Godot's polygon editing tools.
+Two node types, both extending Godot's native sprite nodes so the standard
+texture/region/frames editing UI is available:
 
-To mark a sprite as editor-only (silhouette/reference art you're tracing),
-set its metadata `reference = true`. It won't be exported.
+- `Box2DSprite` — extends `Sprite2D`. For static textures and atlas frames.
+- `Box2DAnimatedSprite` — extends `AnimatedSprite2D`. For SpriteFrames-based
+  animations.
+
+Drop one as a child of a body. Position/rotation/scale of the sprite is
+relative to the body and preserved at runtime — the sprite tracks the
+physics body through any rotation/translation. This is the workflow the
+editor enables: drop the sprite first to see the art, then trace the
+collision polygon over it with Godot's polygon editing tools.
+
+`@export` properties on both:
+- `attached: bool` (default true) — true means the sprite is attached to the
+  body at runtime (the normal case). Set false to mark it as **editor-only
+  reference art** (e.g. a silhouette you're tracing). The exporter skips
+  unattached sprites entirely.
+- `should_rotate: bool` (default true) — true means the sprite tracks the
+  body's rotation. Set false to keep it axis-aligned regardless of body
+  angle — useful for shadows, glints, anything that shouldn't tumble with
+  the body. The paddle's two shadow sprites are the canonical example.
+
+(Plain `Sprite2D` / `AnimatedSprite2D` without the script also work; the
+exporter still respects `metadata/reference = true` as a legacy way to mark
+editor-only art and `metadata/rotate = false` as a legacy way to opt out
+of rotation tracking.)
 
 ## Joints
 

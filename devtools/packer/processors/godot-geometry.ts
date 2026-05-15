@@ -584,6 +584,11 @@ function buildBodyDef(
     if (child.type === 'CollisionShape2D' || child.type === 'CollisionPolygon2D') {
       fixtures.push(...buildFixtures(child, bodyNode, subShapes, globalTransforms));
     } else if (child.type === 'Sprite2D' || child.type === 'AnimatedSprite2D') {
+      // `attached = false` on a Box2DSprite (or legacy `metadata/reference =
+      // true` on a plain Sprite2D) marks it as editor-only and skips export.
+      const attachedProp = child.props.get('attached');
+      const attached = attachedProp === undefined ? null : decodeGodotValue(attachedProp);
+      if (attached === false) continue;
       const isReference = decodeGodotValue(child.props.get('metadata/reference') ?? 'false') === true;
       if (isReference) continue;
       const binding = buildSpriteBinding(child, bodyNode, extResources, godotPathToPixi, globalTransforms);
@@ -780,11 +785,18 @@ function buildSpriteBinding(
     }
   }
   const zIndex = parseInt(unquote(spriteNode.props.get('z_index') ?? '0'), 10) || undefined;
-  // `metadata/rotate = false` opts the sprite out of body-angle tracking.
-  // Used for things like shadows that should stay flat on the floor even as
-  // the body rotates. Default is true (sprites follow the body).
-  const rotateProp = spriteNode.props.get('metadata/rotate');
-  const shouldRotate = rotateProp === undefined ? true : decodeGodotValue(rotateProp) === true;
+  // `should_rotate = false` on a Box2DSprite opts the sprite out of body-angle
+  // tracking; `metadata/rotate = false` is the legacy equivalent on a plain
+  // Sprite2D. Either form means: stay axis-aligned regardless of body rotation
+  // (shadows, glints, anything that shouldn't tumble with the body).
+  const typedRotate = spriteNode.props.get('should_rotate');
+  const metaRotate = spriteNode.props.get('metadata/rotate');
+  const shouldRotate =
+    typedRotate !== undefined
+      ? decodeGodotValue(typedRotate) === true
+      : metaRotate !== undefined
+        ? decodeGodotValue(metaRotate) === true
+        : true;
 
   const binding: SpriteBinding = {
     offset: { x: local.origin.x + offset.x, y: local.origin.y + offset.y },
