@@ -13,9 +13,7 @@ class_name Box2DSprite
 ## `attached` — true means the sprite is attached to the body at runtime
 ## (instantiated, position-tracked, the normal case). false means it's
 ## editor-only reference art (e.g. a silhouette you're tracing for the
-## collision polygon) and the exporter skips it entirely. Replaces the
-## `metadata/reference = true` flag with a typed checkbox; the metadata
-## variant still works as a fallback for older scenes.
+## collision polygon) and the exporter skips it entirely.
 ##
 ## `should_rotate` — true means the sprite tracks the body's rotation
 ## (default). false keeps it axis-aligned regardless of body angle — used

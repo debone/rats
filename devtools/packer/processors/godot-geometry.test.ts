@@ -4,39 +4,45 @@ import * as path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseGeometryTscn } from './godot-geometry';
 
-const MINIMAL_TSCN = `[gd_scene load_steps=4 format=3]
+const MINIMAL_TSCN = `[gd_scene load_steps=6 format=3]
 
+[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="0_root"]
 [ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="1_static"]
 [ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_dynamic"]
 [ext_resource type="Script" path="res://box2d/box2d_prismatic_joint.gd" id="3_prismatic"]
+[ext_resource type="Script" path="res://box2d/box2d_shape_fixture.gd" id="4_shape"]
 
 [sub_resource type="RectangleShape2D" id="rect_1"]
 size = Vector2(32, 16)
 
 [node name="Root" type="Node2D"]
-metadata/gravity = Vector2(0, -10)
+script = ExtResource("0_root")
+gravity = Vector2(0, -10)
 
-[node name="brick" type="Node2D" parent="."]
+[node name="brick" type="StaticBody2D" parent="."]
 position = Vector2(64, -56)
 script = ExtResource("1_static")
-metadata/type = "brick"
-metadata/powerup = "yellow"
+type = "brick"
+user_data = {
+"powerup": "yellow"
+}
 
 [node name="shape0" type="CollisionShape2D" parent="brick"]
 shape = SubResource("rect_1")
-metadata/density = 1
-metadata/restitution = 1
+script = ExtResource("4_shape")
+density = 1.0
+restitution = 1.0
 
-[node name="paddle-anchor" type="Node2D" parent="."]
+[node name="paddle-anchor" type="StaticBody2D" parent="."]
 position = Vector2(0, 320)
 script = ExtResource("1_static")
-metadata/type = "paddle-joint-holder"
+type = "paddle-joint-holder"
 
-[node name="paddle-body" type="Node2D" parent="."]
+[node name="paddle-body" type="RigidBody2D" parent="."]
 position = Vector2(0, 320)
 script = ExtResource("2_dynamic")
+type = "paddle-joint-temp"
 fixed_rotation = true
-metadata/type = "paddle-joint-temp"
 
 [node name="paddle-joint" type="Node2D" parent="."]
 position = Vector2(0, 256)
@@ -50,12 +56,12 @@ upper_limit = 160
 `;
 
 describe('parseGeometryTscn', () => {
-  it('extracts gravity from root metadata', () => {
+  it('extracts gravity from the Box2DRoot @export', () => {
     const geo = parseGeometryTscn(MINIMAL_TSCN, {});
     expect(geo.gravity).toEqual({ x: 0, y: -10 });
   });
 
-  it('parses a brick body with metadata userData', () => {
+  it('parses a brick body with typed userData (type @export + user_data dict)', () => {
     const geo = parseGeometryTscn(MINIMAL_TSCN, {});
     const brick = geo.bodies.find((b) => b.name === 'brick');
     expect(brick).toBeDefined();
@@ -80,13 +86,6 @@ describe('parseGeometryTscn', () => {
       expect(xs).toEqual([-1, -1, 1, 1]);
       expect(ys).toEqual([-0.5, -0.5, 0.5, 0.5]);
     }
-  });
-
-  it('does not leak material props into fixture userData', () => {
-    const geo = parseGeometryTscn(MINIMAL_TSCN, {});
-    const brick = geo.bodies.find((b) => b.name === 'brick')!;
-    const fx = brick.fixtures[0];
-    expect(fx.userData).toBeUndefined();
   });
 
   it('builds a prismatic joint and resolves body NodePaths to body indices', () => {
@@ -251,47 +250,6 @@ attached = false
   });
 });
 
-describe('parseGeometryTscn — sprite `shouldRotate`', () => {
-  it('reads `metadata/rotate = false` and emits shouldRotate=false', () => {
-    const tscn = `[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Texture2D" path="res://t.tres" id="1_tex"]
-[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
-
-[node name="Root" type="Node2D"]
-
-[node name="body" type="RigidBody2D" parent="."]
-script = ExtResource("2_body")
-
-[node name="shadow" type="Sprite2D" parent="body"]
-texture = ExtResource("1_tex")
-metadata/rotate = false
-`;
-    const geo = parseGeometryTscn(tscn, { t: { godotPath: 'res://t.tres', type: 'AtlasTexture', pixiFrame: 't#0' } });
-    const sprites = geo.bodies[0].sprites;
-    expect(sprites).toHaveLength(1);
-    expect(sprites[0].shouldRotate).toBe(false);
-  });
-
-  it('omits shouldRotate when the sprite rotates with the body (default)', () => {
-    const tscn = `[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Texture2D" path="res://t.tres" id="1_tex"]
-[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
-
-[node name="Root" type="Node2D"]
-
-[node name="body" type="RigidBody2D" parent="."]
-script = ExtResource("2_body")
-
-[node name="art" type="Sprite2D" parent="body"]
-texture = ExtResource("1_tex")
-`;
-    const geo = parseGeometryTscn(tscn, { t: { godotPath: 'res://t.tres', type: 'AtlasTexture', pixiFrame: 't#0' } });
-    expect(geo.bodies[0].sprites[0].shouldRotate).toBeUndefined();
-  });
-});
-
 describe('parseGeometryTscn — Box2DRoot', () => {
   it('reads gravity from a Box2DRoot script @export on the root', () => {
     const tscn = `[gd_scene load_steps=2 format=3]
@@ -304,16 +262,6 @@ gravity = Vector2(0, -20)
 `;
     const geo = parseGeometryTscn(tscn, {});
     expect(geo.gravity).toEqual({ x: 0, y: -20 });
-  });
-
-  it('falls back to metadata/gravity when Box2DRoot script is absent', () => {
-    const tscn = `[gd_scene load_steps=1 format=3]
-
-[node name="Geometry" type="Node2D"]
-metadata/gravity = Vector2(0, -15)
-`;
-    const geo = parseGeometryTscn(tscn, {});
-    expect(geo.gravity).toEqual({ x: 0, y: -15 });
   });
 });
 

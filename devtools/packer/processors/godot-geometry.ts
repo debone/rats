@@ -528,27 +528,15 @@ export function parseGeometryTscn(
     if (j) joints.push(j);
   }
 
-  // Scene-level gravity: prefer Box2DRoot's `gravity` export, fall back to
-  // legacy `metadata/gravity` on the root for unmigrated scenes.
+  // Scene-level gravity from Box2DRoot's `gravity` export.
   const root = nodes.find((n) => n.parentPath === '');
   let gravity: V2 | undefined;
-  if (root) {
-    if (root.scriptResPath === BOX2D_ROOT_SCRIPT) {
-      const gravProp = root.props.get('gravity');
-      if (gravProp) {
-        const decoded = decodeGodotValue(gravProp);
-        if (decoded && typeof decoded === 'object' && 'x' in decoded && 'y' in decoded) {
-          gravity = decoded as V2;
-        }
-      }
-    }
-    if (gravity === undefined) {
-      const gravProp = root.props.get('metadata/gravity');
-      if (gravProp) {
-        const decoded = decodeGodotValue(gravProp);
-        if (decoded && typeof decoded === 'object' && 'x' in decoded && 'y' in decoded) {
-          gravity = decoded as V2;
-        }
+  if (root && root.scriptResPath === BOX2D_ROOT_SCRIPT) {
+    const gravProp = root.props.get('gravity');
+    if (gravProp) {
+      const decoded = decodeGodotValue(gravProp);
+      if (decoded && typeof decoded === 'object' && 'x' in decoded && 'y' in decoded) {
+        gravity = decoded as V2;
       }
     }
   }
@@ -584,13 +572,10 @@ function buildBodyDef(
     if (child.type === 'CollisionShape2D' || child.type === 'CollisionPolygon2D') {
       fixtures.push(...buildFixtures(child, bodyNode, subShapes, globalTransforms));
     } else if (child.type === 'Sprite2D' || child.type === 'AnimatedSprite2D') {
-      // `attached = false` on a Box2DSprite (or legacy `metadata/reference =
-      // true` on a plain Sprite2D) marks it as editor-only and skips export.
+      // `attached = false` on a Box2DSprite marks it as editor-only reference
+      // art (silhouettes you're tracing); the exporter skips it entirely.
       const attachedProp = child.props.get('attached');
-      const attached = attachedProp === undefined ? null : decodeGodotValue(attachedProp);
-      if (attached === false) continue;
-      const isReference = decodeGodotValue(child.props.get('metadata/reference') ?? 'false') === true;
-      if (isReference) continue;
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
       const binding = buildSpriteBinding(child, bodyNode, extResources, godotPathToPixi, globalTransforms);
       if (binding) sprites.push(binding);
     }
@@ -653,7 +638,7 @@ function buildFixtures(
   globalTransforms: Map<string, GTransform>,
 ): Box2DFixtureDef[] {
   const material = collectMaterial(shapeNode);
-  const userData = collectUserData(shapeNode, true);
+  const userData = collectUserData(shapeNode);
   const localTransform = transformInBody(shapeNode, bodyNode, globalTransforms);
 
   if (shapeNode.type === 'CollisionShape2D') {
@@ -786,17 +771,9 @@ function buildSpriteBinding(
   }
   const zIndex = parseInt(unquote(spriteNode.props.get('z_index') ?? '0'), 10) || undefined;
   // `should_rotate = false` on a Box2DSprite opts the sprite out of body-angle
-  // tracking; `metadata/rotate = false` is the legacy equivalent on a plain
-  // Sprite2D. Either form means: stay axis-aligned regardless of body rotation
-  // (shadows, glints, anything that shouldn't tumble with the body).
-  const typedRotate = spriteNode.props.get('should_rotate');
-  const metaRotate = spriteNode.props.get('metadata/rotate');
-  const shouldRotate =
-    typedRotate !== undefined
-      ? decodeGodotValue(typedRotate) === true
-      : metaRotate !== undefined
-        ? decodeGodotValue(metaRotate) === true
-        : true;
+  // tracking — stays axis-aligned regardless of body rotation (shadows, glints,
+  // anything that shouldn't tumble with the body).
+  const shouldRotate = decodeGodotValue(spriteNode.props.get('should_rotate') ?? 'true') !== false;
 
   const binding: SpriteBinding = {
     offset: { x: local.origin.x + offset.x, y: local.origin.y + offset.y },
@@ -1054,91 +1031,46 @@ function collectChildPaths(parentPath: string, allNodes: NodeInfo[]): string[] {
   return allNodes.filter((n) => n.parentPath === refParent).map((n) => n.fullPath);
 }
 
-const RESERVED_METADATA_KEYS = new Set(['reference', 'gravity']);
-const FIXTURE_MATERIAL_KEYS = new Set([
-  'density',
-  'friction',
-  'restitution',
-  'sensor',
-  'category_bits',
-  'mask_bits',
-  'group_index',
-]);
-
-function collectUserData(node: NodeInfo, isFixture = false): Record<string, unknown> {
-  // Prefer the typed `user_data` Dictionary export (from the new authoring
-  // kit). Fall back to metadata/* for scenes that haven't migrated yet.
+function collectUserData(node: NodeInfo): Record<string, unknown> {
   const typed = node.props.get('user_data');
-  if (typed !== undefined) {
-    const decoded = decodeGodotValue(typed);
-    if (decoded && typeof decoded === 'object' && !('x' in (decoded as object))) {
-      return decoded as Record<string, unknown>;
-    }
+  if (typed === undefined) return {};
+  const decoded = decodeGodotValue(typed);
+  if (decoded && typeof decoded === 'object' && !('x' in (decoded as object))) {
+    return decoded as Record<string, unknown>;
   }
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of node.props) {
-    if (!k.startsWith('metadata/')) continue;
-    const key = k.slice('metadata/'.length);
-    if (RESERVED_METADATA_KEYS.has(key)) continue;
-    if (isFixture && FIXTURE_MATERIAL_KEYS.has(key)) continue;
-    out[key] = decodeGodotValue(v);
-  }
-  return out;
+  return {};
 }
 
 function collectMaterial(shape: NodeInfo): Material {
-  // Prefer typed @export properties from Box2DPolygonFixture/Box2DShapeFixture.
-  // Fall back to metadata/* for plain CollisionPolygon2D / CollisionShape2D.
-  const readNum = (typedKey: string, metaKey: string, fallback: number): number => {
-    const direct = shape.props.get(typedKey);
-    if (direct !== undefined) {
-      const v = decodeGodotValue(direct);
-      if (typeof v === 'number') return v;
-    }
-    const meta = shape.props.get(`metadata/${metaKey}`);
-    if (meta !== undefined) {
-      const v = decodeGodotValue(meta);
-      if (typeof v === 'number') return v;
-    }
-    return fallback;
+  const readNum = (key: string, fallback: number): number => {
+    const raw = shape.props.get(key);
+    if (raw === undefined) return fallback;
+    const v = decodeGodotValue(raw);
+    return typeof v === 'number' ? v : fallback;
   };
-  const readBool = (typedKey: string, metaKey: string, fallback: boolean): boolean => {
-    const direct = shape.props.get(typedKey);
-    if (direct !== undefined) {
-      const v = decodeGodotValue(direct);
-      if (typeof v === 'boolean') return v;
-    }
-    const meta = shape.props.get(`metadata/${metaKey}`);
-    if (meta !== undefined) {
-      const v = decodeGodotValue(meta);
-      if (typeof v === 'boolean') return v;
-    }
-    return fallback;
+  const readBool = (key: string, fallback: boolean): boolean => {
+    const raw = shape.props.get(key);
+    if (raw === undefined) return fallback;
+    const v = decodeGodotValue(raw);
+    return typeof v === 'boolean' ? v : fallback;
+  };
+  const readOptInt = (key: string): number | undefined => {
+    const raw = shape.props.get(key);
+    if (raw === undefined) return undefined;
+    const v = decodeGodotValue(raw);
+    return typeof v === 'number' ? v : undefined;
   };
   const out: Material = {
-    density: readNum('density', 'density', 1),
-    friction: readNum('friction', 'friction', 0.2),
-    restitution: readNum('restitution', 'restitution', 0),
-    sensor: readBool('is_sensor', 'sensor', false),
+    density: readNum('density', 1),
+    friction: readNum('friction', 0.2),
+    restitution: readNum('restitution', 0),
+    sensor: readBool('is_sensor', false),
   };
-  const readOptInt = (typedKey: string, metaKey: string): number | undefined => {
-    const direct = shape.props.get(typedKey);
-    if (direct !== undefined) {
-      const v = decodeGodotValue(direct);
-      if (typeof v === 'number') return v;
-    }
-    const meta = shape.props.get(`metadata/${metaKey}`);
-    if (meta !== undefined) {
-      const v = decodeGodotValue(meta);
-      if (typeof v === 'number') return v;
-    }
-    return undefined;
-  };
-  const cb = readOptInt('category_bits', 'category_bits');
+  const cb = readOptInt('category_bits');
   if (cb !== undefined) out.categoryBits = cb;
-  const mb = readOptInt('mask_bits', 'mask_bits');
+  const mb = readOptInt('mask_bits');
   if (mb !== undefined) out.maskBits = mb;
-  const gi = readOptInt('group_index', 'group_index');
+  const gi = readOptInt('group_index');
   if (gi !== undefined) out.groupIndex = gi;
   return out;
 }

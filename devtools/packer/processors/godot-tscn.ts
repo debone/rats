@@ -150,19 +150,6 @@ export function parsePackedVector2Array(s: string): { x: number; y: number }[] {
   return out;
 }
 
-/**
- * Extract metadata/<key> = <value> entries from a node's props.
- * Values are returned as Godot literal strings (caller decodes).
- */
-export function extractMetadata(props: Map<string, string>): Record<string, string> {
-  const meta: Record<string, string> = {};
-  for (const [key, value] of props) {
-    if (key.startsWith('metadata/')) {
-      meta[key.slice('metadata/'.length)] = value;
-    }
-  }
-  return meta;
-}
 
 /**
  * Decode a Godot literal value (number, bool, string, Vector2, Dictionary)

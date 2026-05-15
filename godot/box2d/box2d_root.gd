@@ -6,9 +6,6 @@ class_name Box2DRoot
 ## Canonical root for a Box2D scene. Attach this script to the top Node2D
 ## of any `godot/geometry/*.tscn` to expose scene-wide Box2D settings in one
 ## place (gravity, editor visibility toggle, room for future config).
-##
-## Optional — if absent, the exporter falls back to `metadata/gravity` and
-## everything still works. Recommended for new scenes.
 
 ## Box2D world gravity (Y-up meters, Box2D convention). Negative y pulls
 ## bodies down on screen because Box2D Y-up flips Godot's Y-down at export.

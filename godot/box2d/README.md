@@ -50,9 +50,6 @@ Both expose Box2D fixture material directly:
 - `category_bits: int`, `mask_bits: int`, `group_index: int`
 - `user_data: Dictionary` — per-fixture gameplay tags.
 
-(Plain `CollisionPolygon2D`/`CollisionShape2D` without our scripts also
-work; the exporter falls back to reading material props from node Metadata.)
-
 ## Sprites
 
 Two node types, both extending Godot's native sprite nodes so the standard
@@ -77,11 +74,6 @@ collision polygon over it with Godot's polygon editing tools.
   body's rotation. Set false to keep it axis-aligned regardless of body
   angle — useful for shadows, glints, anything that shouldn't tumble with
   the body. The paddle's two shadow sprites are the canonical example.
-
-(Plain `Sprite2D` / `AnimatedSprite2D` without the script also work; the
-exporter still respects `metadata/reference = true` as a legacy way to mark
-editor-only art and `metadata/rotate = false` as a legacy way to opt out
-of rotation tracking.)
 
 ## Joints
 
@@ -177,9 +169,7 @@ scene under `godot/geometry/`. It's the canonical home for scene-wide
 Box2D settings and editor tooling:
 
 - `gravity: Vector2` — Box2D world gravity (Y-up meters, Box2D convention;
-  negative y pulls bodies down on screen). The exporter reads it here;
-  the old `metadata/gravity` still works as a fallback for unmigrated
-  scenes.
+  negative y pulls bodies down on screen).
 - `show_collision: bool` — editor-only toggle. Flip it in the Inspector and
   every `CollisionPolygon2D`/`CollisionShape2D` in the subtree hides or
   reappears in one click; sprites stay visible so you can review the pure
