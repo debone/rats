@@ -17,12 +17,16 @@ collision layers …) affect the runtime — set them via the Box2D-specific
 - `Box2DDynamicBody` — full physics body.
 
 `@export` properties on each body:
+- `type: String` — the entity discriminator. Drives gameplay dispatch
+  (`brick`, `wall`, `exit`, `paddle`, …). Promoted to its own field (not
+  buried in `user_data`) so prefabs and inherited scenes can override it
+  surgically — see "Prefabs" below.
 - `user_data: Dictionary[String, Variant]` — gameplay tags. Keys are always
   String (no type picker), values default to whatever you type in but can
-  be int/bool/Vector2/etc. when needed. The runtime entity dispatch reads
-  `user_data.type`; other keys (`powerup`, `doorName`, `behaviour`, …) are
-  carried verbatim into the body's runtime userData. The build pipeline
-  scans every authored `user_data` to generate `GeometryBodyUserData` in
+  be int/bool/Vector2/etc. when needed. At export time, `type` is merged
+  into the dict so gameplay sees a single `userData.type` plus any extras
+  (`powerup`, `doorName`, `behaviour`, …). The build pipeline scans every
+  authored `user_data` to generate `GeometryBodyUserData` in
   `src/assets/geometry.ts` (see below).
 - `fixed_rotation: bool`, `bullet: bool` — kinematic and dynamic.
 - `allow_sleep: bool`, `linear_damping: float`, `angular_damping: float`,
@@ -80,6 +84,54 @@ anchor to each connected body so you can see at a glance what's wired up.
 Godot is Y-down pixels; Box2D is Y-up meters with `PXM = 16`. The exporter
 flips Y and divides by 16 — author wherever feels natural. Bodies,
 fixtures, sprites, and joint anchors all share the same Godot pixel space.
+
+## Prefabs
+
+Reusable shapes — `brick`, `door`, `paddle`, future bosses — live as their
+own scene files. Prefabs use Godot's native scene-instance system: drag the
+`.tscn` into a level scene and you get the whole body+fixture+sprite subtree
+at one transform.
+
+The pattern for a prefab class:
+
+```gdscript
+# godot/prefabs/brick_prefab.gd
+@tool
+extends Box2DStaticBody
+class_name BrickPrefab
+
+@export var powerup: String = "":
+    set(v):
+        powerup = v
+        _put_in_user_data("powerup", v)   # inherited helper, empty string ⇒ erase
+```
+
+In `godot/prefabs/brick.tscn`: root is a `Box2DStaticBody` with the
+`BrickPrefab` script, `type = "brick"`, plus a `Box2DPolygonFixture` child
+for the collision and a `Sprite2D` child for the art.
+
+Per-instance/per-variant overrides are then surgical:
+
+- **One brick → many bricks**: drag `brick.tscn` into a level scene, hit
+  Ctrl-D to duplicate, set `powerup = "yellow"` on the few that drop cheese.
+  The Inspector shows `powerup` as a typed `String` field; no dict editing.
+- **Variants** (e.g. always-yellow): right-click `brick.tscn` → New
+  Inherited Scene → override only `powerup = "yellow"`. Inherited scenes
+  only carry the keys that differ, so `brick_yellow.tscn` is a few lines.
+
+Why a `type: String` field instead of a typed enum: gameplay-known types
+(`brick`, `wall`, `exit`, …) live in `src/assets/geometry.ts` as the
+auto-generated `GeometryEntityType` union. Hard-coding them as a Godot enum
+would force two-sided sync; the union is rebuilt from authored data on every
+geometry export, so a new type only needs to be set in Godot and handled in
+gameplay.
+
+The exporter is intentionally unaware of any specific prefab field — it
+just reads `type` and `user_data` off each body. Adding a new prefab field
+(`hits` on a strong-brick, `axis` on a moving platform, …) is one
+`@export var hits: int = …: set = _set_hits` line per prefab class with a
+matching `_put_in_user_data("hits", v)` setter; the typegen picks it up on
+next build.
 
 ## Composing scenes (subscene instances)
 

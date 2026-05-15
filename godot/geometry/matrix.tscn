@@ -11,9 +11,7 @@ gravity = Vector2(0, -10)
 [node name="body0" type="StaticBody2D" parent="."]
 position = Vector2(NaN, NaN)
 script = ExtResource("2_b2d")
-user_data = {
-"type": "brick"
-}
+type = "brick"
 
 [node name="fixture1" type="CollisionPolygon2D" parent="body0"]
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)

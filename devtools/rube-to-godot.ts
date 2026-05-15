@@ -67,6 +67,20 @@ interface CustomProp {
 }
 
 /**
+ * Split off a `type` custom prop. The body's `type` field is a dedicated
+ * @export (not just a dict entry) so prefab inheritance can override it
+ * surgically — see Box2DStaticBody.gd's `type` field.
+ */
+function extractTypeProp(
+  props: CustomProp[] | undefined,
+): { typeValue: string | null; otherProps: CustomProp[] | undefined } {
+  if (!props) return { typeValue: null, otherProps: undefined };
+  const typeProp = props.find((p) => p.name === 'type' && p.string !== undefined);
+  if (!typeProp) return { typeValue: null, otherProps: props };
+  return { typeValue: typeProp.string!, otherProps: props.filter((p) => p !== typeProp) };
+}
+
+/**
  * Emit a Godot Dictionary literal for the body/fixture's `user_data` @export.
  * Returns an empty string if there are no entries.
  */
@@ -285,7 +299,12 @@ function convert(rube: RubeWorld): string {
       bodyLines.push(`rotation = ${bm.godotAngle}`);
     }
     bodyLines.push(`script = ExtResource("${sId}")`);
-    const ud = customPropsToDict(bm.rube.customProperties);
+    // Promote a `type` custom prop to the dedicated `type` @export so prefabs
+    // and inherited scenes can override the entity discriminator on its own,
+    // without touching the rest of user_data.
+    const { typeValue, otherProps } = extractTypeProp(bm.rube.customProperties);
+    if (typeValue) bodyLines.push(`type = ${JSON.stringify(typeValue)}`);
+    const ud = customPropsToDict(otherProps);
     if (ud) bodyLines.push(ud);
     if (bm.rube.fixedRotation === true) bodyLines.push(`fixed_rotation = true`);
     if (bm.rube.bullet === true) bodyLines.push(`bullet = true`);

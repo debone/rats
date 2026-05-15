@@ -103,6 +103,7 @@ export interface SpriteBinding {
   alpha?: number;
   flipH?: boolean;
   flipV?: boolean;
+  shouldRotate?: boolean;
 }
 
 type CommonJoint = {
@@ -397,6 +398,7 @@ function instantiateSprite(binding: SpriteBinding): Sprite | null {
   if (binding.flipH) sprite.scale.x *= -1;
   if (binding.flipV) sprite.scale.y *= -1;
   if (binding.z !== undefined) sprite.zIndex = binding.z;
+  if (binding.shouldRotate === false) (sprite as Sprite & { shouldRotate?: boolean }).shouldRotate = false;
   // rotation is applied each frame by BodyToSprite via the SpriteEntry's localRotation
   return sprite;
 }

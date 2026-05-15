@@ -168,6 +168,86 @@ describe('parseGeometryTscn — typed exports', () => {
   });
 });
 
+describe('parseGeometryTscn — typed `type` export', () => {
+  it('merges the body `type` @export into userData', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="1_body"]
+
+[node name="Root" type="Node2D"]
+
+[node name="brick" type="StaticBody2D" parent="."]
+script = ExtResource("1_body")
+type = "brick"
+user_data = {
+"powerup": "yellow"
+}
+`;
+    const geo = parseGeometryTscn(tscn, {});
+    const brick = geo.bodies.find((b) => b.name === 'brick')!;
+    expect(brick.userData).toEqual({ type: 'brick', powerup: 'yellow' });
+  });
+
+  it('explicit `type` export wins over user_data.type', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="1_body"]
+
+[node name="Root" type="Node2D"]
+
+[node name="brick" type="StaticBody2D" parent="."]
+script = ExtResource("1_body")
+type = "strong-brick"
+user_data = {
+"type": "brick"
+}
+`;
+    const geo = parseGeometryTscn(tscn, {});
+    expect(geo.bodies[0].userData['type']).toBe('strong-brick');
+  });
+});
+
+describe('parseGeometryTscn — sprite `shouldRotate`', () => {
+  it('reads `metadata/rotate = false` and emits shouldRotate=false', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://t.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="RigidBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="shadow" type="Sprite2D" parent="body"]
+texture = ExtResource("1_tex")
+metadata/rotate = false
+`;
+    const geo = parseGeometryTscn(tscn, { t: { godotPath: 'res://t.tres', type: 'AtlasTexture', pixiFrame: 't#0' } });
+    const sprites = geo.bodies[0].sprites;
+    expect(sprites).toHaveLength(1);
+    expect(sprites[0].shouldRotate).toBe(false);
+  });
+
+  it('omits shouldRotate when the sprite rotates with the body (default)', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://t.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="RigidBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="art" type="Sprite2D" parent="body"]
+texture = ExtResource("1_tex")
+`;
+    const geo = parseGeometryTscn(tscn, { t: { godotPath: 'res://t.tres', type: 'AtlasTexture', pixiFrame: 't#0' } });
+    expect(geo.bodies[0].sprites[0].shouldRotate).toBeUndefined();
+  });
+});
+
 describe('parseGeometryTscn — Box2DRoot', () => {
   it('reads gravity from a Box2DRoot script @export on the root', () => {
     const tscn = `[gd_scene load_steps=2 format=3]

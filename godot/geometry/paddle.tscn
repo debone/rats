@@ -1,0 +1,37 @@
+[gd_scene load_steps=7 format=3 uid="uid://box2d_paddle_geometry"]
+
+[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon_fixture.gd" id="3_poly"]
+[ext_resource type="Texture2D" path="res://sprites/rats/rat-boat.tres" id="4_rat"]
+[ext_resource type="Texture2D" path="res://sprites/rats/shadow-back.tres" id="5_shadowback"]
+[ext_resource type="Texture2D" path="res://sprites/rats/shadow.tres" id="6_shadow"]
+
+[node name="Geometry" type="Node2D"]
+script = ExtResource("1_root")
+gravity = Vector2(0, 0)
+
+[node name="paddle" type="RigidBody2D" parent="."]
+script = ExtResource("2_body")
+type = "paddle"
+
+[node name="shape" type="CollisionPolygon2D" parent="paddle"]
+script = ExtResource("3_poly")
+polygon = PackedVector2Array(32, 4, 28.8, -3.2, 8, -8, -8, -8, -28.8, -3.2, -32, 4)
+density = 10.0
+friction = 0.5
+category_bits = 7
+
+[node name="shadow-back" type="Sprite2D" parent="paddle"]
+position = Vector2(0, 11.5)
+texture = ExtResource("5_shadowback")
+metadata/rotate = false
+
+[node name="rat-boat" type="Sprite2D" parent="paddle"]
+position = Vector2(0, -6.5)
+texture = ExtResource("4_rat")
+
+[node name="shadow" type="Sprite2D" parent="paddle"]
+position = Vector2(0, 9.5)
+texture = ExtResource("6_shadow")
+metadata/rotate = false

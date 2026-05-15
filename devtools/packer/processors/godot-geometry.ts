@@ -104,6 +104,8 @@ export interface SpriteBinding {
   alpha?: number;
   flipH?: boolean;
   flipV?: boolean;
+  /** If false, the sprite stays axis-aligned regardless of body rotation. */
+  shouldRotate?: boolean;
 }
 
 export type Box2DJointDef =
@@ -589,8 +591,15 @@ function buildBodyDef(
     }
   }
 
-  // Body-level userData from metadata/*
+  // Body-level userData. Merges the explicit `type` @export (introduced for
+  // prefab-friendly typed Inspector overrides) into the user_data dict — the
+  // explicit field wins so prefabs can override `type` without re-stating the
+  // whole dict.
   const userData = collectUserData(bodyNode);
+  const typeExport = decodeGodotValue(bodyNode.props.get('type') ?? '""');
+  if (typeof typeExport === 'string' && typeExport !== '') {
+    userData['type'] = typeExport;
+  }
 
   // Body-level Box2D flags from script exports (stored as direct props on the node)
   const out: Box2DBodyDef = {
@@ -771,6 +780,11 @@ function buildSpriteBinding(
     }
   }
   const zIndex = parseInt(unquote(spriteNode.props.get('z_index') ?? '0'), 10) || undefined;
+  // `metadata/rotate = false` opts the sprite out of body-angle tracking.
+  // Used for things like shadows that should stay flat on the floor even as
+  // the body rotates. Default is true (sprites follow the body).
+  const rotateProp = spriteNode.props.get('metadata/rotate');
+  const shouldRotate = rotateProp === undefined ? true : decodeGodotValue(rotateProp) === true;
 
   const binding: SpriteBinding = {
     offset: { x: local.origin.x + offset.x, y: local.origin.y + offset.y },
@@ -785,6 +799,7 @@ function buildSpriteBinding(
   if (alpha !== undefined && alpha !== 1) binding.alpha = alpha;
   if (flipH) binding.flipH = true;
   if (flipV) binding.flipV = true;
+  if (!shouldRotate) binding.shouldRotate = false;
 
   return binding;
 }
