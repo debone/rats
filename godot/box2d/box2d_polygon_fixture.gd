@@ -19,4 +19,4 @@ class_name Box2DPolygonFixture
 @export var group_index: int = 0
 
 @export_group("User data")
-@export var user_data: Dictionary = {}
+@export var user_data: Dictionary[String, Variant] = {}

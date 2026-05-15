@@ -168,6 +168,31 @@ describe('parseGeometryTscn — typed exports', () => {
   });
 });
 
+describe('parseGeometryTscn — Box2DRoot', () => {
+  it('reads gravity from a Box2DRoot script @export on the root', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
+
+[node name="Geometry" type="Node2D"]
+script = ExtResource("1_root")
+gravity = Vector2(0, -20)
+`;
+    const geo = parseGeometryTscn(tscn, {});
+    expect(geo.gravity).toEqual({ x: 0, y: -20 });
+  });
+
+  it('falls back to metadata/gravity when Box2DRoot script is absent', () => {
+    const tscn = `[gd_scene load_steps=1 format=3]
+
+[node name="Geometry" type="Node2D"]
+metadata/gravity = Vector2(0, -15)
+`;
+    const geo = parseGeometryTscn(tscn, {});
+    expect(geo.gravity).toEqual({ x: 0, y: -15 });
+  });
+});
+
 describe('parseGeometryTscn — subscene instancing', () => {
   let tmpRoot: string;
 

@@ -44,6 +44,8 @@ const SCRIPT_TO_JOINT_TYPE: Record<string, 'revolute' | 'prismatic' | 'distance'
   'res://box2d/box2d_weld_joint.gd': 'weld',
 };
 
+const BOX2D_ROOT_SCRIPT = 'res://box2d/box2d_root.gd';
+
 // ---------------------------------------------------------------------------
 // Output schema (mirrored in src/lib/loadGodotGeometry.ts)
 // ---------------------------------------------------------------------------
@@ -182,6 +184,7 @@ export function generateGeometryJsonFiles(
     const filePath = path.join(geometryDir, file);
     const content = fs.readFileSync(filePath, 'utf-8');
     const geometry = parseGeometryTscn(content, spriteMap, { godotRoot, subsceneCache });
+    lintGeometry(name, geometry);
     fs.writeFileSync(path.join(outputDir, `${name}.json`), JSON.stringify(geometry, null, 2));
     parsed.set(name, geometry);
     console.log(
@@ -190,6 +193,41 @@ export function generateGeometryJsonFiles(
   }
 
   writeGeometryTypes(parsed, typesOutputPath);
+}
+
+// ---------------------------------------------------------------------------
+// Validation lints — surface common authoring mistakes during build
+// ---------------------------------------------------------------------------
+
+function lintGeometry(name: string, geo: Box2DGeometry): void {
+  // Duplicate body names — gameplay uses `bodies.find(b => b.name === ...)`,
+  // duplicates make those lookups silently pick the first match.
+  const nameCount = new Map<string, number>();
+  for (const b of geo.bodies) nameCount.set(b.name, (nameCount.get(b.name) ?? 0) + 1);
+  for (const [bodyName, count] of nameCount) {
+    if (count > 1) console.warn(`[Godot] ${name}: duplicate body name "${bodyName}" (${count}×)`);
+  }
+
+  // Dynamic body with no fixtures — it'll spawn but never collide with anything.
+  for (const b of geo.bodies) {
+    if (b.type === 'dynamic' && b.fixtures.length === 0) {
+      console.warn(`[Godot] ${name}: dynamic body "${b.name}" has no fixtures`);
+    }
+  }
+
+  // Polygons with > 8 vertices — Box2D's per-fixture vertex cap. The exporter
+  // decomposes concave polygons, but a convex polygon with too many vertices
+  // would slip through.
+  for (const b of geo.bodies) {
+    for (let i = 0; i < b.fixtures.length; i++) {
+      const fx = b.fixtures[i];
+      if (fx.shape === 'polygon' && fx.vertices.length > 8) {
+        console.warn(
+          `[Godot] ${name}: body "${b.name}" fixture[${i}] has ${fx.vertices.length} vertices (Box2D max is 8)`,
+        );
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,9 +257,98 @@ function writeGeometryTypes(geometries: Map<string, Box2DGeometry>, outputPath: 
   }
   lines.push(`};`, ``);
 
+  emitBodyUserDataUnion(geometries, lines);
+
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, lines.join('\n'));
   console.log(`[Godot] Geometry types → ${outputPath}`);
+}
+
+/**
+ * Emit `GeometryBodyUserData` — a discriminated union over every distinct
+ * `userData.type` value seen across all geometry files. Each variant lists all
+ * `userData.*` keys ever observed on bodies of that type, with each value
+ * collapsed to a literal-or-primitive union.
+ *
+ * Example:
+ *   export type GeometryBodyUserData =
+ *     | { type: 'brick'; powerup?: 'yellow' | 'blue' | 'green'; behaviour?: 'strong' }
+ *     | { type: 'door'; doorName?: 'door-a' | 'door-b' | 'door-c' }
+ *     | { type: 'wall'; size?: number };
+ */
+function emitBodyUserDataUnion(geometries: Map<string, Box2DGeometry>, lines: string[]): void {
+  // Map<discriminator, Map<key, Set<rendered value literal>>>
+  const byType = new Map<string, Map<string, Set<string>>>();
+  const untyped = new Map<string, Set<string>>(); // bodies with no `type` key
+
+  for (const geo of geometries.values()) {
+    for (const b of geo.bodies) {
+      const ud = b.userData ?? {};
+      const typeVal = ud['type'];
+      const bucket = typeof typeVal === 'string' ? typeVal : null;
+      const target = bucket === null ? untyped : (byType.get(bucket) ?? new Map<string, Set<string>>());
+      if (bucket !== null && !byType.has(bucket)) byType.set(bucket, target);
+      for (const [k, v] of Object.entries(ud)) {
+        if (k === 'type') continue;
+        let values = target.get(k);
+        if (!values) {
+          values = new Set();
+          target.set(k, values);
+        }
+        values.add(renderTsLiteral(v));
+      }
+    }
+  }
+
+  lines.push(`/**`);
+  lines.push(` * Discriminated union of every userData shape seen on bodies across all geometry`);
+  lines.push(` * files. The \`type\` discriminator is the entity tag; the other keys are every`);
+  lines.push(` * \`user_data\` key ever set on a body of that type. Drives entity dispatch in`);
+  lines.push(` * \`BreakoutPhysics\` — adding a new type in Godot widens this union and breaks`);
+  lines.push(` * exhaustive switches at type-check time.`);
+  lines.push(` */`);
+  lines.push(`export type GeometryBodyUserData =`);
+
+  const sortedTypes = [...byType.keys()].sort();
+  const variants: string[] = [];
+  for (const t of sortedTypes) {
+    const keys = byType.get(t)!;
+    const parts: string[] = [`type: '${t}'`];
+    for (const [k, valSet] of [...keys.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const values = [...valSet].sort();
+      parts.push(`${jsKey(k)}?: ${values.join(' | ')}`);
+    }
+    variants.push(`  | { ${parts.join('; ')} }`);
+  }
+  if (untyped.size > 0 || sortedTypes.length === 0) {
+    // Bodies without a `type` discriminator (or no bodies at all yet).
+    const parts: string[] = [`type?: undefined`];
+    for (const [k, valSet] of [...untyped.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const values = [...valSet].sort();
+      parts.push(`${jsKey(k)}?: ${values.join(' | ')}`);
+    }
+    variants.push(`  | { ${parts.join('; ')} }`);
+  }
+  lines.push(...variants);
+  lines.push(``);
+  lines.push(`/** Distinct \`userData.type\` values seen across every authored body. */`);
+  lines.push(`export type GeometryEntityType = GeometryBodyUserData extends { type: infer T } ? T : never;`);
+  lines.push(``);
+}
+
+/** Render a JS value as a TypeScript type literal (string → "'foo'", number → "10", etc.). */
+function renderTsLiteral(v: unknown): string {
+  if (v === null || v === undefined) return 'null';
+  if (typeof v === 'string') return `'${v.replace(/'/g, "\\'")}'`;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  // Anything else (object/array) — collapse to a plain type rather than a literal.
+  if (Array.isArray(v)) return 'unknown[]';
+  return 'Record<string, unknown>';
+}
+
+/** Quote a key only when it isn't a valid bare identifier. */
+function jsKey(k: string): string {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? k : `'${k.replace(/'/g, "\\'")}'`;
 }
 
 // ---------------------------------------------------------------------------
@@ -399,15 +526,27 @@ export function parseGeometryTscn(
     if (j) joints.push(j);
   }
 
-  // Optional: scene-level gravity in root metadata
+  // Scene-level gravity: prefer Box2DRoot's `gravity` export, fall back to
+  // legacy `metadata/gravity` on the root for unmigrated scenes.
   const root = nodes.find((n) => n.parentPath === '');
   let gravity: V2 | undefined;
   if (root) {
-    const gravProp = root.props.get('metadata/gravity');
-    if (gravProp) {
-      const decoded = decodeGodotValue(gravProp);
-      if (decoded && typeof decoded === 'object' && 'x' in decoded && 'y' in decoded) {
-        gravity = decoded as V2;
+    if (root.scriptResPath === BOX2D_ROOT_SCRIPT) {
+      const gravProp = root.props.get('gravity');
+      if (gravProp) {
+        const decoded = decodeGodotValue(gravProp);
+        if (decoded && typeof decoded === 'object' && 'x' in decoded && 'y' in decoded) {
+          gravity = decoded as V2;
+        }
+      }
+    }
+    if (gravity === undefined) {
+      const gravProp = root.props.get('metadata/gravity');
+      if (gravProp) {
+        const decoded = decodeGodotValue(gravProp);
+        if (decoded && typeof decoded === 'object' && 'x' in decoded && 'y' in decoded) {
+          gravity = decoded as V2;
+        }
       }
     }
   }

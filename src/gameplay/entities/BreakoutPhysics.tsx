@@ -1,4 +1,5 @@
 import { ASSETS } from '@/assets';
+import type { GeometryBodyUserData } from '@/assets/geometry';
 import { assert } from '@/core/common/assert';
 import { attach, defineEntity } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
@@ -24,12 +25,12 @@ import { WaterParticles } from './particles/WaterParticles';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
-export interface BodyUserData {
-  type: string;
-  powerup?: BrickPowerUps;
-  doorName?: string;
-  behaviour?: string;
-}
+/**
+ * Body userData shape, sourced from the geometry typegen so adding a new
+ * `userData.type` in Godot widens this union — exhaustive switches in this
+ * file will then refuse to type-check until the new type is handled.
+ */
+export type BodyUserData = GeometryBodyUserData;
 
 export interface BodyEntry {
   bodyId: b2BodyId;
@@ -141,7 +142,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
           });
         }
       } else if (tag === 'strong-brick') {
-        const behavior = userData?.behaviour as string | undefined;
+        const behavior = (userData as { behaviour?: string } | null)?.behaviour;
 
         const strongBrick = StrongBrick({
           bodyId,

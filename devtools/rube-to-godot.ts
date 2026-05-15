@@ -36,6 +36,7 @@ const JOINT_TYPE_TO_SCRIPT: Record<string, string> = {
 
 const POLYGON_FIXTURE_SCRIPT = 'res://box2d/box2d_polygon_fixture.gd';
 const SHAPE_FIXTURE_SCRIPT = 'res://box2d/box2d_shape_fixture.gd';
+const ROOT_SCRIPT = 'res://box2d/box2d_root.gd';
 
 interface V2 {
   x: number;
@@ -202,8 +203,9 @@ function convert(rube: RubeWorld): string {
   const joints = meta.metajoint ?? [];
   const gravity = meta.gravity ?? { x: 0, y: -10 };
 
-  // Resolve ExtResource ids for every script we may emit.
-  const usedScripts = new Set<string>();
+  // Resolve ExtResource ids for every script we may emit. Box2DRoot is always
+  // present — it owns scene-wide gravity and the editor visibility toggle.
+  const usedScripts = new Set<string>([ROOT_SCRIPT]);
   let anyShapeFixture = false;
   let anyPolygonFixture = false;
   for (const b of bodies) {
@@ -260,9 +262,12 @@ function convert(rube: RubeWorld): string {
   // Build node sections
   const nodeSections: string[] = [];
 
-  // Root scene node
+  // Root scene node — Box2DRoot script owns scene-wide gravity + visibility.
   const gravityStr = `Vector2(${gravity.x}, ${gravity.y})`;
-  nodeSections.push(`[node name="Geometry" type="Node2D"]\nmetadata/gravity = ${gravityStr}\n`);
+  const rootScriptId = scriptId.get(ROOT_SCRIPT)!;
+  nodeSections.push(
+    `[node name="Geometry" type="Node2D"]\nscript = ExtResource("${rootScriptId}")\ngravity = ${gravityStr}\n`,
+  );
 
   // Bodies and their fixtures + sprite stubs
   const usedFixtureNames = new Map<string, number>();

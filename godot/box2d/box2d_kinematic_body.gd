@@ -6,7 +6,7 @@ class_name Box2DKinematicBody
 ## A Box2D kinematic body. Moved by gameplay code; not affected by physics
 ## forces.
 
-@export var user_data: Dictionary = {}
+@export var user_data: Dictionary[String, Variant] = {}
 
 @export_group("Box2D")
 @export var fixed_rotation: bool = false

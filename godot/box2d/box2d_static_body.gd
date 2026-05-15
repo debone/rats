@@ -11,4 +11,4 @@ class_name Box2DStaticBody
 
 ## Gameplay tags / arbitrary key→value data carried into the runtime body's
 ## userData. The runtime entity dispatch reads `user_data.type`.
-@export var user_data: Dictionary = {}
+@export var user_data: Dictionary[String, Variant] = {}

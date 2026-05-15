@@ -5,7 +5,7 @@ class_name Box2DDynamicBody
 
 ## A Box2D dynamic body. Reacts to forces, collisions, and gravity.
 
-@export var user_data: Dictionary = {}
+@export var user_data: Dictionary[String, Variant] = {}
 
 @export_group("Box2D")
 @export var fixed_rotation: bool = false

@@ -17,9 +17,13 @@ collision layers …) affect the runtime — set them via the Box2D-specific
 - `Box2DDynamicBody` — full physics body.
 
 `@export` properties on each body:
-- `user_data: Dictionary` — gameplay tags. The runtime entity dispatch reads
-  `user_data.type`. Other keys (`powerup`, `doorName`, `behaviour`, …) are
-  carried verbatim into the body's runtime userData.
+- `user_data: Dictionary[String, Variant]` — gameplay tags. Keys are always
+  String (no type picker), values default to whatever you type in but can
+  be int/bool/Vector2/etc. when needed. The runtime entity dispatch reads
+  `user_data.type`; other keys (`powerup`, `doorName`, `behaviour`, …) are
+  carried verbatim into the body's runtime userData. The build pipeline
+  scans every authored `user_data` to generate `GeometryBodyUserData` in
+  `src/assets/geometry.ts` (see below).
 - `fixed_rotation: bool`, `bullet: bool` — kinematic and dynamic.
 - `allow_sleep: bool`, `linear_damping: float`, `angular_damping: float`,
   `gravity_scale: float` — dynamic only.
@@ -96,17 +100,37 @@ group. Use them for organisation, lockable layers, hidden reference art,
 etc. The exporter walks the whole tree to find Box2D bodies — group depth
 doesn't matter.
 
-## Hiding collision geometry
+## Scene root (`Box2DRoot`)
 
-While composing a scene it's useful to hide all the collision shapes and
-see only the art. Going node-by-node is slow — use `Box2DVisibility` instead.
+Attach `res://box2d/box2d_root.gd` (`Box2DRoot`) to the top `Node2D` of each
+scene under `godot/geometry/`. It's the canonical home for scene-wide
+Box2D settings and editor tooling:
 
-1. Add a `Node2D` to your scene root and attach the script
-   `res://box2d/box2d_visibility.gd` (class name `Box2DVisibility`).
-2. In the Inspector, toggle **Show Collision** on/off. Every
-   `CollisionPolygon2D` and `CollisionShape2D` in the scene instantly appears
-   or disappears, leaving sprites fully visible.
-3. The node is editor-only state — it never exports to the geometry JSON.
+- `gravity: Vector2` — Box2D world gravity (Y-up meters, Box2D convention;
+  negative y pulls bodies down on screen). The exporter reads it here;
+  the old `metadata/gravity` still works as a fallback for unmigrated
+  scenes.
+- `show_collision: bool` — editor-only toggle. Flip it in the Inspector and
+  every `CollisionPolygon2D`/`CollisionShape2D` in the subtree hides or
+  reappears in one click; sprites stay visible so you can review the pure
+  art layout. Never exported.
+
+Subscenes that get instanced into a parent scene don't need their own
+`Box2DRoot` — only the top-level scene does.
+
+## Generated types
+
+`src/assets/geometry.ts` is regenerated on every build. It contains:
+
+- `GeometryBodyMap` / `GeometryJointMap` — per-scene unions of body and
+  joint names. Use for autocomplete on `bodiesByName.get(...)`.
+- `GeometryEntityType` — the union of every distinct `user_data.type`
+  value seen across all `godot/geometry/*.tscn` files.
+- `GeometryBodyUserData` — discriminated union of every `user_data` shape
+  seen, indexed by `type`. Each variant lists every key ever set on a
+  body of that type, with literal-value unions. Drives entity dispatch:
+  adding a new type in Godot widens the union and breaks exhaustive
+  switches at type-check time. That's the point.
 
 ## Editing tips
 
