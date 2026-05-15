@@ -59,6 +59,17 @@ export interface Box2DGeometry {
 export interface BackgroundDef {
   meshes: MeshDef[];
   sprites: BackgroundSpriteDef[];
+  tileLayers: TileLayerDef[];
+}
+
+export interface TileLayerDef {
+  name: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  tileSize: V2;
+  z?: number;
+  tiles: { x: number; y: number; pixiFrame: string }[];
 }
 
 export interface MeshDef {
@@ -193,8 +204,8 @@ export interface LoadGodotGeometryResult {
   jointsByName: Map<string, b2JointId>;
   /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
   sprites: SpriteObject[];
-  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D). */
-  background: { meshes: Mesh[]; sprites: Sprite[] };
+  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers). */
+  background: { meshes: Mesh[]; sprites: Sprite[]; tileLayers: Container[] };
 }
 
 export function loadGodotGeometry(
@@ -280,9 +291,10 @@ export function loadGodotGeometry(
     if (!jointsByName.has(jdef.name)) jointsByName.set(jdef.name, jointId);
   }
 
-  // Background visuals — Polygon2D meshes + standalone Sprite2D nodes
+  // Background visuals — Polygon2D meshes, standalone Sprite2D, TileMapLayers
   const bgMeshes: Mesh[] = [];
   const bgSprites: Sprite[] = [];
+  const bgTileLayers: Container[] = [];
   if (spritesEnabled && geo.background && options.container) {
     for (const m of geo.background.meshes) {
       const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
@@ -298,9 +310,56 @@ export function loadGodotGeometry(
         bgSprites.push(sprite);
       }
     }
+    for (const layer of geo.background.tileLayers) {
+      const container = instantiateTileLayer(layer, tx, ty, cosT, sinT, ta);
+      if (container) {
+        options.container.addChild(container);
+        bgTileLayers.push(container);
+      }
+    }
   }
 
-  return { bodies, joints, bodiesByName, jointsByName, sprites, background: { meshes: bgMeshes, sprites: bgSprites } };
+  return {
+    bodies,
+    joints,
+    bodiesByName,
+    jointsByName,
+    sprites,
+    background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers },
+  };
+}
+
+function instantiateTileLayer(
+  def: TileLayerDef,
+  tx: number,
+  ty: number,
+  cosT: number,
+  sinT: number,
+  ta: number,
+): Container | null {
+  if (def.tiles.length === 0) return null;
+  const container = new Container();
+  container.label = def.name;
+  for (const tile of def.tiles) {
+    let texture: Texture | undefined;
+    try {
+      texture = Assets.get<Texture>(tile.pixiFrame) ?? Texture.from(tile.pixiFrame);
+    } catch {
+      console.warn(`[loadGodotGeometry] Tile texture not found: "${tile.pixiFrame}"`);
+      continue;
+    }
+    if (!texture) continue;
+    const sprite = new Sprite({ texture });
+    sprite.position.set(tile.x * def.tileSize.x, tile.y * def.tileSize.y);
+    container.addChild(sprite);
+  }
+  const localX = def.position.x;
+  const localY = def.position.y;
+  container.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
+  container.rotation = def.rotation + ta;
+  container.scale.set(def.scale.x, def.scale.y);
+  if (def.z !== undefined) container.zIndex = def.z;
+  return container;
 }
 
 function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sinT: number, ta: number): Mesh | null {

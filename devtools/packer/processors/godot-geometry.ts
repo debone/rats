@@ -18,6 +18,8 @@ import * as path from 'path';
 import type { GodotSpriteMap } from './godot-resources.ts';
 import {
   decodeGodotValue,
+  decodeTileMapData,
+  parsePackedByteArray,
   parsePackedVector2Array,
   parseTransform2D,
   parseTscnSections,
@@ -63,6 +65,32 @@ export interface BackgroundDef {
   meshes: MeshDef[];
   /** Sprite2D / AnimatedSprite2D nodes not under a body. Stand-alone visual sprites. */
   sprites: BackgroundSpriteDef[];
+  /** TileMapLayer nodes, flattened to per-cell sprite placements. */
+  tileLayers: TileLayerDef[];
+}
+
+/**
+ * Flat dump of a Godot TileMapLayer. Each tile is its own placement with the
+ * Pixi frame name pre-resolved against the tilesheet metadata in sprite-map.
+ * The runtime just instantiates a Sprite at (cellX * tileSize.x, cellY *
+ * tileSize.y) for each entry — no atlas-slicing at runtime.
+ */
+export interface TileLayerDef {
+  name: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  tileSize: V2;
+  z?: number;
+  tiles: TilePlacement[];
+}
+
+export interface TilePlacement {
+  /** Cell coordinates in the layer, in tile units (not pixels). */
+  x: number;
+  y: number;
+  /** Pre-resolved Pixi frame name (e.g. `"level-1_spritesheet_23#0"`). */
+  pixiFrame: string;
 }
 
 /**
@@ -602,7 +630,15 @@ export function parseGeometryTscn(
     return false;
   };
 
-  const background = buildBackground(nodes, isUnderBody, extResources, godotPathToPixi, globalTransforms);
+  const background = buildBackground(
+    nodes,
+    isUnderBody,
+    extResources,
+    godotPathToPixi,
+    globalTransforms,
+    spriteMap,
+    options.godotRoot,
+  );
 
   return { gravity, bodies, joints, ...(background ? { background } : {}) };
 }
@@ -866,9 +902,22 @@ function buildBackground(
   extResources: Record<string, string>,
   godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
   globalTransforms: Map<string, GTransform>,
+  spriteMap: GodotSpriteMap,
+  godotRoot: string | undefined,
 ): BackgroundDef | null {
   const meshes: MeshDef[] = [];
   const sprites: BackgroundSpriteDef[] = [];
+  const tileLayers: TileLayerDef[] = [];
+
+  // Cache parsed TileSet .tres files — one TileSet is usually shared by many
+  // TileMapLayer nodes in the same scene.
+  const tilesetCache = new Map<string, TileSetInfo | null>();
+  const resolveTileSet = (resPath: string): TileSetInfo | null => {
+    if (tilesetCache.has(resPath)) return tilesetCache.get(resPath)!;
+    const info = loadTileSet(resPath, spriteMap, godotRoot);
+    tilesetCache.set(resPath, info);
+    return info;
+  };
 
   for (const n of nodes) {
     if (isUnderBody(n.fullPath)) continue;
@@ -881,11 +930,161 @@ function buildBackground(
       if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
       const s = buildBackgroundSprite(n, extResources, godotPathToPixi, globalTransforms);
       if (s) sprites.push(s);
+    } else if (n.type === 'TileMapLayer') {
+      const layer = buildTileLayer(n, extResources, globalTransforms, resolveTileSet);
+      if (layer) tileLayers.push(layer);
     }
   }
 
-  if (meshes.length === 0 && sprites.length === 0) return null;
-  return { meshes, sprites };
+  if (meshes.length === 0 && sprites.length === 0 && tileLayers.length === 0) return null;
+  return { meshes, sprites, tileLayers };
+}
+
+// ---------------------------------------------------------------------------
+// TileMapLayer + TileSet resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Parsed TileSet info — what each `source_id` in a TileMapLayer cell maps to.
+ * Each source carries the tilesheet metadata (Pixi frame prefix + grid size)
+ * so cell (atlas_x, atlas_y) resolves to a concrete Pixi frame at export time.
+ */
+interface TileSetInfo {
+  sources: Map<number, TileSetSourceInfo>;
+}
+
+interface TileSetSourceInfo {
+  textureGodotPath: string;
+  framePrefix: string;
+  cols: number;
+  rows: number;
+  tileSize: number;
+}
+
+function loadTileSet(
+  resPath: string,
+  spriteMap: GodotSpriteMap,
+  godotRoot: string | undefined,
+): TileSetInfo | null {
+  const abs = resolveResPath(resPath, godotRoot);
+  if (!abs || !fs.existsSync(abs)) {
+    console.warn(`[Godot] TileSet not found: ${resPath}`);
+    return null;
+  }
+  const content = fs.readFileSync(abs, 'utf-8');
+  const sections = parseTscnSections(content);
+
+  // Build ext_resource and sub_resource lookups inside this .tres.
+  const extRes: Record<string, string> = {}; // id → res:// path
+  const subRes: Record<string, TscnSection> = {}; // id → section
+  for (const s of sections) {
+    if (s.type === 'ext_resource' && s.attrs.id) {
+      extRes[unquote(s.attrs.id)] = unquote(s.attrs.path ?? '');
+    } else if (s.type === 'sub_resource' && s.attrs.id) {
+      subRes[unquote(s.attrs.id)] = s;
+    }
+  }
+
+  // Find the `[resource]` section — it lists `sources/<id> = SubResource(...)`.
+  const resSection = sections.find((s) => s.type === 'resource');
+  if (!resSection) return null;
+
+  // Resolve each source.
+  const sources = new Map<number, TileSetSourceInfo>();
+  for (const [key, value] of resSection.props) {
+    const m = key.match(/^sources\/(\d+)$/);
+    if (!m) continue;
+    const sourceId = parseInt(m[1], 10);
+    const subRefMatch = value.match(/SubResource\("([^"]+)"\)/);
+    if (!subRefMatch) continue;
+    const subSection = subRes[subRefMatch[1]];
+    if (!subSection || subSection.attrs.type !== '"TileSetAtlasSource"') continue;
+
+    const texRef = subSection.props.get('texture');
+    const texExtId = texRef?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+    if (!texExtId) continue;
+    const texPath = extRes[texExtId];
+    if (!texPath) continue;
+
+    // Look the texture up in the sprite-map by godotPath; pull tilesheet info.
+    const entry = Object.values(spriteMap).find((e) => e.godotPath === texPath);
+    if (!entry?.tilesheet) {
+      console.warn(
+        `[Godot] TileSet source ${sourceId} → ${texPath} has no tilesheet metadata. ` +
+          `Make sure the source is a {ss=N} spritesheet (the per-tile frames + bare grid frame must both exist in sprite-map.json).`,
+      );
+      continue;
+    }
+    sources.set(sourceId, {
+      textureGodotPath: texPath,
+      framePrefix: entry.tilesheet.framePrefix,
+      cols: entry.tilesheet.cols,
+      rows: entry.tilesheet.rows,
+      tileSize: entry.tilesheet.tileSize,
+    });
+  }
+  return { sources };
+}
+
+function buildTileLayer(
+  layerNode: NodeInfo,
+  extResources: Record<string, string>,
+  globalTransforms: Map<string, GTransform>,
+  resolveTileSet: (resPath: string) => TileSetInfo | null,
+): TileLayerDef | null {
+  const tileSetRef = layerNode.props.get('tile_set');
+  const tileSetExtId = tileSetRef?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  if (!tileSetExtId) {
+    console.warn(`[Godot] TileMapLayer "${layerNode.name}" has no tile_set`);
+    return null;
+  }
+  const tileSetResPath = extResources[tileSetExtId];
+  if (!tileSetResPath) return null;
+  const tileSet = resolveTileSet(tileSetResPath);
+  if (!tileSet) return null;
+
+  const rawBlob = layerNode.props.get('tile_map_data');
+  if (!rawBlob) return { ...emptyLayer(layerNode, globalTransforms, tileSet), tiles: [] };
+  const bytes = parsePackedByteArray(rawBlob);
+  if (!bytes) return null;
+  const cells = decodeTileMapData(bytes);
+
+  const tiles: TilePlacement[] = [];
+  for (const cell of cells) {
+    const src = tileSet.sources.get(cell.sourceId);
+    if (!src) continue;
+    if (cell.atlasX < 0 || cell.atlasX >= src.cols || cell.atlasY < 0 || cell.atlasY >= src.rows) {
+      console.warn(
+        `[Godot] TileMapLayer "${layerNode.name}" cell (${cell.coordX},${cell.coordY}) → atlas (${cell.atlasX},${cell.atlasY}) out of range`,
+      );
+      continue;
+    }
+    const linearIdx = cell.atlasY * src.cols + cell.atlasX;
+    tiles.push({ x: cell.coordX, y: cell.coordY, pixiFrame: `${src.framePrefix}_${linearIdx}#0` });
+  }
+
+  return { ...emptyLayer(layerNode, globalTransforms, tileSet), tiles };
+}
+
+function emptyLayer(
+  layerNode: NodeInfo,
+  globalTransforms: Map<string, GTransform>,
+  tileSet: TileSetInfo,
+): Omit<TileLayerDef, 'tiles'> {
+  const gt = globalTransforms.get(layerNode.fullPath)!;
+  // All sources in a TileSet share the same tile_size in practice; pick the first.
+  const first = tileSet.sources.values().next().value;
+  const tileSize: V2 = first ? { x: first.tileSize, y: first.tileSize } : { x: 16, y: 16 };
+  const zIndex = parseInt(unquote(layerNode.props.get('z_index') ?? '0'), 10) || undefined;
+  const out: Omit<TileLayerDef, 'tiles'> = {
+    name: layerNode.name,
+    position: gt.origin,
+    rotation: gt.rotation,
+    scale: gt.scale,
+    tileSize,
+  };
+  if (zIndex) (out as TileLayerDef).z = zIndex;
+  return out;
 }
 
 function buildMeshDef(

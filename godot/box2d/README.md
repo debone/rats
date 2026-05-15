@@ -113,11 +113,20 @@ Two node types are supported today:
   decor: signs, fish, single landmarks. `Box2DSprite`'s
   `attached = false` still works to mark editor-only reference art.
 
-- **`TileMapLayer`** — *not yet*. The binary format is known and the
-  exporter side is straightforward, but it needs an atlas-pipeline change
-  on the Pixi side (Godot tilesets reference a single atlas image with
-  `(x,y)` cell coords; our Pixi pipeline currently ships per-tile frames).
-  Until that lands, keep tilemap-style backgrounds in Tiled.
+- **`TileMapLayer`** — for tiled backgrounds (walls, floors, anything
+  grid-aligned). Author a Godot `TileSet` resource whose
+  `TileSetAtlasSource.texture` points at one of the `{ss=N}` sheets
+  (e.g. `res://sprites/level-1{ss=32}/level-1_spritesheet.tres`). The
+  asset pipeline already produces these full-grid `AtlasTexture` resources
+  alongside the per-tile frames, and records `tilesheet` metadata in
+  `godot/sprite-map.json` so the geometry exporter can map cell
+  `(atlas_x, atlas_y)` to the corresponding Pixi frame
+  (`${prefix}_${atlas_y * cols + atlas_x}#0`). Paint tiles as usual; the
+  exporter decodes the `tile_map_data` blob (Godot 4.3+ format) and emits
+  flat per-cell `{x, y, pixiFrame}` placements, which the runtime
+  instantiates as Pixi `Sprite`s in a `Container` per layer. v1: no
+  autotile / alternative tiles / animated tiles / tile-collisions
+  (collision still goes through `Box2DPolygonFixture`).
 
 The exporter walks the whole tree, so background nodes can live at the
 scene root, inside logical group nodes, or inside an instanced subscene

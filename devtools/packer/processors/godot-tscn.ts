@@ -150,6 +150,88 @@ export function parsePackedVector2Array(s: string): { x: number; y: number }[] {
   return out;
 }
 
+/** Parse a Vector2i(x, y) literal. Returns null if the string is not a Vector2i. */
+export function parseVector2i(s: string): { x: number; y: number } | null {
+  const m = s.match(/^Vector2i\(\s*([^,]+),\s*([^)]+)\)\s*$/);
+  if (!m) return null;
+  return { x: parseInt(m[1].trim(), 10), y: parseInt(m[2].trim(), 10) };
+}
+
+/**
+ * Decode a Godot `PackedByteArray(...)` literal into raw bytes. Handles both
+ * forms emitted by Godot 4.3+: base64 (`PackedByteArray("base64-string")`) for
+ * arrays > 64 bytes, and comma-separated decimals
+ * (`PackedByteArray(0, 1, 2, ...)`) for smaller arrays. Returns null when the
+ * literal is missing or unparseable.
+ */
+export function parsePackedByteArray(s: string): Uint8Array | null {
+  const m = s.match(/PackedByteArray\(([\s\S]*?)\)/);
+  if (!m) return null;
+  const body = m[1].trim();
+  if (body === '') return new Uint8Array(0);
+  // Base64 form: first non-whitespace char is a quote.
+  if (body.startsWith('"')) {
+    const close = body.lastIndexOf('"');
+    if (close <= 0) return null;
+    const b64 = body.slice(1, close);
+    try {
+      const buf = Buffer.from(b64, 'base64');
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    } catch {
+      return null;
+    }
+  }
+  // Decimal form: comma-separated byte values.
+  const nums = body
+    .split(',')
+    .map((t) => parseInt(t.trim(), 10))
+    .filter((n) => !isNaN(n));
+  return new Uint8Array(nums);
+}
+
+/**
+ * Decode a TileMapLayer `tile_map_data` blob into a flat list of placed cells.
+ * Format (Godot 4.3+, format version 0 only — all current Godot 4 versions):
+ *   - 2 bytes: format version (uint16 LE, must be 0)
+ *   - per cell, 12 bytes:
+ *       int16 LE  coord_x
+ *       int16 LE  coord_y
+ *       uint16 LE source_id    (0xFFFF means erase — defensively skipped)
+ *       uint16 LE atlas_x      (0xFFFF means erase)
+ *       uint16 LE atlas_y
+ *       uint16 LE alternative_tile
+ */
+export interface TileMapCell {
+  coordX: number;
+  coordY: number;
+  sourceId: number;
+  atlasX: number;
+  atlasY: number;
+  alternativeTile: number;
+}
+
+export function decodeTileMapData(bytes: Uint8Array): TileMapCell[] {
+  if (bytes.length < 2) return [];
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const version = view.getUint16(0, true);
+  if (version !== 0) {
+    console.warn(`[Godot] tile_map_data unknown format version ${version}; skipping`);
+    return [];
+  }
+  const out: TileMapCell[] = [];
+  for (let p = 2; p + 12 <= bytes.length; p += 12) {
+    const coordX = view.getInt16(p + 0, true);
+    const coordY = view.getInt16(p + 2, true);
+    const sourceId = view.getUint16(p + 4, true);
+    const atlasX = view.getUint16(p + 6, true);
+    const atlasY = view.getUint16(p + 8, true);
+    const alternativeTile = view.getUint16(p + 10, true);
+    if (sourceId === 0xffff || atlasX === 0xffff) continue;
+    out.push({ coordX, coordY, sourceId, atlasX, atlasY, alternativeTile });
+  }
+  return out;
+}
+
 
 /**
  * Decode a Godot literal value (number, bool, string, Vector2, Dictionary)

@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseGeometryTscn } from './godot-geometry';
+import { decodeTileMapData, parsePackedByteArray } from './godot-tscn';
 
 const MINIMAL_TSCN = `[gd_scene load_steps=6 format=3]
 
@@ -315,6 +316,143 @@ texture = ExtResource("1_tex")
     expect(geo.background!.sprites).toHaveLength(1);
     expect(geo.background!.sprites[0].position).toEqual({ x: 64, y: 96 });
     expect(geo.background!.sprites[0].pixiFrame).toBe('prop#0');
+  });
+});
+
+describe('decodeTileMapData', () => {
+  // 2-byte LE header (version 0) + 12-byte cells (coord_x/y int16, source_id/atlas_x/y/alt uint16, all LE)
+  function makeBlob(cells: Array<[number, number, number, number, number, number]>): Uint8Array {
+    const buf = new ArrayBuffer(2 + cells.length * 12);
+    const v = new DataView(buf);
+    v.setUint16(0, 0, true);
+    cells.forEach(([cx, cy, src, ax, ay, alt], i) => {
+      const o = 2 + i * 12;
+      v.setInt16(o + 0, cx, true);
+      v.setInt16(o + 2, cy, true);
+      v.setUint16(o + 4, src, true);
+      v.setUint16(o + 6, ax, true);
+      v.setUint16(o + 8, ay, true);
+      v.setUint16(o + 10, alt, true);
+    });
+    return new Uint8Array(buf);
+  }
+
+  it('decodes a small blob of positive cells', () => {
+    const blob = makeBlob([
+      [0, 0, 0, 3, 2, 0],
+      [1, 0, 0, 4, 2, 0],
+    ]);
+    expect(decodeTileMapData(blob)).toEqual([
+      { coordX: 0, coordY: 0, sourceId: 0, atlasX: 3, atlasY: 2, alternativeTile: 0 },
+      { coordX: 1, coordY: 0, sourceId: 0, atlasX: 4, atlasY: 2, alternativeTile: 0 },
+    ]);
+  });
+
+  it('decodes negative cell coordinates (two\'s complement int16)', () => {
+    const blob = makeBlob([[-5, -3, 0, 0, 0, 0]]);
+    const cells = decodeTileMapData(blob);
+    expect(cells[0].coordX).toBe(-5);
+    expect(cells[0].coordY).toBe(-3);
+  });
+
+  it('skips sentinel "empty" cells (source_id or atlas_x == 0xFFFF)', () => {
+    const blob = makeBlob([
+      [0, 0, 0xffff, 0, 0, 0],
+      [1, 0, 0, 0xffff, 0, 0],
+      [2, 0, 0, 5, 5, 0],
+    ]);
+    const cells = decodeTileMapData(blob);
+    expect(cells).toHaveLength(1);
+    expect(cells[0].coordX).toBe(2);
+  });
+
+  it('parses the PackedByteArray("...") base64 form', () => {
+    const blob = makeBlob([[0, 0, 0, 1, 0, 0]]);
+    const b64 = Buffer.from(blob).toString('base64');
+    const decoded = parsePackedByteArray(`PackedByteArray("${b64}")`);
+    expect(decoded).toEqual(blob);
+  });
+
+  it('parses the PackedByteArray(0, 1, 2, …) decimal form', () => {
+    const blob = makeBlob([[0, 0, 0, 1, 0, 0]]);
+    const decimal = `PackedByteArray(${[...blob].join(', ')})`;
+    const decoded = parsePackedByteArray(decimal);
+    expect(decoded).toEqual(blob);
+  });
+});
+
+describe('parseGeometryTscn — TileMapLayer', () => {
+  function makeBlob(cells: Array<[number, number, number, number, number, number]>): string {
+    const buf = new ArrayBuffer(2 + cells.length * 12);
+    const v = new DataView(buf);
+    v.setUint16(0, 0, true);
+    cells.forEach(([cx, cy, src, ax, ay, alt], i) => {
+      const o = 2 + i * 12;
+      v.setInt16(o + 0, cx, true);
+      v.setInt16(o + 2, cy, true);
+      v.setUint16(o + 4, src, true);
+      v.setUint16(o + 6, ax, true);
+      v.setUint16(o + 8, ay, true);
+      v.setUint16(o + 10, alt, true);
+    });
+    return Buffer.from(new Uint8Array(buf)).toString('base64');
+  }
+
+  it('resolves cells via tilesheet metadata into Pixi frame names', () => {
+    // 10-column tilesheet → cell (3, 2) is index 23 → "tiles_23#0"
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-tilemap-'));
+    fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, 'tileset.tres'),
+      `[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/sheet.tres" id="1_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_0"]
+texture = ExtResource("1_tex")
+texture_region_size = Vector2i(32, 32)
+
+[resource]
+sources/0 = SubResource("atlas_0")
+tile_size = Vector2i(32, 32)
+`,
+    );
+
+    const blob = makeBlob([
+      [0, 0, 0, 3, 2, 0],
+      [1, 0, 0, 0, 0, 0],
+    ]);
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="TileSet" path="res://tileset.tres" id="1_ts"]
+
+[node name="Root" type="Node2D"]
+
+[node name="bg" type="TileMapLayer" parent="."]
+tile_set = ExtResource("1_ts")
+tile_map_data = PackedByteArray("${blob}")
+`;
+    const geo = parseGeometryTscn(
+      tscn,
+      {
+        sheet: {
+          godotPath: 'res://sprites/sheet.tres',
+          type: 'AtlasTexture',
+          pixiFrame: 'sheet#0',
+          tilesheet: { framePrefix: 'tiles', cols: 10, rows: 10, tileSize: 32 },
+        },
+      },
+      { godotRoot: tmpRoot },
+    );
+    expect(geo.background!.tileLayers).toHaveLength(1);
+    const layer = geo.background!.tileLayers[0];
+    expect(layer.name).toBe('bg');
+    expect(layer.tileSize).toEqual({ x: 32, y: 32 });
+    expect(layer.tiles).toEqual([
+      { x: 0, y: 0, pixiFrame: 'tiles_23#0' },
+      { x: 1, y: 0, pixiFrame: 'tiles_0#0' },
+    ]);
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
   });
 });
 
