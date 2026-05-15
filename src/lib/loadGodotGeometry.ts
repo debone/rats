@@ -42,7 +42,7 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Sprite, Texture } from 'pixi.js';
+import { Assets, Container, Mesh, MeshGeometry, Sprite, Texture } from 'pixi.js';
 import { AddSpriteToWorld, type SpriteObject } from '@/systems/physics/WorldSprites';
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,39 @@ export interface Box2DGeometry {
   gravity?: V2;
   bodies: Box2DBodyDef[];
   joints: Box2DJointDef[];
+  background?: BackgroundDef;
+}
+
+export interface BackgroundDef {
+  meshes: MeshDef[];
+  sprites: BackgroundSpriteDef[];
+}
+
+export interface MeshDef {
+  position: V2;
+  rotation: number;
+  scale: V2;
+  vertices: V2[];
+  uvs: V2[]; // Texture pixel space; normalized to 0..1 at runtime using texture dimensions
+  indices: number[];
+  pixiFrame?: string;
+  z?: number;
+  tint?: number;
+  alpha?: number;
+}
+
+export interface BackgroundSpriteDef {
+  pixiFrame?: string;
+  pixiAnimation?: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  anchor: V2;
+  z?: number;
+  tint?: number;
+  alpha?: number;
+  flipH?: boolean;
+  flipV?: boolean;
 }
 
 export interface V2 {
@@ -158,7 +191,10 @@ export interface LoadGodotGeometryResult {
   joints: b2JointId[];
   bodiesByName: Map<string, b2BodyId>;
   jointsByName: Map<string, b2JointId>;
+  /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
   sprites: SpriteObject[];
+  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D). */
+  background: { meshes: Mesh[]; sprites: Sprite[] };
 }
 
 export function loadGodotGeometry(
@@ -244,7 +280,106 @@ export function loadGodotGeometry(
     if (!jointsByName.has(jdef.name)) jointsByName.set(jdef.name, jointId);
   }
 
-  return { bodies, joints, bodiesByName, jointsByName, sprites };
+  // Background visuals — Polygon2D meshes + standalone Sprite2D nodes
+  const bgMeshes: Mesh[] = [];
+  const bgSprites: Sprite[] = [];
+  if (spritesEnabled && geo.background && options.container) {
+    for (const m of geo.background.meshes) {
+      const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
+      if (mesh) {
+        options.container.addChild(mesh);
+        bgMeshes.push(mesh);
+      }
+    }
+    for (const s of geo.background.sprites) {
+      const sprite = instantiateBackgroundSprite(s, tx, ty, cosT, sinT, ta);
+      if (sprite) {
+        options.container.addChild(sprite);
+        bgSprites.push(sprite);
+      }
+    }
+  }
+
+  return { bodies, joints, bodiesByName, jointsByName, sprites, background: { meshes: bgMeshes, sprites: bgSprites } };
+}
+
+function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sinT: number, ta: number): Mesh | null {
+  if (!def.pixiFrame) return null;
+  let texture: Texture;
+  try {
+    texture = Assets.get<Texture>(def.pixiFrame) ?? Texture.from(def.pixiFrame);
+  } catch {
+    console.warn(`[loadGodotGeometry] Mesh texture not found: "${def.pixiFrame}"`);
+    return null;
+  }
+  if (!texture) return null;
+
+  // Position: apply the spawn transform (rotation + translation) to the mesh
+  // node's authored position. The mesh's own vertices stay in node-local space
+  // and the Mesh's transform handles the rotation/scale.
+  const localX = def.position.x;
+  const localY = def.position.y;
+  const worldX = cosT * localX - sinT * localY + tx;
+  const worldY = sinT * localX + cosT * localY + ty;
+
+  const positions = new Float32Array(def.vertices.length * 2);
+  for (let i = 0; i < def.vertices.length; i++) {
+    positions[i * 2] = def.vertices[i].x;
+    positions[i * 2 + 1] = def.vertices[i].y;
+  }
+  // Normalize UVs from texture pixel space → 0..1.
+  const tw = texture.width || 1;
+  const th = texture.height || 1;
+  const uvs = new Float32Array(def.uvs.length * 2);
+  for (let i = 0; i < def.uvs.length; i++) {
+    uvs[i * 2] = def.uvs[i].x / tw;
+    uvs[i * 2 + 1] = def.uvs[i].y / th;
+  }
+  const indices = new Uint32Array(def.indices);
+
+  const geometry = new MeshGeometry({ positions, uvs, indices });
+  const mesh = new Mesh({ geometry, texture });
+  mesh.position.set(worldX, worldY);
+  mesh.rotation = def.rotation + ta;
+  mesh.scale.set(def.scale.x, def.scale.y);
+  if (def.tint !== undefined) mesh.tint = def.tint;
+  if (def.alpha !== undefined) mesh.alpha = def.alpha;
+  if (def.z !== undefined) mesh.zIndex = def.z;
+  return mesh;
+}
+
+function instantiateBackgroundSprite(
+  def: BackgroundSpriteDef,
+  tx: number,
+  ty: number,
+  cosT: number,
+  sinT: number,
+  ta: number,
+): Sprite | null {
+  const key = def.pixiFrame ?? def.pixiAnimation;
+  if (!key) return null;
+  let texture: Texture | undefined;
+  try {
+    texture = Assets.get<Texture>(key) ?? Texture.from(key);
+  } catch {
+    console.warn(`[loadGodotGeometry] Background sprite texture not found: "${key}"`);
+    return null;
+  }
+  if (!texture) return null;
+  const sprite = new Sprite({ texture });
+  sprite.anchor.set(def.anchor.x, def.anchor.y);
+  sprite.scale.set(def.scale.x, def.scale.y);
+  if (def.flipH) sprite.scale.x *= -1;
+  if (def.flipV) sprite.scale.y *= -1;
+  if (def.tint !== undefined) sprite.tint = def.tint;
+  if (def.alpha !== undefined) sprite.alpha = def.alpha;
+  if (def.z !== undefined) sprite.zIndex = def.z;
+
+  const localX = def.position.x;
+  const localY = def.position.y;
+  sprite.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
+  sprite.rotation = def.rotation + ta;
+  return sprite;
 }
 
 // ---------------------------------------------------------------------------

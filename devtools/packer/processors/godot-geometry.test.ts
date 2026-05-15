@@ -250,6 +250,74 @@ attached = false
   });
 });
 
+describe('parseGeometryTscn — background', () => {
+  it('extracts a textured Polygon2D as a mesh with fan-triangulation', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://water.tres" id="1_tex"]
+
+[node name="Root" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+position = Vector2(10, 20)
+texture = ExtResource("1_tex")
+polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+uv = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+`;
+    const geo = parseGeometryTscn(tscn, {
+      water: { godotPath: 'res://water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
+    });
+    expect(geo.background).toBeDefined();
+    expect(geo.background!.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.vertices).toHaveLength(4);
+    // Fan triangulation of a quad: (0,1,2) + (0,2,3)
+    expect(mesh.indices).toEqual([0, 1, 2, 0, 2, 3]);
+    expect(mesh.position).toEqual({ x: 10, y: 20 });
+  });
+
+  it('skips polygons under a body (those are collision fixtures, not visuals)', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://water.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="2_body"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="StaticBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="not-a-mesh" type="Polygon2D" parent="body"]
+texture = ExtResource("1_tex")
+polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
+`;
+    const geo = parseGeometryTscn(tscn, {
+      water: { godotPath: 'res://water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
+    });
+    expect(geo.background).toBeUndefined();
+  });
+
+  it('extracts standalone Sprite2D nodes as background sprites', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://prop.tres" id="1_tex"]
+
+[node name="Root" type="Node2D"]
+
+[node name="bg-prop" type="Sprite2D" parent="."]
+position = Vector2(64, 96)
+texture = ExtResource("1_tex")
+`;
+    const geo = parseGeometryTscn(tscn, {
+      prop: { godotPath: 'res://prop.tres', type: 'AtlasTexture', pixiFrame: 'prop#0' },
+    });
+    expect(geo.background!.sprites).toHaveLength(1);
+    expect(geo.background!.sprites[0].position).toEqual({ x: 64, y: 96 });
+    expect(geo.background!.sprites[0].pixiFrame).toBe('prop#0');
+  });
+});
+
 describe('parseGeometryTscn — Box2DRoot', () => {
   it('reads gravity from a Box2DRoot script @export on the root', () => {
     const tscn = `[gd_scene load_steps=2 format=3]

@@ -54,6 +54,53 @@ export interface Box2DGeometry {
   gravity?: V2;
   bodies: Box2DBodyDef[];
   joints: Box2DJointDef[];
+  /** Visual-only background elements (Polygon2D meshes, standalone Sprite2D/AnimatedSprite2D). */
+  background?: BackgroundDef;
+}
+
+export interface BackgroundDef {
+  /** Polygon2D nodes (textured polygons) not under a body. Rendered as Pixi Meshes. */
+  meshes: MeshDef[];
+  /** Sprite2D / AnimatedSprite2D nodes not under a body. Stand-alone visual sprites. */
+  sprites: BackgroundSpriteDef[];
+}
+
+/**
+ * A textured polygon authored as a Godot Polygon2D. Vertices and UVs are in
+ * Godot pixel space; UVs are normalized at runtime against the resolved texture
+ * dimensions. Indices are pre-triangulated (fan from vertex 0 — assumes the
+ * polygon is convex; concave polygons will need earcut later).
+ */
+export interface MeshDef {
+  position: V2;
+  rotation: number;
+  scale: V2;
+  vertices: V2[]; // Godot pixel space, relative to the mesh node
+  uvs: V2[]; // Same length as vertices, in texture pixel space
+  indices: number[]; // Triangle vertex indices
+  pixiFrame?: string;
+  z?: number;
+  tint?: number;
+  alpha?: number;
+}
+
+/**
+ * A free-standing sprite — Sprite2D or AnimatedSprite2D placed in the scene
+ * tree but not as a child of any Box2D body. Position is in world space (Godot
+ * pixels). Used for backdrop decor: signs, fish, single-instance props.
+ */
+export interface BackgroundSpriteDef {
+  pixiFrame?: string;
+  pixiAnimation?: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  anchor: V2;
+  z?: number;
+  tint?: number;
+  alpha?: number;
+  flipH?: boolean;
+  flipV?: boolean;
 }
 
 export interface V2 {
@@ -541,7 +588,23 @@ export function parseGeometryTscn(
     }
   }
 
-  return { gravity, bodies, joints };
+  // Background: Polygon2D meshes + standalone Sprite2D/AnimatedSprite2D not
+  // under a body. We identify "under a body" by walking up the parent chain
+  // to either a body node or the root.
+  const bodyPaths = new Set(bodyNodes.map((n) => n.fullPath));
+  const isUnderBody = (path: string): boolean => {
+    let cur = path;
+    while (cur && cur !== '.') {
+      if (bodyPaths.has(cur)) return true;
+      const slash = cur.lastIndexOf('/');
+      cur = slash >= 0 ? cur.slice(0, slash) : '.';
+    }
+    return false;
+  };
+
+  const background = buildBackground(nodes, isUnderBody, extResources, godotPathToPixi, globalTransforms);
+
+  return { gravity, bodies, joints, ...(background ? { background } : {}) };
 }
 
 // ---------------------------------------------------------------------------
@@ -791,6 +854,169 @@ function buildSpriteBinding(
   if (!shouldRotate) binding.shouldRotate = false;
 
   return binding;
+}
+
+// ---------------------------------------------------------------------------
+// Background builders — Polygon2D meshes and standalone Sprite2D
+// ---------------------------------------------------------------------------
+
+function buildBackground(
+  nodes: NodeInfo[],
+  isUnderBody: (path: string) => boolean,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  globalTransforms: Map<string, GTransform>,
+): BackgroundDef | null {
+  const meshes: MeshDef[] = [];
+  const sprites: BackgroundSpriteDef[] = [];
+
+  for (const n of nodes) {
+    if (isUnderBody(n.fullPath)) continue;
+    if (n.type === 'Polygon2D') {
+      const m = buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
+      if (m) meshes.push(m);
+    } else if (n.type === 'Sprite2D' || n.type === 'AnimatedSprite2D') {
+      // Respect Box2DSprite's `attached = false` (editor-only reference art).
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const s = buildBackgroundSprite(n, extResources, godotPathToPixi, globalTransforms);
+      if (s) sprites.push(s);
+    }
+  }
+
+  if (meshes.length === 0 && sprites.length === 0) return null;
+  return { meshes, sprites };
+}
+
+function buildMeshDef(
+  polyNode: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  globalTransforms: Map<string, GTransform>,
+): MeshDef | null {
+  // Vertices in the polygon node's local space (Godot pixels).
+  const polygon = parsePackedVector2Array(polyNode.props.get('polygon') ?? '');
+  if (polygon.length < 3) return null;
+
+  // UVs — same length as polygon, in texture pixel space. If empty, Godot
+  // defaults to using the polygon itself (texture projected from world space).
+  let uvs = parsePackedVector2Array(polyNode.props.get('uv') ?? '');
+  if (uvs.length !== polygon.length) uvs = polygon;
+
+  // Texture — resolve through the sprite-map to a pixi frame key.
+  let pixiFrame: string | undefined;
+  const texProp = polyNode.props.get('texture');
+  const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  if (extId && extResources[extId]) {
+    pixiFrame = godotPathToPixi[extResources[extId]]?.frame;
+  }
+
+  // Triangulate. Fan from vertex 0 — works for convex polygons; concave needs
+  // earcut, which we'll wire in if/when authors hit it.
+  const indices: number[] = [];
+  for (let i = 1; i < polygon.length - 1; i++) {
+    indices.push(0, i, i + 1);
+  }
+
+  const gt = globalTransforms.get(polyNode.fullPath)!;
+  const modulate = polyNode.props.get('modulate');
+  let tint: number | undefined;
+  let alpha: number | undefined;
+  if (modulate) {
+    const colorMatch = modulate.match(/Color\(([^)]+)\)/);
+    if (colorMatch) {
+      const parts = colorMatch[1].split(',').map((s) => parseFloat(s.trim()));
+      const r = Math.round((parts[0] ?? 1) * 255);
+      const g = Math.round((parts[1] ?? 1) * 255);
+      const b = Math.round((parts[2] ?? 1) * 255);
+      tint = (r << 16) | (g << 8) | b;
+      if (parts.length > 3) alpha = parts[3];
+    }
+  }
+  const zIndex = parseInt(unquote(polyNode.props.get('z_index') ?? '0'), 10) || undefined;
+
+  const out: MeshDef = {
+    position: gt.origin,
+    rotation: gt.rotation,
+    scale: gt.scale,
+    vertices: polygon,
+    uvs,
+    indices,
+  };
+  if (pixiFrame) out.pixiFrame = pixiFrame;
+  if (zIndex) out.z = zIndex;
+  if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
+  if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
+  return out;
+}
+
+function buildBackgroundSprite(
+  spriteNode: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  globalTransforms: Map<string, GTransform>,
+): BackgroundSpriteDef | null {
+  let pixiFrame: string | undefined;
+  let pixiAnimation: string | undefined;
+  if (spriteNode.type === 'Sprite2D') {
+    const texProp = spriteNode.props.get('texture');
+    const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+    if (extId && extResources[extId]) {
+      const resolved = godotPathToPixi[extResources[extId]];
+      if (resolved) {
+        pixiFrame = resolved.frame;
+        pixiAnimation = resolved.anim;
+      }
+    }
+  } else {
+    const framesProp = spriteNode.props.get('sprite_frames');
+    const extId = framesProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+    if (extId && extResources[extId]) {
+      const resolved = godotPathToPixi[extResources[extId]];
+      if (resolved) {
+        pixiFrame = resolved.frame;
+        pixiAnimation = resolved.anim;
+      }
+    }
+  }
+  if (!pixiFrame && !pixiAnimation) return null;
+
+  const centeredRaw = spriteNode.props.get('centered');
+  const centered = centeredRaw === undefined ? true : decodeGodotValue(centeredRaw) === true;
+  const offset = parseVector2(spriteNode.props.get('offset') ?? '') ?? { x: 0, y: 0 };
+  const flipH = decodeGodotValue(spriteNode.props.get('flip_h') ?? 'false') === true;
+  const flipV = decodeGodotValue(spriteNode.props.get('flip_v') ?? 'false') === true;
+  const modulate = spriteNode.props.get('modulate');
+  let tint: number | undefined;
+  let alpha: number | undefined;
+  if (modulate) {
+    const colorMatch = modulate.match(/Color\(([^)]+)\)/);
+    if (colorMatch) {
+      const parts = colorMatch[1].split(',').map((s) => parseFloat(s.trim()));
+      const r = Math.round((parts[0] ?? 1) * 255);
+      const g = Math.round((parts[1] ?? 1) * 255);
+      const b = Math.round((parts[2] ?? 1) * 255);
+      tint = (r << 16) | (g << 8) | b;
+      if (parts.length > 3) alpha = parts[3];
+    }
+  }
+  const zIndex = parseInt(unquote(spriteNode.props.get('z_index') ?? '0'), 10) || undefined;
+  const gt = globalTransforms.get(spriteNode.fullPath)!;
+
+  const out: BackgroundSpriteDef = {
+    position: { x: gt.origin.x + offset.x, y: gt.origin.y + offset.y },
+    rotation: gt.rotation,
+    scale: gt.scale,
+    anchor: centered ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 },
+  };
+  if (pixiFrame) out.pixiFrame = pixiFrame;
+  if (pixiAnimation) out.pixiAnimation = pixiAnimation;
+  if (zIndex) out.z = zIndex;
+  if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
+  if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
+  if (flipH) out.flipH = true;
+  if (flipV) out.flipV = true;
+  return out;
 }
 
 // ---------------------------------------------------------------------------

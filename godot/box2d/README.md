@@ -89,6 +89,40 @@ joint Node2D's global position is the anchor; the exporter resolves it into
 each body's local space. The editor gizmos draw dashed lines from the
 anchor to each connected body so you can see at a glance what's wired up.
 
+## Background visuals
+
+Anything in the scene tree that isn't a Box2D body, fixture, joint, or
+body-bound sprite gets emitted as **background** — purely visual elements
+the runtime renders behind/in front of the physics. The point is to
+author the level's background art in the same scene as the physics so
+brick placements line up exactly with the painted environment.
+
+Two node types are supported today:
+
+- **`Polygon2D` with `texture`** — free-form textured polygons. Author the
+  shape with Godot's polygon editor, assign a texture (atlas-resolved
+  through `sprite-map.json` just like sprites), and the exporter emits a
+  triangulated mesh that the runtime renders as a Pixi `Mesh`. Use this
+  for big filled regions: water, sky, terrain fills, anything that
+  isn't grid-aligned. **Currently convex polygons only** — concave will
+  need an earcut pass; we'll add that the first time an author hits it.
+
+- **Standalone `Sprite2D` / `AnimatedSprite2D` / `Box2DAnimatedSprite`** —
+  any sprite that *isn't* a child of a body becomes a free-standing
+  background sprite at its authored world position. Use for one-off
+  decor: signs, fish, single landmarks. `Box2DSprite`'s
+  `attached = false` still works to mark editor-only reference art.
+
+- **`TileMapLayer`** — *not yet*. The binary format is known and the
+  exporter side is straightforward, but it needs an atlas-pipeline change
+  on the Pixi side (Godot tilesets reference a single atlas image with
+  `(x,y)` cell coords; our Pixi pipeline currently ships per-tile frames).
+  Until that lands, keep tilemap-style backgrounds in Tiled.
+
+The exporter walks the whole tree, so background nodes can live at the
+scene root, inside logical group nodes, or inside an instanced subscene
+— anywhere not under a body.
+
 ## Coordinate system
 
 Godot is Y-down pixels; Box2D is Y-up meters with `PXM = 16`. The exporter
