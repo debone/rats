@@ -63,14 +63,19 @@ export function parseProps(body: string): Map<string, string> {
     const key = line.slice(0, eqIdx).trim();
     let value = line.slice(eqIdx + 3).trimEnd();
 
-    if (value.trimStart().startsWith('{') || value.trimStart().startsWith('[')) {
-      const open = value.trimStart()[0];
-      const close = open === '{' ? '}' : ']';
-      let depth = countChar(value, open) - countChar(value, close);
+    // Accumulate continuation lines whenever any bracket type is unbalanced.
+    // This covers plain {}, [], () as well as typed wrappers like
+    // Dictionary[String, Variant]({...}) or Array[int]([...]).
+    let parenD = countChar(value, '(') - countChar(value, ')');
+    let curlyD = countChar(value, '{') - countChar(value, '}');
+    let squareD = countChar(value, '[') - countChar(value, ']');
+    if (parenD > 0 || curlyD > 0 || squareD > 0) {
       i++;
-      while (i < lines.length && depth > 0) {
+      while (i < lines.length && (parenD > 0 || curlyD > 0 || squareD > 0)) {
         value += '\n' + lines[i];
-        depth += countChar(lines[i], open) - countChar(lines[i], close);
+        parenD += countChar(lines[i], '(') - countChar(lines[i], ')');
+        curlyD += countChar(lines[i], '{') - countChar(lines[i], '}');
+        squareD += countChar(lines[i], '[') - countChar(lines[i], ']');
         i++;
       }
     } else {
@@ -245,6 +250,12 @@ export function decodeGodotValue(raw: string): unknown {
   if (/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)) return parseFloat(trimmed);
   const v2 = parseVector2(trimmed);
   if (v2) return v2;
+  // Godot 4 typed containers: Dictionary[K, V]({...}) and Array[T]([...])
+  // Strip the type wrapper and decode the inner literal.
+  const typedContainer = trimmed.match(/^(?:Dictionary|Array)\[[^\]]*\]\((.+)\)$/s);
+  if (typedContainer) {
+    return decodeGodotValue(typedContainer[1]);
+  }
   if (trimmed.startsWith('{')) {
     return parseGodotDictionary(trimmed);
   }

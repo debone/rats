@@ -1,16 +1,21 @@
-[gd_scene load_steps=4 format=3 uid="uid://box2d_brick_prefab"]
+[gd_scene format=3 uid="uid://cysxbqa0bs6nc"]
 
-[ext_resource type="Script" path="res://prefabs/brick_prefab.gd" id="1_brick"]
-[ext_resource type="Script" path="res://box2d/box2d_polygon_fixture.gd" id="2_poly"]
-[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_1.tres" id="3_tex"]
+[ext_resource type="Script" uid="uid://dq6as3legyd7" path="res://prefabs/brick_prefab.gd" id="1_brick"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="2_poly"]
+[ext_resource type="Texture2D" uid="uid://c5iyhu4od3wmn" path="res://sprites/prototype{ss=32}/bricks_tile_1.tres" id="3_tex"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="4_wx455"]
 
-[node name="Brick" type="StaticBody2D"]
+[node name="Brick" type="StaticBody2D" unique_id=887328250]
 script = ExtResource("1_brick")
 type = "brick"
 
-[node name="shape" type="CollisionPolygon2D" parent="."]
-script = ExtResource("2_poly")
+[node name="shape" type="CollisionPolygon2D" parent="." unique_id=1948829005]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, -8, 16, -8, 16, 8, -16, 8)
+script = ExtResource("2_poly")
 
-[node name="sprite" type="Sprite2D" parent="."]
+[node name="BricksTile1" type="Sprite2D" parent="." unique_id=1419394607]
+position = Vector2(8, 34)
 texture = ExtResource("3_tex")
+script = ExtResource("4_wx455")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"

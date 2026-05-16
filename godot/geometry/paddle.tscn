@@ -1,40 +1,40 @@
-[gd_scene load_steps=8 format=3 uid="uid://box2d_paddle_geometry"]
+[gd_scene format=3 uid="uid://dyhuyk7ijdsa3"]
 
-[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
-[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
-[ext_resource type="Script" path="res://box2d/box2d_polygon_fixture.gd" id="3_poly"]
-[ext_resource type="Script" path="res://box2d/box2d_sprite.gd" id="4_sprite"]
-[ext_resource type="Texture2D" path="res://sprites/rats/rat-boat.tres" id="5_rat"]
-[ext_resource type="Texture2D" path="res://sprites/rats/shadow-back.tres" id="6_shadowback"]
-[ext_resource type="Texture2D" path="res://sprites/rats/shadow.tres" id="7_shadow"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="2_body"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="3_poly"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="4_sprite"]
+[ext_resource type="Texture2D" uid="uid://cq8gsmqqv2xdm" path="res://sprites/rats/rat-boat.tres" id="5_rat"]
+[ext_resource type="Texture2D" uid="uid://biqtdecqd6voy" path="res://sprites/rats/shadow-back.tres" id="6_shadowback"]
+[ext_resource type="Texture2D" uid="uid://d4akssrov41o6" path="res://sprites/rats/shadow.tres" id="7_shadow"]
 
-[node name="Geometry" type="Node2D"]
+[node name="Geometry" type="Node2D" unique_id=522817147]
 script = ExtResource("1_root")
 gravity = Vector2(0, 0)
 
-[node name="paddle" type="RigidBody2D" parent="."]
+[node name="paddle" type="RigidBody2D" parent="." unique_id=984873434]
 script = ExtResource("2_body")
 type = "paddle"
 
-[node name="shape" type="CollisionPolygon2D" parent="paddle"]
-script = ExtResource("3_poly")
+[node name="shape" type="CollisionPolygon2D" parent="paddle" unique_id=148645987]
 polygon = PackedVector2Array(32, 4, 28.8, -3.2, 8, -8, -8, -8, -28.8, -3.2, -32, 4)
+script = ExtResource("3_poly")
 density = 10.0
 friction = 0.5
 category_bits = 7
 
-[node name="shadow-back" type="Sprite2D" parent="paddle"]
+[node name="shadow-back" type="Sprite2D" parent="paddle" unique_id=832270413]
 position = Vector2(0, 11.5)
 texture = ExtResource("6_shadowback")
 script = ExtResource("4_sprite")
 should_rotate = false
 
-[node name="rat-boat" type="Sprite2D" parent="paddle"]
-position = Vector2(0, -6.5)
+[node name="rat-boat" type="Sprite2D" parent="paddle" unique_id=1790307033]
+position = Vector2(0, -6)
 texture = ExtResource("5_rat")
 script = ExtResource("4_sprite")
 
-[node name="shadow" type="Sprite2D" parent="paddle"]
+[node name="shadow" type="Sprite2D" parent="paddle" unique_id=1015339505]
 position = Vector2(0, 9.5)
 texture = ExtResource("7_shadow")
 script = ExtResource("4_sprite")

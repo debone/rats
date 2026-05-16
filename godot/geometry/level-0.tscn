@@ -1,588 +1,428 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://pgosoocvbms2"]
 
-[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_b2d"]
-[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="2_b2d"]
-[ext_resource type="Script" path="res://box2d/box2d_dynamic_body.gd" id="3_b2d"]
-[ext_resource type="Script" path="res://box2d/box2d_polygon_fixture.gd" id="4_b2d"]
-[ext_resource type="Script" path="res://box2d/box2d_prismatic_joint.gd" id="5_b2d"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_b2d"]
+[ext_resource type="Script" uid="uid://doniiw8eblphn" path="res://box2d/box2d_static_body.gd" id="2_b2d"]
+[ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="3_b2d"]
+[ext_resource type="PackedScene" uid="uid://cysxbqa0bs6nc" path="res://prefabs/brick.tscn" id="4_4yr07"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="4_b2d"]
+[ext_resource type="Script" uid="uid://cnhmcyfwdovrq" path="res://box2d/box2d_prismatic_joint.gd" id="5_b2d"]
+[ext_resource type="PackedScene" path="res://prefabs/brick-woo.tscn" id="7_ler3u"]
 
-[node name="Geometry" type="Node2D"]
+[node name="Geometry" type="Node2D" unique_id=2036160085]
 script = ExtResource("1_b2d")
-gravity = Vector2(0, -10)
 
-[node name="walls" type="StaticBody2D" parent="."]
-position = Vector2(0, 641.1984252929688)
+[node name="walls" type="StaticBody2D" parent="." unique_id=918127076]
+position = Vector2(0, 641.1984)
 script = ExtResource("2_b2d")
 type = "bottom-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0" type="CollisionPolygon2D" parent="walls"]
-polygon = PackedVector2Array(-207.97129821777344, -258.5061950683594, 208.02870178222656, -258.5061950683594, 208.02870178222656, -361.1033935546875, -207.97129821777344, -361.1033935546875)
+[node name="fixture0" type="CollisionPolygon2D" parent="walls" unique_id=420606128]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-207.9713, -258.5062, 208.0287, -258.5062, 208.0287, -361.1034, -207.9713, -361.1034)
 script = ExtResource("4_b2d")
 is_sensor = true
 
-[node name="walls_2" type="StaticBody2D" parent="."]
-position = Vector2(-232.02870178222656, 129.1033935546875)
-rotation = 1.570796251296997
+[node name="walls_2" type="StaticBody2D" parent="." unique_id=658336354]
+position = Vector2(-232.0287, 129.1034)
+rotation = 1.5707963
 script = ExtResource("2_b2d")
 type = "left-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0_2" type="CollisionPolygon2D" parent="walls_2"]
-polygon = PackedVector2Array(-17.103393554687504, -24.028699874877937, 158.8966064453125, -24.028684616088864, 158.8966064453125, -40.02868652343751, -17.103393554687504, -40.02870178222656)
+[node name="fixture0_2" type="CollisionPolygon2D" parent="walls_2" unique_id=124714586]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-17.103394, -24.0287, 158.8966, -24.028685, 158.8966, -40.028687, -17.103394, -40.0287)
 script = ExtResource("4_b2d")
-density = 10
-restitution = 1
+density = 10.0
+restitution = 1.0
 
-[node name="walls_3" type="StaticBody2D" parent="."]
-position = Vector2(231.97129821777344, 129.1033935546875)
-rotation = 1.570796251296997
+[node name="walls_3" type="StaticBody2D" parent="." unique_id=1586427075]
+position = Vector2(231.9713, 129.1034)
+rotation = 1.5707963
 script = ExtResource("2_b2d")
 type = "right-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0_3" type="CollisionPolygon2D" parent="walls_3"]
-polygon = PackedVector2Array(-17.103393554687504, 39.97129440307618, 158.8966064453125, 39.97131347656249, 158.8966064453125, 23.971315383911136, -17.103393554687504, 23.971300125122063)
+[node name="fixture0_3" type="CollisionPolygon2D" parent="walls_3" unique_id=1013444586]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-17.103394, 39.971294, 158.8966, 39.971313, 158.8966, 23.971315, -17.103394, 23.9713)
 script = ExtResource("4_b2d")
-density = 10
-restitution = 1
+density = 10.0
+restitution = 1.0
 
-[node name="brick" type="StaticBody2D" parent="."]
+[node name="brick" type="StaticBody2D" parent="." unique_id=1734747215]
 position = Vector2(-16, 40)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1" type="CollisionPolygon2D" parent="brick"]
+[node name="fixture1" type="CollisionPolygon2D" parent="brick" unique_id=1712556633]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_2" type="StaticBody2D" parent="."]
+[node name="brick_2" type="StaticBody2D" parent="." unique_id=721607636]
 position = Vector2(-32, 56)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_2" type="CollisionPolygon2D" parent="brick_2"]
+[node name="fixture1_2" type="CollisionPolygon2D" parent="brick_2" unique_id=1396534053]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_3" type="StaticBody2D" parent="."]
+[node name="brick_3" type="StaticBody2D" parent="." unique_id=516520301]
 position = Vector2(16, 40)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_3" type="CollisionPolygon2D" parent="brick_3"]
+[node name="fixture1_3" type="CollisionPolygon2D" parent="brick_3" unique_id=1184304124]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="door" type="StaticBody2D" parent="."]
+[node name="door-a" type="StaticBody2D" parent="." unique_id=1013303135]
 position = Vector2(-16, -24)
 script = ExtResource("2_b2d")
 type = "door"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "doorName": "door-a"
-}
+})
 
-[node name="fixture1_4" type="CollisionPolygon2D" parent="door"]
+[node name="fixture1_4" type="CollisionPolygon2D" parent="door-a" unique_id=1122522735]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="door_2" type="StaticBody2D" parent="."]
+[node name="door-b" type="StaticBody2D" parent="." unique_id=28113121]
 position = Vector2(-16, -152)
 script = ExtResource("2_b2d")
 type = "door"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "doorName": "door-b"
-}
+})
 
-[node name="fixture1_5" type="CollisionPolygon2D" parent="door_2"]
+[node name="fixture1_5" type="CollisionPolygon2D" parent="door-b" unique_id=1016759380]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="door_3" type="StaticBody2D" parent="."]
+[node name="door-c" type="StaticBody2D" parent="." unique_id=1006098435]
 position = Vector2(-16, -264)
 script = ExtResource("2_b2d")
 type = "door"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "doorName": "door-c"
-}
+})
 
-[node name="fixture1_6" type="CollisionPolygon2D" parent="door_3"]
+[node name="fixture1_6" type="CollisionPolygon2D" parent="door-c" unique_id=443247765]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_4" type="StaticBody2D" parent="."]
+[node name="brick_4" type="StaticBody2D" parent="." unique_id=1016321531]
 position = Vector2(0, -88)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "yellow"
-}
+})
 
-[node name="fixture1_7" type="CollisionPolygon2D" parent="brick_4"]
+[node name="fixture1_7" type="CollisionPolygon2D" parent="brick_4" unique_id=649956551]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_5" type="StaticBody2D" parent="."]
+[node name="brick_5" type="StaticBody2D" parent="." unique_id=1765842201]
 position = Vector2(-16, -72)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "yellow"
-}
+})
 
-[node name="fixture1_8" type="CollisionPolygon2D" parent="brick_5"]
+[node name="fixture1_8" type="CollisionPolygon2D" parent="brick_5" unique_id=81650333]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_6" type="StaticBody2D" parent="."]
+[node name="brick_6" type="StaticBody2D" parent="." unique_id=280304929]
 position = Vector2(16, -72)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "yellow"
-}
+})
 
-[node name="fixture1_9" type="CollisionPolygon2D" parent="brick_6"]
+[node name="fixture1_9" type="CollisionPolygon2D" parent="brick_6" unique_id=537271990]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_7" type="StaticBody2D" parent="."]
+[node name="brick_7" type="StaticBody2D" parent="." unique_id=1984192136]
 position = Vector2(16, -104)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "yellow"
-}
+})
 
-[node name="fixture1_10" type="CollisionPolygon2D" parent="brick_7"]
+[node name="fixture1_10" type="CollisionPolygon2D" parent="brick_7" unique_id=785980415]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_8" type="StaticBody2D" parent="."]
+[node name="brick_8" type="StaticBody2D" parent="." unique_id=55919342]
 position = Vector2(-16, -104)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "yellow"
-}
+})
 
-[node name="fixture1_11" type="CollisionPolygon2D" parent="brick_8"]
+[node name="fixture1_11" type="CollisionPolygon2D" parent="brick_8" unique_id=987533526]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_9" type="StaticBody2D" parent="."]
+[node name="brick_9" type="StaticBody2D" parent="." unique_id=199622942]
 position = Vector2(0, -208)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "green"
-}
+})
 
-[node name="fixture1_12" type="CollisionPolygon2D" parent="brick_9"]
+[node name="fixture1_12" type="CollisionPolygon2D" parent="brick_9" unique_id=673707211]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_10" type="StaticBody2D" parent="."]
-position = Vector2(-176, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_13" type="CollisionPolygon2D" parent="brick_10"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_11" type="StaticBody2D" parent="."]
-position = Vector2(-144, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_14" type="CollisionPolygon2D" parent="brick_11"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="walls_4" type="StaticBody2D" parent="."]
-position = Vector2(-256.7053833007813, -134.771484375)
-rotation = -1.570796251296997
+[node name="walls_4" type="StaticBody2D" parent="." unique_id=1670337763]
+position = Vector2(-256.70538, -134.77148)
+rotation = -1.5707963
 script = ExtResource("2_b2d")
 type = "top-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0_4" type="CollisionPolygon2D" parent="walls_4"]
-polygon = PackedVector2Array(-246.771484375, 48.70540618896485, -246.771484375, 128.70538330078125, -214.77146911621088, 192.70539855957023, -150.77146911621094, 224.70539855957023, -150.77146911621094, 208.70539855957023, -198.77146911621088, 160.70539855957023, -230.771484375, 96.70540618896484, -230.771484375, 48.70539855957032)
+[node name="fixture0_4" type="CollisionPolygon2D" parent="walls_4" unique_id=59920943]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-246.77148, 48.705406, -246.77148, 128.70538, -214.77147, 192.7054, -150.77147, 224.7054, -150.77147, 208.7054, -198.77147, 160.7054, -230.77148, 96.70541, -230.77148, 48.7054)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_12" type="StaticBody2D" parent="."]
+[node name="brick_12" type="StaticBody2D" parent="." unique_id=2131016190]
 position = Vector2(0, 24)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_15" type="CollisionPolygon2D" parent="brick_12"]
+[node name="fixture1_15" type="CollisionPolygon2D" parent="brick_12" unique_id=631604133]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_13" type="StaticBody2D" parent="."]
-position = Vector2(-80, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_16" type="CollisionPolygon2D" parent="brick_13"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_14" type="StaticBody2D" parent="."]
-position = Vector2(-112, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_17" type="CollisionPolygon2D" parent="brick_14"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_15" type="StaticBody2D" parent="."]
+[node name="brick_15" type="StaticBody2D" parent="." unique_id=1449338998]
 position = Vector2(-80, 104)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_18" type="CollisionPolygon2D" parent="brick_15"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_16" type="StaticBody2D" parent="."]
-position = Vector2(112, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_19" type="CollisionPolygon2D" parent="brick_16"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_17" type="StaticBody2D" parent="."]
-position = Vector2(80, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_20" type="CollisionPolygon2D" parent="brick_17"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_18" type="StaticBody2D" parent="."]
-position = Vector2(176, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_21" type="CollisionPolygon2D" parent="brick_18"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_19" type="StaticBody2D" parent="."]
-position = Vector2(144, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_22" type="CollisionPolygon2D" parent="brick_19"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_20" type="StaticBody2D" parent="."]
-position = Vector2(96, 136)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_23" type="CollisionPolygon2D" parent="brick_20"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_21" type="StaticBody2D" parent="."]
-position = Vector2(-128, 136)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_24" type="CollisionPolygon2D" parent="brick_21"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_22" type="StaticBody2D" parent="."]
+[node name="brick_22" type="StaticBody2D" parent="." unique_id=1641389902]
 position = Vector2(32, 56)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_25" type="CollisionPolygon2D" parent="brick_22"]
+[node name="fixture1_25" type="CollisionPolygon2D" parent="brick_22" unique_id=29517406]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_23" type="StaticBody2D" parent="."]
+[node name="brick_23" type="StaticBody2D" parent="." unique_id=2088765019]
 position = Vector2(-16, 72)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_26" type="CollisionPolygon2D" parent="brick_23"]
+[node name="fixture1_26" type="CollisionPolygon2D" parent="brick_23" unique_id=134229494]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_24" type="StaticBody2D" parent="."]
+[node name="brick_24" type="StaticBody2D" parent="." unique_id=1233800500]
 position = Vector2(16, 72)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0"
-}
+})
 
-[node name="fixture1_27" type="CollisionPolygon2D" parent="brick_24"]
+[node name="fixture1_27" type="CollisionPolygon2D" parent="brick_24" unique_id=1984764061]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="walls_5" type="StaticBody2D" parent="."]
+[node name="waat" parent="." unique_id=1737138983 instance=ExtResource("4_4yr07")]
+position = Vector2(2, 183)
+behaviour = "Level0"
+user_data = Dictionary[String, Variant]({
+"behaviour": "Level0"
+})
+
+[node name="walls_5" type="StaticBody2D" parent="." unique_id=1342043844]
 position = Vector2(-64, -240)
-rotation = -1.570796251296997
+rotation = -1.5707963
 script = ExtResource("2_b2d")
 type = "left-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0_5" type="CollisionPolygon2D" parent="walls_5"]
-polygon = PackedVector2Array(-256, 32.000019073486335, 176, 31.999975204467777, 176, 16, -256, 16)
+[node name="fixture0_5" type="CollisionPolygon2D" parent="walls_5" unique_id=848185978]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-256, 32.00002, 176, 31.999975, 176, 16, -256, 16)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_25" type="StaticBody2D" parent="."]
-position = Vector2(16, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_28" type="CollisionPolygon2D" parent="brick_25"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_26" type="StaticBody2D" parent="."]
-position = Vector2(-48, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_29" type="CollisionPolygon2D" parent="brick_26"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_27" type="StaticBody2D" parent="."]
-position = Vector2(48, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_30" type="CollisionPolygon2D" parent="brick_27"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_28" type="StaticBody2D" parent="."]
-position = Vector2(-16, 120)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_31" type="CollisionPolygon2D" parent="brick_28"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="walls_6" type="StaticBody2D" parent="."]
+[node name="walls_6" type="StaticBody2D" parent="." unique_id=132534390]
 position = Vector2(48, -32)
-rotation = -1.570796251296997
+rotation = -1.5707963
 script = ExtResource("2_b2d")
 type = "right-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0_6" type="CollisionPolygon2D" parent="walls_6"]
-polygon = PackedVector2Array(-48, 0.0000035604048207460433, 384, -0.00003229730646125973, 384, -16.00002098083496, -48, -16)
+[node name="fixture0_6" type="CollisionPolygon2D" parent="walls_6" unique_id=2105768876]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-48, 3.5604048e-06, 384, -3.2297306e-05, 384, -16.000021, -48, -16)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="walls_7" type="StaticBody2D" parent="."]
-position = Vector2(167.74461364746097, 16.404235839843743)
-rotation = 1.570796251296997
+[node name="walls_7" type="StaticBody2D" parent="." unique_id=410429476]
+position = Vector2(167.74461, 16.404236)
+rotation = 1.5707963
 script = ExtResource("2_b2d")
 type = "top-wall"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "size": 10
-}
+})
 
-[node name="fixture0_7" type="CollisionPolygon2D" parent="walls_7"]
-polygon = PackedVector2Array(79.59576416015625, -40.25538253784179, 79.59577941894531, 7.744621276855469, 47.59576034545899, 71.74461364746094, -0.4042448699474334, 119.74461364746094, -0.40424609184265137, 135.74461364746094, 63.59575653076171, 103.74462127685547, 95.59575653076172, 71.74461364746094, 95.59576416015625, -40.25538253784179)
+[node name="fixture0_7" type="CollisionPolygon2D" parent="walls_7" unique_id=807587273]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(79.595764, -40.255383, 79.59578, 7.7446213, 47.59576, 71.74461, -0.40424487, 119.74461, -0.4042461, 135.74461, 63.595757, 103.74462, 95.59576, 71.74461, 95.595764, -40.255383)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="paddle-joint-holder" type="StaticBody2D" parent="."]
-position = Vector2(-0.02870888449251651, 337.1033935546875)
+[node name="paddle-joint-holder" type="StaticBody2D" parent="." unique_id=1295632808]
+position = Vector2(-0.028708884, 337.1034)
 script = ExtResource("2_b2d")
 type = "paddle-joint-holder"
 
-[node name="fixture1_32" type="CollisionPolygon2D" parent="paddle-joint-holder"]
+[node name="fixture1_32" type="CollisionPolygon2D" parent="paddle-joint-holder" unique_id=429659936]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="paddle-joint-temp" type="RigidBody2D" parent="."]
-position = Vector2(-0.02870888449251651, 273.1033935546875)
+[node name="paddle-joint-temp" type="RigidBody2D" parent="." unique_id=106037796]
+position = Vector2(-0.028708884, 273.1034)
 script = ExtResource("3_b2d")
 type = "paddle-joint-temp"
 
-[node name="fixture1_33" type="CollisionPolygon2D" parent="paddle-joint-temp"]
+[node name="fixture1_33" type="CollisionPolygon2D" parent="paddle-joint-temp" unique_id=986658474]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="brick_29" type="StaticBody2D" parent="."]
-position = Vector2(32, 56)
-script = ExtResource("2_b2d")
-type = "brick"
-user_data = {
-"behaviour": "Level0"
-}
-
-[node name="fixture1_34" type="CollisionPolygon2D" parent="brick_29"]
-polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
-script = ExtResource("4_b2d")
-restitution = 1
-
-[node name="brick_30" type="StaticBody2D" parent="."]
+[node name="brick_30" type="StaticBody2D" parent="." unique_id=735696265]
 position = Vector2(0, 56)
 script = ExtResource("2_b2d")
 type = "brick"
-user_data = {
+user_data = Dictionary[String, Variant]({
 "behaviour": "Level0",
 "powerup": "blue"
-}
+})
 
-[node name="fixture1_35" type="CollisionPolygon2D" parent="brick_30"]
+[node name="fixture1_35" type="CollisionPolygon2D" parent="brick_30" unique_id=2028093884]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 
-[node name="exit" type="StaticBody2D" parent="."]
+[node name="exit" type="StaticBody2D" parent="." unique_id=383275505]
 position = Vector2(0, -320)
 script = ExtResource("2_b2d")
 type = "exit"
 
-[node name="fixture1_36" type="CollisionPolygon2D" parent="exit"]
+[node name="fixture1_36" type="CollisionPolygon2D" parent="exit" unique_id=884232109]
+modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-32, 8, 32, 8, 32, -32, -32, -32)
 script = ExtResource("4_b2d")
-restitution = 1
+restitution = 1.0
 is_sensor = true
 
-[node name="paddle-joint" type="Node2D" parent="."]
-position = Vector2(-0.02870888449251651, 273.1033935546875)
+[node name="paddle-joint" type="Node2D" parent="." unique_id=516030453]
+position = Vector2(-0.028708884, 273.1034)
 script = ExtResource("5_b2d")
 body_a = NodePath("paddle-joint-holder")
 body_b = NodePath("paddle-joint-temp")
-local_axis_a = Vector2(1, 0)
 enable_limit = true
-lower_limit = -160
-upper_limit = 160
-enable_motor = false
+lower_limit = -160.0
+upper_limit = 160.0
+
+[node name="Brick" parent="." unique_id=94017921 instance=ExtResource("7_ler3u")]
+position = Vector2(79, 175)
+behaviour = "aaaaaa"
+user_data = Dictionary[String, Variant]({
+"behaviour": "aaaaaa"
+})

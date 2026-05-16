@@ -16,3 +16,8 @@ class_name BrickPrefab
 	set(v):
 		powerup = v
 		_put_in_user_data("powerup", v)
+
+@export var behaviour: String = "":
+	set(v):
+		behaviour = v
+		_put_in_user_data("behaviour", v)

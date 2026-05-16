@@ -153,12 +153,14 @@ function attachTilesheetsFromAllManifests(manifestPath: string, publicAssetsDir:
       if (!fs.existsSync(jsonPath)) continue;
       const metadata: SpritesheetData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
 
-      for (const [name, entry] of Object.entries(spriteMap)) {
+      for (const [, entry] of Object.entries(spriteMap)) {
         if (entry.type !== 'AtlasTexture') continue;
         if (entry.tilesheet) continue; // already attached
         const bareKey = entry.pixiFrame;
         if (!bareKey || !metadata.frames[bareKey]) continue;
-        const ts = detectTilesheet(name, metadata);
+        // Derive the frame prefix from pixiFrame (e.g. "rat-boat#0" → "rat-boat")
+        const framePrefix = bareKey.replace(/#\d+$/, '');
+        const ts = detectTilesheet(framePrefix, metadata);
         if (ts) {
           entry.tilesheet = ts;
           updated = true;
@@ -262,7 +264,11 @@ function writeGodotSprites(
     const tresContent = generateAtlasTextureTres(godotAtlasResPath, frame, margin);
     fs.writeFileSync(path.join(spritesDir, `${spriteName}.tres`), tresContent);
 
-    spriteMap[spriteName] = {
+    // Key by the full res:// path (without scheme) so that two atlases that
+    // share a sprite name (e.g. "rat-boat" in both boats/ and rats/) get
+    // independent entries and never overwrite each other.
+    const spriteKey = `${godotSpritesBase}/${spriteName}`.replace(/^res:\/\//, '');
+    spriteMap[spriteKey] = {
       godotPath: `${godotSpritesBase}/${spriteName}.tres`,
       type: 'AtlasTexture',
       pixiFrame: frameName,
@@ -282,7 +288,8 @@ function writeGodotSprites(
     const tresContent = generateSpriteFramesTres(godotAtlasResPath, frames);
     fs.writeFileSync(path.join(spritesDir, `${animName}.tres`), tresContent);
 
-    spriteMap[animName] = {
+    const animKey = `${godotSpritesBase}/${animName}`.replace(/^res:\/\//, '');
+    spriteMap[animKey] = {
       godotPath: `${godotSpritesBase}/${animName}.tres`,
       type: 'SpriteFrames',
       pixiAnimation: animName,
@@ -290,9 +297,9 @@ function writeGodotSprites(
     };
   }
 
-  for (const [name, entry] of Object.entries(spriteMap)) {
+  for (const [, entry] of Object.entries(spriteMap)) {
     if (entry.type === 'AtlasTexture' && !entry.tilesheet) {
-      const ts = detectTilesheet(name, metadata);
+      const ts = detectTilesheet(entry.pixiFrame?.replace(/#\d+$/, '') ?? '', metadata);
       if (ts) entry.tilesheet = ts;
     }
   }

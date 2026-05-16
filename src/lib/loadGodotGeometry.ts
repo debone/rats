@@ -69,10 +69,11 @@ export interface TileLayerDef {
   scale: V2;
   tileSize: V2;
   z?: number;
-  tiles: { x: number; y: number; pixiFrame: string }[];
+  tiles: { x: number; y: number; pixiFrame: string; transform?: number }[];
 }
 
 export interface MeshDef {
+  name: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -86,6 +87,7 @@ export interface MeshDef {
 }
 
 export interface BackgroundSpriteDef {
+  name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
   position: V2;
@@ -136,6 +138,7 @@ export interface Material {
 }
 
 export interface SpriteBinding {
+  name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
   offset: V2;
@@ -329,6 +332,25 @@ export function loadGodotGeometry(
   };
 }
 
+/**
+ * D4 tile transform table keyed by the 3-bit alternativeTile flag
+ * (bit2=transpose, bit1=flipV, bit0=flipH).
+ *
+ * Each entry: { rotation (rad), scaleX, scaleY, dx, dy }
+ * where dx/dy are added to the tile's pixel position AFTER multiplying by
+ * tileSize to keep the transformed sprite inside its cell.
+ */
+const TILE_TRANSFORMS: ReadonlyArray<{ r: number; sx: number; sy: number; dx: number; dy: number }> = [
+  { r: 0,           sx:  1, sy:  1, dx: 0, dy: 0 }, // 000 — identity
+  { r: 0,           sx: -1, sy:  1, dx: 1, dy: 0 }, // 001 — flip H
+  { r: 0,           sx:  1, sy: -1, dx: 0, dy: 1 }, // 010 — flip V
+  { r: 0,           sx: -1, sy: -1, dx: 1, dy: 1 }, // 011 — flip H+V (180°)
+  { r: -Math.PI/2,  sx: -1, sy:  1, dx: 0, dy: 0 }, // 100 — transpose
+  { r:  Math.PI/2,  sx:  1, sy:  1, dx: 1, dy: 0 }, // 101 — transpose+H  (90° CW)
+  { r: -Math.PI/2,  sx:  1, sy:  1, dx: 0, dy: 1 }, // 110 — transpose+V  (90° CCW)
+  { r:  Math.PI/2,  sx: -1, sy:  1, dx: 1, dy: 1 }, // 111 — transpose+H+V
+];
+
 function instantiateTileLayer(
   def: TileLayerDef,
   tx: number,
@@ -340,6 +362,8 @@ function instantiateTileLayer(
   if (def.tiles.length === 0) return null;
   const container = new Container();
   container.label = def.name;
+  const sw = def.tileSize.x;
+  const sh = def.tileSize.y;
   for (const tile of def.tiles) {
     let texture: Texture | undefined;
     try {
@@ -350,7 +374,10 @@ function instantiateTileLayer(
     }
     if (!texture) continue;
     const sprite = new Sprite({ texture });
-    sprite.position.set(tile.x * def.tileSize.x, tile.y * def.tileSize.y);
+    const t = TILE_TRANSFORMS[(tile.transform ?? 0) & 0x7];
+    sprite.scale.set(t.sx, t.sy);
+    sprite.rotation = t.r;
+    sprite.position.set((tile.x + t.dx) * sw, (tile.y + t.dy) * sh);
     container.addChild(sprite);
   }
   const localX = def.position.x;
@@ -398,6 +425,7 @@ function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sin
 
   const geometry = new MeshGeometry({ positions, uvs, indices });
   const mesh = new Mesh({ geometry, texture });
+  mesh.label = def.name;
   mesh.position.set(worldX, worldY);
   mesh.rotation = def.rotation + ta;
   mesh.scale.set(def.scale.x, def.scale.y);
@@ -426,6 +454,7 @@ function instantiateBackgroundSprite(
   }
   if (!texture) return null;
   const sprite = new Sprite({ texture });
+  sprite.label = def.name;
   sprite.anchor.set(def.anchor.x, def.anchor.y);
   sprite.scale.set(def.scale.x, def.scale.y);
   if (def.flipH) sprite.scale.x *= -1;
@@ -585,6 +614,7 @@ function instantiateSprite(binding: SpriteBinding): Sprite | null {
   }
   if (!texture) return null;
   const sprite = new Sprite({ texture });
+  sprite.label = binding.name;
   sprite.anchor.set(binding.anchor.x, binding.anchor.y);
   sprite.scale.set(binding.scale.x, binding.scale.y);
   if (binding.tint !== undefined) sprite.tint = binding.tint;

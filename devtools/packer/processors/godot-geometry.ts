@@ -39,6 +39,21 @@ const SCRIPT_TO_BODY_TYPE: Record<string, 'static' | 'kinematic' | 'dynamic'> = 
   'res://box2d/box2d_dynamic_body.gd': 'dynamic',
 };
 
+// Fallback: infer body type from the Godot built-in node type when a custom
+// script (e.g. brick_prefab.gd extending StaticBody2D) is used instead of one
+// of the Box2D marker scripts above.
+const GODOT_TYPE_TO_BODY_TYPE: Record<string, 'static' | 'kinematic' | 'dynamic'> = {
+  StaticBody2D: 'static',
+  AnimatableBody2D: 'static',
+  CharacterBody2D: 'kinematic',
+  RigidBody2D: 'dynamic',
+};
+
+function resolveBodyType(n: { scriptResPath?: string; type: string }): 'static' | 'kinematic' | 'dynamic' | undefined {
+  if (n.scriptResPath && n.scriptResPath in SCRIPT_TO_BODY_TYPE) return SCRIPT_TO_BODY_TYPE[n.scriptResPath];
+  return GODOT_TYPE_TO_BODY_TYPE[n.type];
+}
+
 const SCRIPT_TO_JOINT_TYPE: Record<string, 'revolute' | 'prismatic' | 'distance' | 'weld'> = {
   'res://box2d/box2d_revolute_joint.gd': 'revolute',
   'res://box2d/box2d_prismatic_joint.gd': 'prismatic',
@@ -91,6 +106,12 @@ export interface TilePlacement {
   y: number;
   /** Pre-resolved Pixi frame name (e.g. `"level-1_spritesheet_23#0"`). */
   pixiFrame: string;
+  /**
+   * D4 transform key (0–7) from Godot's alternativeTile bits 12–14.
+   * Bit layout: bit2=transpose, bit1=flipV, bit0=flipH.
+   * 0 means no transform (omitted from JSON when zero).
+   */
+  transform?: number;
 }
 
 /**
@@ -100,6 +121,7 @@ export interface TilePlacement {
  * polygon is convex; concave polygons will need earcut later).
  */
 export interface MeshDef {
+  name: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -118,6 +140,7 @@ export interface MeshDef {
  * pixels). Used for backdrop decor: signs, fish, single-instance props.
  */
 export interface BackgroundSpriteDef {
+  name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
   position: V2;
@@ -168,6 +191,7 @@ export interface Material {
 }
 
 export interface SpriteBinding {
+  name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
   offset: V2;
@@ -473,12 +497,16 @@ export function parseGeometryTscn(
   }
 
   // Resolve sub_resource shapes: id → shape data
+  // Also keep a full index of all sub_resource sections so inline TileSet/
+  // TileSetAtlasSource definitions can be resolved without reading a .tres file.
   const subShapes: Record<string, SubShape> = {};
+  const subResections: Record<string, TscnSection> = {};
   for (const s of sections) {
     if (s.type !== 'sub_resource') continue;
     const id = unquote(s.attrs.id ?? '');
     const type = unquote(s.attrs.type ?? '');
     if (!id) continue;
+    subResections[id] = s;
     if (type === 'RectangleShape2D') {
       const size = parseVector2(s.props.get('size') ?? '') ?? { x: 20, y: 20 };
       subShapes[id] = { kind: 'rect', size };
@@ -529,10 +557,10 @@ export function parseGeometryTscn(
     godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation };
   }
 
-  // Identify local body nodes
-  const bodyNodes: NodeInfo[] = nodes.filter(
-    (n) => n.scriptResPath !== undefined && n.scriptResPath in SCRIPT_TO_BODY_TYPE,
-  );
+  // Identify local body nodes (Box2D-scripted OR plain Godot physics body types
+  // whose script isn't one of the marker scripts, e.g. custom prefab scripts
+  // that extend StaticBody2D / RigidBody2D / CharacterBody2D).
+  const bodyNodes: NodeInfo[] = nodes.filter((n) => resolveBodyType(n) !== undefined);
 
   // Build local body defs
   const bodies: Box2DBodyDef[] = bodyNodes.map((bodyNode) =>
@@ -566,6 +594,19 @@ export function parseGeometryTscn(
       subGeo = parseGeometryTscn(subContent, spriteMap, options);
       options.subsceneCache?.set(subPath, subGeo);
     }
+
+    // Collect property overrides from the instance node. In Godot 4, properties
+    // set on the [node ... instance=...] section are overrides for the root node
+    // of the subscene. We merge them into every inlined body's userData so that
+    // per-placement customisation (e.g. `behaviour`, `doorName`) reaches the
+    // runtime. The instance's `type` export also wins over the subscene default.
+    const instUserData = collectUserData(instNode);
+    const instTypeExport = decodeGodotValue(instNode.props.get('type') ?? '""');
+    if (typeof instTypeExport === 'string' && instTypeExport !== '') {
+      instUserData['type'] = instTypeExport;
+    }
+    const hasOverrides = Object.keys(instUserData).length > 0;
+
     const instGT = globalTransforms.get(instNode.fullPath)!;
     const baseIndex = bodies.length;
     for (const subBody of subGeo.bodies) {
@@ -582,6 +623,8 @@ export function parseGeometryTscn(
         name: `${instNode.name}/${subBody.name}`,
         position: { x: worldPxX / PXM, y: -worldPxY / PXM },
         angle: subBody.angle - instGT.rotation,
+        // Instance-level overrides win over the subscene's own userData/type.
+        userData: hasOverrides ? { ...subBody.userData, ...instUserData } : subBody.userData,
       });
     }
     for (const subJoint of subGeo.joints) {
@@ -634,6 +677,7 @@ export function parseGeometryTscn(
     nodes,
     isUnderBody,
     extResources,
+    subResections,
     godotPathToPixi,
     globalTransforms,
     spriteMap,
@@ -655,7 +699,7 @@ function buildBodyDef(
   godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): Box2DBodyDef {
-  const type = SCRIPT_TO_BODY_TYPE[bodyNode.scriptResPath!];
+  const type = resolveBodyType(bodyNode)!;
   const gt = globalTransforms.get(bodyNode.fullPath)!;
 
   const position: V2 = { x: gt.origin.x / PXM, y: -gt.origin.y / PXM };
@@ -875,6 +919,7 @@ function buildSpriteBinding(
   const shouldRotate = decodeGodotValue(spriteNode.props.get('should_rotate') ?? 'true') !== false;
 
   const binding: SpriteBinding = {
+    name: spriteNode.name,
     offset: { x: local.origin.x + offset.x, y: local.origin.y + offset.y },
     rotation: local.rotation,
     scale: { x: local.scale.x, y: local.scale.y },
@@ -900,6 +945,7 @@ function buildBackground(
   nodes: NodeInfo[],
   isUnderBody: (path: string) => boolean,
   extResources: Record<string, string>,
+  subResections: Record<string, TscnSection>,
   godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
   globalTransforms: Map<string, GTransform>,
   spriteMap: GodotSpriteMap,
@@ -931,7 +977,7 @@ function buildBackground(
       const s = buildBackgroundSprite(n, extResources, godotPathToPixi, globalTransforms);
       if (s) sprites.push(s);
     } else if (n.type === 'TileMapLayer') {
-      const layer = buildTileLayer(n, extResources, globalTransforms, resolveTileSet);
+      const layer = buildTileLayer(n, extResources, subResections, globalTransforms, spriteMap, resolveTileSet);
       if (layer) tileLayers.push(layer);
     }
   }
@@ -1026,21 +1072,86 @@ function loadTileSet(
   return { sources };
 }
 
+/**
+ * Parse an inline TileSet defined as a sub_resource in the same .tscn file.
+ * Mirrors the logic in loadTileSet but works from already-parsed sections
+ * instead of reading an external .tres file.
+ */
+function parseTileSetFromSubResources(
+  tileSetId: string,
+  subResections: Record<string, TscnSection>,
+  extResources: Record<string, string>,
+  spriteMap: GodotSpriteMap,
+): TileSetInfo | null {
+  const tileSetSection = subResections[tileSetId];
+  if (!tileSetSection) return null;
+
+  const sources = new Map<number, TileSetSourceInfo>();
+  for (const [key, value] of tileSetSection.props) {
+    const m = key.match(/^sources\/(\d+)$/);
+    if (!m) continue;
+    const sourceId = parseInt(m[1], 10);
+    const subRefId = value.match(/SubResource\("([^"]+)"\)/)?.[1];
+    if (!subRefId) continue;
+    const sourceSection = subResections[subRefId];
+    if (!sourceSection || unquote(sourceSection.attrs.type ?? '') !== 'TileSetAtlasSource') continue;
+
+    const texRef = sourceSection.props.get('texture');
+    const texExtId = texRef?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+    if (!texExtId) continue;
+    const texPath = extResources[texExtId];
+    if (!texPath) continue;
+
+    const entry = Object.values(spriteMap).find((e) => e.godotPath === texPath);
+    if (!entry?.tilesheet) {
+      console.warn(
+        `[Godot] Inline TileSet source ${sourceId} → ${texPath} has no tilesheet metadata. ` +
+          `Make sure the source is a {ss=N} spritesheet.`,
+      );
+      continue;
+    }
+    sources.set(sourceId, {
+      textureGodotPath: texPath,
+      framePrefix: entry.tilesheet.framePrefix,
+      cols: entry.tilesheet.cols,
+      rows: entry.tilesheet.rows,
+      tileSize: entry.tilesheet.tileSize,
+    });
+  }
+  return { sources };
+}
+
 function buildTileLayer(
   layerNode: NodeInfo,
   extResources: Record<string, string>,
+  subResections: Record<string, TscnSection>,
   globalTransforms: Map<string, GTransform>,
+  spriteMap: GodotSpriteMap,
   resolveTileSet: (resPath: string) => TileSetInfo | null,
 ): TileLayerDef | null {
   const tileSetRef = layerNode.props.get('tile_set');
-  const tileSetExtId = tileSetRef?.match(/ExtResource\("([^"]+)"\)/)?.[1];
-  if (!tileSetExtId) {
+  if (!tileSetRef) {
     console.warn(`[Godot] TileMapLayer "${layerNode.name}" has no tile_set`);
     return null;
   }
-  const tileSetResPath = extResources[tileSetExtId];
-  if (!tileSetResPath) return null;
-  const tileSet = resolveTileSet(tileSetResPath);
+
+  let tileSet: TileSetInfo | null = null;
+
+  const subId = tileSetRef.match(/SubResource\("([^"]+)"\)/)?.[1];
+  if (subId) {
+    // Inline TileSet defined as a sub_resource in the same .tscn file.
+    tileSet = parseTileSetFromSubResources(subId, subResections, extResources, spriteMap);
+  } else {
+    const extId = tileSetRef.match(/ExtResource\("([^"]+)"\)/)?.[1];
+    if (!extId) {
+      console.warn(`[Godot] TileMapLayer "${layerNode.name}" has no tile_set`);
+      return null;
+    }
+    const resPath = extResources[extId];
+    if (!resPath) return null;
+    tileSet = resolveTileSet(resPath);
+  }
+
   if (!tileSet) return null;
 
   const rawBlob = layerNode.props.get('tile_map_data');
@@ -1060,7 +1171,11 @@ function buildTileLayer(
       continue;
     }
     const linearIdx = cell.atlasY * src.cols + cell.atlasX;
-    tiles.push({ x: cell.coordX, y: cell.coordY, pixiFrame: `${src.framePrefix}_${linearIdx}#0` });
+    // Extract D4 transform from alternativeTile bits 12-14: bit0=H, bit1=V, bit2=T
+    const transform = (cell.alternativeTile >> 12) & 0x7;
+    const placement: TilePlacement = { x: cell.coordX, y: cell.coordY, pixiFrame: `${src.framePrefix}_${linearIdx}#0` };
+    if (transform !== 0) placement.transform = transform;
+    tiles.push(placement);
   }
 
   return { ...emptyLayer(layerNode, globalTransforms, tileSet), tiles };
@@ -1135,6 +1250,7 @@ function buildMeshDef(
   const zIndex = parseInt(unquote(polyNode.props.get('z_index') ?? '0'), 10) || undefined;
 
   const out: MeshDef = {
+    name: polyNode.name,
     position: gt.origin,
     rotation: gt.rotation,
     scale: gt.scale,
@@ -1203,6 +1319,7 @@ function buildBackgroundSprite(
   const gt = globalTransforms.get(spriteNode.fullPath)!;
 
   const out: BackgroundSpriteDef = {
+    name: spriteNode.name,
     position: { x: gt.origin.x + offset.x, y: gt.origin.y + offset.y },
     rotation: gt.rotation,
     scale: gt.scale,

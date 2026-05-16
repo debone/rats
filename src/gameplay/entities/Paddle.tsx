@@ -3,13 +3,7 @@ import { sfx } from '@/core/audio/audio';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
-import {
-  useChildren,
-  useCollisionHandler,
-  useImmediateUpdate,
-  usePhysics,
-  useWorldId,
-} from '@/hooks/hooks';
+import { useChildren, useCollisionHandler, useImmediateUpdate, usePhysics, useWorldId } from '@/hooks/hooks';
 import { type Box2DGeometry, loadGodotGeometry } from '@/lib/loadGodotGeometry';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import {
@@ -75,9 +69,7 @@ export const Paddle = defineEntity(({ jointId }: PaddleProps) => {
   const bodyId = loaded.bodies[0];
   // The boat sprite (the one that tracks body rotation) is the entity's
   // public sprite — used by paddleCaptainBoost for tint adjustments.
-  const paddleSprite = loaded.sprites.find(
-    (s) => (s as { shouldRotate?: boolean }).shouldRotate !== false,
-  ) as Sprite;
+  const paddleSprite = loaded.sprites.find((s) => (s as { shouldRotate?: boolean }).shouldRotate !== false) as Sprite;
 
   const prismaticJointDef2 = b2DefaultPrismaticJointDef();
   prismaticJointDef2.bodyIdA = anchorBodyId;

@@ -18,17 +18,27 @@ class_name Box2DRoot
 	set(v):
 		show_collision = v
 		if is_node_ready() or Engine.is_editor_hint():
-			_apply_collision_visibility()
+			_apply_visibility()
+@export
+var alpha = 100.0
+
+@export_range(0.0, 100.0, 0.1) var art_alpha: float = 100.0:
+	set(v):
+		alpha = remap(v, 0.0, 100.0, 0.0, 1.0)
+		art_alpha = v
+		if is_node_ready() or Engine.is_editor_hint():
+			_apply_visibility()
 
 func _ready() -> void:
-	_apply_collision_visibility()
+	_apply_visibility()
 
-func _apply_collision_visibility() -> void:
-	_walk(self, show_collision)
+func _apply_visibility() -> void:
+	_walk(self, show_collision, alpha)
 
-func _walk(node: Node, vis: bool) -> void:
+func _walk(node: Node, vis: bool, alpha: float) -> void:
 	if node is CollisionPolygon2D or node is CollisionShape2D:
 		node.visible = vis
+		node.modulate.a = alpha
 		return
 	for child in node.get_children():
-		_walk(child, vis)
+		_walk(child, vis, alpha)

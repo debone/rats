@@ -30,7 +30,7 @@ export const Level2 = defineEntity(() => {
 
     CrewAbilities();
 
-    const physics = BreakoutPhysics({ levelId: 'level-2', geometryAsset: 'geometry/level-2-split.json' });
+    const physics = BreakoutPhysics({ levelId: 'level-2', geometryAsset: 'geometry/level-2.json' });
 
     const paddleBall = PaddleAndBall({ levelId: 'level-2', paddleJoint: physics.paddleJoint });
 

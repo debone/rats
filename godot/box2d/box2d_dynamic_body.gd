@@ -14,7 +14,6 @@ class_name Box2DDynamicBody
 @export var allow_sleep: bool = true
 @export var linear_damping: float = 0.0
 @export var angular_damping: float = 0.0
-@export var gravity_scale: float = 1.0
 
 func _put_in_user_data(key: String, value: Variant) -> void:
 	if value == null or (value is String and value == ""):

@@ -22,6 +22,7 @@ import { CatTail } from './cats/CatTail';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
@@ -49,8 +50,18 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
   const ctx = getGameContext();
 
   const geo = Assets.get<Box2DGeometry>(geometryAsset);
-  const { bodies: loadedBodies, joints: loadedJoints } = loadGodotGeometry(geo, ctx.worldId!, {
+  const {
+    bodies: loadedBodies,
+    joints: loadedJoints,
+    background,
+  } = loadGodotGeometry(geo, ctx.worldId!, {
     container: ctx.container ?? undefined,
+  });
+
+  // TODO: for whatever reason I do this for physics sprites, but never moved the camera.
+  background.tileLayers.forEach((layer) => {
+    layer.x += MIN_WIDTH / 2;
+    layer.y += MIN_HEIGHT / 2;
   });
 
   const particles = withChildren(() => ({
@@ -89,7 +100,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
 
         attach(waterBottom, (b) => {
           useSubscribe(b.events, 'cheeseCollided', ({ object }) => {
-            object.destroy();
+            object.lose();
           });
           useSubscribe(b.events, 'ballCollided', ({ object }) => {
             object.destroy();
@@ -121,6 +132,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
         if (!behavior) {
           attach(brick, (b) => {
             useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
+              console.log('broken', b);
               if (powerUp === 'blue') {
                 BlueCheese({ pos: { x, y } });
               } else if (powerUp === 'green') {
