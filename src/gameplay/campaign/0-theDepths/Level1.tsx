@@ -1,4 +1,4 @@
-import { ASSETS, TILED_MAPS } from '@/assets';
+import { TILED_MAPS } from '@/assets';
 import { attach, defineEntity, getChildrenOf } from '@/core/entity/scope';
 import { setLevelState } from '@/data/game-state';
 import { Background } from '@/gameplay/entities/Background';
@@ -32,7 +32,7 @@ export const Level1 = defineEntity(() => {
 
     CrewAbilities();
 
-    const physics = BreakoutPhysics({ levelId: 'level-1', rubeAsset: ASSETS.level_1_rube });
+    const physics = BreakoutPhysics({ levelId: 'level-1', geometryAsset: 'geometry/level-1.json' });
 
     const paddleBall = PaddleAndBall({ levelId: 'level-1', paddleJoint: physics.paddleJoint });
 
@@ -46,6 +46,7 @@ export const Level1 = defineEntity(() => {
     for (const brick of bricks) {
       attach(brick, (b) => {
         useSubscribe(b.events, 'broken', () => {
+          remaining--;
           if (remaining <= 48 && door?.closed) {
             door?.open();
           }

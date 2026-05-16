@@ -1,24 +1,17 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
-import {
-  useBodySprite,
-  useChildren,
-  useCollisionHandler,
-  useImmediateUpdate,
-  usePhysics,
-  useWorldId,
-} from '@/hooks/hooks';
+import { useChildren, useCollisionHandler, useImmediateUpdate, usePhysics, useWorldId } from '@/hooks/hooks';
+import { type Box2DGeometry, loadGodotGeometry } from '@/lib/loadGodotGeometry';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import {
   b2Body_GetPosition,
   b2Body_GetTransform,
   b2Body_SetLinearVelocity,
   b2Body_SetTransform,
-  b2Body_SetUserData,
   b2BodyId,
-  b2BodyType,
   b2CreatePrismaticJoint,
   b2DefaultPrismaticJointDef,
   b2DestroyBody,
@@ -30,10 +23,7 @@ import {
   b2JointId,
   b2PrismaticJoint_GetLowerLimit,
   b2PrismaticJoint_GetUpperLimit,
-  b2Shape_GetFilter,
-  b2Shape_SetFilter,
   b2Vec2,
-  CreatePolygon,
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
@@ -62,33 +52,24 @@ export const Paddle = defineEntity(({ jointId }: PaddleProps) => {
     plusCheese: PlusCheeseParticles(),
   }));
 
+  const ctx = getGameContext();
   const anchorBodyId = b2Joint_GetBodyA(jointId);
   const tempBodyId = b2Joint_GetBodyB(jointId);
   const pos = b2Body_GetPosition(tempBodyId);
 
-  const paddleVertices = [
-    new b2Vec2(2, -0.25),
-    new b2Vec2(1.8, 0.2),
-    new b2Vec2(0.5, 0.5),
-    new b2Vec2(-0.5, 0.5),
-    new b2Vec2(-1.8, 0.2),
-    new b2Vec2(-2, -0.25),
-  ];
-
-  const { bodyId, shapeId } = CreatePolygon({
-    position: new b2Vec2(pos.x, pos.y),
-    type: b2BodyType.b2_dynamicBody,
-    vertices: paddleVertices,
-    density: 10,
-    friction: 0.5,
-    worldId,
+  // Spawn the paddle body + 3 authored sprites from godot/geometry/paddle.tscn,
+  // positioned at the temp body's pose. The polygon shape, density/friction,
+  // category bits, sprite offsets, and `shouldRotate` flags on the shadow
+  // sprites all come from the .tscn — no manual vertices or sprite setup here.
+  const geo = Assets.get<Box2DGeometry>('geometry/paddle.json');
+  const loaded = loadGodotGeometry(geo, worldId, {
+    transform: { x: pos.x, y: pos.y },
+    container: ctx.container ?? undefined,
   });
-
-  const paddleFilter = b2Shape_GetFilter(shapeId);
-  paddleFilter.categoryBits = 0x0007;
-  b2Shape_SetFilter(shapeId, paddleFilter);
-
-  b2Body_SetUserData(bodyId, { type: 'paddle' });
+  const bodyId = loaded.bodies[0];
+  // The boat sprite (the one that tracks body rotation) is the entity's
+  // public sprite — used by paddleCaptainBoost for tint adjustments.
+  const paddleSprite = loaded.sprites.find((s) => (s as { shouldRotate?: boolean }).shouldRotate !== false) as Sprite;
 
   const prismaticJointDef2 = b2DefaultPrismaticJointDef();
   prismaticJointDef2.bodyIdA = anchorBodyId;
@@ -107,22 +88,6 @@ export const Paddle = defineEntity(({ jointId }: PaddleProps) => {
   onCleanup(() => {
     physics.queueDestruction(bodyId);
   });
-
-  const paddleShadowBack = new Sprite(Assets.get(ASSETS.entities_rats).textures['shadow-back#0']);
-  paddleShadowBack.anchor.set(0.5, 0);
-  // @ts-ignore
-  paddleShadowBack.shouldRotate = false;
-  useBodySprite(paddleShadowBack, bodyId, { offsetY: 4 });
-
-  const paddleSprite = new Sprite(Assets.get(ASSETS.entities_rats).textures['rat-boat#0']);
-  paddleSprite.anchor.set(0.5, 0);
-  useBodySprite(paddleSprite, bodyId, { offsetY: -19 });
-
-  const paddleShadow = new Sprite(Assets.get(ASSETS.entities_rats).textures['shadow#0']);
-  paddleShadow.anchor.set(0.5, 0);
-  // @ts-ignore
-  paddleShadow.shouldRotate = false;
-  useBodySprite(paddleShadow, bodyId, { offsetY: 5 });
 
   let boatForce = 0;
   let boatVelocityAdjustment = 1;

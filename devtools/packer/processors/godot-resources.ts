@@ -11,6 +11,21 @@ export interface GodotSpriteEntry {
   pixiFrame?: string; // single-frame sprites
   pixiAnimation?: string; // animated sprites
   frames?: string[]; // pixi frame names in order
+  /**
+   * Present when this entry is a grid-layout spritesheet ({ss=N} source).
+   * The AtlasTexture covers the full grid; the same image has per-tile
+   * frames named `${framePrefix}_${index}#0` (row-major). Used by the
+   * Box2D geometry exporter to resolve Godot TileMapLayer cells to Pixi
+   * tile frames.
+   */
+  tilesheet?: TilesheetInfo;
+}
+
+export interface TilesheetInfo {
+  framePrefix: string; // e.g. "level-1_spritesheet"
+  cols: number;
+  rows: number;
+  tileSize: number; // square tiles (Godot's TileSet expects Vector2i but we keep one number for the {ss=N} convention)
 }
 
 export type GodotSpriteMap = Record<string, GodotSpriteEntry>;
@@ -112,6 +127,75 @@ export function generateGodotResourcesFromManifest(
       generateGodotResources(metadata, atlasBuffer, baseName);
     }
   }
+
+  // Tilesheet metadata pass: walk every manifest (including those the packer
+  // pipe already processed and we skipped above) and attach tilesheet info to
+  // matching sprite-map entries. The .tres files are already there; we're
+  // just enriching the index so the Box2D geometry exporter can translate
+  // Godot TileMapLayer cells into Pixi tile-frame names.
+  attachTilesheetsFromAllManifests(manifestPath, publicAssetsDir);
+}
+
+function attachTilesheetsFromAllManifests(manifestPath: string, publicAssetsDir: string): void {
+  const spriteMapPath = path.join(GODOT_DIR, 'sprite-map.json');
+  if (!fs.existsSync(spriteMapPath)) return;
+  const spriteMap: GodotSpriteMap = JSON.parse(fs.readFileSync(spriteMapPath, 'utf-8'));
+  if (!fs.existsSync(manifestPath)) return;
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+
+  let updated = false;
+  for (const bundle of manifest.bundles ?? []) {
+    for (const asset of bundle.assets ?? []) {
+      const srcs: string[] = Array.isArray(asset.src) ? asset.src : [asset.src];
+      const jsonSrc = srcs.find((s: string) => s.endsWith('.png.json') && !s.includes('@'));
+      if (!jsonSrc) continue;
+      const jsonPath = path.join(publicAssetsDir, jsonSrc);
+      if (!fs.existsSync(jsonPath)) continue;
+      const metadata: SpritesheetData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+
+      for (const [, entry] of Object.entries(spriteMap)) {
+        if (entry.type !== 'AtlasTexture') continue;
+        if (entry.tilesheet) continue; // already attached
+        const bareKey = entry.pixiFrame;
+        if (!bareKey || !metadata.frames[bareKey]) continue;
+        // Derive the frame prefix from pixiFrame (e.g. "rat-boat#0" → "rat-boat")
+        const framePrefix = bareKey.replace(/#\d+$/, '');
+        const ts = detectTilesheet(framePrefix, metadata);
+        if (ts) {
+          entry.tilesheet = ts;
+          updated = true;
+        }
+      }
+    }
+  }
+
+  if (updated) {
+    fs.writeFileSync(spriteMapPath, JSON.stringify(spriteMap, null, 2));
+    console.log('[Godot] Tilesheet metadata attached to sprite-map.json');
+  }
+}
+
+function detectTilesheet(name: string, metadata: SpritesheetData): TilesheetInfo | null {
+  const bareKey = `${name}#0`;
+  if (!metadata.frames[bareKey]) return null;
+  const tileRe = new RegExp(`^${escapeRegExp(name)}_(\\d+)#0$`);
+  let tileCount = 0;
+  let firstTileKey: string | undefined;
+  for (const frameKey of Object.keys(metadata.frames)) {
+    if (tileRe.test(frameKey)) {
+      tileCount++;
+      if (!firstTileKey) firstTileKey = frameKey;
+    }
+  }
+  if (tileCount < 2 || !firstTileKey) return null;
+  const bare = metadata.frames[bareKey]?.sourceSize;
+  const tile = metadata.frames[firstTileKey]?.sourceSize;
+  if (!bare || !tile) return null;
+  if (tile.w !== tile.h) return null;
+  const cols = Math.round(bare.w / tile.w);
+  const rows = Math.round(bare.h / tile.h);
+  if (cols * rows < tileCount) return null;
+  return { framePrefix: name, cols, rows, tileSize: tile.w };
 }
 
 /**
@@ -180,7 +264,11 @@ function writeGodotSprites(
     const tresContent = generateAtlasTextureTres(godotAtlasResPath, frame, margin);
     fs.writeFileSync(path.join(spritesDir, `${spriteName}.tres`), tresContent);
 
-    spriteMap[spriteName] = {
+    // Key by the full res:// path (without scheme) so that two atlases that
+    // share a sprite name (e.g. "rat-boat" in both boats/ and rats/) get
+    // independent entries and never overwrite each other.
+    const spriteKey = `${godotSpritesBase}/${spriteName}`.replace(/^res:\/\//, '');
+    spriteMap[spriteKey] = {
       godotPath: `${godotSpritesBase}/${spriteName}.tres`,
       type: 'AtlasTexture',
       pixiFrame: frameName,
@@ -200,7 +288,8 @@ function writeGodotSprites(
     const tresContent = generateSpriteFramesTres(godotAtlasResPath, frames);
     fs.writeFileSync(path.join(spritesDir, `${animName}.tres`), tresContent);
 
-    spriteMap[animName] = {
+    const animKey = `${godotSpritesBase}/${animName}`.replace(/^res:\/\//, '');
+    spriteMap[animKey] = {
       godotPath: `${godotSpritesBase}/${animName}.tres`,
       type: 'SpriteFrames',
       pixiAnimation: animName,
@@ -208,7 +297,17 @@ function writeGodotSprites(
     };
   }
 
+  for (const [, entry] of Object.entries(spriteMap)) {
+    if (entry.type === 'AtlasTexture' && !entry.tilesheet) {
+      const ts = detectTilesheet(entry.pixiFrame?.replace(/#\d+$/, '') ?? '', metadata);
+      if (ts) entry.tilesheet = ts;
+    }
+  }
   return spriteMap;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function mergeIntoSpriteMap(additions: GodotSpriteMap): void {

@@ -1,11 +1,12 @@
 import { ASSETS } from '@/assets';
+import type { GeometryBodyUserData } from '@/assets/geometry';
 import { assert } from '@/core/common/assert';
 import { attach, defineEntity } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
-import { loadSceneIntoWorld } from '@/lib/loadrube';
+import { type Box2DGeometry, loadGodotGeometry } from '@/lib/loadGodotGeometry';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
@@ -21,15 +22,16 @@ import { CatTail } from './cats/CatTail';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
-export interface BodyUserData {
-  type: string;
-  powerup?: BrickPowerUps;
-  doorName?: string;
-  behaviour?: string;
-}
+/**
+ * Body userData shape, sourced from the geometry typegen so adding a new
+ * `userData.type` in Godot widens this union — exhaustive switches in this
+ * file will then refuse to type-check until the new type is handled.
+ */
+export type BodyUserData = GeometryBodyUserData;
 
 export interface BodyEntry {
   bodyId: b2BodyId;
@@ -39,15 +41,28 @@ export interface BodyEntry {
 
 export interface BreakoutPhysicsProps {
   levelId: string;
-  rubeAsset: string;
+  /** Pixi alias for a Godot-authored geometry JSON, e.g. 'geometry/level-1.json'. */
+  geometryAsset: string;
 }
 
-export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhysicsProps) => {
+export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: BreakoutPhysicsProps) => {
   const { withChildren } = useChildren();
   const ctx = getGameContext();
 
-  const rube = Assets.get(rubeAsset);
-  const { loadedBodies, loadedJoints } = loadSceneIntoWorld(rube, ctx.worldId!);
+  const geo = Assets.get<Box2DGeometry>(geometryAsset);
+  const {
+    bodies: loadedBodies,
+    joints: loadedJoints,
+    background,
+  } = loadGodotGeometry(geo, ctx.worldId!, {
+    container: ctx.container ?? undefined,
+  });
+
+  // TODO: for whatever reason I do this for physics sprites, but never moved the camera.
+  background.tileLayers.forEach((layer) => {
+    layer.x += MIN_WIDTH / 2;
+    layer.y += MIN_HEIGHT / 2;
+  });
 
   const particles = withChildren(() => ({
     brickDebris: BrickDebrisParticles(),
@@ -56,7 +71,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
   }));
 
   const paddleJoint = loadedJoints.find((joint) => (joint as any).name === 'paddle-joint');
-  assert(paddleJoint, `${levelId}: paddle-joint not found in RUBE`);
+  assert(paddleJoint, `${levelId}: paddle-joint not found in geometry`);
 
   const nonStandardBodies: BodyEntry[] = [];
 
@@ -85,7 +100,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
 
         attach(waterBottom, (b) => {
           useSubscribe(b.events, 'cheeseCollided', ({ object }) => {
-            object.destroy();
+            object.lose();
           });
           useSubscribe(b.events, 'ballCollided', ({ object }) => {
             object.destroy();
@@ -117,6 +132,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
         if (!behavior) {
           attach(brick, (b) => {
             useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
+              console.log('broken', b);
               if (powerUp === 'blue') {
                 BlueCheese({ pos: { x, y } });
               } else if (powerUp === 'green') {
@@ -138,7 +154,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
           });
         }
       } else if (tag === 'strong-brick') {
-        const behavior = userData?.behaviour as string | undefined;
+        const behavior = (userData as { behaviour?: string } | null)?.behaviour;
 
         const strongBrick = StrongBrick({
           bodyId,
@@ -172,7 +188,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, rubeAsset }: BreakoutPhy
   });
 
   return {
-    /** Joint from the RUBE scene — pass to `BreakoutPaddle` to create the paddle. */
+    /** Paddle prismatic joint — pass to `BreakoutPaddle` to create the paddle. */
     paddleJoint: paddleJoint as b2JointId,
     bodies: nonStandardBodies,
     particles,

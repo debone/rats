@@ -23,8 +23,4 @@ All files that are not code should be at `/assets`. They will be copied to the p
 
 ### Levels
 
-Levels geometry so far are done in [R.U.B.E.](https://www.iforce2d.net/rube/) (.rube files) and backgrounds in [Tiled](https://www.mapeditor.org/) (.tmx files).
-
-I added a copy of R.U.B.E. in the repo. It works quite similar to Blender. Overall to understand it you probably need to understand [box2d](https://www.iforce2d.net/b2dtut/) concepts.
-
-For Tiled, right now is only about backgrounds art.
+Since May 2026, all level geometry and art is organized inside Godot
