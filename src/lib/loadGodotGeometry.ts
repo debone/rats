@@ -341,14 +341,14 @@ export function loadGodotGeometry(
  * tileSize to keep the transformed sprite inside its cell.
  */
 const TILE_TRANSFORMS: ReadonlyArray<{ r: number; sx: number; sy: number; dx: number; dy: number }> = [
-  { r: 0,           sx:  1, sy:  1, dx: 0, dy: 0 }, // 000 — identity
-  { r: 0,           sx: -1, sy:  1, dx: 1, dy: 0 }, // 001 — flip H
-  { r: 0,           sx:  1, sy: -1, dx: 0, dy: 1 }, // 010 — flip V
-  { r: 0,           sx: -1, sy: -1, dx: 1, dy: 1 }, // 011 — flip H+V (180°)
-  { r: -Math.PI/2,  sx: -1, sy:  1, dx: 0, dy: 0 }, // 100 — transpose
-  { r:  Math.PI/2,  sx:  1, sy:  1, dx: 1, dy: 0 }, // 101 — transpose+H  (90° CW)
-  { r: -Math.PI/2,  sx:  1, sy:  1, dx: 0, dy: 1 }, // 110 — transpose+V  (90° CCW)
-  { r:  Math.PI/2,  sx: -1, sy:  1, dx: 1, dy: 1 }, // 111 — transpose+H+V
+  { r: 0, sx: 1, sy: 1, dx: 0, dy: 0 }, // 000 — identity
+  { r: 0, sx: -1, sy: 1, dx: 1, dy: 0 }, // 001 — flip H
+  { r: 0, sx: 1, sy: -1, dx: 0, dy: 1 }, // 010 — flip V
+  { r: 0, sx: -1, sy: -1, dx: 1, dy: 1 }, // 011 — flip H+V (180°)
+  { r: -Math.PI / 2, sx: -1, sy: 1, dx: 0, dy: 0 }, // 100 — transpose
+  { r: Math.PI / 2, sx: 1, sy: 1, dx: 1, dy: 0 }, // 101 — transpose+H  (90° CW)
+  { r: -Math.PI / 2, sx: 1, sy: 1, dx: 0, dy: 1 }, // 110 — transpose+V  (90° CCW)
+  { r: Math.PI / 2, sx: -1, sy: 1, dx: 1, dy: 1 }, // 111 — transpose+H+V
 ];
 
 function instantiateTileLayer(

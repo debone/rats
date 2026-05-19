@@ -16,15 +16,29 @@ interface AssetsManifest {
   bundles: ManifestBundle[];
 }
 
+/** Recursively collect all .json files under a directory, returning relative paths. */
+function walkJsonFiles(dir: string, base: string = dir): string[] {
+  const results: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...walkJsonFiles(full, base));
+    } else if (entry.name.endsWith('.json')) {
+      results.push(path.relative(base, full).replace(/\\/g, '/'));
+    }
+  }
+  return results;
+}
+
 /**
  * Append geometry JSON files to the default bundle so they get stable aliases
- * (e.g. geometry/level-1.json) and load with the default bundle.
+ * (e.g. geometry/0-theDepths/level-0.json) and load with the default bundle.
  */
 export function injectGeometryAssetsIntoManifest(manifestPath: string, geometryDir: string): void {
   if (!fs.existsSync(manifestPath) || !fs.existsSync(geometryDir)) return;
 
   const manifest: AssetsManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-  const files = fs.readdirSync(geometryDir).filter((f) => f.endsWith('.json'));
+  const files = walkJsonFiles(geometryDir);
   if (files.length === 0) return;
 
   const defaultBundle = manifest.bundles?.find((b) => b.name === 'default');
@@ -36,10 +50,10 @@ export function injectGeometryAssetsIntoManifest(manifestPath: string, geometryD
   }
 
   let added = false;
-  for (const file of files) {
-    const alias = `geometry/${file}`;
+  for (const relFile of files) {
+    const alias = `geometry/${relFile}`;
     if (existingAliases.has(alias)) continue;
-    const srcRel = path.posix.join('geometry', file);
+    const srcRel = path.posix.join('geometry', relFile);
     defaultBundle.assets.push({
       alias: [alias],
       src: [srcRel],

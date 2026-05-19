@@ -261,6 +261,20 @@ export interface WeldJointDef extends CommonJointFields {
 // Public entry point
 // ---------------------------------------------------------------------------
 
+/** Recursively collect all .tscn files under a directory. */
+function walkTscnFiles(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...walkTscnFiles(full));
+    } else if (entry.name.endsWith('.tscn')) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
 export function generateGeometryJsonFiles(
   geometryDir: string,
   outputDir: string,
@@ -275,18 +289,22 @@ export function generateGeometryJsonFiles(
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const tscnFiles = fs.readdirSync(geometryDir).filter((f) => f.endsWith('.tscn'));
+  const tscnFiles = walkTscnFiles(geometryDir);
   const parsed = new Map<string, Box2DGeometry>();
   const godotRoot = path.resolve(path.dirname(path.resolve(geometryDir)));
   const subsceneCache = new Map<string, Box2DGeometry>();
 
-  for (const file of tscnFiles) {
-    const name = file.replace('.tscn', '');
-    const filePath = path.join(geometryDir, file);
+  for (const filePath of tscnFiles) {
+    // Use the path relative to geometryDir (forward-slash, no extension) as the key,
+    // e.g. "0-theDepths/level-0" so GeometryBodyMap keys are stable and unique.
+    const relPath = path.relative(geometryDir, filePath).replace(/\\/g, '/');
+    const name = relPath.replace(/\.tscn$/, '');
     const content = fs.readFileSync(filePath, 'utf-8');
     const geometry = parseGeometryTscn(content, spriteMap, { godotRoot, subsceneCache });
     lintGeometry(name, geometry);
-    fs.writeFileSync(path.join(outputDir, `${name}.json`), JSON.stringify(geometry, null, 2));
+    const outFile = path.join(outputDir, name + '.json');
+    fs.mkdirSync(path.dirname(outFile), { recursive: true });
+    fs.writeFileSync(outFile, JSON.stringify(geometry, null, 2));
     parsed.set(name, geometry);
     console.log(
       `[Godot] Geometry → ${name}.json (${geometry.bodies.length} body, ${geometry.joints.length} joint)`,

@@ -110,10 +110,10 @@ export function assetpackPlugin(): Plugin {
           });
         }
 
-        // Watch godot/geometry/ for .tscn changes
+        // Watch godot/geometry/ for .tscn changes (recursive = any subdirectory)
         const geometryDir = './godot/geometry';
         if (fs.existsSync(geometryDir)) {
-          geometryWatcher = fs.watch(geometryDir, (_, filename) => {
+          geometryWatcher = fs.watch(geometryDir, { recursive: true }, (_, filename) => {
             if (filename?.endsWith('.tscn')) {
               console.log(`[Godot] ${filename} changed, regenerating geometry...`);
               generateGeometryJsonFiles(geometryDir, './public/assets/geometry', './godot/sprite-map.json', './src/assets/geometry.ts');
