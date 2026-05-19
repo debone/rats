@@ -1,6 +1,6 @@
 import { TILED_MAPS } from '@/assets';
 import { defineEntity } from '@/core/entity/scope';
-import { onboardCrewMember, setLevelState } from '@/data/game-state';
+import { offboardCrewMember, onboardCrewMember, setLevelState } from '@/data/game-state';
 import { Background } from '@/gameplay/entities/Background';
 import { BreakoutPhysics } from '@/gameplay/entities/BreakoutPhysics';
 import { CrewAbilities } from '@/gameplay/entities/CrewAbilities';
@@ -21,8 +21,12 @@ export const Level4 = defineEntity(() => {
     Background({ tiledMap: TILED_MAPS.backgrounds_level_4, includeBroadBg: false });
 
     setTimeout(() => {
-      onboardCrewMember('apprentice');
+      onboardCrewMember('littlemi');
     }, 500);
+
+    setTimeout(() => {
+      offboardCrewMember('littlemi');
+    }, 2000);
 
     LivesBallRules({
       onLose,

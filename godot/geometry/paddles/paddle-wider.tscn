@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://dyhuyk7ijdsa3"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_x4nqv"]
+[ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="2_14kf0"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="3_hxj75"]
+[ext_resource type="Texture2D" uid="uid://decglqaa0nv7v" path="res://sprites/rats/shadow-back.tres" id="4_wxuy5"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="5_c185r"]
+[ext_resource type="Texture2D" uid="uid://c3lsfoybvtmcw" path="res://sprites/boats/rat-big-boat.tres" id="5_perrs"]
+[ext_resource type="Texture2D" uid="uid://cafon4lv2viij" path="res://sprites/rats/shadow.tres" id="7_wj2k0"]
+
+[node name="Geometry" type="Node2D" unique_id=522817147]
+script = ExtResource("1_x4nqv")
+gravity = Vector2(0, 0)
+
+[node name="paddle" type="RigidBody2D" parent="." unique_id=984873434]
+script = ExtResource("2_14kf0")
+type = "paddle"
+
+[node name="shadow-back" type="Sprite2D" parent="paddle" unique_id=832270413]
+position = Vector2(0, 11.5)
+texture = ExtResource("4_wxuy5")
+script = ExtResource("5_c185r")
+should_rotate = false
+
+[node name="rat-boat" type="Sprite2D" parent="paddle" unique_id=1790307033]
+position = Vector2(0, -6)
+texture = ExtResource("5_perrs")
+script = ExtResource("5_c185r")
+
+[node name="shadow" type="Sprite2D" parent="paddle" unique_id=1015339505]
+position = Vector2(0, 9.5)
+texture = ExtResource("7_wj2k0")
+script = ExtResource("5_c185r")
+should_rotate = false
+
+[node name="shape" type="CollisionPolygon2D" parent="paddle" unique_id=148645987]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(43, 4, 41, -3, 21, -7, -18, -7, -42, -3, -43, 4)
+script = ExtResource("3_hxj75")
+density = 10.0
+friction = 0.5
+category_bits = 7

@@ -252,6 +252,14 @@ export function onboardCrewMember(crewMember: CrewMemberDefKey, place: 'first' |
 
 export function offboardCrewMember(crewMember: CrewMemberDefKey): void {
   CREW_DEFS[crewMember].passiveAbility.unmount(getRunState());
+
+  if (getRunState().firstMember.get()?.defKey === crewMember) {
+    getRunState().firstMember.set(undefined);
+  } else if (getRunState().secondMember.get()?.defKey === crewMember) {
+    getRunState().secondMember.set(undefined);
+  } else {
+    throw new Error(`Crew member ${crewMember} not found`);
+  }
 }
 
 export function activateCrewAbility(index: number): void {

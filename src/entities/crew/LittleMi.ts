@@ -28,11 +28,9 @@ export const LittleMiCrewMember: CrewMemberDef = {
   passiveAbility: {
     name: 'Longer boat',
     mount: (runState) => {
-      console.log('Little Mi ability effect');
       runState.crewBoons.littlemi_longerBoat.set(true);
     },
     unmount: (runState) => {
-      console.log('Little Mi ability effect');
       runState.crewBoons.littlemi_longerBoat.set(false);
     },
   },
