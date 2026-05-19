@@ -75,12 +75,14 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
     }
   };
 
-  getRunState().crewBoons.littlemi_longerBoat.subscribe((floats) => {
+  const longerBoatSignal = getRunState().crewBoons.littlemi_longerBoat;
+
+  longerBoatSignal.subscribe((floats) => {
     setTimeout(() => swapPaddle(floats), 200);
-  });
+  }, false);
 
   withChildren(() => {
-    paddle = Paddle({ jointConfig, spawnPos: initialSpawnPos });
+    paddle = Paddle({ jointConfig, spawnPos: initialSpawnPos, wider: longerBoatSignal.get() });
   });
 
   // --- Ball management ---
