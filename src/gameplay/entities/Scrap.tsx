@@ -1,10 +1,13 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import { GameEvent } from '@/data/events';
 import { changeScraps } from '@/data/game-state';
-import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
+import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_ApplyLinearImpulseToCenter,
+  b2Body_GetLinearVelocity,
+  b2Body_GetPosition,
   b2Body_SetUserData,
   b2BodyType,
   b2Normalize,
@@ -15,6 +18,7 @@ import {
   type b2BodyId,
 } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
+import { YellowCheese } from './Cheese';
 
 export interface ScrapEntity extends EntityBase {
   bodyId: b2BodyId;
@@ -75,6 +79,13 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
 
   const scrap = entity<ScrapEntity>({
     bodyId,
+  });
+
+  useGameEvent(GameEvent.CREW_RUBBLE_BECOMES_CHEESE, () => {
+    const scrapPosition = b2Body_GetPosition(scrap.bodyId);
+    const scrapVelocity = b2Body_GetLinearVelocity(scrap.bodyId);
+    YellowCheese({ pos: scrapPosition.clone(), vel: scrapVelocity.clone() });
+    scrap.destroy();
   });
 
   return scrap;

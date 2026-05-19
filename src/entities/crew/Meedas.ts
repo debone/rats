@@ -1,3 +1,4 @@
+import { GameEvent } from '@/data/events';
 import type { CrewMemberDef } from './Crew';
 
 export const MeedasCrewMember: CrewMemberDef = {
@@ -8,14 +9,17 @@ export const MeedasCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Rubble becomes cheese',
     cost: 1,
-    effect: () => {
-      console.log('Meedas ability effect');
+    effect: (_runState, context) => {
+      context.events.emit(GameEvent.CREW_RUBBLE_BECOMES_CHEESE);
     },
   },
   passiveAbility: {
     name: 'Balls float',
-    effect: () => {
-      console.log('Meedas ability effect');
+    mount: (runState) => {
+      runState.crewBoons.meedas_ballsFloat.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.meedas_ballsFloat.set(false);
     },
   },
 };

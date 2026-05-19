@@ -47,6 +47,7 @@ export const GameEvent = {
   // Crew ability events (fired by active abilities, handled by entities)
   CREW_SHOOT_BALL: 'crew:shoot-ball',
   CREW_DOUBLE_BALLS: 'crew:double-balls',
+  CREW_RUBBLE_BECOMES_CHEESE: 'crew:rubble-becomes-cheese',
 } as const;
 
 /**
@@ -93,6 +94,7 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   // Crew ability events
   [GameEvent.CREW_SHOOT_BALL]: void;
   [GameEvent.CREW_DOUBLE_BALLS]: void;
+  [GameEvent.CREW_RUBBLE_BECOMES_CHEESE]: void;
 }
 
 /**

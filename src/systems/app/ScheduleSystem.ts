@@ -14,6 +14,11 @@ export type ScheduledTask = {
   cancelledCallback?: () => void;
 };
 
+/**
+ * ScheduleSystem is the engine setTimeout but with a cancellable callback
+ * in case the setup needs to move on. Avoids leaving setTimeouts hanging
+ * when entities get removed
+ */
 export class ScheduleSystem implements System {
   static SYSTEM_ID = 'schedule';
 

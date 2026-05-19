@@ -6,6 +6,7 @@ import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
   b2Body_ApplyLinearImpulseToCenter,
+  b2Body_SetLinearVelocity,
   b2Body_SetUserData,
   b2BodyType,
   b2Normalize,
@@ -24,14 +25,15 @@ export interface CheeseEntity extends EntityBase {
 }
 
 export interface CheeseProps {
-  type: CheeseType;
-  pos: { x: number; y: number };
+  pos: b2Vec2;
+  type?: CheeseType;
+  vel?: b2Vec2;
 
   onCollected?: (cheese: CheeseEntity) => void;
   onLost?: (cheese: CheeseEntity) => void;
 }
 
-export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheeseProps) => {
+export const Cheese = defineEntity(({ pos, vel, type = 'yellow', onCollected, onLost }: CheeseProps) => {
   const worldId = useWorldId();
   const physics = usePhysics();
 
@@ -53,6 +55,11 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
   const f = new b2Vec2(Math.random() * 1 - 0.5, Math.random() * 1 - 0.5);
   b2Normalize(f);
   b2Body_ApplyLinearImpulseToCenter(bodyId, f, true);
+
+  if (vel) {
+    b2Body_SetLinearVelocity(bodyId, vel);
+  }
+
   physics.enableGravity(bodyId);
   onCleanup(() => {
     physics.disableGravity(bodyId);
@@ -95,14 +102,16 @@ export const Cheese = defineEntity(({ pos, type, onCollected, onLost }: CheesePr
 });
 
 export interface TypeCheeseProps {
-  pos: { x: number; y: number };
+  pos: b2Vec2;
+  vel?: b2Vec2;
   onCollected?: (cheese: CheeseEntity) => void;
   onLost?: (cheese: CheeseEntity) => void;
 }
 
-export const BlueCheese = ({ pos, onCollected, onLost }: TypeCheeseProps): CheeseEntity => {
+export const BlueCheese = ({ pos, vel, onCollected, onLost }: TypeCheeseProps): CheeseEntity => {
   return Cheese({
     pos,
+    vel,
     type: 'blue',
     onCollected: (cheese) => {
       changeCheese(1);
@@ -117,9 +126,10 @@ export const BlueCheese = ({ pos, onCollected, onLost }: TypeCheeseProps): Chees
   });
 };
 
-export const YellowCheese = ({ pos, onCollected, onLost }: TypeCheeseProps): CheeseEntity => {
+export const YellowCheese = ({ pos, vel, onCollected, onLost }: TypeCheeseProps): CheeseEntity => {
   return Cheese({
     pos,
+    vel,
     type: 'yellow',
     onCollected: (cheese) => {
       changeCheese(1);
@@ -129,9 +139,10 @@ export const YellowCheese = ({ pos, onCollected, onLost }: TypeCheeseProps): Che
   });
 };
 
-export const GreenCheese = ({ pos, onCollected, onLost }: TypeCheeseProps): CheeseEntity => {
+export const GreenCheese = ({ pos, vel, onCollected, onLost }: TypeCheeseProps): CheeseEntity => {
   return Cheese({
     pos,
+    vel,
     type: 'green',
     onCollected,
     onLost,

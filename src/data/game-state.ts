@@ -65,6 +65,7 @@ export interface RunState {
     lacfree_abilitiesConsumeRubbles: Signal<boolean>;
     littlemi_everythingFloats: Signal<boolean>;
     littlemi_longerBoat: Signal<boolean>;
+    meedas_ballsFloat: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -153,6 +154,7 @@ export function createGameState(): GameState {
         lacfree_abilitiesConsumeRubbles: signal(false),
         littlemi_everythingFloats: signal(false),
         littlemi_longerBoat: signal(false),
+        meedas_ballsFloat: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
