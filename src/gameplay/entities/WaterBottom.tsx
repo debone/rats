@@ -64,6 +64,20 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
   const filter = b2DefaultQueryFilter();
   const waterAABB = b2Body_ComputeAABB(bodyId);
 
+  let everythingFloats = false;
+  let ballsBounceWater = false;
+  let cheeseFloats = false;
+
+  const applyBuoyancy = (body: b2BodyId, shapeId: b2ShapeId) => {
+    const objectAABB = b2Shape_GetAABB(shapeId);
+    const depth = objectAABB.lowerBoundY - waterAABB.upperBoundY;
+    b2Body_ApplyForceToCenter(body, new b2Vec2(0, -depth * 50), true);
+    const velDir = b2Body_GetLinearVelocity(body);
+    const dragForce = b2MulSV(3, b2Neg(velDir));
+    dragForce.x *= 0.1;
+    b2Body_ApplyForceToCenter(body, dragForce, true);
+  };
+
   const { start, stop } = useUpdate(() => {
     b2World_OverlapAABB(
       worldId,
@@ -71,73 +85,21 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
       filter,
       (shapeId: b2ShapeId) => {
         const body = b2Shape_GetBody(shapeId);
-        const userData = b2Body_GetUserData(body) as { type: 'cheese' | 'scrap' | 'ball' };
-        if (userData?.type === 'cheese' || userData?.type === 'scrap') {
-          const objectAABB = b2Shape_GetAABB(shapeId);
-          const depth = objectAABB.lowerBoundY - waterAABB.upperBoundY;
-          b2Body_ApplyForceToCenter(body, new b2Vec2(0, -depth * 50), true);
+        const userData = b2Body_GetUserData(body) as {
+          type: 'cheese' | 'scrap' | 'ball';
+          bouncing: number;
+          bounced: boolean;
+        };
 
-          const velDir = b2Body_GetLinearVelocity(body);
-
-          const dragMag = 3;
-          //apply simple linear drag
-          const dragForce = b2MulSV(dragMag, b2Neg(velDir));
-          dragForce.x *= 0.1;
-          b2Body_ApplyForceToCenter(body, dragForce, true);
+        if (userData?.type === 'cheese' && (everythingFloats || cheeseFloats)) {
+          applyBuoyancy(body, shapeId);
         }
-      },
-      null,
-    );
-  });
 
-  const cleanupObjects = () => {
-    const entityCollisions = getGameContext().systems.get(EntityCollisionSystem);
-
-    b2World_OverlapAABB(
-      worldId,
-      waterAABB,
-      filter,
-      (shapeId: b2ShapeId) => {
-        const body = b2Shape_GetBody(shapeId);
-        const userData = b2Body_GetUserData(body) as { type: 'cheese' | 'scrap' | 'ball' };
-
-        if (userData?.type === 'cheese') {
-          const entity = entityCollisions.get(body);
-          const { x, y } = BodyToScreen(body);
-          waterParticles.explode(10, x, y);
-
-          events.emit('cheeseCollided', { waterBottom, object: entity?.entity });
+        if (userData?.type === 'scrap' && everythingFloats) {
+          applyBuoyancy(body, shapeId);
         }
-        if (userData?.type === 'scrap') {
-          const entity = entityCollisions.get(body);
-          const { x, y } = BodyToScreen(body);
-          waterParticles.explode(10, x, y);
 
-          events.emit('scrapCollided', { waterBottom, object: entity?.entity });
-        }
-        if (userData?.type === 'ball') {
-          const entity = entityCollisions.get(body);
-          const { x, y } = BodyToScreen(body);
-          waterParticles.explode(10, x, y);
-
-          events.emit('ballCollided', { waterBottom, object: entity?.entity });
-        }
-      },
-      null,
-    );
-  };
-
-  const { start: startBallsBounceWater, stop: stopBallsBounceWater } = useUpdate(() => {
-    b2World_OverlapAABB(
-      worldId,
-      waterAABB,
-      filter,
-      (shapeId: b2ShapeId) => {
-        const body = b2Shape_GetBody(shapeId);
-        const userData = b2Body_GetUserData(body) as { type: 'ball'; bouncing: number; bounced: boolean };
-
-        if (userData?.type === 'ball') {
-          console.log('userData', userData);
+        if (userData?.type === 'ball' && ballsBounceWater) {
           const velDir = b2Body_GetLinearVelocity(body);
           const objectAABB = b2Shape_GetAABB(shapeId);
           const depth = objectAABB.lowerBoundY - waterAABB.upperBoundY;
@@ -162,8 +124,10 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
           }
 
           if (userData.bouncing === 100) {
-            // 50 frames of bouncing
-            cleanupBalls();
+            const entityCollisions = getGameContext().systems.get(EntityCollisionSystem);
+            const { x, y } = BodyToScreen(body);
+            waterParticles.explode(10, x, y);
+            events.emit('ballCollided', { waterBottom, object: entityCollisions.get(body)?.entity });
           }
 
           b2Body_SetUserData(body, userData);
@@ -173,7 +137,9 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
     );
   });
 
-  const cleanupBalls = () => {
+  // Emits events for objects in water that are no longer covered by any active boon.
+  // Call after updating boon flags so the checks reflect the new state.
+  const cleanup = () => {
     const entityCollisions = getGameContext().systems.get(EntityCollisionSystem);
 
     b2World_OverlapAABB(
@@ -182,40 +148,50 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
       filter,
       (shapeId: b2ShapeId) => {
         const body = b2Shape_GetBody(shapeId);
-        const userData = b2Body_GetUserData(body) as { type: 'ball'; bounced: boolean };
+        const userData = b2Body_GetUserData(body) as { type: 'cheese' | 'scrap' | 'ball' };
+        const e = entityCollisions.get(body);
+        const { x, y } = BodyToScreen(body);
 
-        if (userData?.type === 'ball') {
-          const entity = entityCollisions.get(body);
-          const { x, y } = BodyToScreen(body);
+        if (userData?.type === 'cheese' && !everythingFloats && !cheeseFloats) {
           waterParticles.explode(10, x, y);
-
-          events.emit('ballCollided', { waterBottom, object: entity?.entity });
+          events.emit('cheeseCollided', { waterBottom, object: e?.entity });
+        }
+        if (userData?.type === 'scrap' && !everythingFloats) {
+          waterParticles.explode(10, x, y);
+          events.emit('scrapCollided', { waterBottom, object: e?.entity });
+        }
+        if (userData?.type === 'ball' && !ballsBounceWater) {
+          waterParticles.explode(10, x, y);
+          events.emit('ballCollided', { waterBottom, object: e?.entity });
         }
       },
       null,
     );
   };
 
-  let everythingFloats = false;
-  getRunState().crewBoons.littlemi_everythingFloats.subscribe((value) => {
-    everythingFloats = value;
-    if (everythingFloats) {
+  const syncUpdateState = () => {
+    cleanup();
+
+    if (everythingFloats || ballsBounceWater || cheeseFloats) {
       start();
     } else {
-      cleanupObjects();
       stop();
     }
+  };
+
+  getRunState().crewBoons.littlemi_everythingFloats.subscribe((value) => {
+    everythingFloats = value;
+    syncUpdateState();
   });
 
-  let ballsBounceWater = false;
   getRunState().crewBoons.meedas_ballsBounceWater.subscribe((value) => {
     ballsBounceWater = value;
-    if (ballsBounceWater) {
-      startBallsBounceWater();
-    } else {
-      cleanupBalls();
-      stopBallsBounceWater();
-    }
+    syncUpdateState();
+  });
+
+  getRunState().crewBoons.mrblu_cheeseFloats.subscribe((value) => {
+    cheeseFloats = value;
+    syncUpdateState();
   });
 
   useCollisionHandler(bodyId, () => ({
@@ -227,7 +203,6 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
         waterParticles.explode(100, x, y);
         sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
 
-        console.log('bounced', bounced, everythingFloats, ballsBounceWater);
         if (bounced || (!everythingFloats && !ballsBounceWater)) {
           events.emit('ballCollided', { waterBottom, object: ballBody });
         }
@@ -237,7 +212,7 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
         waterParticles.explode(25, x, y);
         sfx.playPitched(ASSETS.sounds_Splash_Small_3_2, { volume: 0.25 });
 
-        if (!everythingFloats) {
+        if (!everythingFloats && !cheeseFloats) {
           events.emit('cheeseCollided', { waterBottom, object: cheeseBody });
         }
       },

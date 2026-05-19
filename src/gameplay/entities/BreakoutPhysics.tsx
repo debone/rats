@@ -1,12 +1,14 @@
 import { ASSETS } from '@/assets';
 import type { GeometryBodyUserData } from '@/assets/geometry';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { assert } from '@/core/common/assert';
 import { attach, defineEntity } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
 import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
-import { type Box2DGeometry, loadGodotGeometry } from '@/lib/loadGodotGeometry';
+import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
 import { PhysicsSystem } from '@/systems/physics/system';
 import {
   b2Body_GetPosition,
@@ -23,14 +25,12 @@ import { Door } from './Door';
 import { Scrap } from './Scrap';
 import { StrongBrick } from './StrongBrick';
 import { Wall, wallSparkOnBall } from './Wall';
-import { WaterBottom } from './WaterBottom';
+import { WaterBottom, type WaterBottomEntity } from './WaterBottom';
 import { CatPiece } from './cats/CatBody';
 import { CatTail } from './cats/CatTail';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
-import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
-import { getRunState } from '@/data/game-state';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
@@ -111,7 +111,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
           waterParticles: particles.water.emitter,
         });
 
-        attach(waterBottom, (b) => {
+        attach(waterBottom as WaterBottomEntity, (b: WaterBottomEntity) => {
           useSubscribe(b.events, 'cheeseCollided', ({ object }) => {
             object.lose();
           });
@@ -146,6 +146,13 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
           attach(brick, (b) => {
             useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
               console.log('broken', b);
+              const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+
+              if (nextCheeseIsBlue && powerUp !== undefined) {
+                getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+                powerUp = 'blue';
+              }
+
               if (powerUp === 'blue') {
                 BlueCheese({ pos: new b2Vec2(x, y) });
               } else if (powerUp === 'green') {
@@ -161,7 +168,12 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
                 } else {
                   const r = Math.random();
                   if (r < 0.2) {
-                    YellowCheese({ pos: new b2Vec2(x, y) });
+                    if (nextCheeseIsBlue) {
+                      getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+                      BlueCheese({ pos: new b2Vec2(x, y) });
+                    } else {
+                      YellowCheese({ pos: new b2Vec2(x, y) });
+                    }
                   } else if (r < 0.5) {
                     Scrap({ pos: { x: x - 0.25, y } });
                     Scrap({ pos: { x: x + 0.25, y } });
@@ -192,7 +204,14 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
               } else {
                 const r = Math.random();
                 if (r < 0.35) {
-                  YellowCheese({ pos: new b2Vec2(x, y) });
+                  const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+
+                  if (nextCheeseIsBlue) {
+                    getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+                    BlueCheese({ pos: new b2Vec2(x, y) });
+                  } else {
+                    YellowCheese({ pos: new b2Vec2(x, y) });
+                  }
                 } else {
                   Scrap({ pos: { x: x - 0.25, y } });
                   Scrap({ pos: { x: x + 0.25, y } });

@@ -1,3 +1,4 @@
+import { getRunState } from '@/data/game-state';
 import type { CrewMemberDef } from './Crew';
 
 export const MrBluCrewMember: CrewMemberDef = {
@@ -9,13 +10,16 @@ export const MrBluCrewMember: CrewMemberDef = {
     name: 'Next cheese is blue',
     cost: 1,
     effect: () => {
-      console.log('Mr. Blu ability effect');
+      getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(true);
     },
   },
   passiveAbility: {
     name: 'Cheese floats',
-    effect: () => {
-      console.log('Mr. Blu ability effect');
+    mount: (runState) => {
+      runState.crewBoons.mrblu_cheeseFloats.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.mrblu_cheeseFloats.set(false);
     },
   },
 };

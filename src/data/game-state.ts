@@ -10,8 +10,8 @@ import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signa
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
 import { CREW_DEFS, CrewMemberInstance, type CrewMemberDefKey } from '@/entities/crew/Crew';
-import { getGameContext } from './game-context';
 import type { LevelConfig } from '@/systems/level/system';
+import { getGameContext } from './game-context';
 
 export interface GameState {
   meta: MetaGameState;
@@ -68,6 +68,8 @@ export interface RunState {
     meedas_ballsBounceWater: Signal<boolean>;
     micesive_nextBricksHaveMoreRubbles: Signal<number>;
     micesive_cheeseGivesBalls: Signal<boolean>;
+    mrblu_nextCheeseIsBlue: Signal<boolean>;
+    mrblu_cheeseFloats: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -159,6 +161,8 @@ export function createGameState(): GameState {
         meedas_ballsBounceWater: signal(false),
         micesive_nextBricksHaveMoreRubbles: signal(0),
         micesive_cheeseGivesBalls: signal(false),
+        mrblu_nextCheeseIsBlue: signal(false),
+        mrblu_cheeseFloats: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
