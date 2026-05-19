@@ -8,7 +8,14 @@ import type { BrickPowerUps } from '@/entities/bricks/Brick';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
 import { type Box2DGeometry, loadGodotGeometry } from '@/lib/loadGodotGeometry';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { b2Body_GetPosition, b2Body_GetUserData, b2Body_IsValid, type b2BodyId, type b2JointId } from 'phaser-box2d';
+import {
+  b2Body_GetPosition,
+  b2Body_GetUserData,
+  b2Body_IsValid,
+  b2Vec2,
+  type b2BodyId,
+  type b2JointId,
+} from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { Brick } from './Brick';
 import { BlueCheese, GreenCheese, YellowCheese } from './Cheese';
@@ -23,6 +30,7 @@ import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
+import { getRunState } from '@/data/game-state';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
@@ -74,6 +82,11 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
   assert(paddleJoint, `${levelId}: paddle-joint not found in geometry`);
 
   const nonStandardBodies: BodyEntry[] = [];
+
+  let micesive_nextBricksHaveMoreRubbles = 0;
+  getRunState().crewBoons.micesive_nextBricksHaveMoreRubbles.subscribe((value) => {
+    micesive_nextBricksHaveMoreRubbles = value;
+  });
 
   withChildren(() => {
     loadedBodies.forEach((bodyId) => {
@@ -134,20 +147,27 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
             useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
               console.log('broken', b);
               if (powerUp === 'blue') {
-                BlueCheese({ pos: { x, y } });
+                BlueCheese({ pos: new b2Vec2(x, y) });
               } else if (powerUp === 'green') {
-                GreenCheese({ pos: { x, y } });
+                GreenCheese({ pos: new b2Vec2(x, y) });
               } else if (powerUp === 'yellow') {
-                YellowCheese({ pos: { x, y } });
+                YellowCheese({ pos: new b2Vec2(x, y) });
               } else {
-                const r = Math.random();
-                if (r < 0.2) {
-                  YellowCheese({ pos: { x, y } });
-                } else if (r < 0.5) {
-                  Scrap({ pos: { x: x - 0.25, y } });
-                  Scrap({ pos: { x: x + 0.25, y } });
+                if (micesive_nextBricksHaveMoreRubbles > 0) {
+                  micesive_nextBricksHaveMoreRubbles--;
+                  for (let i = 0; i < 5; i++) {
+                    Scrap({ pos: new b2Vec2(x, y) });
+                  }
                 } else {
-                  Scrap({ pos: { x, y } });
+                  const r = Math.random();
+                  if (r < 0.2) {
+                    YellowCheese({ pos: new b2Vec2(x, y) });
+                  } else if (r < 0.5) {
+                    Scrap({ pos: { x: x - 0.25, y } });
+                    Scrap({ pos: { x: x + 0.25, y } });
+                  } else {
+                    Scrap({ pos: { x, y } });
+                  }
                 }
               }
             });
@@ -164,12 +184,19 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
         if (!behavior) {
           attach(strongBrick, (b) => {
             useSubscribe(b.events, 'broken', ({ x, y }) => {
-              const r = Math.random();
-              if (r < 0.35) {
-                YellowCheese({ pos: { x, y } });
-              } else if (r < 0.7) {
-                Scrap({ pos: { x: x - 0.25, y } });
-                Scrap({ pos: { x: x + 0.25, y } });
+              if (micesive_nextBricksHaveMoreRubbles > 0) {
+                micesive_nextBricksHaveMoreRubbles--;
+                for (let i = 0; i < 5; i++) {
+                  Scrap({ pos: new b2Vec2(x, y) });
+                }
+              } else {
+                const r = Math.random();
+                if (r < 0.35) {
+                  YellowCheese({ pos: new b2Vec2(x, y) });
+                } else {
+                  Scrap({ pos: { x: x - 0.25, y } });
+                  Scrap({ pos: { x: x + 0.25, y } });
+                }
               }
             });
           });

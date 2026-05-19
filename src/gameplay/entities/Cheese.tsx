@@ -1,7 +1,7 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
-import { changeCheese } from '@/data/game-state';
+import { addBallToRun, changeCheese, getRunState } from '@/data/game-state';
 import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
@@ -68,10 +68,19 @@ export const Cheese = defineEntity(({ pos, vel, type = 'yellow', onCollected, on
 
   b2Body_SetUserData(bodyId, { type: 'cheese', cheeseType: 'blue' });
 
+  let micesive_cheeseGivesBalls = false;
+  getRunState().crewBoons.micesive_cheeseGivesBalls.subscribe((value) => {
+    micesive_cheeseGivesBalls = value;
+  });
+
   useCollisionHandler(bodyId, () => ({
     tag: 'cheese',
     handlers: {
       paddle: () => {
+        if (micesive_cheeseGivesBalls) {
+          addBallToRun(1);
+        }
+
         onCollected?.(cheese);
         cheese.destroy();
       },

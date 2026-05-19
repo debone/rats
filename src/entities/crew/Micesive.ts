@@ -8,14 +8,17 @@ export const MicesiveCrewMember: CrewMemberDef = {
   activeAbility: {
     name: 'Next 5 bricks have 5 rubbles',
     cost: 1,
-    effect: () => {
-      console.log('Micesive ability effect');
+    effect: (runState) => {
+      runState.crewBoons.micesive_nextBricksHaveMoreRubbles.set(5);
     },
   },
   passiveAbility: {
     name: 'Cheese gives +1 ball',
-    effect: () => {
-      console.log('Micesive ability effect');
+    mount: (runState) => {
+      runState.crewBoons.micesive_cheeseGivesBalls.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.micesive_cheeseGivesBalls.set(false);
     },
   },
 };
