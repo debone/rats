@@ -14,6 +14,7 @@ import {
   b2Body_GetLinearVelocity,
   b2Body_GetUserData,
   b2Body_SetLinearVelocity,
+  b2Body_SetUserData,
   b2DefaultQueryFilter,
   b2MulSV,
   b2Neg,
@@ -84,19 +85,6 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
           dragForce.x *= 0.1;
           b2Body_ApplyForceToCenter(body, dragForce, true);
         }
-        if (userData?.type === 'ball') {
-          const velDir = b2Body_GetLinearVelocity(body);
-          const objectAABB = b2Shape_GetAABB(shapeId);
-          const depth = objectAABB.lowerBoundY - waterAABB.upperBoundY;
-          console.log('ball hit water bottom', depth, velDir.y);
-          if (depth < -0.5 && velDir.y < 0) {
-            if (Math.abs(velDir.y) < Math.abs(velDir.x)) {
-              b2Body_SetLinearVelocity(body, new b2Vec2(velDir.x, -velDir.y));
-            } else {
-              b2Body_SetLinearVelocity(body, new b2Vec2(-velDir.x, -velDir.y));
-            }
-          }
-        }
       },
       null,
     );
@@ -139,19 +127,95 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
     );
   };
 
+  const { start: startBallsBounceWater, stop: stopBallsBounceWater } = useUpdate(() => {
+    b2World_OverlapAABB(
+      worldId,
+      waterAABB,
+      filter,
+      (shapeId: b2ShapeId) => {
+        const body = b2Shape_GetBody(shapeId);
+        const userData = b2Body_GetUserData(body) as { type: 'ball'; bouncing: number; bounced: boolean };
+
+        if (userData?.type === 'ball') {
+          console.log('userData', userData);
+          const velDir = b2Body_GetLinearVelocity(body);
+          const objectAABB = b2Shape_GetAABB(shapeId);
+          const depth = objectAABB.lowerBoundY - waterAABB.upperBoundY;
+
+          if (depth < -0.5 && velDir.y < 0) {
+            // next collision with water will remove the ball
+            userData.bounced = true;
+
+            if (Math.abs(velDir.y) < Math.abs(velDir.x) * 2) {
+              b2Body_SetLinearVelocity(body, new b2Vec2(velDir.x, -velDir.y));
+            } else {
+              b2Body_SetLinearVelocity(body, new b2Vec2(-velDir.x, -velDir.y));
+            }
+          }
+
+          // eeeeelllllleeeeeeennnnkkkkaaaaaaa
+          // eeeeelllllllleeeeeeenkaaaaaaa
+          if (!isFinite(userData.bouncing)) {
+            userData.bouncing = 1;
+          } else {
+            userData.bouncing++;
+          }
+
+          if (userData.bouncing === 100) {
+            // 50 frames of bouncing
+            cleanupBalls();
+          }
+
+          b2Body_SetUserData(body, userData);
+        }
+      },
+      null,
+    );
+  });
+
+  const cleanupBalls = () => {
+    const entityCollisions = getGameContext().systems.get(EntityCollisionSystem);
+
+    b2World_OverlapAABB(
+      worldId,
+      waterAABB,
+      filter,
+      (shapeId: b2ShapeId) => {
+        const body = b2Shape_GetBody(shapeId);
+        const userData = b2Body_GetUserData(body) as { type: 'ball'; bounced: boolean };
+
+        if (userData?.type === 'ball') {
+          const entity = entityCollisions.get(body);
+          const { x, y } = BodyToScreen(body);
+          waterParticles.explode(10, x, y);
+
+          events.emit('ballCollided', { waterBottom, object: entity?.entity });
+        }
+      },
+      null,
+    );
+  };
+
   let everythingFloats = false;
   getRunState().crewBoons.littlemi_everythingFloats.subscribe((value) => {
-    console.log('everythingFloats', value);
     everythingFloats = value;
-    if (!everythingFloats) {
+    if (everythingFloats) {
+      start();
+    } else {
       cleanupObjects();
       stop();
-      console.log('stopping water bottom update');
-    } else {
-      console.log('starting water bottom update');
-      start();
     }
-    // TODO if switched to false, make a AABB check to see if anything doesn't need drowning
+  });
+
+  let ballsBounceWater = false;
+  getRunState().crewBoons.meedas_ballsBounceWater.subscribe((value) => {
+    ballsBounceWater = value;
+    if (ballsBounceWater) {
+      startBallsBounceWater();
+    } else {
+      cleanupBalls();
+      stopBallsBounceWater();
+    }
   });
 
   useCollisionHandler(bodyId, () => ({
@@ -159,10 +223,12 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
     handlers: {
       ball: (_self: WaterBottomEntity, ballBody: NormBallEntity) => {
         const { x, y } = BodyToScreen(ballBody.bodyId);
+        const { bounced } = b2Body_GetUserData(ballBody.bodyId) as { bounced: boolean };
         waterParticles.explode(100, x, y);
         sfx.playPitched(ASSETS.sounds_Splash_Large_4_2, { volume: 0.25 });
 
-        if (!everythingFloats) {
+        console.log('bounced', bounced, everythingFloats, ballsBounceWater);
+        if (bounced || (!everythingFloats && !ballsBounceWater)) {
           events.emit('ballCollided', { waterBottom, object: ballBody });
         }
       },

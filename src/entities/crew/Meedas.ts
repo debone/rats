@@ -14,12 +14,12 @@ export const MeedasCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: 'Balls float',
+    name: 'Balls bounces off water once',
     mount: (runState) => {
-      runState.crewBoons.meedas_ballsFloat.set(true);
+      runState.crewBoons.meedas_ballsBounceWater.set(true);
     },
     unmount: (runState) => {
-      runState.crewBoons.meedas_ballsFloat.set(false);
+      runState.crewBoons.meedas_ballsBounceWater.set(false);
     },
   },
 };

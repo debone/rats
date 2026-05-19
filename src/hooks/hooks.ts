@@ -2,6 +2,7 @@ import { mountEffect, onCleanup, registerChildren, withActiveChildren, type Enti
 import { EventEmitter } from '@/core/game/EventEmitter';
 import type { GameEventName, GameEventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import { EntityCollisionSystem, type EntityCollisionConfig } from '@/systems/physics/EntityCollisionSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { AddSpriteToWorld, RemoveSpriteFromWorld } from '@/systems/physics/WorldSprites';
@@ -149,5 +150,14 @@ export function useSubscribe<TMap extends Record<string, any>, K extends keyof T
   mountEffect(() => {
     emitter.on(event, fn);
     return () => emitter.off(event, fn);
+  });
+}
+
+export function useTimeout(callback: () => void, delay: number) {
+  const schedule = getGameContext().systems.get(ScheduleSystem);
+
+  mountEffect(() => {
+    const timeout = schedule.schedule(callback, delay);
+    return () => timeout();
   });
 }

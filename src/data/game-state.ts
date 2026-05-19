@@ -65,7 +65,7 @@ export interface RunState {
     lacfree_abilitiesConsumeRubbles: Signal<boolean>;
     littlemi_everythingFloats: Signal<boolean>;
     littlemi_longerBoat: Signal<boolean>;
-    meedas_ballsFloat: Signal<boolean>;
+    meedas_ballsBounceWater: Signal<boolean>;
     micesive_nextBricksHaveMoreRubbles: Signal<number>;
     micesive_cheeseGivesBalls: Signal<boolean>;
   };
@@ -156,7 +156,7 @@ export function createGameState(): GameState {
         lacfree_abilitiesConsumeRubbles: signal(false),
         littlemi_everythingFloats: signal(false),
         littlemi_longerBoat: signal(false),
-        meedas_ballsFloat: signal(false),
+        meedas_ballsBounceWater: signal(false),
         micesive_nextBricksHaveMoreRubbles: signal(0),
         micesive_cheeseGivesBalls: signal(false),
       },
