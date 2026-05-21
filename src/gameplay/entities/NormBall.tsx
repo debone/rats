@@ -13,12 +13,15 @@ import {
   b2Body_SetUserData,
   b2BodyId,
   b2BodyType,
+  b2InvRotateVector,
   b2MakeRot,
   b2MulSV,
   b2Normalize,
   b2RotateVector,
   b2Shape_GetFilter,
   b2Shape_SetFilter,
+  b2Sub,
+  b2UnwindAngle,
   b2Vec2,
   CreateCircle,
 } from 'phaser-box2d';
@@ -79,20 +82,6 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
   getRunState().stats.ballSpeedRatio.subscribe((v) => {
     speedRatio = v;
   });
-
-  /*
-  function powerUp() {
-    timeout = 10000;
-    ballSprite.tint = 0xffff00;
-    targetSpeed = BALL_SPEED_DEFAULT * 2;
-  }
-
-  function powerDown() {
-    timeout = 0;
-    ballSprite.tint = 0xffffff;
-    targetSpeed = BALL_SPEED_DEFAULT;
-  }
-*/
 
   let nudge = false;
   getRunState().crewBoons.flub_ballsAttractedToBoat.subscribe((value) => {
@@ -165,6 +154,26 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     queueMicrotask(() => {
       b2Body_SetLinearVelocity(newBall.bodyId, rotatedVelocity);
     });
+  });
+
+  useGameEvent(GameEvent.CREW_RECALL_BALLS, () => {
+    const paddles = getEntitiesOf(Paddle);
+    if (paddles.length === 0) {
+      return;
+    }
+
+    const paddlePos = b2Body_GetPosition(paddles[0].bodyId);
+    const ballPos = b2Body_GetPosition(bodyId);
+
+    // Rotate the ball's velocity so it points toward the paddle
+    const delta = b2Sub(paddlePos, ballPos);
+    const targetAngle = Math.atan2(delta.y, delta.x);
+    const velocity = b2Body_GetLinearVelocity(bodyId);
+    const currentAngle = Math.atan2(velocity.y, velocity.x);
+    const rotation = b2UnwindAngle(targetAngle - currentAngle);
+    const newVelocity = b2RotateVector(b2MakeRot(rotation), velocity);
+
+    b2Body_SetLinearVelocity(bodyId, newVelocity);
   });
 
   const normBall = entity<NormBallEntity>({

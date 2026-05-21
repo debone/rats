@@ -3,7 +3,7 @@ import { sfx } from '@/core/audio/audio';
 import { assert } from '@/core/common/assert';
 import { attach, defineEntity, type AttachHandle } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
-import { useChildren, useGameEvent } from '@/hooks/hooks';
+import { useChildren, useEffect, useGameEvent } from '@/hooks/hooks';
 import {
   b2Body_GetPosition,
   b2Body_SetLinearVelocity,
@@ -19,7 +19,7 @@ import {
   b2Vec2,
 } from 'phaser-box2d';
 import { NormBall, type NormBallEntity } from './NormBall';
-import { Paddle, type PaddleEntity, type PaddleJointConfig } from './Paddle';
+import { Paddle, PaddleSizes, type PaddleEntity, type PaddleJointConfig, type PaddleSize } from './Paddle';
 import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
@@ -30,7 +30,6 @@ export interface PaddleBallProps {
 }
 
 export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallProps) => {
-  const ctx = getGameContext();
   const { withChildren } = useChildren();
 
   // Extract all stable joint parameters before consuming the template joint.
@@ -57,45 +56,56 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
     snappedBall = ball;
   };
 
-  const swapPaddle = (wider: boolean) => {
+  const swapPaddle = (size: PaddleSize) => {
     // Check before destroying — joint validity distinguishes "still snapped" from "launched".
     const ballStillSnapped = ballSnap != null && b2Joint_IsValid(ballSnap.jointId);
     const ballToResnap = ballStillSnapped ? snappedBall : undefined;
 
     // Spawn the new paddle where the old one currently is.
-    const spawnPos = b2Body_GetPosition(paddle!.bodyId).clone();
+    let spawnPos;
+    if (paddle) {
+      spawnPos = b2Body_GetPosition(paddle!.bodyId).clone();
+      paddle!.destroy(); // auto-destroys its prismatic joint and ballSnap attachment
+      ballSnap = undefined;
+    } else {
+      spawnPos = initialSpawnPos;
+    }
 
-    paddle!.destroy(); // auto-destroys its prismatic joint and ballSnap attachment
-    ballSnap = undefined;
-
-    paddle = Paddle({ jointConfig, spawnPos, wider });
+    paddle = Paddle({ jointConfig, spawnPos, size });
 
     if (ballToResnap) {
-      attach(paddle, (p) => snapBallToPaddle(p, ballToResnap));
+      snapBallToPaddle(paddle, ballToResnap);
     }
   };
 
+  // TODO: the collision can happen at the start and the ball never moves out
+  useGameEvent(GameEvent.CREW_STICK_BALL_TO_PADDLE, () => {
+    assert(paddle, `${levelId}: paddle not found`);
+    const someBallSnapped = ballSnap != null && b2Joint_IsValid(ballSnap.jointId);
+    if (someBallSnapped) {
+      return;
+    }
+    snapBallToPaddle(paddle, snappedBall!);
+  });
+
+  const smallerBoatSignal = getRunState().crewBoons.mysz_smallerBoat;
   const longerBoatSignal = getRunState().crewBoons.littlemi_longerBoat;
 
-  longerBoatSignal.subscribe((floats) => {
-    setTimeout(() => swapPaddle(floats), 200);
-  }, false);
+  useEffect(() => {
+    const smallerBoat = smallerBoatSignal.get();
+    const longerBoat = longerBoatSignal.get();
+    const size = smallerBoat ? 'small' : longerBoat ? 'large' : 'normal';
 
-  withChildren(() => {
-    paddle = Paddle({ jointConfig, spawnPos: initialSpawnPos, wider: longerBoatSignal.get() });
+    swapPaddle(size);
   });
 
   // --- Ball management ---
 
   const createBall = () => {
     assert(paddle, `${levelId}: paddle not found`);
-    attach(paddle, (p) => {
-      withChildren(() => {
-        const pos = b2Body_GetPosition(p.bodyId);
-        const ball = NormBall({ x: pos.x, y: pos.y + 1 });
-        snapBallToPaddle(p, ball);
-      });
-    });
+    const pos = b2Body_GetPosition(paddle.bodyId);
+    const ball = NormBall({ x: pos.x, y: pos.y + 1 });
+    snapBallToPaddle(paddle, ball);
   };
 
   useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {

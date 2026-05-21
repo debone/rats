@@ -20,6 +20,7 @@ import { InputDevice } from 'pixijs-input-devices';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { PlusCheeseParticles } from './particles/PlusCheeseParticles';
 import { PlusClayParticles } from './particles/PlusClayParticles';
+import { GameEvent } from '@/data/events';
 
 export interface PaddleEntity extends EntityBase {
   bodyId: b2BodyId;
@@ -36,13 +37,21 @@ export interface PaddleJointConfig {
   upperLimit: number;
 }
 
+export const PaddleSizes = {
+  small: 'geometry/paddles/paddle-small.json',
+  normal: 'geometry/paddles/paddle.json',
+  large: 'geometry/paddles/paddle-wider.json',
+} as const;
+
+export type PaddleSize = keyof typeof PaddleSizes;
+
 export interface PaddleProps {
   jointConfig: PaddleJointConfig;
   spawnPos: b2Vec2;
-  wider?: boolean;
+  size: PaddleSize;
 }
 
-export const Paddle = defineEntity(({ jointConfig, spawnPos, wider = false }: PaddleProps) => {
+export const Paddle = defineEntity(({ jointConfig, spawnPos, size = 'normal' }: PaddleProps) => {
   const worldId = useWorldId();
   const physics = usePhysics();
   const { withChildren } = useChildren();
@@ -55,7 +64,7 @@ export const Paddle = defineEntity(({ jointConfig, spawnPos, wider = false }: Pa
 
   const ctx = getGameContext();
 
-  const paddleAsset = wider ? 'geometry/paddles/paddle-wider.json' : 'geometry/paddles/paddle-small.json';
+  const paddleAsset = PaddleSizes[size];
   const geo = Assets.get<Box2DGeometry>(paddleAsset);
   const loaded = loadGodotGeometry(geo, worldId, {
     transform: { x: spawnPos.x, y: spawnPos.y },
@@ -85,11 +94,19 @@ export const Paddle = defineEntity(({ jointConfig, spawnPos, wider = false }: Pa
     maxSpeed: 15,
   });
 
+  let doesBallStick = false;
+  getRunState().crewBoons.mysz_ballsStickToBoat.subscribe((value) => {
+    doesBallStick = value;
+  });
+
   useCollisionHandler(bodyId, () => ({
     tag: 'paddle',
     handlers: {
       ball: () => {
         sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A, { volume: 0.25 });
+        if (doesBallStick) {
+          getGameContext().events.emit(GameEvent.CREW_STICK_BALL_TO_PADDLE);
+        }
       },
       scrap: () => {
         sfx.playPitched(ASSETS.sounds_Hit_Jacket_Light_A, { volume: 0.25 });

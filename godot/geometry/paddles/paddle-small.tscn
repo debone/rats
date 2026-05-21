@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_mdleq"]
 [ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="2_ibw5h"]
 [ext_resource type="Texture2D" path="res://sprites/rats/shadow-back.tres" id="3_68rlp"]
+[ext_resource type="Texture2D" path="res://sprites/boats/rat-small-boat.tres" id="3_mdleq"]
 [ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="4_715lj"]
-[ext_resource type="Texture2D" path="res://sprites/rats/rat-boat.tres" id="6_mdleq"]
 [ext_resource type="Texture2D" path="res://sprites/rats/shadow.tres" id="6_yyxml"]
 [ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="7_v54bj"]
 
@@ -16,24 +16,26 @@ gravity = Vector2(0, 0)
 script = ExtResource("2_ibw5h")
 type = "paddle"
 
+[node name="rat-boat" type="Sprite2D" parent="paddle" unique_id=1790307033]
+position = Vector2(-1, -6)
+texture = ExtResource("3_mdleq")
+script = ExtResource("4_715lj")
+
 [node name="shape" type="CollisionPolygon2D" parent="paddle" unique_id=148645987]
 modulate = Color(1, 1, 1, 100)
-polygon = PackedVector2Array(32, 4, 28.8, -3.2, 8, -8, -8, -8, -28.8, -3.2, -32, 4)
+scale = Vector2(0.56640625, 1)
+polygon = PackedVector2Array(33.544827, 4, 30.013794, -3, 8.827586, -5, -8.827586, -5, -28.8, -3.2, -31.77931, 4)
 script = ExtResource("7_v54bj")
 density = 10.0
 friction = 0.5
 category_bits = 7
 
 [node name="shadow-back" type="Sprite2D" parent="paddle" unique_id=832270413]
-position = Vector2(0, 11.5)
+position = Vector2(0, 9.000001)
+scale = Vector2(0.6909091, 0.73333323)
 texture = ExtResource("3_68rlp")
 script = ExtResource("4_715lj")
 should_rotate = false
-
-[node name="rat-boat" type="Sprite2D" parent="paddle" unique_id=1790307033]
-position = Vector2(0, -6)
-texture = ExtResource("6_mdleq")
-script = ExtResource("4_715lj")
 
 [node name="shadow" type="Sprite2D" parent="paddle" unique_id=1015339505]
 position = Vector2(0, 9.5)

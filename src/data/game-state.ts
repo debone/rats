@@ -70,6 +70,9 @@ export interface RunState {
     micesive_cheeseGivesBalls: Signal<boolean>;
     mrblu_nextCheeseIsBlue: Signal<boolean>;
     mrblu_cheeseFloats: Signal<boolean>;
+    mysz_smallerBoat: Signal<boolean>;
+    // TBD
+    mysz_ballsStickToBoat: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -163,6 +166,9 @@ export function createGameState(): GameState {
         micesive_cheeseGivesBalls: signal(false),
         mrblu_nextCheeseIsBlue: signal(false),
         mrblu_cheeseFloats: signal(false),
+        mysz_smallerBoat: signal(false),
+        // TBD
+        mysz_ballsStickToBoat: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),

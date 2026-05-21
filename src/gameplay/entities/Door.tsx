@@ -2,7 +2,7 @@ import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
-import { defineEntity, entity, mountEffect, onCleanup, type EntityBase } from '@/core/entity/scope';
+import { defineEntity, entity, onMount, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { useBodySprite, useCamera, usePhysics, useWorldId } from '@/hooks/hooks';
 import { animate } from 'animejs';
 import {
@@ -57,7 +57,7 @@ export const Door = defineEntity(
       });
     });
 
-    mountEffect(() => {
+    onMount(() => {
       door.setLength(length);
     });
 
@@ -125,7 +125,7 @@ export const Door = defineEntity(
       },
     });
 
-    mountEffect(() => {
+    onMount(() => {
       if (startOpen) {
         setTimeout(() => {
           door.open();

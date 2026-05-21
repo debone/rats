@@ -19,8 +19,8 @@ class_name Box2DRoot
 		show_collision = v
 		if is_node_ready() or Engine.is_editor_hint():
 			_apply_visibility()
-@export
-var alpha = 100.0
+
+@export_range(0.0, 100.0, 0.1) var alpha: float = 100.0
 
 @export_range(0.0, 100.0, 0.1) var art_alpha: float = 100.0:
 	set(v):
