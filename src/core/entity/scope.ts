@@ -127,7 +127,7 @@ function applyEffects(scope: Scope) {
   scope.effects.length = 0;
 }
 
-export function mountEffect(effect: Effect) {
+export function onMount(effect: Effect) {
   if (!activeScope) throw new Error('mountEffect called outside defineEntity scope');
   activeScope.effects.push(effect);
 }

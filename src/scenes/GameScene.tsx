@@ -1,4 +1,4 @@
-import { defineEntity, getUnmount, mountEffect } from '@/core/entity/scope';
+import { defineEntity, getUnmount, onMount } from '@/core/entity/scope';
 import { Command, execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
@@ -28,7 +28,7 @@ export const GameScene = defineEntity(({ startingLevelId, onEnd }: GameSceneProp
     }
   });
 
-  mountEffect(() => {
+  onMount(() => {
     execute(RunGameFlowCommand, { startingLevelId });
   });
 

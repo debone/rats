@@ -1,5 +1,7 @@
-import { mountEffect, onCleanup, registerChildren, withActiveChildren, type EntityBase } from '@/core/entity/scope';
+import { onCleanup, onMount, registerChildren, withActiveChildren, type EntityBase } from '@/core/entity/scope';
 import { EventEmitter } from '@/core/game/EventEmitter';
+import { effect } from '@/core/reactivity/signals/signals';
+import type { Effect } from '@/core/reactivity/signals/types';
 import type { GameEventName, GameEventPayload } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
@@ -31,7 +33,7 @@ export function useBodySprite(
   options?: { offsetX?: number; offsetY?: number; z?: number; localRotation?: number },
 ) {
   const ctx = getGameContext();
-  mountEffect(() => {
+  onMount(() => {
     AddSpriteToWorld(ctx.worldId!, sprite, bodyId, {
       offsetX: options?.offsetX ?? 0,
       offsetY: options?.offsetY ?? 0,
@@ -51,7 +53,7 @@ export function useBodySprite(
 
 export function useCollisionHandler(bodyId: b2BodyId, config: () => EntityCollisionConfig) {
   const collision = useCollision();
-  mountEffect(() => {
+  onMount(() => {
     collision.add(bodyId, config());
     return () => collision.remove(bodyId);
   });
@@ -63,7 +65,7 @@ export function useCollisionHandler(bodyId: b2BodyId, config: () => EntityCollis
  * is torn down when the entity unmounts.
  */
 export function useGameEvent<K extends GameEventName>(event: K, listener: (payload: GameEventPayload<K>) => void) {
-  mountEffect(() => {
+  onMount(() => {
     return getGameContext().events.on(event, listener);
   });
 }
@@ -93,7 +95,7 @@ export function useImmediateUpdate(handler: (delta: number) => void) {
   const systems = getGameContext().systems;
   let clean = false;
 
-  mountEffect(() => {
+  onMount(() => {
     systems.register('update', handler);
     return () => {
       clean = true;
@@ -147,7 +149,7 @@ export function useSubscribe<TMap extends Record<string, any>, K extends keyof T
   event: K,
   fn: (payload: TMap[K]) => void,
 ): void {
-  mountEffect(() => {
+  onMount(() => {
     emitter.on(event, fn);
     return () => emitter.off(event, fn);
   });
@@ -156,8 +158,14 @@ export function useSubscribe<TMap extends Record<string, any>, K extends keyof T
 export function useTimeout(callback: () => void, delay: number) {
   const schedule = getGameContext().systems.get(ScheduleSystem);
 
-  mountEffect(() => {
+  onMount(() => {
     const timeout = schedule.schedule(callback, delay);
     return () => timeout();
+  });
+}
+
+export function useEffect(effectFn: Effect, displayName?: string) {
+  onMount(() => {
+    return effect(effectFn, displayName);
   });
 }
