@@ -3,26 +3,34 @@ import { BALL_SPEED_DEFAULT } from '@/consts';
 import { defineEntity, entity, getEntitiesOf, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { signal } from '@/core/reactivity/signals/signals';
 import { GameEvent } from '@/data/events';
+import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
+import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
   b2Body_GetPosition,
+  b2Body_GetUserData,
   b2Body_SetLinearVelocity,
   b2Body_SetUserData,
   b2BodyId,
   b2BodyType,
-  b2InvRotateVector,
+  b2DefaultQueryFilter,
   b2MakeRot,
   b2MulSV,
   b2Normalize,
+  b2Rot,
   b2RotateVector,
+  b2Shape_GetBody,
   b2Shape_GetFilter,
   b2Shape_SetFilter,
+  b2ShapeId,
   b2Sub,
+  b2Transform,
   b2UnwindAngle,
   b2Vec2,
+  b2World_OverlapCircle,
   CreateCircle,
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
@@ -48,6 +56,7 @@ const f = signal(0, {
 });
 
 export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
+  const ctx = getGameContext();
   const worldId = useWorldId();
   const physics = usePhysics();
 
@@ -174,6 +183,38 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     const newVelocity = b2RotateVector(b2MakeRot(rotation), velocity);
 
     b2Body_SetLinearVelocity(bodyId, newVelocity);
+  });
+
+  useGameEvent(GameEvent.CREW_EXPLODE_BALLS, () => {
+    const BALL_EXPLODE_RADIUS = 2.5;
+    const entityCollisions = getGameContext().systems.get(EntityCollisionSystem);
+
+    const damage = getRunState().stats.ballDamage.get();
+    const position = b2Body_GetPosition(bodyId);
+
+    b2World_OverlapCircle(
+      worldId,
+      {
+        center: [position],
+        radius: BALL_EXPLODE_RADIUS,
+      },
+      new b2Transform(new b2Vec2(position.x, position.y), new b2Rot(0)),
+      b2DefaultQueryFilter(),
+      (shapeId: b2ShapeId) => {
+        const body = b2Shape_GetBody(shapeId);
+        const userData = b2Body_GetUserData(body) as { type: 'brick' | 'strong-brick' };
+        if (userData.type === 'brick') {
+          entityCollisions.get(body)?.entity.hit();
+        }
+        if (userData.type === 'strong-brick') {
+          entityCollisions.get(body)?.entity.hit(damage);
+        }
+      },
+      null,
+    );
+
+    ctx.events.emit(GameEvent.BALL_LOST);
+    normBall.destroy();
   });
 
   const normBall = entity<NormBallEntity>({
