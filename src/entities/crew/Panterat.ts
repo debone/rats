@@ -1,4 +1,7 @@
+import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import type { CrewMemberDef } from './Crew';
+
+const PANTERAT_STRONG_BALL_DURATION = 7_000;
 
 export const PanteratCrewMember: CrewMemberDef = {
   type: 'panterat',
@@ -7,15 +10,28 @@ export const PanteratCrewMember: CrewMemberDef = {
   hiringCost: 10,
   activeAbility: {
     name: 'Strengthen balls',
-    cost: 1,
-    effect: () => {
-      console.log('Panterat ability effect');
+    cost: 5,
+    effect: (runState, context) => {
+      runState.crewBoons.panterat_unstoppableBall.set(true);
+
+      context.systems.get(ScheduleSystem).trySchedule(
+        () => {
+          runState.crewBoons.panterat_unstoppableBall.set(false);
+        },
+        () => {
+          runState.crewBoons.panterat_unstoppableBall.set(false);
+        },
+        PANTERAT_STRONG_BALL_DURATION,
+      );
     },
   },
   passiveAbility: {
     name: 'Abilities cost 1 less',
-    effect: () => {
-      console.log('Panterat ability effect');
+    mount: (runState) => {
+      runState.crewBoons.panterat_cheaperAbilities.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.panterat_cheaperAbilities.set(false);
     },
   },
 };

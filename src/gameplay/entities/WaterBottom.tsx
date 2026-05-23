@@ -154,15 +154,21 @@ export const WaterBottom = defineEntity(({ bodyId, waterParticles }: WaterBottom
 
         if (userData?.type === 'cheese' && !everythingFloats && !cheeseFloats) {
           waterParticles.explode(10, x, y);
-          events.emit('cheeseCollided', { waterBottom, object: e?.entity });
+          if (e?.entity) {
+            events.emit('cheeseCollided', { waterBottom, object: e.entity });
+          }
         }
         if (userData?.type === 'scrap' && !everythingFloats) {
           waterParticles.explode(10, x, y);
-          events.emit('scrapCollided', { waterBottom, object: e?.entity });
+          if (e?.entity) {
+            events.emit('scrapCollided', { waterBottom, object: e.entity });
+          }
         }
         if (userData?.type === 'ball' && !ballsBounceWater) {
           waterParticles.explode(10, x, y);
-          events.emit('ballCollided', { waterBottom, object: e?.entity });
+          if (e?.entity) {
+            events.emit('ballCollided', { waterBottom, object: e.entity });
+          }
         }
       },
       null,

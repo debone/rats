@@ -99,7 +99,6 @@ class BadgeButton extends Button {
     });
 
     const costText = new Text({
-      text: `${def.activeAbility.cost}`,
       style: {
         ...TEXT_STYLE_DEFAULT,
         fontSize: 14,
@@ -108,6 +107,14 @@ class BadgeButton extends Button {
         width: 20,
         height: 20,
       },
+    });
+
+    getRunState().crewBoons.panterat_cheaperAbilities.subscribe((cheaperAbilities) => {
+      if (cheaperAbilities && def.activeAbility.cost > 1) {
+        costText.text = `${def.activeAbility.cost - 1}`;
+      } else {
+        costText.text = `${def.activeAbility.cost}`;
+      }
     });
 
     costContainer.addChild(cheeseSprite);
@@ -147,15 +154,17 @@ class BadgeButton extends Button {
     const member = crewMember ?? new CrewMemberInstance('empty', 'empty');
     this._crewMember = member;
     const def = CREW_DEFS[member.defKey];
+    const discount = getRunState().crewBoons.panterat_cheaperAbilities.get() ? 1 : 0;
+    const cost = def.activeAbility.cost - discount;
 
     // Update sprite texture
     this._sprite.texture = typedAssets.get(ASSETS.prototype).textures[def.textureName];
 
     // Update name text
-    this._nameText.text = `${def.name} - ${def.activeAbility.cost}`;
+    this._nameText.text = `${def.name} - ${cost}`;
 
     // Update cost text
-    this._costText.text = `${def.activeAbility.cost}`;
+    this._costText.text = `${cost}`;
   }
 }
 

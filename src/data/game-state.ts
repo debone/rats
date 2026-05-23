@@ -71,6 +71,8 @@ export interface RunState {
     mrblu_nextCheeseIsBlue: Signal<boolean>;
     mrblu_cheeseFloats: Signal<boolean>;
     mysz_smallerBoat: Signal<boolean>;
+    panterat_unstoppableBall: Signal<boolean>;
+    panterat_cheaperAbilities: Signal<boolean>;
     // TBD
     mysz_ballsStickToBoat: Signal<boolean>;
   };
@@ -167,6 +169,8 @@ export function createGameState(): GameState {
         mrblu_nextCheeseIsBlue: signal(false),
         mrblu_cheeseFloats: signal(false),
         mysz_smallerBoat: signal(false),
+        panterat_unstoppableBall: signal(false),
+        panterat_cheaperAbilities: signal(false),
         // TBD
         mysz_ballsStickToBoat: signal(false),
       },
@@ -279,12 +283,15 @@ export function offboardCrewMember(crewMember: CrewMemberDefKey): void {
 }
 
 export function activateCrewAbility(index: number): void {
-  const crewMember = index === 0 ? getRunState().firstMember.get() : getRunState().secondMember.get();
-
   const runState = getRunState();
+  const crewMember = index === 0 ? runState.firstMember.get() : runState.secondMember.get();
+
+  const discount = runState.crewBoons.panterat_cheaperAbilities.get() ? 1 : 0;
+
   const amount = runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()
     ? runState.scrapsCounter.get()
     : runState.cheeseCounter.get();
+
   const consume = runState.crewBoons.lacfree_abilitiesConsumeRubbles.get() ? changeScraps : changeCheese;
 
   if (!crewMember) {
@@ -296,11 +303,13 @@ export function activateCrewAbility(index: number): void {
   if (runState.crewBoons.nuggets_nextAbilityFree.get()) {
     runState.crewBoons.nuggets_nextAbilityFree.set(false);
   } else {
-    if (def.activeAbility.cost > amount) {
+    const cost = def.activeAbility.cost - discount;
+
+    if (cost > amount) {
       return;
     }
 
-    consume(-def.activeAbility.cost);
+    consume(-cost);
   }
 
   def.activeAbility.effect(getRunState(), getGameContext());

@@ -97,6 +97,17 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     nudge = value;
   });
 
+  let unstoppableBall = false;
+  getRunState().crewBoons.panterat_unstoppableBall.subscribe((value) => {
+    unstoppableBall = value;
+  });
+
+  // Snapshot of the ball's corrected velocity from the previous frame end.
+  // This represents the direction the ball "intended" to travel going into the
+  // physics step, and is used to restore direction after an unstoppable-mode
+  // brick collision (Box2D reflects the velocity during the step; we undo that).
+  let priorVelocity = new b2Vec2(0, 0);
+
   const { start, stop } = useUpdate((delta) => {
     timeout -= delta;
     if (timeout <= 0) {
@@ -139,11 +150,28 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     }
 
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(newVelocity.x, newVelocity.y));
+
+    // Snapshot the corrected velocity so the brick collision handler can restore
+    // it when the ball is in unstoppable mode.
+    priorVelocity.x = newVelocity.x;
+    priorVelocity.y = newVelocity.y;
   });
 
   useCollisionHandler(bodyId, () => ({
     tag: 'ball',
-    handlers: {},
+    handlers: {
+      'strong-brick': (_ball, brick) => {
+        if (!unstoppableBall) return;
+        brick.hit(100);
+        // Restore pre-step velocity: Box2D has already reflected the ball off
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
+      },
+      brick: (_ball, _brick) => {
+        if (!unstoppableBall) return;
+        // Restore pre-step velocity: Box2D has already reflected the ball off
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
+      },
+    },
     entity: normBall,
   }));
 
