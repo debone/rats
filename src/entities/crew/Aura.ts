@@ -1,15 +1,16 @@
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { addBallToRun } from '@/data/game-state';
+import { t } from '@/i18n/i18n';
 import type { CrewMemberDef } from './Crew';
 
 export const AuraCrewMember: CrewMemberDef = {
   type: 'aura',
-  name: 'Aura',
+  name: t.f('crew.aura.name'),
   textureName: 'avatars-new_tile_2#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Doubles all balls',
+    name: t.f('crew.aura.active.name'),
     cost: 1,
     effect: (runState) => {
       addBallToRun(runState.ballsRemaining.get());
@@ -17,7 +18,7 @@ export const AuraCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: 'Cheese can break bricks',
+    name: t.f('crew.aura.passive.name'),
     mount: (runState) => {
       runState.crewBoons.aura_cheeseBreaksBricks.set(true);
     },

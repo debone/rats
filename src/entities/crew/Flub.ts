@@ -1,14 +1,15 @@
 import { getEntitiesOf } from '@/core/entity/scope';
 import { NormBall } from '@/gameplay/entities/NormBall';
+import { t } from '@/i18n/i18n';
 import type { CrewMemberDef } from './Crew';
 
 export const FlubCrewMember: CrewMemberDef = {
   type: 'flub',
-  name: 'Flub',
+  name: t.f('crew.flub.name'),
   textureName: 'avatars-new_tile_11#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Haste active balls',
+    name: t.f('crew.flub.active.name'),
     cost: 1,
     effect: () => {
       getEntitiesOf(NormBall).forEach((ball) => {
@@ -20,7 +21,7 @@ export const FlubCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: 'Balls are attracted to the boat',
+    name: t.f('crew.flub.passive.name'),
     mount: (runState) => {
       runState.crewBoons.flub_ballsAttractedToBoat.set(true);
     },

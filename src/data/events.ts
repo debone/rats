@@ -51,6 +51,7 @@ export const GameEvent = {
   CREW_RECALL_BALLS: 'crew:recall-balls',
   CREW_STICK_BALL_TO_PADDLE: 'crew:stick-ball-to-paddle',
   CREW_EXPLODE_BALLS: 'crew:explode-balls',
+  CREW_DROP_ALL_BOAT_CHEESE: 'crew:drop-all-boat-cheese',
 } as const;
 
 /**
@@ -101,6 +102,7 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.CREW_RECALL_BALLS]: void;
   [GameEvent.CREW_STICK_BALL_TO_PADDLE]: void;
   [GameEvent.CREW_EXPLODE_BALLS]: void;
+  [GameEvent.CREW_DROP_ALL_BOAT_CHEESE]: void;
 }
 
 /**

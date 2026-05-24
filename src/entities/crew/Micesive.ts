@@ -1,19 +1,20 @@
+import { t } from '@/i18n/i18n';
 import type { CrewMemberDef } from './Crew';
 
 export const MicesiveCrewMember: CrewMemberDef = {
   type: 'micesive',
-  name: 'Micesive',
+  name: t.f('crew.micesive.name'),
   textureName: 'avatars-new_tile_16#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Next 5 bricks have 5 rubbles',
+    name: t.f('crew.micesive.active.name'),
     cost: 1,
     effect: (runState) => {
       runState.crewBoons.micesive_nextBricksHaveMoreRubbles.set(5);
     },
   },
   passiveAbility: {
-    name: 'Cheese gives +1 ball',
+    name: t.f('crew.micesive.passive.name'),
     mount: (runState) => {
       runState.crewBoons.micesive_cheeseGivesBalls.set(true);
     },

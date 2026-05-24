@@ -1,3 +1,4 @@
+import { t } from '@/i18n/i18n';
 import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import type { CrewMemberDef } from './Crew';
 
@@ -5,11 +6,11 @@ const LITTLEMI_EVERYTHING_FLOATS_DURATION = 15_000;
 
 export const LittleMiCrewMember: CrewMemberDef = {
   type: 'littlemi',
-  name: 'Little Mi',
+  name: t.f('crew.littlemi.name'),
   textureName: 'avatars-new_tile_15#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Everything floats (15s)',
+    name: t.f('crew.littlemi.active.name'),
     cost: 1,
     effect: (runState, context) => {
       runState.crewBoons.littlemi_everythingFloats.set(true);
@@ -26,7 +27,7 @@ export const LittleMiCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: 'Longer boat',
+    name: t.f('crew.littlemi.passive.name'),
     mount: (runState) => {
       runState.crewBoons.littlemi_longerBoat.set(true);
     },

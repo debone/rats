@@ -76,6 +76,7 @@ export interface RunState {
     pirat_ballsStickToBoat: Signal<boolean>;
     ratfather_ghostBalls: Signal<boolean>;
     ratfather_bricksGiveMoreCheese: Signal<boolean>;
+    ratoulie_abilitiesConsumeBalls: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -175,6 +176,7 @@ export function createGameState(): GameState {
         pirat_ballsStickToBoat: signal(false),
         ratfather_ghostBalls: signal(false),
         ratfather_bricksGiveMoreCheese: signal(false),
+        ratoulie_abilitiesConsumeBalls: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
@@ -290,11 +292,17 @@ export function activateCrewAbility(index: number): void {
 
   const discount = runState.crewBoons.panterat_cheaperAbilities.get() ? 1 : 0;
 
-  const amount = runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()
-    ? runState.scrapsCounter.get()
-    : runState.cheeseCounter.get();
+  const amount = runState.crewBoons.ratoulie_abilitiesConsumeBalls.get()
+    ? runState.ballsRemaining.get()
+    : runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()
+      ? runState.scrapsCounter.get()
+      : runState.cheeseCounter.get();
 
-  const consume = runState.crewBoons.lacfree_abilitiesConsumeRubbles.get() ? changeScraps : changeCheese;
+  const consume = runState.crewBoons.ratoulie_abilitiesConsumeBalls.get()
+    ? addBallToRun
+    : runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()
+      ? changeScraps
+      : changeCheese;
 
   if (!crewMember) {
     return;

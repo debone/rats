@@ -1,20 +1,21 @@
 import { getRunState } from '@/data/game-state';
+import { t } from '@/i18n/i18n';
 import type { CrewMemberDef } from './Crew';
 
 export const MrBluCrewMember: CrewMemberDef = {
   type: 'mrblu',
-  name: 'Mr. Blu',
+  name: t.f('crew.mrblu.name'),
   textureName: 'avatars-new_tile_14#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Next cheese is blue',
+    name: t.f('crew.mrblu.active.name'),
     cost: 1,
     effect: () => {
       getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(true);
     },
   },
   passiveAbility: {
-    name: 'Cheese floats',
+    name: t.f('crew.mrblu.passive.name'),
     mount: (runState) => {
       runState.crewBoons.mrblu_cheeseFloats.set(true);
     },

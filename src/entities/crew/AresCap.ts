@@ -1,14 +1,15 @@
 import { MAX_CHEESE } from '@/consts';
 import { changeCheese, removeBallFromRun } from '@/data/game-state';
+import { t } from '@/i18n/i18n';
 import type { CrewMemberDef } from './Crew';
 
 export const AresCapCrewMember: CrewMemberDef = {
   type: 'arescap',
-  name: "Yer' Ares Cap",
+  name: t.f('crew.arescap.name'),
   textureName: 'avatars-new_tile_19#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Transforms 1 ball into 1 cheese',
+    name: t.f('crew.arescap.active.name'),
     cost: 1,
     effect: (runState) => {
       // lol it costs cheese to make it work?
@@ -21,7 +22,7 @@ export const AresCapCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: 'Balls deal additional 1 damage',
+    name: t.f('crew.arescap.passive.name'),
     mount: (runState) => {
       runState.stats.ballDamage.update((v) => v + 1);
     },
