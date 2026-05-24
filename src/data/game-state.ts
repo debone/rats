@@ -73,8 +73,9 @@ export interface RunState {
     mysz_smallerBoat: Signal<boolean>;
     panterat_unstoppableBall: Signal<boolean>;
     panterat_cheaperAbilities: Signal<boolean>;
-    // TBD
-    mysz_ballsStickToBoat: Signal<boolean>;
+    pirat_ballsStickToBoat: Signal<boolean>;
+    ratfather_ghostBalls: Signal<boolean>;
+    ratfather_bricksGiveMoreCheese: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -171,8 +172,9 @@ export function createGameState(): GameState {
         mysz_smallerBoat: signal(false),
         panterat_unstoppableBall: signal(false),
         panterat_cheaperAbilities: signal(false),
-        // TBD
-        mysz_ballsStickToBoat: signal(false),
+        pirat_ballsStickToBoat: signal(false),
+        ratfather_ghostBalls: signal(false),
+        ratfather_bricksGiveMoreCheese: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),

@@ -2,6 +2,7 @@ import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { useBodySprite, useCollisionHandler, usePhysics } from '@/hooks/hooks';
+import { PhysicsLayer, setBodyFilter } from '@/systems/physics/PhysicsLayers';
 import type { b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
 
@@ -28,6 +29,7 @@ export const CatTail = defineEntity(({ bodyId, texture }: CatTailProps) => {
     bodyId,
   });
 
+  setBodyFilter(bodyId, PhysicsLayer.CAT_PIECE, PhysicsLayer.BALL | PhysicsLayer.CAT_PIECE);
   physics.enableGravity(bodyId);
 
   onCleanup(() => {

@@ -10,6 +10,7 @@ import { getRunState } from '@/data/game-state';
 import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
+import { PhysicsLayer, setBodyCategoryBits } from '@/systems/physics/PhysicsLayers';
 import { Sprite } from 'pixi.js';
 
 export type StrongBrickEvents = {
@@ -62,6 +63,7 @@ export const StrongBrick = defineEntity(
 
     assert(bodyId, 'Body ID is required');
     assert(spawnPos, 'Spawn position is required');
+    setBodyCategoryBits(bodyId, PhysicsLayer.BRICK);
 
     const events = useEmitter<StrongBrickEvents>();
 

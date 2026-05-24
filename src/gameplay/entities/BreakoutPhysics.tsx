@@ -88,6 +88,11 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
     micesive_nextBricksHaveMoreRubbles = value;
   });
 
+  let bricksGiveMoreCheese = false;
+  getRunState().crewBoons.ratfather_bricksGiveMoreCheese.subscribe((value) => {
+    bricksGiveMoreCheese = value;
+  });
+
   withChildren(() => {
     loadedBodies.forEach((bodyId) => {
       if (!b2Body_IsValid(bodyId)) return;
@@ -166,7 +171,12 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
                     Scrap({ pos: new b2Vec2(x, y) });
                   }
                 } else {
-                  const r = Math.random();
+                  let r = Math.random();
+
+                  if (bricksGiveMoreCheese) {
+                    r -= 0.1;
+                  }
+
                   if (r < 0.2) {
                     if (nextCheeseIsBlue) {
                       getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
@@ -202,7 +212,12 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
                   Scrap({ pos: new b2Vec2(x, y) });
                 }
               } else {
-                const r = Math.random();
+                let r = Math.random();
+
+                if (bricksGiveMoreCheese) {
+                  r -= 0.1;
+                }
+
                 if (r < 0.35) {
                   const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
 

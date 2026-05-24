@@ -1,4 +1,7 @@
+import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import type { CrewMemberDef } from './Crew';
+
+const RATFATHER_GHOST_BALLS_DURATION = 2_000;
 
 export const RatfatherCrewMember: CrewMemberDef = {
   type: 'ratfather',
@@ -7,15 +10,28 @@ export const RatfatherCrewMember: CrewMemberDef = {
   hiringCost: 10,
   activeAbility: {
     name: 'Ghost balls (2s)',
-    cost: 1,
-    effect: () => {
-      console.log('Ratfather ability effect');
+    cost: 5,
+    effect: (runState, context) => {
+      runState.crewBoons.ratfather_ghostBalls.set(true);
+
+      context.systems.get(ScheduleSystem).trySchedule(
+        () => {
+          runState.crewBoons.ratfather_ghostBalls.set(false);
+        },
+        () => {
+          runState.crewBoons.ratfather_ghostBalls.set(false);
+        },
+        RATFATHER_GHOST_BALLS_DURATION,
+      );
     },
   },
   passiveAbility: {
     name: 'Bricks give more cheese',
-    effect: () => {
-      console.log('Ratfather ability effect');
+    mount: (runState) => {
+      runState.crewBoons.ratfather_bricksGiveMoreCheese.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.ratfather_bricksGiveMoreCheese.set(false);
     },
   },
 };

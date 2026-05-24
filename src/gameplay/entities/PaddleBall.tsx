@@ -3,7 +3,10 @@ import { sfx } from '@/core/audio/audio';
 import { assert } from '@/core/common/assert';
 import { attach, defineEntity, type AttachHandle } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
+import { getGameContext } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
 import { useChildren, useEffect, useGameEvent } from '@/hooks/hooks';
+import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import {
   b2Body_GetPosition,
   b2Body_SetLinearVelocity,
@@ -19,10 +22,8 @@ import {
   b2Vec2,
 } from 'phaser-box2d';
 import { NormBall, type NormBallEntity } from './NormBall';
-import { Paddle, PaddleSizes, type PaddleEntity, type PaddleJointConfig, type PaddleSize } from './Paddle';
-import { attachPaddleBallSnap } from './attachments/paddleBallSnap';
-import { getGameContext } from '@/data/game-context';
-import { getRunState } from '@/data/game-state';
+import { Paddle, type PaddleEntity, type PaddleJointConfig, type PaddleSize } from './Paddle';
+import { attachPaddleBallSnap, SNAP_LAUNCH_COOLDOWN_MS } from './attachments/paddleBallSnap';
 
 export interface PaddleBallProps {
   levelId: string;
@@ -31,6 +32,7 @@ export interface PaddleBallProps {
 
 export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallProps) => {
   const { withChildren } = useChildren();
+  const schedule = getGameContext().systems.get(ScheduleSystem);
 
   // Extract all stable joint parameters before consuming the template joint.
   // anchorBodyId is a static geometry body that lives for the entire level
@@ -49,10 +51,21 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
   let paddle: PaddleEntity | undefined;
   let ballSnap: AttachHandle<{ launch: () => void; jointId: b2JointId }> | undefined;
   let snappedBall: NormBallEntity | undefined;
+  // True during the SNAP_LAUNCH_COOLDOWN_MS window after a launch. While set,
+  // CREW_STICK_BALL_TO_PADDLE events are ignored so the ball is not immediately
+  // re-snapped before its velocity has been applied.
+  let snapOnCooldown = false;
 
   const snapBallToPaddle = (p: PaddleEntity, ball: NormBallEntity) => {
     ballSnap?.detach();
-    ballSnap = attachPaddleBallSnap(p, ball);
+    ballSnap = attachPaddleBallSnap(p, ball, {
+      onLaunch: () => {
+        snapOnCooldown = true;
+        schedule.schedule(() => {
+          snapOnCooldown = false;
+        }, SNAP_LAUNCH_COOLDOWN_MS);
+      },
+    });
     snappedBall = ball;
   };
 
@@ -78,9 +91,11 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
     }
   };
 
-  // TODO: the collision can happen at the start and the ball never moves out
   useGameEvent(GameEvent.CREW_STICK_BALL_TO_PADDLE, () => {
     assert(paddle, `${levelId}: paddle not found`);
+
+    if (snapOnCooldown) return;
+
     const someBallSnapped = ballSnap != null && b2Joint_IsValid(ballSnap.jointId);
     if (someBallSnapped) {
       return;

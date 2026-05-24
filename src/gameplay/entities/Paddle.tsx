@@ -95,7 +95,7 @@ export const Paddle = defineEntity(({ jointConfig, spawnPos, size = 'normal' }: 
   });
 
   let doesBallStick = false;
-  getRunState().crewBoons.mysz_ballsStickToBoat.subscribe((value) => {
+  getRunState().crewBoons.pirat_ballsStickToBoat.subscribe((value) => {
     doesBallStick = value;
   });
 

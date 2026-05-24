@@ -9,6 +9,7 @@ import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
 import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
+import { PhysicsLayer, setBodyCategoryBits } from '@/systems/physics/PhysicsLayers';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
@@ -60,6 +61,7 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp }:
 
   assert(bodyId, 'Body ID is required');
   assert(spawnPos, 'Spawn position is required');
+  setBodyCategoryBits(bodyId, PhysicsLayer.BRICK);
 
   const events = useEmitter<BrickEvents>();
 

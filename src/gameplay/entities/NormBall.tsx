@@ -7,6 +7,7 @@ import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useUpdate, useWorldId } from '@/hooks/hooks';
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
+import { BALL_MASK_GHOST, BALL_MASK_NORMAL, PhysicsLayer } from '@/systems/physics/PhysicsLayers';
 import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
@@ -71,7 +72,8 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
   });
 
   const ballFilter = b2Shape_GetFilter(shapeId);
-  ballFilter.categoryBits = 0x0002;
+  ballFilter.categoryBits = PhysicsLayer.BALL;
+  ballFilter.maskBits = BALL_MASK_NORMAL;
   b2Shape_SetFilter(shapeId, ballFilter);
 
   onCleanup(() => {
@@ -101,6 +103,14 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
   getRunState().crewBoons.panterat_unstoppableBall.subscribe((value) => {
     unstoppableBall = value;
   });
+
+  getRunState().crewBoons.ratfather_ghostBalls.subscribe((value) => {
+    const filter = b2Shape_GetFilter(shapeId);
+    filter.maskBits = value ? BALL_MASK_GHOST : BALL_MASK_NORMAL;
+    b2Shape_SetFilter(shapeId, filter);
+  });
+
+  const entityCollisions = ctx.systems.get(EntityCollisionSystem);
 
   // Snapshot of the ball's corrected velocity from the previous frame end.
   // This represents the direction the ball "intended" to travel going into the
@@ -215,8 +225,6 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
 
   useGameEvent(GameEvent.CREW_EXPLODE_BALLS, () => {
     const BALL_EXPLODE_RADIUS = 2.5;
-    const entityCollisions = getGameContext().systems.get(EntityCollisionSystem);
-
     const damage = getRunState().stats.ballDamage.get();
     const position = b2Body_GetPosition(bodyId);
 

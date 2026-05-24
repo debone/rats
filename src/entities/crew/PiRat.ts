@@ -1,3 +1,4 @@
+import { addBallToRun } from '@/data/game-state';
 import type { CrewMemberDef } from './Crew';
 
 export const PiRatCrewMember: CrewMemberDef = {
@@ -6,16 +7,19 @@ export const PiRatCrewMember: CrewMemberDef = {
   textureName: 'avatars-new_tile_18#0',
   hiringCost: 10,
   activeAbility: {
-    name: 'Adds ball',
+    name: 'Additional ball',
     cost: 1,
     effect: () => {
-      console.log('Pi Rat ability effect');
+      addBallToRun(1);
     },
   },
   passiveAbility: {
     name: 'Boat is immobilized',
-    effect: () => {
-      console.log('Pi Rat ability effect');
+    mount: (runState) => {
+      runState.crewBoons.pirat_ballsStickToBoat.set(true);
+    },
+    unmount: (runState) => {
+      runState.crewBoons.pirat_ballsStickToBoat.set(false);
     },
   },
 };
