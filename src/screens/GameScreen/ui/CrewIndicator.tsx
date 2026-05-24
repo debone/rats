@@ -1,12 +1,12 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { computed } from '@/core/reactivity/signals/signals';
+import { computed, effect } from '@/core/reactivity/signals/signals';
 import { getRunState } from '@/data/game-state';
 import { CREW_DEFS, CrewMemberInstance } from '@/entities/crew/Crew';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
-import { Sprite, Text } from 'pixi.js';
+import { Assets, Sprite, Text } from 'pixi.js';
 
 class BadgeButton extends Button {
   private _crewMember: CrewMemberInstance;
@@ -88,8 +88,14 @@ class BadgeButton extends Button {
       height: 32,
     };
 
-    getRunState().crewBoons.lacfree_abilitiesConsumeRubbles.subscribe((consumeRubbles) => {
-      if (consumeRubbles) {
+    effect(() => {
+      const consumeRubbles = getRunState().crewBoons.lacfree_abilitiesConsumeRubbles.get();
+      const consumeBalls = getRunState().crewBoons.ratoulie_abilitiesConsumeBalls.get();
+      if (consumeBalls) {
+        cheeseSprite.texture = Assets.get(ASSETS.tiles).textures.ball;
+        cheeseSprite.scale.set(0.75, 0.75);
+        cheeseSprite.layout?.forceUpdate();
+      } else if (consumeRubbles) {
         cheeseSprite.texture = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0'];
         cheeseSprite.layout?.forceUpdate();
       } else {

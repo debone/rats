@@ -1,12 +1,21 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
+import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
-import { getRunState } from '@/data/game-state';
-import { useChildren, useCollisionHandler, useImmediateUpdate, usePhysics, useWorldId } from '@/hooks/hooks';
+import { changeCheese, getRunState } from '@/data/game-state';
+import {
+  useChildren,
+  useCollisionHandler,
+  useGameEvent,
+  useImmediateUpdate,
+  usePhysics,
+  useWorldId,
+} from '@/hooks/hooks';
 import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import {
+  b2Body_GetPosition,
   b2Body_GetTransform,
   b2Body_SetLinearVelocity,
   b2Body_SetTransform,
@@ -17,10 +26,10 @@ import {
 } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
 import { InputDevice } from 'pixijs-input-devices';
+import { YellowCheese } from './Cheese';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { PlusCheeseParticles } from './particles/PlusCheeseParticles';
 import { PlusClayParticles } from './particles/PlusClayParticles';
-import { GameEvent } from '@/data/events';
 
 export interface PaddleEntity extends EntityBase {
   bodyId: b2BodyId;
@@ -153,6 +162,19 @@ export const Paddle = defineEntity(({ jointConfig, spawnPos, size = 'normal' }: 
       transform.q.s = boatForce * 0.25;
       b2Body_SetTransform(paddle.bodyId, transform.p, transform.q);
       b2Body_SetLinearVelocity(paddle.bodyId, new b2Vec2(boatForce * paddle.maxSpeed * boatVelocityAdjustment, 0));
+    }
+  });
+
+  useGameEvent(GameEvent.CREW_DROP_ALL_BOAT_CHEESE, () => {
+    const paddlePosition = b2Body_GetPosition(paddle.bodyId);
+    // Read how many cheese is there
+    const cheeseCount = getRunState().cheeseCounter.get();
+    changeCheese(-cheeseCount);
+    for (let i = 0; i < cheeseCount; i++) {
+      YellowCheese({
+        pos: new b2Vec2(paddlePosition.x, paddlePosition.y + 1),
+        vel: new b2Vec2(Math.random() * 20 - 10, Math.random() * 10 + 5),
+      });
     }
   });
 
