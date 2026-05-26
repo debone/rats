@@ -24,7 +24,8 @@ export class CheeseCounter extends LayoutContainer {
       minHeight: 42,
     };
 
-    let cheeseBox!: LayoutContainer;
+    let activeCheese!: LayoutContainer;
+    let slotCheese!: LayoutContainer;
 
     const cheeseTexture = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'];
 
@@ -32,29 +33,21 @@ export class CheeseCounter extends LayoutContainer {
       <box
         layout={{
           padding: 5,
-          gap: 2,
           position: 'absolute',
-          top: 5,
-          left: 5,
         }}
-      >
-        <sprite texture={cheeseTexture} scale={1.25} layout={{ objectFit: 'cover' }} tint={0x666666} />
-        <sprite texture={cheeseTexture} scale={1.25} layout={{ objectFit: 'cover' }} tint={0x666666} />
-        <sprite texture={cheeseTexture} scale={1.25} layout={{ objectFit: 'cover' }} tint={0x666666} />
-        <sprite texture={cheeseTexture} scale={1.25} layout={{ objectFit: 'cover' }} tint={0x666666} />
-        <sprite texture={cheeseTexture} scale={1.25} layout={{ objectFit: 'cover' }} tint={0x666666} />
-      </box>
+        ref={(ref) => (slotCheese = ref)}
+      ></box>
       <box
         layout={{
           padding: 5,
           width: 128,
-          gap: 2,
+          flexDirection: 'row',
         }}
-        ref={(ref) => (cheeseBox = ref)}
+        ref={(ref) => (activeCheese = ref)}
       ></box>
     </mount>;
 
-    const ballStrategy: Strategy = (parent, { adds, removes, moves }) => {
+    const slideInStrategy: Strategy = (parent, { adds, removes, moves }) => {
       // Animate removes out (parallel, staggered)
       removes.reverse().forEach(({ element }, i) => {
         animate(element, { alpha: 0, y: '+=20', duration: 200, delay: i * 30 }).then(() => element.destroy());
@@ -80,16 +73,61 @@ export class CheeseCounter extends LayoutContainer {
     this.cheeseCounter = createRefs({
       path: 'cheese',
       template: () => {
-        const ballSprite = new Sprite(typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0']);
-        ballSprite.scale.set(1.25, 1.25);
-        ballSprite.layout = {
+        const cheeseSprite = new Sprite(
+          typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'],
+        );
+        cheeseSprite.layout = {
           objectFit: 'cover',
         };
-        return ballSprite;
+        return cheeseSprite;
       },
       size: getRunState().cheeseCounter,
-      parent: cheeseBox,
-      strategy: ballStrategy,
+      parent: activeCheese,
+      strategy: slideInStrategy,
+    });
+
+    const slotCheeseRefs = createRefs({
+      path: 'slotCheese',
+      template: () => {
+        const cheeseSprite = new Sprite(
+          typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'],
+        );
+        cheeseSprite.tint = 0x666666;
+        cheeseSprite.scale.set(1.25, 1.25);
+        cheeseSprite.layout = {
+          objectFit: 'cover',
+        };
+        return cheeseSprite;
+      },
+      size: getRunState().maxCheeseStorage,
+      parent: slotCheese,
+    });
+
+    getRunState().maxCheeseStorage.subscribe((maxCheeseStorage) => {
+      const slotParent = slotCheeseRefs.parent;
+      const activeParent = this.cheeseCounter.parent;
+
+      if (slotParent) {
+        if (maxCheeseStorage === 9) {
+          slotParent.layout?.setStyle({ gap: 0, marginLeft: -7 });
+          activeParent?.layout?.setStyle({ gap: 0, marginLeft: -7 });
+        } else if (maxCheeseStorage === 7) {
+          slotParent.layout?.setStyle({ gap: 0, paddingTop: 6 });
+          activeParent?.layout?.setStyle({ gap: 0, paddingTop: 6 });
+        } else {
+          slotParent.layout?.setStyle({ gap: 2, paddingTop: 4 });
+          activeParent?.layout?.setStyle({ gap: 2 });
+        }
+      }
+
+      const scale = maxCheeseStorage === 9 ? 0.85 : maxCheeseStorage === 7 ? 1 : 1.25;
+
+      for (const child of slotCheeseRefs) {
+        child.scale.set(scale, scale);
+      }
+      for (const child of this.cheeseCounter) {
+        child.scale.set(scale, scale);
+      }
     });
   }
 

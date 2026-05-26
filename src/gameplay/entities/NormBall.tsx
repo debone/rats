@@ -185,24 +185,6 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     entity: normBall,
   }));
 
-  useGameEvent(GameEvent.CREW_DOUBLE_BALLS, () => {
-    const velocity = b2Body_GetLinearVelocity(bodyId);
-
-    if (!normBall.active) {
-      return;
-    }
-
-    const position = b2Body_GetPosition(bodyId);
-    const newBall = NormBall({ x: position.x, y: position.y });
-    newBall.startUpdating();
-
-    const rotatedVelocity = b2RotateVector(b2MakeRot(Math.PI), velocity);
-
-    queueMicrotask(() => {
-      b2Body_SetLinearVelocity(newBall.bodyId, rotatedVelocity);
-    });
-  });
-
   useGameEvent(GameEvent.CREW_RECALL_BALLS, () => {
     const paddles = getEntitiesOf(Paddle);
     if (paddles.length === 0) {

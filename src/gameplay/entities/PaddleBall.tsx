@@ -1,13 +1,14 @@
 import { ASSETS } from '@/assets';
 import { sfx } from '@/core/audio/audio';
 import { assert } from '@/core/common/assert';
-import { attach, defineEntity, type AttachHandle } from '@/core/entity/scope';
+import { defineEntity, entity, getChildrenOf, type AttachHandle, type EntityBase } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
 import { useChildren, useEffect, useGameEvent } from '@/hooks/hooks';
 import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
 import {
+  b2Body_GetLinearVelocity,
   b2Body_GetPosition,
   b2Body_SetLinearVelocity,
   b2DestroyBody,
@@ -17,13 +18,20 @@ import {
   b2Joint_GetLocalAnchorB,
   b2Joint_IsValid,
   b2JointId,
+  b2MakeRot,
   b2PrismaticJoint_GetLowerLimit,
   b2PrismaticJoint_GetUpperLimit,
+  b2RotateVector,
   b2Vec2,
 } from 'phaser-box2d';
 import { NormBall, type NormBallEntity } from './NormBall';
 import { Paddle, type PaddleEntity, type PaddleJointConfig, type PaddleSize } from './Paddle';
 import { attachPaddleBallSnap, SNAP_LAUNCH_COOLDOWN_MS } from './attachments/paddleBallSnap';
+
+export interface PaddleBallEntity extends EntityBase {
+  createBall(): void;
+  swapPaddle(size: PaddleSize): void;
+}
 
 export interface PaddleBallProps {
   levelId: string;
@@ -117,33 +125,64 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
   // --- Ball management ---
 
   const createBall = () => {
-    assert(paddle, `${levelId}: paddle not found`);
-    const pos = b2Body_GetPosition(paddle.bodyId);
-    const ball = NormBall({ x: pos.x, y: pos.y + 1 });
-    snapBallToPaddle(paddle, ball);
+    withChildren(() => {
+      assert(paddle, `${levelId}: paddle not found`);
+      const pos = b2Body_GetPosition(paddle.bodyId);
+      const ball = NormBall({ x: pos.x, y: pos.y + 1 });
+      snapBallToPaddle(paddle, ball);
+    });
   };
 
-  useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {
+  useGameEvent(GameEvent.CREW_DOUBLE_BALLS, () => {
     assert(paddle, `${levelId}: paddle not found`);
-    attach(paddle, (p) => {
-      withChildren(() => {
-        const paddlePosition = b2Body_GetPosition(p.bodyId);
-        const newBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+    withChildren(() => {
+      const balls = getChildrenOf(paddleBall, NormBall);
+
+      for (const ball of balls) {
+        const velocity = b2Body_GetLinearVelocity(ball.bodyId);
+
+        if (!ball.active) {
+          return;
+        }
+
+        const position = b2Body_GetPosition(ball.bodyId);
+        const newBall = NormBall({ x: position.x, y: position.y });
         newBall.startUpdating();
 
-        const ballPos = b2Body_GetPosition(newBall.bodyId);
-        const paddlePos = b2Body_GetPosition(p.bodyId);
-        sfx.play(ASSETS.sounds_Rat_Squeak_A);
+        const angle = (Math.random() - 0.5) * (Math.PI / 10);
 
-        const x = ballPos.x - paddlePos.x;
-        const y = ballPos.y - paddlePos.y;
+        const rotatedVelocity = b2RotateVector(b2MakeRot(angle), velocity);
 
         queueMicrotask(() => {
-          b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(x, y));
+          b2Body_SetLinearVelocity(newBall.bodyId, rotatedVelocity);
         });
+      }
+    });
+  });
+
+  useGameEvent(GameEvent.CREW_SHOOT_BALL, () => {
+    withChildren(() => {
+      assert(paddle, `${levelId}: paddle not found`);
+      const paddlePosition = b2Body_GetPosition(paddle.bodyId);
+      const newBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+      newBall.startUpdating();
+
+      const ballPos = b2Body_GetPosition(newBall.bodyId);
+      sfx.play(ASSETS.sounds_Rat_Squeak_A);
+
+      const x = ballPos.x - paddlePosition.x;
+      const y = ballPos.y - paddlePosition.y;
+
+      queueMicrotask(() => {
+        b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(x, y));
       });
     });
   });
 
-  return { createBall, swapPaddle };
+  const paddleBall = entity<PaddleBallEntity>({
+    createBall,
+    swapPaddle,
+  });
+
+  return paddleBall;
 });

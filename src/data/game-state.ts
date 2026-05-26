@@ -5,7 +5,6 @@
  * These are pure data definitions without implementation logic.
  */
 
-import { MAX_CHEESE } from '@/consts';
 import { createKeyedCollection, SignalCollection } from '@/core/reactivity/signals/signal-collection';
 import { signal } from '@/core/reactivity/signals/signals';
 import type { Signal } from '@/core/reactivity/signals/types';
@@ -47,6 +46,7 @@ export interface RunState {
 
   scrapsCounter: Signal<number>;
   cheeseCounter: Signal<number>;
+  maxCheeseStorage: Signal<number>;
   crewMembers: SignalCollection<CrewMemberInstance>;
   firstMember: Signal<CrewMemberInstance | undefined>;
   secondMember: Signal<CrewMemberInstance | undefined>;
@@ -77,6 +77,7 @@ export interface RunState {
     ratfather_ghostBalls: Signal<boolean>;
     ratfather_bricksGiveMoreCheese: Signal<boolean>;
     ratoulie_abilitiesConsumeBalls: Signal<boolean>;
+    splitter_additionalCheeseStorage: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -138,6 +139,7 @@ export function createGameState(): GameState {
       ballsRemaining: signal(5),
       scrapsCounter: signal(0),
       cheeseCounter: signal(5),
+      maxCheeseStorage: signal(5),
       crewMembers: createKeyedCollection<CrewMemberInstance>([
         /**
          new DoublerCrewMember('doubler2'),
@@ -177,6 +179,7 @@ export function createGameState(): GameState {
         ratfather_ghostBalls: signal(false),
         ratfather_bricksGiveMoreCheese: signal(false),
         ratoulie_abilitiesConsumeBalls: signal(false),
+        splitter_additionalCheeseStorage: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
@@ -245,7 +248,8 @@ export function changeScraps(count: number): void {
 }
 
 export function changeCheese(delta: number): void {
-  getRunState().cheeseCounter.update((value) => Math.max(0, Math.min(MAX_CHEESE, value + delta)));
+  const runState = getRunState();
+  runState.cheeseCounter.update((value) => Math.max(0, Math.min(runState.maxCheeseStorage.get(), value + delta)));
 }
 
 export function addBallToRun(count: number): void {

@@ -16,7 +16,6 @@ import { animate } from 'animejs';
 import {
   b2Body_ApplyForceToCenter,
   b2Body_GetMass,
-  b2Body_GetUserData,
   b2Body_IsValid,
   b2BodyId,
   b2DefaultWorldDef,
@@ -221,21 +220,19 @@ export class PhysicsSystem implements System {
         entityB.handlers[entityA.tag](entityB.entity, entityA.entity);
         handled = true;
       }
-    } else if (entityA) {
-      const userDataB = b2Body_GetUserData(bodyIdB) as { type: string } | null;
-      if (userDataB?.type && entityA.handlers[userDataB.type]) {
-        entityA.handlers[userDataB.type](entityA.entity, bodyIdB);
-        handled = true;
-      }
-    } else if (entityB) {
-      const userDataA = b2Body_GetUserData(bodyIdA) as { type: string } | null;
-      if (userDataA?.type && entityB.handlers[userDataA.type]) {
-        entityB.handlers[userDataA.type](entityB.entity, bodyIdA);
-        handled = true;
-      }
     }
 
     if (!handled) {
+      // at some point I learned that trying to deal with bodies that had
+      // no entity attached to were a nightmare and probably always a leftover
+      // about to be cleaned. So I ditched any kind "trying to be smart about handling
+      // non-entity bodies"
+      //
+      // One of the reasons is that eventually all the collision handling code
+      // got to depend on the fact that they are dealing with the entities of the
+      // bodies that are colliding, not the bodies themselves. So to let some of
+      // those happen but other no, we'd be looking at null check everywhere. nope.
+      //
       // console.error(`There are no handlers for this collision`, { bodyIdA, bodyIdB });
       // throw new Error(`There are no handlers for this collision ${bodyIdA} and ${bodyIdB}`);
       // I had something here... but it assumes things that we don't care about colliding (which I'm not sure which one are these, but hey....)

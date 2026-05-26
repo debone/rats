@@ -16,7 +16,6 @@ export const OVERLAY_Z_INDEX = 15;
 export const DEBUG_Z_INDEX = 25;
 
 export const STARTING_BALLS = 10;
-export const MAX_CHEESE = 5;
 export const BALL_SPEED_DEFAULT = 15;
 
 export const TEXT_STYLE_DEFAULT = {
