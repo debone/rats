@@ -152,6 +152,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
             useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
               console.log('broken', b);
               const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+              const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
 
               if (nextCheeseIsBlue && powerUp !== undefined) {
                 getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
@@ -160,10 +161,19 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
 
               if (powerUp === 'blue') {
                 BlueCheese({ pos: new b2Vec2(x, y) });
+                if (doubleCheese) {
+                  BlueCheese({ pos: new b2Vec2(x, y) });
+                }
               } else if (powerUp === 'green') {
                 GreenCheese({ pos: new b2Vec2(x, y) });
+                if (doubleCheese) {
+                  GreenCheese({ pos: new b2Vec2(x, y) });
+                }
               } else if (powerUp === 'yellow') {
                 YellowCheese({ pos: new b2Vec2(x, y) });
+                if (doubleCheese) {
+                  YellowCheese({ pos: new b2Vec2(x, y) });
+                }
               } else {
                 if (micesive_nextBricksHaveMoreRubbles > 0) {
                   micesive_nextBricksHaveMoreRubbles--;
@@ -181,8 +191,14 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
                     if (nextCheeseIsBlue) {
                       getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
                       BlueCheese({ pos: new b2Vec2(x, y) });
+                      if (doubleCheese) {
+                        BlueCheese({ pos: new b2Vec2(x, y) });
+                      }
                     } else {
                       YellowCheese({ pos: new b2Vec2(x, y) });
+                      if (doubleCheese) {
+                        YellowCheese({ pos: new b2Vec2(x, y) });
+                      }
                     }
                   } else if (r < 0.5) {
                     Scrap({ pos: { x: x - 0.25, y } });
@@ -220,12 +236,19 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
 
                 if (r < 0.35) {
                   const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+                  const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
 
                   if (nextCheeseIsBlue) {
                     getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
                     BlueCheese({ pos: new b2Vec2(x, y) });
+                    if (doubleCheese) {
+                      BlueCheese({ pos: new b2Vec2(x, y) });
+                    }
                   } else {
                     YellowCheese({ pos: new b2Vec2(x, y) });
+                    if (doubleCheese) {
+                      YellowCheese({ pos: new b2Vec2(x, y) });
+                    }
                   }
                 } else {
                   Scrap({ pos: { x: x - 0.25, y } });

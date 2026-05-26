@@ -20,14 +20,6 @@ export const Level4 = defineEntity(() => {
   withChildren(() => {
     Background({ tiledMap: TILED_MAPS.backgrounds_level_4, includeBroadBg: false });
 
-    setTimeout(() => {
-      onboardCrewMember('littlemi');
-    }, 500);
-
-    setTimeout(() => {
-      offboardCrewMember('littlemi');
-    }, 2000);
-
     LivesBallRules({
       onLose,
       checkLoseCondition,

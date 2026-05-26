@@ -1,4 +1,4 @@
-export type CheeseType = 'yellow' | 'blue' | 'green';
+export type CheeseType = 'yellow' | 'blue' | 'green' | 'gruyere';
 
 export interface CheeseDef {
   texture: string;
@@ -13,5 +13,8 @@ export const CHEESE_DEFS = {
   },
   blue: {
     texture: 'cheese_tile_4#0',
+  },
+  gruyere: {
+    texture: 'cheese_tile_5#0',
   },
 } satisfies Record<CheeseType, CheeseDef>;

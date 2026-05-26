@@ -4,6 +4,7 @@ import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/
 import { GameEvent } from '@/data/events';
 import { changeScraps } from '@/data/game-state';
 import { useBodySprite, useCollisionHandler, useGameEvent, usePhysics, useWorldId } from '@/hooks/hooks';
+import { PhysicsLayer, PICKUP_MASK, setBodyFilter } from '@/systems/physics/PhysicsLayers';
 import {
   b2Body_ApplyLinearImpulseToCenter,
   b2Body_GetLinearVelocity,
@@ -11,8 +12,6 @@ import {
   b2Body_SetUserData,
   b2BodyType,
   b2Normalize,
-  b2Shape_GetFilter,
-  b2Shape_SetFilter,
   b2Vec2,
   CreateCircle,
   type b2BodyId,
@@ -34,7 +33,7 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
   const worldId = useWorldId();
   const physics = usePhysics();
 
-  const { bodyId, shapeId } = CreateCircle({
+  const { bodyId } = CreateCircle({
     worldId,
     type: b2BodyType.b2_dynamicBody,
     position: new b2Vec2(pos.x, pos.y),
@@ -44,10 +43,7 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
     restitution: 0,
   });
 
-  const scrapFilter = b2Shape_GetFilter(shapeId);
-  scrapFilter.maskBits = 0x0005;
-  scrapFilter.categoryBits = 0xfffd;
-  b2Shape_SetFilter(shapeId, scrapFilter);
+  setBodyFilter(bodyId, PhysicsLayer.SCRAP, PICKUP_MASK);
 
   const f = new b2Vec2(Math.random() * 1 - 0.5, Math.random() * 1 - 0.5);
   b2Normalize(f);

@@ -11,21 +11,32 @@ import {
  * Box2D collision category bits used across the game.
  *
  * DEFAULT covers every body that doesn't need selective filtering — walls,
- * paddle, cheese, scrap, all Godot-authored geometry. No Godot migration
- * required: new bodies without an explicit categoryBits stay at 0x0001.
+ * paddle.
  *
  * BRICK is the only layer that currently needs to be toggled at runtime
  * (ghost-ball mode). Add new layers here as the need arises; keep the list
  * small so the bit-mask arithmetic stays readable.
  */
 export const PhysicsLayer = {
-  DEFAULT:   1 << 0, // 0x0001 — walls, paddle, most Godot geo
-  BALL:      1 << 1, // 0x0002 — NormBall (already set at creation)
-  BRICK:     1 << 2, // 0x0004 — Brick + StrongBrick
+  DEFAULT: 1 << 0, // 0x0001 — walls, paddle, most Godot geo
+  BALL: 1 << 1, // 0x0002 — NormBall (already set at creation)
+  BRICK: 1 << 2, // 0x0004 — Brick + StrongBrick
   CAT_PIECE: 1 << 3, // 0x0008 — cat-body + cat-tail (stamped at runtime;
-                     //           Godot geometry uses categoryBits=2 which
-                     //           we override to keep them in their own layer)
+  //           Godot geometry uses categoryBits=2 which
+  //           we override to keep them in their own layer)
+  CHEESE: 1 << 4, // 0x0010 — Cheese pickups
+  SCRAP: 1 << 5, // 0x0020 — Scrap pickups
+  CHEESE_BULLET: 1 << 6, // 0x0040 — crew-fired cheese projectiles
 } as const;
+
+/** Cheese / scrap collide with static geometry and bricks, not balls or each other. */
+export const PICKUP_MASK = PhysicsLayer.DEFAULT | PhysicsLayer.BRICK;
+
+/**
+ * Cheese bullets hit walls, bricks, and cat pieces — not balls or other pickups.
+ * DEFAULT / BRICK bodies use the Box2D default mask (all bits set) and need no change.
+ */
+export const CHEESE_BULLET_MASK = PhysicsLayer.DEFAULT | PhysicsLayer.BRICK | PhysicsLayer.CAT_PIECE;
 
 /** Ball collides with everything it normally should. */
 export const BALL_MASK_NORMAL = PhysicsLayer.DEFAULT | PhysicsLayer.BRICK | PhysicsLayer.CAT_PIECE;

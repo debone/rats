@@ -24,9 +24,10 @@ import {
   b2RotateVector,
   b2Vec2,
 } from 'phaser-box2d';
+import { attachPaddleBallSnap, SNAP_LAUNCH_COOLDOWN_MS } from './attachments/paddleBallSnap';
+import { CheeseBullet } from './CheeseBullet';
 import { NormBall, type NormBallEntity } from './NormBall';
 import { Paddle, type PaddleEntity, type PaddleJointConfig, type PaddleSize } from './Paddle';
-import { attachPaddleBallSnap, SNAP_LAUNCH_COOLDOWN_MS } from './attachments/paddleBallSnap';
 
 export interface PaddleBallEntity extends EntityBase {
   createBall(): void;
@@ -176,6 +177,14 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
       queueMicrotask(() => {
         b2Body_SetLinearVelocity(newBall.bodyId, new b2Vec2(x, y));
       });
+    });
+  });
+
+  useGameEvent(GameEvent.CREW_SHOOT_CHEESE, () => {
+    withChildren(() => {
+      assert(paddle, `${levelId}: paddle not found`);
+      const paddlePosition = b2Body_GetPosition(paddle.bodyId);
+      CheeseBullet({ pos: new b2Vec2(paddlePosition.x, paddlePosition.y + 1) });
     });
   });
 

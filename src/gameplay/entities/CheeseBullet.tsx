@@ -56,7 +56,6 @@ export const CheeseBullet = defineEntity(({ pos }: CheeseBulletProps) => {
       'bottom-wall': () => {
         cheeseBullet.destroy();
       },
-
       'strong-brick': (_self: CheeseBulletEntity, _brick: StrongBrickEntity) => {
         _brick.hit(1);
         cheeseBullet.destroy();

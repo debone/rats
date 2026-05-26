@@ -60,7 +60,7 @@ export const i18nDictEnglish = {
 
   'crew.mysz.name': 'Mysz',
   'crew.mysz.active.name': 'Recall balls',
-  'crew.mysz.passive.name': 'Balls stick to boat',
+  'crew.mysz.passive.name': 'Smaller boat',
 
   'crew.neon.name': 'Neon',
   'crew.neon.active.name': 'Explode balls',
@@ -76,7 +76,7 @@ export const i18nDictEnglish = {
 
   'crew.pirat.name': 'Pi Rat',
   'crew.pirat.active.name': 'Additional ball',
-  'crew.pirat.passive.name': 'Boat is immobilized',
+  'crew.pirat.passive.name': 'Balls stick to boat',
 
   'crew.ratfather.name': 'Ratfather',
   'crew.ratfather.active.name': 'Ghost balls (2s)',
@@ -91,6 +91,6 @@ export const i18nDictEnglish = {
   'crew.splitter.passive.name': '+2 cheese storage',
 
   'crew.twoears.name': 'The Two Ears',
-  'crew.twoears.active.name': 'Destroy random brick',
-  'crew.twoears.passive.name': 'Boat can shoot',
+  'crew.twoears.active.name': 'Shoots a cheese bullet',
+  'crew.twoears.passive.name': 'Double cheese',
 };

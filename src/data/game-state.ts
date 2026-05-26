@@ -78,6 +78,7 @@ export interface RunState {
     ratfather_bricksGiveMoreCheese: Signal<boolean>;
     ratoulie_abilitiesConsumeBalls: Signal<boolean>;
     splitter_additionalCheeseStorage: Signal<boolean>;
+    twoears_doubleCheese: Signal<boolean>;
   };
   // Run-specific state
   // lives: number;
@@ -180,6 +181,7 @@ export function createGameState(): GameState {
         ratfather_bricksGiveMoreCheese: signal(false),
         ratoulie_abilitiesConsumeBalls: signal(false),
         splitter_additionalCheeseStorage: signal(false),
+        twoears_doubleCheese: signal(false),
       },
       //firstMember: signal(new CrewMemberInstance('doubler', 'doubler2')),
       //secondMember: signal(new CrewMemberInstance('faster', 'faster3')),
