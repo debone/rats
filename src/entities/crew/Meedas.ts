@@ -4,18 +4,18 @@ import type { CrewMemberDef } from './Crew';
 
 export const MeedasCrewMember: CrewMemberDef = {
   type: 'meedas',
-  name: t.f('crew.meedas.name'),
+  name: t.dict['crew.meedas.name'],
   textureName: 'avatars-new_tile_12#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.meedas.active.name'),
+    name: t.dict['crew.meedas.active.name'],
     cost: 1,
     effect: (_runState, context) => {
       context.events.emit(GameEvent.CREW_RUBBLE_BECOMES_CHEESE);
     },
   },
   passiveAbility: {
-    name: t.f('crew.meedas.passive.name'),
+    name: t.dict['crew.meedas.passive.name'],
     mount: (runState) => {
       runState.crewBoons.meedas_ballsBounceWater.set(true);
     },

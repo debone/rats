@@ -3,14 +3,14 @@ import type { CrewMemberDef } from './Crew';
 
 export const EmptyCrewMember: CrewMemberDef = {
   type: 'empty',
-  name: t.f('crew.empty.name'),
+  name: t.dict['crew.empty.name'],
   description: 'no ability',
   textureName: 'avatars-new_tile_1#0',
 
   hiringCost: 0,
 
   activeAbility: {
-    name: t.f('crew.empty.active.name'),
+    name: t.dict['crew.empty.active.name'],
     cost: 0,
     effect: () => {
       console.log('Empty ability effect');
@@ -18,7 +18,7 @@ export const EmptyCrewMember: CrewMemberDef = {
   },
 
   passiveAbility: {
-    name: t.f('crew.empty.passive.name'),
+    name: t.dict['crew.empty.passive.name'],
     effect: () => {
       console.log('Empty ability effect');
     },

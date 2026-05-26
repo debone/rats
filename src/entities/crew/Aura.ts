@@ -6,11 +6,11 @@ import type { CrewMemberDef } from './Crew';
 
 export const AuraCrewMember: CrewMemberDef = {
   type: 'aura',
-  name: t.f('crew.aura.name'),
+  name: t.dict['crew.aura.name'],
   textureName: 'avatars-new_tile_2#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.aura.active.name'),
+    name: t.dict['crew.aura.active.name'],
     cost: 1,
     effect: (runState) => {
       addBallToRun(runState.ballsRemaining.get());
@@ -18,7 +18,7 @@ export const AuraCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: t.f('crew.aura.passive.name'),
+    name: t.dict['crew.aura.passive.name'],
     mount: (runState) => {
       runState.crewBoons.aura_cheeseBreaksBricks.set(true);
     },

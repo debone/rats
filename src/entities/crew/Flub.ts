@@ -5,11 +5,11 @@ import type { CrewMemberDef } from './Crew';
 
 export const FlubCrewMember: CrewMemberDef = {
   type: 'flub',
-  name: t.f('crew.flub.name'),
+  name: t.dict['crew.flub.name'],
   textureName: 'avatars-new_tile_11#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.flub.active.name'),
+    name: t.dict['crew.flub.active.name'],
     cost: 1,
     effect: () => {
       getEntitiesOf(NormBall).forEach((ball) => {
@@ -21,7 +21,7 @@ export const FlubCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: t.f('crew.flub.passive.name'),
+    name: t.dict['crew.flub.passive.name'],
     mount: (runState) => {
       runState.crewBoons.flub_ballsAttractedToBoat.set(true);
     },

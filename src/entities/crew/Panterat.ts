@@ -6,11 +6,11 @@ const PANTERAT_STRONG_BALL_DURATION = 7_000;
 
 export const PanteratCrewMember: CrewMemberDef = {
   type: 'panterat',
-  name: t.f('crew.panterat.name'),
+  name: t.dict['crew.panterat.name'],
   textureName: 'avatars-new_tile_13#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.panterat.active.name'),
+    name: t.dict['crew.panterat.active.name'],
     cost: 5,
     effect: (runState, context) => {
       runState.crewBoons.panterat_unstoppableBall.set(true);
@@ -27,7 +27,7 @@ export const PanteratCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: t.f('crew.panterat.passive.name'),
+    name: t.dict['crew.panterat.passive.name'],
     mount: (runState) => {
       runState.crewBoons.panterat_cheaperAbilities.set(true);
     },

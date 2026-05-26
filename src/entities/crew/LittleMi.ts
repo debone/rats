@@ -6,11 +6,11 @@ const LITTLEMI_EVERYTHING_FLOATS_DURATION = 15_000;
 
 export const LittleMiCrewMember: CrewMemberDef = {
   type: 'littlemi',
-  name: t.f('crew.littlemi.name'),
+  name: t.dict['crew.littlemi.name'],
   textureName: 'avatars-new_tile_15#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.littlemi.active.name'),
+    name: t.dict['crew.littlemi.active.name'],
     cost: 1,
     effect: (runState, context) => {
       runState.crewBoons.littlemi_everythingFloats.set(true);
@@ -27,7 +27,7 @@ export const LittleMiCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: t.f('crew.littlemi.passive.name'),
+    name: t.dict['crew.littlemi.passive.name'],
     mount: (runState) => {
       runState.crewBoons.littlemi_longerBoat.set(true);
     },

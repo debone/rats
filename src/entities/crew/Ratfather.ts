@@ -6,11 +6,11 @@ const RATFATHER_GHOST_BALLS_DURATION = 2_000;
 
 export const RatfatherCrewMember: CrewMemberDef = {
   type: 'ratfather',
-  name: t.f('crew.ratfather.name'),
+  name: t.dict['crew.ratfather.name'],
   textureName: 'avatars-new_tile_4#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.ratfather.active.name'),
+    name: t.dict['crew.ratfather.active.name'],
     cost: 5,
     effect: (runState, context) => {
       runState.crewBoons.ratfather_ghostBalls.set(true);
@@ -27,7 +27,7 @@ export const RatfatherCrewMember: CrewMemberDef = {
     },
   },
   passiveAbility: {
-    name: t.f('crew.ratfather.passive.name'),
+    name: t.dict['crew.ratfather.passive.name'],
     mount: (runState) => {
       runState.crewBoons.ratfather_bricksGiveMoreCheese.set(true);
     },

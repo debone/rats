@@ -5,18 +5,18 @@ import { getGameContext } from '@/data/game-context';
 
 export const ApprenticeCrewMember: CrewMemberDef = {
   type: 'apprentice',
-  name: t.f('crew.apprentice.name'),
+  name: t.dict['crew.apprentice.name'],
   textureName: 'avatars-new_tile_7#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.apprentice.active.name'),
+    name: t.dict['crew.apprentice.active.name'],
     cost: 1,
     effect: () => {
       getGameContext().events.emit(GameEvent.CREW_SHOOT_BALL);
     },
   },
   passiveAbility: {
-    name: t.f('crew.apprentice.passive.name'),
+    name: t.dict['crew.apprentice.passive.name'],
     mount: (runState) => {
       runState.stats.ballSpeedRatio.update((v) => v * 0.75);
     },

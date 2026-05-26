@@ -4,18 +4,18 @@ import type { CrewMemberDef } from './Crew';
 
 export const MrBluCrewMember: CrewMemberDef = {
   type: 'mrblu',
-  name: t.f('crew.mrblu.name'),
+  name: t.dict['crew.mrblu.name'],
   textureName: 'avatars-new_tile_14#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.mrblu.active.name'),
+    name: t.dict['crew.mrblu.active.name'],
     cost: 1,
     effect: () => {
       getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(true);
     },
   },
   passiveAbility: {
-    name: t.f('crew.mrblu.passive.name'),
+    name: t.dict['crew.mrblu.passive.name'],
     mount: (runState) => {
       runState.crewBoons.mrblu_cheeseFloats.set(true);
     },

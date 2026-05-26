@@ -4,18 +4,18 @@ import type { CrewMemberDef } from './Crew';
 
 export const PiRatCrewMember: CrewMemberDef = {
   type: 'pirat',
-  name: t.f('crew.pirat.name'),
+  name: t.dict['crew.pirat.name'],
   textureName: 'avatars-new_tile_18#0',
   hiringCost: 10,
   activeAbility: {
-    name: t.f('crew.pirat.active.name'),
+    name: t.dict['crew.pirat.active.name'],
     cost: 1,
     effect: () => {
       addBallToRun(1);
     },
   },
   passiveAbility: {
-    name: t.f('crew.pirat.passive.name'),
+    name: t.dict['crew.pirat.passive.name'],
     mount: (runState) => {
       runState.crewBoons.pirat_ballsStickToBoat.set(true);
     },
