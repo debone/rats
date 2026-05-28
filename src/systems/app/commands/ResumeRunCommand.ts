@@ -1,5 +1,6 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
+import { VFXSystem } from '@/core/vfx/VFXSystem';
 import type { RunState } from '@/data/game-state';
 import { GameScreen } from '@/screens/GameScreen/GameScreen';
 import { LoadLevelCommand } from '../../level/commands/LoadLevelCommand';
@@ -22,6 +23,7 @@ export class ResumeRunCommand extends Command<{ run: RunState }> {
     this.context.systems.add(PhysicsSystem);
     this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
+    this.context.systems.add(VFXSystem);
 
     // Resume from current level
     yield execute(LoadLevelCommand, { levelId: run.currentLevelId });

@@ -1,5 +1,6 @@
 import { Command, execute } from '@/core/game/Command';
 import type { Coroutine } from '@/core/game/Coroutine';
+import { VFXSystem } from '@/core/vfx/VFXSystem';
 import { LoadScreen } from '@/screens/LoadScreen';
 import { LevelSystem } from '@/systems/level/system';
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
@@ -27,6 +28,7 @@ export class AppStartCommand extends Command {
     this.context.systems.add(PhysicsSystem);
     this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
+    this.context.systems.add(VFXSystem);
 
     if (savedRun) {
       yield execute(ResumeRunCommand, { run: savedRun });

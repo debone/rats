@@ -4,6 +4,7 @@ import { Command, execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
 import { setBallsRemaining } from '@/data/game-state';
+import { VFXSystem } from '@/core/vfx/VFXSystem';
 import { useGameEvent } from '@/hooks/hooks';
 import { FirstCrewSelector } from '@/screens/FirstCrewSelector';
 import { LoadScreen } from '@/screens/LoadScreen';
@@ -45,6 +46,7 @@ export class StartNewRunCommand extends Command {
     context.systems.add(PhysicsSystem);
     context.systems.add(EntityCollisionSystem);
     context.systems.add(LevelSystem);
+    context.systems.add(VFXSystem);
 
     setBallsRemaining(STARTING_BALLS);
 

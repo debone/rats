@@ -1,13 +1,13 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
-import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { EventEmitter } from '@/core/game/EventEmitter';
-import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { brickBreak } from '@/core/vfx/effects/brickBreak';
+import { vfx } from '@/core/vfx/vfx';
 import { getRunState } from '@/data/game-state';
-import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
+import { useBodySprite, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { PhysicsLayer, setBodyCategoryBits } from '@/systems/physics/PhysicsLayers';
@@ -29,7 +29,6 @@ export interface StrongBrickEntity extends EntityBase {
 export interface StrongBrickProps {
   bodyId?: b2BodyId;
   spawnPos?: { x: number; y: number };
-  debrisEmitter: ParticleEmitter;
   /** Hits before destruction (default 2). */
   initialLife?: number;
   onHit?: (brick: StrongBrickEntity) => void;
@@ -37,9 +36,8 @@ export interface StrongBrickProps {
 }
 
 export const StrongBrick = defineEntity(
-  ({ bodyId, spawnPos, debrisEmitter, initialLife = 2, onHit, onBreak }: StrongBrickProps) => {
+  ({ bodyId, spawnPos, initialLife = 2, onHit, onBreak }: StrongBrickProps) => {
     const physics = usePhysics();
-    const camera = useCamera();
 
     if (!spawnPos && !bodyId) {
       throw new Error('Spawn position or body ID is required');
@@ -116,14 +114,12 @@ export const StrongBrick = defineEntity(
           sprite.texture = bg[`bricks_tile_4#0`];
 
           const { x, y } = BodyToScreen(this.bodyId);
-          debrisEmitter.explode(2, x, y);
-          shake(camera, { intensity: Math.random() * 0.25, duration: 300 });
+          vfx.play(brickBreak, { x, y, count: 2, intensity: Math.random() * 0.25 });
           return;
         }
 
         const { x, y } = BodyToScreen(this.bodyId);
-        debrisEmitter.explode(12, x, y);
-        shake(camera, { intensity: Math.random() * 1.25, duration: 300 });
+        vfx.play(brickBreak, { x, y, count: 12, intensity: Math.random() * 1.25 });
 
         // TODO: improve this once all the levels are the same
         if (getRunState().crewBoons.lacfree_nextBricksHaveCheese.get() > 0) {

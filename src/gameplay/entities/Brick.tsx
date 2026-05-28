@@ -1,14 +1,14 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
-import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { EventEmitter } from '@/core/game/EventEmitter';
-import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { brickBreak } from '@/core/vfx/effects/brickBreak';
+import { vfx } from '@/core/vfx/vfx';
 import { getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
-import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
+import { useBodySprite, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { PhysicsLayer, setBodyCategoryBits } from '@/systems/physics/PhysicsLayers';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
@@ -32,13 +32,11 @@ export interface BrickEntity extends EntityBase {
 export interface BrickProps {
   bodyId?: b2BodyId;
   spawnPos?: { x: number; y: number };
-  debrisEmitter: ParticleEmitter;
   powerUp?: BrickPowerUps;
 }
 
-export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp }: BrickProps) => {
+export const Brick = defineEntity(({ bodyId, spawnPos, powerUp }: BrickProps) => {
   const physics = usePhysics();
-  const camera = useCamera();
 
   if (!spawnPos && !bodyId) {
     throw new Error('Spawn position or body ID is required');
@@ -113,10 +111,8 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp }:
         sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { volume: 0.25 });
       }
 
-      shake(camera, { intensity: Math.random() * 1, duration: 300 });
-
       const { x, y } = BodyToScreen(this.bodyId);
-      debrisEmitter.explode(8, x, y);
+      vfx.play(brickBreak, { x, y, intensity: Math.random() });
 
       if (getRunState().crewBoons.lacfree_nextBricksHaveCheese.get() > 0) {
         getRunState().crewBoons.lacfree_nextBricksHaveCheese.update((v) => v - 1);
@@ -131,7 +127,6 @@ export const Brick = defineEntity(({ bodyId, spawnPos, debrisEmitter, powerUp }:
     unbreak(): BrickEntity {
       return Brick({
         spawnPos,
-        debrisEmitter,
         powerUp,
       });
     },

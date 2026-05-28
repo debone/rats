@@ -28,7 +28,6 @@ import { Wall, wallSparkOnBall } from './Wall';
 import { WaterBottom, type WaterBottomEntity } from './WaterBottom';
 import { CatPiece } from './cats/CatBody';
 import { CatTail } from './cats/CatTail';
-import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
 
@@ -73,7 +72,6 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
   });
 
   const particles = withChildren(() => ({
-    brickDebris: BrickDebrisParticles(),
     wall: WallParticles(),
     water: WaterParticles(),
   }));
@@ -144,7 +142,6 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
         const brick = Brick({
           bodyId,
           powerUp,
-          debrisEmitter: particles.brickDebris.emitter,
         });
 
         if (!behavior) {
@@ -216,7 +213,6 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
 
         const strongBrick = StrongBrick({
           bodyId,
-          debrisEmitter: particles.brickDebris.emitter,
         });
 
         if (!behavior) {

@@ -1,0 +1,134 @@
+import type { System } from '@/core/game/System';
+import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { GameEvent } from '@/data/events';
+import type { GameContext } from '@/data/game-context';
+import type { Container } from 'pixi.js';
+import { VfxResourcePool } from './ResourceManager';
+import { VFX_EFFECTS } from './registry';
+import type { BurstDef, EmitterBackedDef, VfxPriority } from './types';
+
+/** zIndex for emitter containers within the `effects` layer (mirrors ParticleEmitterEntity). */
+const EMITTER_Z_INDEX = 1000;
+
+/** Hard cap on persistent emitters kept live at once before LRU/priority eviction. */
+const MAX_LIVE_EMITTERS = 24;
+/** Persistent emitter is reclaimed after this long without use (the boss-bloat guard). */
+const IDLE_TTL_MS = 10_000;
+/**
+ * Max non-critical `play` calls serviced per frame. A pathological flood (a huge
+ * combo, every brick at once) is smoothed by dropping `ambient`/`normal` plays
+ * past this; `critical` always runs. Particle *count* is separately bounded by
+ * each emitter's `maxParticles` free-list, so this only guards per-frame work.
+ */
+const MAX_PLAYS_PER_FRAME = 64;
+
+/**
+ * Owns all VFX behind one accessor: the budgeted emitter pool, the per-frame
+ * play budget, and (later phases) screen filters and sequences.
+ *
+ * Registered like the other gameplay systems, but **added last** so its
+ * `update` runs after physics/collision in each tick — that lets it reset the
+ * per-frame play counter at the tail of the frame, after the plays it bounds.
+ */
+export class VFXSystem implements System {
+  static SYSTEM_ID = 'vfx';
+
+  private context!: GameContext;
+  private pool!: VfxResourcePool<ParticleEmitter>;
+  private cooldowns = new Map<string, number>();
+  private playsThisFrame = 0;
+  private unsubscribe: Array<() => void> = [];
+
+  private readonly update = (): void => {
+    // Reset at the tail of the frame (VFXSystem is registered last) so the cap
+    // counts the plays that happened earlier this tick.
+    this.playsThisFrame = 0;
+    this.pool.sweep();
+  };
+
+  private readonly onScreenUnloaded = (): void => {
+    // The `effects` layer container is destroyed per screen; drop all unpinned
+    // resources so we never reuse an emitter whose container is gone.
+    this.pool.disposeAll({ keepPinned: true });
+    this.cooldowns.clear();
+  };
+
+  init(context: GameContext): void {
+    this.context = context;
+
+    this.pool = new VfxResourcePool<ParticleEmitter>({
+      maxLive: MAX_LIVE_EMITTERS,
+      idleTtlMs: IDLE_TTL_MS,
+      create: (def) => this.createEmitter(def),
+      dispose: (emitter) => emitter.destroy(),
+    });
+
+    // Decentralized triggers: wire every effect that declares its own `on:`.
+    // The binding lives in the effect's own file, not a central table; the
+    // event payload is forwarded as the effect's params.
+    for (const def of VFX_EFFECTS) {
+      if (def.kind === 'burst' && def.on) {
+        const burst = def as BurstDef<unknown>;
+        this.unsubscribe.push(context.events.on(burst.on!, (payload) => this.play(burst, payload)));
+      }
+    }
+
+    context.systems.register('update', this.update);
+    this.unsubscribe.push(context.events.on(GameEvent.SCREEN_UNLOADED, this.onScreenUnloaded));
+  }
+
+  destroy(): void {
+    this.context?.systems.unregister('update', this.update);
+    this.unsubscribe.forEach((off) => off());
+    this.unsubscribe = [];
+    this.pool?.disposeAll();
+    this.cooldowns.clear();
+  }
+
+  /** Fire a one-shot burst effect by reference (type-safe params, no string ids). */
+  play<P>(def: BurstDef<P>, params: P): void {
+    if (def.cooldownMs) {
+      const now = performance.now();
+      const last = this.cooldowns.get(def.id) ?? -Infinity;
+      if (now - last < def.cooldownMs) return;
+      this.cooldowns.set(def.id, now);
+    }
+
+    if (!this.allowPlay(def.priority ?? 'normal')) return;
+
+    const emitter = this.pool.acquire(def);
+    def.play(params, { emitter, camera: this.context.camera, layer: this.layer() });
+  }
+
+  /** Pre-create + lock emitters so a later burst (e.g. a boss) never allocates mid-fight. */
+  pin(...defs: EmitterBackedDef[]): void {
+    defs.forEach((def) => this.pool.pin(def));
+  }
+
+  /** Pre-create emitters without locking them, so first use has no allocation cost. */
+  warm(...defs: EmitterBackedDef[]): void {
+    defs.forEach((def) => this.pool.warm(def));
+  }
+
+  private allowPlay(priority: VfxPriority): boolean {
+    if (priority === 'critical') {
+      this.playsThisFrame++;
+      return true;
+    }
+    if (this.playsThisFrame >= MAX_PLAYS_PER_FRAME) return false;
+    this.playsThisFrame++;
+    return true;
+  }
+
+  private layer(): Container {
+    return this.context.navigation.getLayer('effects');
+  }
+
+  private createEmitter(def: EmitterBackedDef): ParticleEmitter {
+    const config = def.emitter!();
+    const emitter = new ParticleEmitter(config);
+    emitter.container.zIndex = EMITTER_Z_INDEX;
+    this.layer().addChild(emitter.container);
+    return emitter;
+  }
+}
