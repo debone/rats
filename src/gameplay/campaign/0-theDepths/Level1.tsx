@@ -47,7 +47,7 @@ export const Level1 = defineEntity(() => {
       attach(brick, (b) => {
         useSubscribe(b.events, 'broken', () => {
           remaining--;
-          if (door?.closed) {
+          if (remaining <= 48 && door?.closed) {
             door?.open();
           }
         });

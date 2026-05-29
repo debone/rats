@@ -52,11 +52,11 @@ export interface DoorOpenParams {
 }
 
 // Timeline layout (ms)
-const RAMP_DOWN = 1000; //        ease the world to a stop
-const RAMP_UP = 2000; //          ease the world back to full speed
-const UNLOCK_AT = 300; //          dust burst + heavy unlock clunk (with the ramp-down)
-const SLIDE_AT = 1500; //         grind begins: mechanical sound, shake, body slide
-const PUFF_INTERVAL = 140; //    cadence of "occasional" dust puffs during the slide
+const RAMP_DOWN = 250; //        ease the world to a stop
+const RAMP_UP = 700; //          ease the world back to full speed
+const UNLOCK_AT = 0; //          dust burst + heavy unlock clunk (with the ramp-down)
+const SLIDE_AT = 450; //         grind begins: mechanical sound, shake, body slide
+const PUFF_INTERVAL = 280; //    cadence of "occasional" dust puffs during the slide
 
 /** Emit a debris puff at every (still-valid) door segment's current screen position. */
 function dustSegments(bodyIds: b2BodyId[], count: number): void {
@@ -75,10 +75,7 @@ export const doorOpen = defineSequence<DoorOpenParams>({
   prewarm: [brickBreak],
   // Defaults let the debug panel's "seek ▶" (which passes no params) preview the
   // shake choreography with no bodies, instead of throwing on an undefined list.
-  build(
-    { bodyIds = [], distance = 0, duration = 2500, sound }: DoorOpenParams = {} as DoorOpenParams,
-    { camera, timeline },
-  ) {
+  build({ bodyIds = [], distance = 0, duration = 1500, sound }: DoorOpenParams = {} as DoorOpenParams, { camera, timeline }) {
     const slideEnd = SLIDE_AT + duration;
 
     // Freeze by time-scale, not by unregistering the update — see the doc comment.
@@ -148,7 +145,6 @@ export const doorOpen = defineSequence<DoorOpenParams>({
     }, slideEnd);
     addShake(tl, camera, { intensity: 6, duration: 360 }, slideEnd);
     // ...then ease the world back to full speed (seekable ramp-up tween).
-
-    if (physics) tl.add(physics, { ramp: 1, duration: RAMP_UP, ease: 'out' }, slideEnd + 1000);
+    if (physics) tl.add(physics, { ramp: 1, duration: RAMP_UP, ease: 'out' }, slideEnd);
   },
 });
