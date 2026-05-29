@@ -15,7 +15,16 @@ import { SequenceDebugSession } from './SequenceDebug';
 import { Figure8Mover } from './effects/debug/figure8Mover';
 import { followBody } from './follow';
 import { VFX_EFFECTS } from './registry';
-import type { BurstDef, ContinuousDef, EmitterBackedDef, PositionSource, ScreenDef, SequenceContext, SequenceDef, VfxPriority } from './types';
+import type {
+  BurstDef,
+  ContinuousDef,
+  EmitterBackedDef,
+  PositionSource,
+  ScreenDef,
+  SequenceContext,
+  SequenceDef,
+  VfxPriority,
+} from './types';
 
 /** zIndex for emitter containers within the `effects` layer (mirrors ParticleEmitterEntity). */
 const EMITTER_Z_INDEX = 1000;
@@ -81,7 +90,9 @@ export class VFXSystem implements System {
     this.cooldowns.clear();
     // Disable non-pinned screen filters (pinned ones persist across screens).
     const toDisable: ScreenDef[] = [];
-    this.screenFilters.forEach(({ def }) => { if (!def.pin) toDisable.push(def); });
+    this.screenFilters.forEach(({ def }) => {
+      if (!def.pin) toDisable.push(def);
+    });
     toDisable.forEach((def) => this.disableScreen(def));
   };
 
@@ -145,7 +156,7 @@ export class VFXSystem implements System {
         case 'sequence': {
           const seq = def as SequenceDef<unknown>;
           sequences.addButton({ title: seq.id, label: 'seek ▶' }).on('click', () => {
-            this.playSequence(seq, undefined, true);
+            this.playSequence(seq, {}, true);
           });
           break;
         }
@@ -273,10 +284,7 @@ export class VFXSystem implements System {
    * Run an authored Godot cutscene to completion on a layer, then tear it down.
    * Promise-based twin of `PlayCutsceneCommand` for use inside a sequence body.
    */
-  private async playCutscene(
-    name: string,
-    options?: { animation?: string; layer?: LayerName },
-  ): Promise<void> {
+  private async playCutscene(name: string, options?: { animation?: string; layer?: LayerName }): Promise<void> {
     const data = (await Assets.load(`cutscenes/${name}.json`)) as CutsceneData;
     const animName = options?.animation ?? Object.keys(data.animations)[0];
     if (!animName) {
