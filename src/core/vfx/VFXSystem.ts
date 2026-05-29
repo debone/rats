@@ -81,11 +81,16 @@ export class VFXSystem implements System {
 
     // Decentralized triggers: wire every effect that declares its own `on:`.
     // The binding lives in the effect's own file, not a central table; the
-    // event payload is forwarded as the effect's params.
+    // event payload is forwarded as the effect's params. Both one-shot bursts
+    // and composed sequences can self-trigger this way.
     for (const def of VFX_EFFECTS) {
-      if (def.kind === 'burst' && def.on) {
-        const burst = def as BurstDef<unknown>;
-        this.unsubscribe.push(context.events.on(burst.on!, (payload) => this.play(burst, payload)));
+      if ((def.kind === 'burst' || def.kind === 'sequence') && def.on) {
+        const triggered = def as BurstDef<unknown> | SequenceDef<unknown>;
+        this.unsubscribe.push(
+          context.events.on(triggered.on!, (payload) => {
+            this.play(triggered as SequenceDef<unknown>, payload);
+          }),
+        );
       }
       // Auto-enable pinned screen filters so they're always resident.
       if (def.kind === 'screen' && def.pin) {
@@ -140,6 +145,8 @@ export class VFXSystem implements System {
     const ctx: SequenceContext = {
       camera: this.context.camera,
       layer: this.layer(),
+      stage: this.context.app.stage,
+      size: { width: this.context.navigation.width, height: this.context.navigation.height },
       cutscene: (name, options) => this.playCutscene(name, options),
     };
     return Promise.resolve(def.build(params, ctx));

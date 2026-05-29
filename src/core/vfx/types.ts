@@ -95,7 +95,16 @@ export function defineScreen(def: ScreenDef): ScreenDef {
 /** Context handed to a sequence effect's `build`. */
 export interface SequenceContext {
   camera: Camera;
+  /** The `effects` layer (camera-relative). Recreated per screen — don't cache across plays. */
   layer: Container;
+  /**
+   * The application stage (screen-fixed, top-most, persistent across screen
+   * transitions). Use for full-screen cinematics that must outlive a level
+   * teardown — e.g. a "level completed" flash that covers the transition.
+   */
+  stage: Container;
+  /** Current renderer size in screen pixels, for sizing/centering full-screen elements. */
+  size: { width: number; height: number };
   /**
    * Run an authored Godot cutscene by name; resolves when the animation completes.
    * Mirrors `PlayCutsceneCommand` but is callable from a plain async sequence body,
