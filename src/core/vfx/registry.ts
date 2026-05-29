@@ -1,4 +1,7 @@
 import { brickBreak } from './effects/brickBreak';
+import { bloomEffect } from './effects/screen/bloom';
+import { crtEffect } from './effects/screen/crt';
+import { reflectionEffect } from './effects/screen/reflection';
 import type { EffectDef } from './types';
 
 /**
@@ -9,4 +12,4 @@ import type { EffectDef } from './types';
  *
  * Add new effects here as they are authored.
  */
-export const VFX_EFFECTS: EffectDef[] = [brickBreak];
+export const VFX_EFFECTS: EffectDef[] = [brickBreak, crtEffect, reflectionEffect, bloomEffect];

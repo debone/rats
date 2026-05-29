@@ -80,8 +80,15 @@ export interface ScreenDef extends BaseDef {
   target?: 'viewport' | 'stage';
   /** Per-frame uniform animation (replaces the inline `filter.time += dt/…` in main.ts). */
   update?(filter: Filter, dtMs: number): void;
+  /** Called when the renderer resizes — use to update boundary/dimension-dependent uniforms. */
+  resize?(filter: Filter, w: number, h: number): void;
   /** Long-lived ambient filters stay resident across screens. */
   pin?: boolean;
+}
+
+/** Identity helper that preserves the precise `ScreenDef` type. */
+export function defineScreen(def: ScreenDef): ScreenDef {
+  return def;
 }
 
 /** Context handed to a sequence effect's `build`. */

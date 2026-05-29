@@ -2,10 +2,10 @@ import type { System } from '@/core/game/System';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
-import type { Container } from 'pixi.js';
+import type { Container, Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
 import { VFX_EFFECTS } from './registry';
-import type { BurstDef, EmitterBackedDef, VfxPriority } from './types';
+import type { BurstDef, EmitterBackedDef, ScreenDef, VfxPriority } from './types';
 
 /** zIndex for emitter containers within the `effects` layer (mirrors ParticleEmitterEntity). */
 const EMITTER_Z_INDEX = 1000;
@@ -24,7 +24,7 @@ const MAX_PLAYS_PER_FRAME = 64;
 
 /**
  * Owns all VFX behind one accessor: the budgeted emitter pool, the per-frame
- * play budget, and (later phases) screen filters and sequences.
+ * play budget, screen filters, and (later phases) sequences.
  *
  * Registered like the other gameplay systems, but **added last** so its
  * `update` runs after physics/collision in each tick — that lets it reset the
@@ -39,11 +39,19 @@ export class VFXSystem implements System {
   private playsThisFrame = 0;
   private unsubscribe: Array<() => void> = [];
 
-  private readonly update = (): void => {
+  /** Active screen filters, keyed by ScreenDef.id. */
+  private screenFilters = new Map<string, { def: ScreenDef; filter: Filter }>();
+
+  private readonly update = (dtMs: number): void => {
     // Reset at the tail of the frame (VFXSystem is registered last) so the cap
     // counts the plays that happened earlier this tick.
     this.playsThisFrame = 0;
     this.pool.sweep();
+    this.screenFilters.forEach(({ def, filter }) => def.update?.(filter, dtMs));
+  };
+
+  private readonly onResize = (w: number, h: number): void => {
+    this.screenFilters.forEach(({ def, filter }) => def.resize?.(filter, w, h));
   };
 
   private readonly onScreenUnloaded = (): void => {
@@ -51,6 +59,10 @@ export class VFXSystem implements System {
     // resources so we never reuse an emitter whose container is gone.
     this.pool.disposeAll({ keepPinned: true });
     this.cooldowns.clear();
+    // Disable non-pinned screen filters (pinned ones persist across screens).
+    const toDisable: ScreenDef[] = [];
+    this.screenFilters.forEach(({ def }) => { if (!def.pin) toDisable.push(def); });
+    toDisable.forEach((def) => this.disableScreen(def));
   };
 
   init(context: GameContext): void {
@@ -71,18 +83,29 @@ export class VFXSystem implements System {
         const burst = def as BurstDef<unknown>;
         this.unsubscribe.push(context.events.on(burst.on!, (payload) => this.play(burst, payload)));
       }
+      // Auto-enable pinned screen filters so they're always resident.
+      if (def.kind === 'screen' && def.pin) {
+        this.enableScreen(def);
+      }
     }
 
     context.systems.register('update', this.update);
+    context.systems.register('resize', this.onResize);
     this.unsubscribe.push(context.events.on(GameEvent.SCREEN_UNLOADED, this.onScreenUnloaded));
   }
 
   destroy(): void {
     this.context?.systems.unregister('update', this.update);
+    this.context?.systems.unregister('resize', this.onResize);
     this.unsubscribe.forEach((off) => off());
     this.unsubscribe = [];
     this.pool?.disposeAll();
     this.cooldowns.clear();
+    this.screenFilters.forEach(({ def, filter }) => {
+      this.detachFilter(def, filter);
+      filter.destroy();
+    });
+    this.screenFilters.clear();
   }
 
   /** Fire a one-shot burst effect by reference (type-safe params, no string ids). */
@@ -110,6 +133,31 @@ export class VFXSystem implements System {
     defs.forEach((def) => this.pool.warm(def));
   }
 
+  /** Attach a screen filter and start animating it. */
+  enableScreen(def: ScreenDef): void {
+    if (this.screenFilters.has(def.id)) return;
+    const filter = def.create();
+    this.screenFilters.set(def.id, { def, filter });
+    this.attachFilter(def, filter);
+  }
+
+  /** Remove a screen filter and destroy its GPU resources. */
+  disableScreen(def: ScreenDef): void {
+    const entry = this.screenFilters.get(def.id);
+    if (!entry) return;
+    this.detachFilter(def, entry.filter);
+    entry.filter.destroy();
+    this.screenFilters.delete(def.id);
+  }
+
+  /** Returns a handle for toggling a screen filter at runtime. */
+  screen(def: ScreenDef): { enable(): void; disable(): void } {
+    return {
+      enable: () => this.enableScreen(def),
+      disable: () => this.disableScreen(def),
+    };
+  }
+
   private allowPlay(priority: VfxPriority): boolean {
     if (priority === 'critical') {
       this.playsThisFrame++;
@@ -122,6 +170,22 @@ export class VFXSystem implements System {
 
   private layer(): Container {
     return this.context.navigation.getLayer('effects');
+  }
+
+  private filterTarget(def: ScreenDef): Container {
+    return def.target === 'stage' ? this.context.app.stage : this.context.camera.viewport;
+  }
+
+  private attachFilter(def: ScreenDef, filter: Filter): void {
+    const target = this.filterTarget(def);
+    const existing = (target.filters as Filter[] | null) ?? [];
+    target.filters = [...existing, filter];
+  }
+
+  private detachFilter(def: ScreenDef, filter: Filter): void {
+    const target = this.filterTarget(def);
+    const filters = (target.filters as Filter[] | null) ?? [];
+    target.filters = filters.filter((f) => f !== filter);
   }
 
   private createEmitter(def: EmitterBackedDef): ParticleEmitter {

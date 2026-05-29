@@ -1,6 +1,6 @@
 import { getGameContext } from '@/data/game-context';
 import { VFXSystem } from './VFXSystem';
-import type { BurstDef, EmitterBackedDef } from './types';
+import type { BurstDef, EmitterBackedDef, ScreenDef } from './types';
 
 /**
  * Ambient accessor for the VFX system, mirroring `getGameContext()` / `sfx`.
@@ -24,5 +24,10 @@ export const vfx = {
   /** Pre-create emitters without locking, so first use has no allocation cost. */
   warm(...defs: EmitterBackedDef[]): void {
     getGameContext().systems.get(VFXSystem).warm(...defs);
+  },
+
+  /** Toggle a full-screen filter at runtime. */
+  screen(def: ScreenDef): { enable(): void; disable(): void } {
+    return getGameContext().systems.get(VFXSystem).screen(def);
   },
 };
