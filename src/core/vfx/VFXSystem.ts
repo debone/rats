@@ -1,12 +1,15 @@
 import type { System } from '@/core/game/System';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { attach as scopeAttach, onCleanup, type AttachHandle, type EntityBase } from '@/core/entity/scope';
+import { CutscenePlayer } from '@/core/cutscene/CutscenePlayer';
+import type { CutsceneData } from '@/core/cutscene/types';
+import type { LayerName } from '@/core/window/types';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
-import type { Container, Filter } from 'pixi.js';
+import { Assets, Container, type Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
 import { VFX_EFFECTS } from './registry';
-import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, VfxPriority } from './types';
+import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, SequenceContext, SequenceDef, VfxPriority } from './types';
 
 /** zIndex for emitter containers within the `effects` layer (mirrors ParticleEmitterEntity). */
 const EMITTER_Z_INDEX = 1000;
@@ -110,7 +113,14 @@ export class VFXSystem implements System {
   }
 
   /** Fire a one-shot burst effect by reference (type-safe params, no string ids). */
-  play<P>(def: BurstDef<P>, params: P): void {
+  play<P>(def: BurstDef<P>, params: P): void;
+  /** Run a composed, timed sequence by reference; resolves when the sequence completes. */
+  play<P>(def: SequenceDef<P>, params: P): Promise<void>;
+  play<P>(def: BurstDef<P> | SequenceDef<P>, params: P): void | Promise<void> {
+    if (def.kind === 'sequence') {
+      return this.runSequence(def, params);
+    }
+
     if (def.cooldownMs) {
       const now = performance.now();
       const last = this.cooldowns.get(def.id) ?? -Infinity;
@@ -122,6 +132,38 @@ export class VFXSystem implements System {
 
     const emitter = this.pool.acquire(def);
     def.play(params, { emitter, camera: this.context.camera, layer: this.layer() });
+  }
+
+  /** Pre-warm declared emitters, then drive the sequence body. Returns when it completes. */
+  private runSequence<P>(def: SequenceDef<P>, params: P): Promise<void> {
+    if (def.prewarm?.length) this.warm(...def.prewarm);
+    const ctx: SequenceContext = {
+      camera: this.context.camera,
+      layer: this.layer(),
+      cutscene: (name, options) => this.playCutscene(name, options),
+    };
+    return Promise.resolve(def.build(params, ctx));
+  }
+
+  /**
+   * Run an authored Godot cutscene to completion on a layer, then tear it down.
+   * Promise-based twin of `PlayCutsceneCommand` for use inside a sequence body.
+   */
+  private async playCutscene(
+    name: string,
+    options?: { animation?: string; layer?: LayerName },
+  ): Promise<void> {
+    const data = (await Assets.load(`cutscenes/${name}.json`)) as CutsceneData;
+    const animName = options?.animation ?? Object.keys(data.animations)[0];
+    if (!animName) {
+      console.warn(`[VFXSystem] cutscene "${name}" has no animations`);
+      return;
+    }
+    const container = new Container({ label: `cutscene-${name}` });
+    this.context.navigation.addToLayer(container, options?.layer ?? 'overlay');
+    const player = new CutscenePlayer(data);
+    await player.play(animName, {}, { parent: container });
+    container.destroy();
   }
 
   /** Pre-create + lock emitters so a later burst (e.g. a boss) never allocates mid-fight. */

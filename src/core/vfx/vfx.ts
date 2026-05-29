@@ -1,7 +1,7 @@
 import { type AttachHandle, type EntityBase } from '@/core/entity/scope';
 import { getGameContext } from '@/data/game-context';
 import { VFXSystem } from './VFXSystem';
-import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef } from './types';
+import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, SequenceDef } from './types';
 
 /**
  * Ambient accessor for the VFX system, mirroring `getGameContext()` / `sfx`.
@@ -11,10 +11,24 @@ import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef } from './typ
  * go-to-definition. Resolves to the `VFXSystem` instance on the live game
  * context, so it must only be used while the gameplay systems are mounted.
  */
-export const vfx = {
+interface VfxAccessor {
   /** Fire a one-shot burst effect. */
-  play<P>(def: BurstDef<P>, params: P): void {
-    getGameContext().systems.get(VFXSystem).play(def, params);
+  play<P>(def: BurstDef<P>, params: P): void;
+  /** Run a composed, timed sequence; resolves when it completes (awaitable / yield-able). */
+  play<P>(def: SequenceDef<P>, params: P): Promise<void>;
+  /** Pre-create + lock emitters so a later burst never allocates mid-fight. */
+  pin(...defs: EmitterBackedDef[]): void;
+  /** Pre-create emitters without locking, so first use has no allocation cost. */
+  warm(...defs: EmitterBackedDef[]): void;
+  /** Toggle a full-screen filter at runtime. */
+  screen(def: ScreenDef): { enable(): void; disable(): void };
+  /** Attach a continuous effect to a host entity. */
+  attach<P, H extends EntityBase>(def: ContinuousDef<P, H>, host: H, params: P): AttachHandle<void>;
+}
+
+export const vfx = {
+  play<P>(def: BurstDef<P> | SequenceDef<P>, params: P): void | Promise<void> {
+    return getGameContext().systems.get(VFXSystem).play(def as SequenceDef<P>, params);
   },
 
   /** Pre-create + lock emitters so a later burst never allocates mid-fight. */
@@ -42,4 +56,4 @@ export const vfx = {
   attach<P, H extends EntityBase>(def: ContinuousDef<P, H>, host: H, params: P): AttachHandle<void> {
     return getGameContext().systems.get(VFXSystem).attach(def, host, params);
   },
-};
+} as VfxAccessor;

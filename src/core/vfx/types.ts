@@ -2,6 +2,7 @@ import type { Camera } from '@/core/camera/camera';
 import type { EntityBase } from '@/core/entity/scope';
 import type { EmitterConfig, ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import type { GameEventName } from '@/data/events';
+import type { LayerName } from '@/core/window/types';
 import type { Container, Filter } from 'pixi.js';
 
 /**
@@ -95,11 +96,31 @@ export function defineScreen(def: ScreenDef): ScreenDef {
 export interface SequenceContext {
   camera: Camera;
   layer: Container;
+  /**
+   * Run an authored Godot cutscene by name; resolves when the animation completes.
+   * Mirrors `PlayCutsceneCommand` but is callable from a plain async sequence body,
+   * letting a sequence weave authored cutscenes between imperative VFX/camera beats.
+   */
+  cutscene(name: string, options?: { animation?: string; layer?: LayerName }): Promise<void>;
 }
 
-/** Composed, timed, multi-step effect — delegates to the cutscene timeline (Phase 4). */
+/**
+ * Composed, timed, multi-step effect (boss entrance, level clear flourish).
+ *
+ * A sequence does not introduce a new sequencer — it composes the pieces that
+ * already exist: it fires burst VFX by reference (`vfx.play`), drives camera fx
+ * (`shake`/`zoom`/…), schedules those beats on an anime.js timeline (the same
+ * runtime the cutscene player uses), and can run authored Godot cutscenes via
+ * `ctx.cutscene(...)`. `build` returns a promise so the whole sequence is
+ * awaitable / `yield`-able from a gameplay command.
+ */
 export interface SequenceDef<P = void> extends BaseDef {
   kind: 'sequence';
+  /**
+   * Emitters to pre-create before `build` runs, so a burst fired mid-sequence
+   * never pays an allocation cost at a dramatic moment.
+   */
+  prewarm?: EmitterBackedDef[];
   build(params: P, ctx: SequenceContext): Promise<void> | void;
 }
 
@@ -117,6 +138,11 @@ export function defineBurst<P = void>(def: BurstDef<P>): BurstDef<P> {
 export function defineContinuous<P = void, H extends EntityBase = EntityBase>(
   def: ContinuousDef<P, H>,
 ): ContinuousDef<P, H> {
+  return def;
+}
+
+/** Identity helper that preserves the precise `SequenceDef<P>` type for call-site inference. */
+export function defineSequence<P = void>(def: SequenceDef<P>): SequenceDef<P> {
   return def;
 }
 
