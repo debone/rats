@@ -12,6 +12,7 @@ import { createTimeline } from 'animejs';
 import { Assets, Container, type Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
 import { SequenceDebugSession } from './SequenceDebug';
+import { Figure8Mover } from './effects/debug/figure8Mover';
 import { VFX_EFFECTS } from './registry';
 import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, SequenceContext, SequenceDef, VfxPriority } from './types';
 
@@ -51,6 +52,8 @@ export class VFXSystem implements System {
   private debugPage: FolderApi | null = null;
   /** Folder under the VFX page where live sequence seek-sessions are parented. */
   private debugSeqFolder: FolderApi | null = null;
+  /** Active figure-8 preview hosts for continuous effects, keyed by effect id. */
+  private debugMovers = new Map<string, EntityBase>();
 
   /** Active screen filters, keyed by ScreenDef.id. */
   private screenFilters = new Map<string, { def: ScreenDef; filter: Filter }>();
@@ -128,6 +131,7 @@ export class VFXSystem implements System {
     const sequences = page.addFolder({ title: 'Sequences', expanded: true });
     this.debugSeqFolder = sequences;
     const bursts = page.addFolder({ title: 'Bursts', expanded: false });
+    const continuous = page.addFolder({ title: 'Continuous', expanded: false });
     const screens = page.addFolder({ title: 'Screen filters', expanded: false });
 
     const center = { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 };
@@ -149,6 +153,15 @@ export class VFXSystem implements System {
           });
           break;
         }
+        case 'continuous': {
+          const cont = def as ContinuousDef<unknown>;
+          // Toggle: attach to a figure-8 dummy mover, detach to remove it.
+          const state = { on: false };
+          continuous
+            .addBinding(state, 'on', { label: cont.id })
+            .on('change', () => (state.on ? this.attachDebugMover(cont) : this.detachDebugMover(cont)));
+          break;
+        }
         case 'screen': {
           const screen = def;
           const state = { on: this.screenFilters.has(screen.id) };
@@ -157,10 +170,28 @@ export class VFXSystem implements System {
             .on('change', () => (state.on ? this.enableScreen(screen) : this.disableScreen(screen)));
           break;
         }
-        // Continuous effects need a host entity to attach to, so they aren't
-        // launchable standalone from here.
       }
     }
+  }
+
+  /** Spawn a figure-8 mover and attach a continuous effect to it for preview. */
+  private attachDebugMover(def: ContinuousDef<unknown>): void {
+    if (this.debugMovers.has(def.id)) return;
+    if (!this.context.worldId) {
+      console.warn(`[VFXSystem] continuous preview needs an active physics world (load a level first)`);
+      return;
+    }
+    const mover = Figure8Mover();
+    this.attach(def, mover, undefined);
+    this.debugMovers.set(def.id, mover);
+  }
+
+  /** Destroy the preview mover; its scope cleanup detaches the effect and releases the emitter. */
+  private detachDebugMover(def: ContinuousDef<unknown>): void {
+    const mover = this.debugMovers.get(def.id);
+    if (!mover) return;
+    mover.destroy();
+    this.debugMovers.delete(def.id);
   }
 
   destroy(): void {
@@ -175,6 +206,8 @@ export class VFXSystem implements System {
       filter.destroy();
     });
     this.screenFilters.clear();
+    this.debugMovers.forEach((mover) => mover.destroy());
+    this.debugMovers.clear();
     this.debugPage?.dispose();
     this.debugPage = null;
     this.debugSeqFolder = null;
@@ -345,7 +378,11 @@ export class VFXSystem implements System {
     const config = def.emitter!();
     const emitter = new ParticleEmitter(config);
     emitter.container.zIndex = EMITTER_Z_INDEX;
-    this.layer().addChild(emitter.container);
+    const layer = this.layer();
+    // The `effects` layer ships hidden (createGameLayers defaults visible:false);
+    // reveal it the first time anything renders into it, or particles never show.
+    layer.visible = true;
+    layer.addChild(emitter.container);
     return emitter;
   }
 }
