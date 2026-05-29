@@ -1,4 +1,5 @@
 import type { System } from '@/core/game/System';
+import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { attach as scopeAttach, onCleanup, type AttachHandle, type EntityBase } from '@/core/entity/scope';
 import { CutscenePlayer } from '@/core/cutscene/CutscenePlayer';
@@ -46,8 +47,10 @@ export class VFXSystem implements System {
   private playsThisFrame = 0;
   private unsubscribe: Array<() => void> = [];
 
-  /** DEV-only debug-panel folder holding the per-sequence seek launchers. */
-  private debugFolder: FolderApi | null = null;
+  /** DEV-only debug-panel tab page for all VFX controls. */
+  private debugPage: FolderApi | null = null;
+  /** Folder under the VFX page where live sequence seek-sessions are parented. */
+  private debugSeqFolder: FolderApi | null = null;
 
   /** Active screen filters, keyed by ScreenDef.id. */
   private screenFilters = new Map<string, { def: ScreenDef; filter: Filter }>();
@@ -112,22 +115,51 @@ export class VFXSystem implements System {
   }
 
   /**
-   * Add a "VFX Sequences" folder to the debug panel with a `seek: <id>` button
-   * per registered sequence. Clicking launches that sequence paused and
-   * scrubbable, so its timing can be inspected without waiting for an in-game
-   * trigger (e.g. winning a level).
+   * Build the "VFX" debug tab: every registered effect, grouped by kind, with the
+   * control that fits it — sequences get a scrubbable seek launcher, bursts a
+   * one-shot fire, screen filters a live on/off toggle. Scales by adding to the
+   * right folder rather than growing a flat button list.
    */
   private initDebugPanel(): void {
-    if (!DebugPanel.pane) return;
-    this.debugFolder = DebugPanel.folder({ title: 'VFX Sequences', expanded: false });
-    if (!this.debugFolder) return;
+    const page = DebugPanel.page('VFX');
+    if (!page) return;
+    this.debugPage = page;
+
+    const sequences = page.addFolder({ title: 'Sequences', expanded: true });
+    this.debugSeqFolder = sequences;
+    const bursts = page.addFolder({ title: 'Bursts', expanded: false });
+    const screens = page.addFolder({ title: 'Screen filters', expanded: false });
+
+    const center = { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 };
 
     for (const def of VFX_EFFECTS) {
-      if (def.kind !== 'sequence') continue;
-      const seq = def as SequenceDef<unknown>;
-      this.debugFolder
-        .addButton({ title: `seek: ${seq.id}` })
-        .on('click', () => this.playSequence(seq, undefined, true));
+      switch (def.kind) {
+        case 'sequence': {
+          const seq = def as SequenceDef<unknown>;
+          sequences.addButton({ title: seq.id, label: 'seek ▶' }).on('click', () => {
+            this.playSequence(seq, undefined, true);
+          });
+          break;
+        }
+        case 'burst': {
+          const burst = def as BurstDef<unknown>;
+          // Fire at world-center; bursts whose params expect a position get one.
+          bursts.addButton({ title: burst.id, label: 'fire ▶' }).on('click', () => {
+            this.play(burst, { ...center } as unknown);
+          });
+          break;
+        }
+        case 'screen': {
+          const screen = def;
+          const state = { on: this.screenFilters.has(screen.id) };
+          screens
+            .addBinding(state, 'on', { label: screen.id })
+            .on('change', () => (state.on ? this.enableScreen(screen) : this.disableScreen(screen)));
+          break;
+        }
+        // Continuous effects need a host entity to attach to, so they aren't
+        // launchable standalone from here.
+      }
     }
   }
 
@@ -143,8 +175,9 @@ export class VFXSystem implements System {
       filter.destroy();
     });
     this.screenFilters.clear();
-    this.debugFolder?.dispose();
-    this.debugFolder = null;
+    this.debugPage?.dispose();
+    this.debugPage = null;
+    this.debugSeqFolder = null;
   }
 
   /** Fire a one-shot burst effect by reference (type-safe params, no string ids). */
@@ -177,7 +210,7 @@ export class VFXSystem implements System {
   private playSequence<P>(def: SequenceDef<P>, params: P, debug: boolean): Promise<void> {
     if (def.prewarm?.length) this.warm(...def.prewarm);
 
-    const session = debug && import.meta.env.DEV ? new SequenceDebugSession(def.id, this.debugFolder) : null;
+    const session = debug && import.meta.env.DEV ? new SequenceDebugSession(def.id, this.debugSeqFolder) : null;
 
     const ctx: SequenceContext = {
       camera: this.context.camera,

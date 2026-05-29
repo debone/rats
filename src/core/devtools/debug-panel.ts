@@ -194,6 +194,16 @@ export class DebugPanel {
     });
   }
 
+  /**
+   * Add a top-level tab page next to "General". Returns the page's container API
+   * (supports `addFolder`/`addButton`/`addBinding`), or null outside DEV. Use for
+   * a whole subsystem's controls (e.g. VFX) rather than crowding the General page.
+   */
+  static page(title: string): FolderApi | null {
+    if (!import.meta.env.DEV || !DebugPanel.tabApi) return null;
+    return DebugPanel.tabApi.addPage({ title }) as FolderApi;
+  }
+
   static debug<T>(target: any, key: string, value: T, options: DebugOptions = {}): T {
     if (!this.pane) return value;
 

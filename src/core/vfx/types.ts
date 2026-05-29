@@ -118,6 +118,17 @@ export interface SequenceContext {
    * the system pauses the returned timeline and drives its playhead from a slider
    * in the debug panel — so the whole animation can be scrubbed and every tween
    * inspected. In normal playback it behaves exactly like `createTimeline()`.
+   *
+   * AUTHORING RULE (so debug shows "the full thing"):
+   * - `tl.add(target, { ...props }, time)` — **seekable state**. Anything visual
+   *   (position, scale, alpha, tint, rotation) belongs here, even instant sets
+   *   (`duration: 1`). Scrubbing reproduces it exactly at any playhead position.
+   * - `tl.call(fn, time)` — a **fire-once trigger** for external systems that have
+   *   no seekable state on this timeline (camera shake/punch, particle spawns via
+   *   `vfx.play`, audio cues). These are muted while scrubbing and only run on
+   *   real playback; scrub near one and press Play to see it in context.
+   * Rule of thumb: if you'd want to *see it* by dragging the slider, make it a
+   * tween, not a call.
    */
   timeline(): Timeline;
 }

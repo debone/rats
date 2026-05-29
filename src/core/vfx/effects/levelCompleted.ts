@@ -137,20 +137,27 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
     // --- Choreograph it on one timeline ---
     const tl = timeline();
 
-    // t0: white impact flash, camera punch + shake, a centered debris burst.
+    // Transient triggers: fire-once on real playback. These do NOT reverse or
+    // re-fire when scrubbing — that's the line between a `tl.call` beat (a kick to
+    // an external system: camera, particles, audio) and seekable tween state below.
     tl.call(() => {
-      flash.alpha = 1;
       punch(camera, 1.18, 220);
       shake(camera, { intensity: 16, duration: 520 });
       vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2, count: 18, intensity: 0 });
     }, 0);
 
-    // Staccato impact frames — hard cuts, no tween (the held-frame look).
-    tl.call(() => { flash.alpha = 0; }, 60);
-    tl.call(() => { flash.tint = ACCENT; flash.alpha = 0.9; }, 110);
-    tl.call(() => { flash.alpha = 0; }, 150);
-    tl.call(() => { flash.tint = 0x1a1a2e; flash.alpha = 0.85; }, 200);
-    tl.call(() => { flash.tint = 0xffffff; flash.alpha = 0; }, 235);
+    // Impact frames as *seekable state*: instant tint sets (1ms) + quick alpha
+    // falloffs. Authored as tweens so scrubbing the timeline shows every flash —
+    // the held-frame staccato is preserved by the gaps between falloffs.
+    tl.add(flash, { tint: 0xffffff, duration: 1 }, 0);
+    tl.add(flash, { alpha: 1, duration: 1 }, 0);
+    tl.add(flash, { alpha: 0, duration: 55, ease: 'in' }, 5);
+    tl.add(flash, { tint: ACCENT, duration: 1 }, 110);
+    tl.add(flash, { alpha: 0.9, duration: 1 }, 110);
+    tl.add(flash, { alpha: 0, duration: 40, ease: 'in' }, 115);
+    tl.add(flash, { tint: 0x1a1a2e, duration: 1 }, 200);
+    tl.add(flash, { alpha: 0.85, duration: 1 }, 200);
+    tl.add(flash, { alpha: 0, duration: 35, ease: 'in' }, 205);
 
     // Background wash holds a faint color tint.
     tl.add(wash, { alpha: 0.28, duration: 200, ease: 'out' }, 40);
@@ -202,7 +209,9 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
     tl.add(lines, { alpha: 0, duration: 280 }, EXIT);
     tl.add(burst, { alpha: 0, duration: 280 }, EXIT);
     tl.add(wash, { alpha: 0, duration: 320 }, EXIT);
-    tl.call(() => { flash.tint = 0xffffff; flash.alpha = 0.6; }, EXIT);
+    // Final white pop — seekable: instant set then fade.
+    tl.add(flash, { tint: 0xffffff, duration: 1 }, EXIT);
+    tl.add(flash, { alpha: 0.6, duration: 1 }, EXIT);
     tl.add(flash, { alpha: 0, duration: 300, ease: 'out' }, EXIT + 20);
 
     await tl;
