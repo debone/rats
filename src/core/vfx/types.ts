@@ -60,11 +60,25 @@ export interface BurstDef<P = void> extends BaseDef {
   cooldownMs?: number;
 }
 
+/**
+ * Resolves the screen-space position of an attach target, sampled each frame.
+ * Decouples a continuous effect from *what* it follows — a physics body, a
+ * display object, a fixed point, anything — so the same trail/aura works on a
+ * ball or a UI element. See `follow.ts` for ready-made sources.
+ */
+export type PositionSource = () => { x: number; y: number };
+
 /** Context handed to a continuous effect's `attach`. */
 export interface ContinuousContext {
   emitter?: ParticleEmitter;
   camera: Camera;
   layer: Container;
+  /**
+   * Screen-space position of the attach target this frame. Defaults to the
+   * origin (0,0) when no source was supplied to `vfx.attach`; pass a source
+   * (`followBody`/`followNode`/`followPoint`) for anything that moves.
+   */
+  position: PositionSource;
 }
 
 /** Lifetime-bound effect, attached to a host entity (Phase 3). */

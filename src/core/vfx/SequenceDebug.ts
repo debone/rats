@@ -7,8 +7,8 @@ const FRAME_MS = 1000 / 60;
 /**
  * A live, scrubbable debug session for a single sequence play.
  *
- * The motivation mirrors the Godot timeline: full understanding of an animation
- * by being able to *seek* it. Every timeline the sequence creates (via
+ * Mirrors the Godot timeline workflow: full understanding of an animation by
+ * being able to *seek* it. Every timeline the sequence creates (via
  * `ctx.timeline()`) is paused and handed here; we expose a normalized progress
  * slider, frame step buttons, and transport controls.
  *
@@ -24,11 +24,14 @@ export class SequenceDebugSession {
   private timelines: Timeline[] = [];
   private readonly state = { progress: 0, playing: false };
   /**
-   * Last progress value we wrote into the slider programmatically. The slider's
-   * `change` event also fires on our own `refresh()`; comparing against this lets
-   * us tell a real user drag from our echo, so playback never pauses itself.
+   * True while we are writing the slider ourselves (live playback mirror, step,
+   * restart). tweakpane quantizes the value to the slider `step` and re-emits
+   * `change` on refresh — a value-tolerance guard is unreliable against that, so
+   * we gate on this explicit flag instead and only treat un-suppressed `change`
+   * events as genuine user drags.
    */
-  private lastWritten = 0;
+  private suppressChange = false;
+  private rafId = 0;
   private disposed = false;
 
   constructor(
@@ -52,8 +55,8 @@ export class SequenceDebugSession {
     folder
       .addBinding(this.state, 'progress', { min: 0, max: 1, step: 0.001 })
       .on('change', () => {
-        // Ignore the echo from our own refresh(); only a real drag scrubs.
-        if (Math.abs(this.state.progress - this.lastWritten) < 1e-6) return;
+        // Only a genuine user drag scrubs; ignore our own programmatic writes.
+        if (this.suppressChange) return;
         this.scrubTo(this.state.progress);
       });
 
@@ -75,8 +78,7 @@ export class SequenceDebugSession {
   /** Advance/retreat by N frames, muted (stepping is inspection, not playback). */
   private step(frames: number): void {
     this.pause();
-    const tl = this.timelines[0];
-    const duration = tl?.duration ?? 0;
+    const duration = this.timelines[0]?.duration ?? 0;
     if (duration <= 0) return;
     const next = Math.min(1, Math.max(0, this.state.progress + (frames * FRAME_MS) / duration));
     this.seekAll(next);
@@ -93,12 +95,15 @@ export class SequenceDebugSession {
   private play(): void {
     if (this.state.playing) return;
     this.state.playing = true;
+    // If we're at the end, restart from 0 so Play always does something.
+    if (this.state.progress >= 1) this.seekAll(0);
     this.timelines.forEach((tl) => tl.play());
-    this.sync();
+    this.startSync();
   }
 
   private pause(): void {
     this.state.playing = false;
+    this.stopSync();
     this.timelines.forEach((tl) => tl.pause());
   }
 
@@ -108,21 +113,35 @@ export class SequenceDebugSession {
     this.play();
   }
 
-  /** While playing, mirror the playhead back onto the slider so it tracks live. */
-  private sync(): void {
-    if (this.disposed || !this.state.playing) return;
-    const tl = this.timelines[0];
-    if (tl && tl.duration > 0) {
-      this.writeSlider(Math.min(1, tl.currentTime / tl.duration));
-    }
-    requestAnimationFrame(() => this.sync());
+  /** Mirror the live playhead onto the slider each frame while playing. */
+  private startSync(): void {
+    this.stopSync();
+    const tick = () => {
+      if (this.disposed || !this.state.playing) return;
+      const tl = this.timelines[0];
+      if (tl && tl.duration > 0) {
+        this.writeSlider(Math.min(1, tl.currentTime / tl.duration));
+        if (tl.completed) {
+          this.state.playing = false;
+          return;
+        }
+      }
+      this.rafId = requestAnimationFrame(tick);
+    };
+    this.rafId = requestAnimationFrame(tick);
   }
 
-  /** Write a value to the slider, recording it so the change echo is ignored. */
+  private stopSync(): void {
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = 0;
+  }
+
+  /** Write a value to the slider with the change-echo suppressed. */
   private writeSlider(progress: number): void {
-    this.lastWritten = progress;
+    this.suppressChange = true;
     this.state.progress = progress;
     this.folder?.refresh();
+    this.suppressChange = false;
   }
 
   /** Complete the timelines so the sequence's own `await tl` resolves and it tears itself down. */
@@ -133,6 +152,7 @@ export class SequenceDebugSession {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.stopSync();
     this.folder?.dispose();
     this.folder = null;
   }

@@ -13,11 +13,15 @@ import { Assets, Container, type Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
 import { SequenceDebugSession } from './SequenceDebug';
 import { Figure8Mover } from './effects/debug/figure8Mover';
+import { followBody } from './follow';
 import { VFX_EFFECTS } from './registry';
-import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, SequenceContext, SequenceDef, VfxPriority } from './types';
+import type { BurstDef, ContinuousDef, EmitterBackedDef, PositionSource, ScreenDef, SequenceContext, SequenceDef, VfxPriority } from './types';
 
 /** zIndex for emitter containers within the `effects` layer (mirrors ParticleEmitterEntity). */
 const EMITTER_Z_INDEX = 1000;
+
+/** Default attach anchor when no position source is supplied. */
+const ORIGIN: PositionSource = () => ({ x: 0, y: 0 });
 
 /** Hard cap on persistent emitters kept live at once before LRU/priority eviction. */
 const MAX_LIVE_EMITTERS = 24;
@@ -182,7 +186,7 @@ export class VFXSystem implements System {
       return;
     }
     const mover = Figure8Mover();
-    this.attach(def, mover, undefined);
+    this.attach(def, mover, undefined, followBody(mover.bodyId));
     this.debugMovers.set(def.id, mover);
   }
 
@@ -299,10 +303,19 @@ export class VFXSystem implements System {
    * for the attachment's lifetime and released automatically when the host entity is
    * destroyed or the returned handle's `detach()` is called.
    *
+   * `position` resolves the effect's screen-space anchor each frame; pass a
+   * `followBody`/`followNode`/`followPoint` source for anything that moves. When
+   * omitted it defaults to the origin.
+   *
    * Must be called after the entity is fully constructed (after `defineEntity` returns),
    * not from inside the entity's factory scope.
    */
-  attach<P, H extends EntityBase>(def: ContinuousDef<P, H>, host: H, params: P): AttachHandle<void> {
+  attach<P, H extends EntityBase>(
+    def: ContinuousDef<P, H>,
+    host: H,
+    params: P,
+    position?: PositionSource,
+  ): AttachHandle<void> {
     return scopeAttach(host, (entity) => {
       // Retain the emitter before handing ctx to the effect — this blocks eviction
       // while the host is alive (refCount > 0).
@@ -315,6 +328,7 @@ export class VFXSystem implements System {
         emitter,
         camera: this.context.camera,
         layer: this.layer(),
+        position: position ?? ORIGIN,
       });
     });
   }
@@ -354,8 +368,18 @@ export class VFXSystem implements System {
     return true;
   }
 
+  /**
+   * Render target for burst/continuous particles.
+   *
+   * Bursts position via `BodyToScreen`, which returns world×PXM + world-origin —
+   * coordinates in the space of `ctx.container` (the GameScreen, which is offset
+   * by `+MIN_WIDTH/2`), exactly where body sprites and the existing
+   * Wall/WaterParticles render. The standalone `effects` layer has no such offset,
+   * so drawing there put every effect half a screen off. Use `ctx.container` when
+   * a gameplay screen is mounted; fall back to the `effects` layer otherwise.
+   */
   private layer(): Container {
-    return this.context.navigation.getLayer('effects');
+    return this.context.container ?? this.context.navigation.getLayer('effects');
   }
 
   private filterTarget(def: ScreenDef): Container {
@@ -379,8 +403,8 @@ export class VFXSystem implements System {
     const emitter = new ParticleEmitter(config);
     emitter.container.zIndex = EMITTER_Z_INDEX;
     const layer = this.layer();
-    // The `effects` layer ships hidden (createGameLayers defaults visible:false);
-    // reveal it the first time anything renders into it, or particles never show.
+    // The fallback `effects` layer ships hidden (createGameLayers defaults
+    // visible:false); reveal it on first use. (ctx.container is already visible.)
     layer.visible = true;
     layer.addChild(emitter.container);
     return emitter;
