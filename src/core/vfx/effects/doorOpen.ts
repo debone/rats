@@ -12,27 +12,33 @@ import { brickBreak } from './brickBreak';
 /**
  * A door unlocking and grinding open — a scripted "set-piece" moment.
  *
- * The whole game freezes for it, the door is dusted loose, it grinds open while
- * the rest of the world holds its breath, then everything snaps back to life.
- * That's the textbook case for a *sequence*: many beats (freeze, dust, slide,
- * spark, unfreeze) choreographed over a shared clock.
+ * The whole game eases to a halt for it, the door is dusted loose, it grinds
+ * open while the world holds its breath, then everything eases back to life.
+ * That's the textbook case for a *sequence*: many beats (stop, dust, slide,
+ * spark, resume) choreographed over a shared clock.
  *
- * ## Moving bodies while physics is frozen
+ * ## Freezing the game and moving the door
  *
  * The hard part is sliding the door's bodies with the simulation stopped. The
- * trick is to freeze by zeroing the physics time-scale (`PhysicsSystem.ramp = 0`),
- * NOT by unregistering the physics update (`stop()`):
+ * trick is to control the physics *time-scale* (`PhysicsSystem.ramp`) rather than
+ * unregistering the physics update (`stop()`):
  *
- * - With `ramp = 0`, `b2World_Step` is called with `dt = 0` each frame, so the
- *   world doesn't advance — dynamic bodies (the ball) sit still and keep their
- *   velocities, resuming exactly where they left off on unfreeze.
- * - Crucially, `PhysicsSystem.update` still runs, so `UpdateWorldSprites` still
- *   syncs every sprite to its body transform each frame. We set the door bodies'
- *   transforms manually from this timeline's `onUpdate` (the anime.js engine ticks
- *   in the main loop, independent of physics), and the sprites follow.
+ * - We tween `ramp` 1 → 0 to ease the world to a stop, hold it at 0 during the
+ *   slide, then tween it 0 → 1 to ease back. With `ramp = 0`, `b2World_Step` runs
+ *   with `dt = 0`, so the world doesn't advance — the ball sits still and keeps
+ *   its velocity, resuming exactly where it left off. The smooth ramp gives the
+ *   stop and the return some weight instead of snapping.
+ * - Crucially, `PhysicsSystem.update` still runs the whole time, so
+ *   `UpdateWorldSprites` keeps syncing every sprite to its body each frame. We
+ *   slide the door bodies by tweening a position object and writing it to the
+ *   body from the tween's `onUpdate` (the anime.js engine ticks in the main loop,
+ *   independent of physics); the sprites follow for free.
  *
- * If we had used `stop()` the update handler would be gone and the sprites would
- * freeze with the bodies — the door would teleport, not glide.
+ * Because the slide is a *tween* (not a fire-once snap), driving the body also
+ * makes the whole open scrubbable in the debug panel — drag the slider and the
+ * door (and the ramp) move with it. If we had used `stop()` the sprites would
+ * freeze with the bodies; if we had detached the sprites and animated them, the
+ * visual slide would no longer be seekable.
  */
 export interface DoorOpenParams {
   /** The door's segment bodies to slide. */
@@ -46,7 +52,9 @@ export interface DoorOpenParams {
 }
 
 // Timeline layout (ms)
-const UNLOCK_AT = 0; //          freeze + dust burst + heavy unlock clunk
+const RAMP_DOWN = 250; //        ease the world to a stop
+const RAMP_UP = 700; //          ease the world back to full speed
+const UNLOCK_AT = 0; //          dust burst + heavy unlock clunk (with the ramp-down)
 const SLIDE_AT = 450; //         grind begins: mechanical sound, shake, body slide
 const PUFF_INTERVAL = 280; //    cadence of "occasional" dust puffs during the slide
 
@@ -77,10 +85,13 @@ export const doorOpen = defineSequence<DoorOpenParams>({
 
     const tl = timeline();
 
-    // --- Beat 1: freeze + unlock (t=0) ---
-    // Fire-once kicks (frozen world, loud clunk, debris) — muted while scrubbing.
+    // --- Beat 1: ease the world to a stop + unlock (t=0) ---
+    // Smooth ramp-down is seekable state (a tweened value), so it scrubs and gives
+    // the stop some weight. Guarded: skipped when there's no live physics world
+    // (e.g. a debug "seek" preview with no level loaded).
+    if (physics) tl.add(physics, { ramp: 0, duration: RAMP_DOWN, ease: 'out' }, UNLOCK_AT);
+    // Fire-once kicks (loud clunk, debris) — muted while scrubbing.
     tl.call(() => {
-      if (physics) physics.ramp = 0;
       sfx.playPitched(ASSETS.sounds_Rock_Impact_07, { speed: 0.7, volume: 0.7 });
       dustSegments(bodyIds, 10);
     }, UNLOCK_AT);
@@ -126,13 +137,14 @@ export const doorOpen = defineSequence<DoorOpenParams>({
     }
 
     // --- Beat 3: settle (t=slideEnd) ---
-    // Final spark across the door, a confirming chime, then unfreeze the world.
+    // Final spark across the door + a confirming chime (fire-once)...
     tl.call(() => {
       dustSegments(bodyIds, 8);
       sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10, { speed: 1.3, volume: 0.5 });
       sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
-      if (physics) physics.ramp = 1;
     }, slideEnd);
     addShake(tl, camera, { intensity: 6, duration: 360 }, slideEnd);
+    // ...then ease the world back to full speed (seekable ramp-up tween).
+    if (physics) tl.add(physics, { ramp: 1, duration: RAMP_UP, ease: 'out' }, slideEnd);
   },
 });
