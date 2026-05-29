@@ -263,7 +263,9 @@ export class VFXSystem implements System {
     };
 
     const result = Promise.resolve(def.build(params, ctx));
-    if (session) result.finally(() => session.dispose());
+    // In debug mode the session owns its own lifecycle: the panel persists after
+    // the animation completes so you can replay/scrub, and is disposed only when
+    // you click Close. (Outside debug there's no session and nothing to clean up.)
     return result;
   }
 
