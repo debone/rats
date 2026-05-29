@@ -1,6 +1,5 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { sfx } from '@/core/audio/audio';
 import { doorOpen } from '@/core/vfx/effects/doorOpen';
 import { vfx } from '@/core/vfx/vfx';
 import { defineEntity, entity, onMount, onCleanup, type EntityBase } from '@/core/entity/scope';
@@ -71,16 +70,13 @@ export const Door = defineEntity(
 
         this.closed = false;
 
-        if (sound) {
-          sfx.playPitched(sound, { speed: 0.6, volume: 0.5 });
-        }
-
-        // The shake + segment slide is a timed choreography → a VFX sequence.
-        // Bake door geometry (length, width, direction) into a signed distance;
-        // the sequence drives the shake and the bodies on one timeline.
+        // The whole open — freeze, dust, grind, spark, unfreeze — is a scripted
+        // VFX sequence. Bake door geometry (length, width, direction) into a
+        // signed distance and hand off; the sequence owns physics freeze, sounds,
+        // particles and the body slide on one timeline.
         const openingDirectionFactor = this.openingDirection === 'left' ? 1 : -1;
         const distance = door.length * doorWidth * openingDirectionFactor;
-        vfx.play(doorOpen, { bodyIds, distance });
+        vfx.play(doorOpen, { bodyIds, distance, sound });
       },
       setLength(length: number) {
         door.length = length;
