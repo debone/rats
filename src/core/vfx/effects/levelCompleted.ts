@@ -1,6 +1,5 @@
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
-import { punch } from '@/core/camera/effects/punch';
-import { shake } from '@/core/camera/effects/shake';
+import { addPunch, addShake } from '@/core/vfx/camera';
 import { GameEvent } from '@/data/events';
 import { Container, Graphics, Text } from 'pixi.js';
 import { defineSequence } from '../types';
@@ -137,14 +136,12 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
     // --- Choreograph it on one timeline ---
     const tl = timeline();
 
-    // Transient triggers: fire-once on real playback. These do NOT reverse or
-    // re-fire when scrubbing — that's the line between a `tl.call` beat (a kick to
-    // an external system: camera, particles, audio) and seekable tween state below.
-    tl.call(() => {
-      punch(camera, 1.18, 220);
-      shake(camera, { intensity: 16, duration: 520 });
-      vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2, count: 18, intensity: 0 });
-    }, 0);
+    // Camera punch + opening shake — timeline-native so they honor the speed
+    // slider and scrub with the rest of the choreography.
+    addPunch(tl, camera, { intensity: 1.18, duration: 220 }, 0);
+    addShake(tl, camera, { intensity: 16, duration: 520 }, 0);
+    // Particle burst is still a fire-once call (not seekable by nature).
+    tl.call(() => vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2, count: 18, intensity: 0 }), 0);
 
     // Impact frames as *seekable state*: instant tint sets (1ms) + quick alpha
     // falloffs. Authored as tweens so scrubbing the timeline shows every flash —
@@ -176,10 +173,8 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
     tl.add(textGroup, { alpha: 1, duration: 90, ease: 'out' }, SLAM);
     tl.add(textGroup.scale, { x: 1, y: 1, duration: 320, ease: 'outBack' }, SLAM);
     tl.add(textGroup, { rotation: [-0.08, 0.05, -0.02, 0], duration: 360, ease: 'out' }, SLAM);
-    tl.call(() => {
-      shake(camera, { intensity: 11, duration: 360 });
-      vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 + 4, count: 12, intensity: 0 });
-    }, SLAM + 10);
+    addShake(tl, camera, { intensity: 11, duration: 360 }, SLAM + 10);
+    tl.call(() => vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 + 4, count: 12, intensity: 0 }), SLAM + 10);
 
     // Chromatic aberration: wide split on impact, settling to a thin offset.
     tl.add(tR, { x: [-26, 6, -3], duration: 420, ease: 'out' }, SLAM);
