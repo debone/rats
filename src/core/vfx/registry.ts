@@ -1,6 +1,7 @@
 import { ballTrail } from './effects/ballTrail';
 import { bossEntrance } from './effects/bossEntrance';
 import { brickBreak } from './effects/brickBreak';
+import { doorOpen } from './effects/doorOpen';
 import { levelCompleted } from './effects/levelCompleted';
 import { bloomEffect } from './effects/screen/bloom';
 import { crtEffect } from './effects/screen/crt';
@@ -19,6 +20,7 @@ export const VFX_EFFECTS: EffectDef[] = [
   brickBreak,
   ballTrail,
   bossEntrance,
+  doorOpen,
   levelCompleted,
   crtEffect,
   reflectionEffect,

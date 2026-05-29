@@ -1,16 +1,13 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { sfx } from '@/core/audio/audio';
-import { shake } from '@/core/camera/effects/shake';
+import { doorOpen } from '@/core/vfx/effects/doorOpen';
+import { vfx } from '@/core/vfx/vfx';
 import { defineEntity, entity, onMount, onCleanup, type EntityBase } from '@/core/entity/scope';
-import { useBodySprite, useCamera, usePhysics, useWorldId } from '@/hooks/hooks';
-import { animate } from 'animejs';
+import { useBodySprite, usePhysics, useWorldId } from '@/hooks/hooks';
 import {
-  b2Body_GetPosition,
-  b2Body_SetTransform,
   b2Body_SetUserData,
   b2BodyType,
-  b2Rot,
   b2Vec2,
   CreatePolygon,
   type b2BodyId,
@@ -41,7 +38,6 @@ export const Door = defineEntity(
   ({ spawnPos, length, name, openingDirection = 'left', startOpen = false, sound }: DoorProps) => {
     const worldId = useWorldId();
     const physics = usePhysics();
-    const camera = useCamera();
 
     const doorPos = new b2Vec2(spawnPos.x, spawnPos.y);
 
@@ -75,29 +71,16 @@ export const Door = defineEntity(
 
         this.closed = false;
 
-        const duration = 1500;
-
         if (sound) {
           sfx.playPitched(sound, { speed: 0.6, volume: 0.5 });
         }
 
+        // The shake + segment slide is a timed choreography → a VFX sequence.
+        // Bake door geometry (length, width, direction) into a signed distance;
+        // the sequence drives the shake and the bodies on one timeline.
         const openingDirectionFactor = this.openingDirection === 'left' ? 1 : -1;
-
-        shake(camera, { intensity: 1, frequency: 25, duration });
-
-        for (const bodyId of bodyIds) {
-          const pos = b2Body_GetPosition(bodyId);
-          const rootPos = pos.clone();
-          const rot = new b2Rot(1, 0);
-
-          animate(rootPos, {
-            x: pos.x - door.length * doorWidth * openingDirectionFactor,
-            duration,
-            onUpdate: () => {
-              b2Body_SetTransform(bodyId, rootPos, rot);
-            },
-          });
-        }
+        const distance = door.length * doorWidth * openingDirectionFactor;
+        vfx.play(doorOpen, { bodyIds, distance });
       },
       setLength(length: number) {
         door.length = length;
