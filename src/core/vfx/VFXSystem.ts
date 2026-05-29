@@ -3,11 +3,14 @@ import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { attach as scopeAttach, onCleanup, type AttachHandle, type EntityBase } from '@/core/entity/scope';
 import { CutscenePlayer } from '@/core/cutscene/CutscenePlayer';
 import type { CutsceneData } from '@/core/cutscene/types';
+import { DebugPanel, type FolderApi } from '@/core/devtools/debug-panel';
 import type { LayerName } from '@/core/window/types';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
+import { createTimeline } from 'animejs';
 import { Assets, Container, type Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
+import { SequenceDebugSession } from './SequenceDebug';
 import { VFX_EFFECTS } from './registry';
 import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, SequenceContext, SequenceDef, VfxPriority } from './types';
 
@@ -42,6 +45,9 @@ export class VFXSystem implements System {
   private cooldowns = new Map<string, number>();
   private playsThisFrame = 0;
   private unsubscribe: Array<() => void> = [];
+
+  /** DEV-only debug-panel folder holding the per-sequence seek launchers. */
+  private debugFolder: FolderApi | null = null;
 
   /** Active screen filters, keyed by ScreenDef.id. */
   private screenFilters = new Map<string, { def: ScreenDef; filter: Filter }>();
@@ -101,6 +107,28 @@ export class VFXSystem implements System {
     context.systems.register('update', this.update);
     context.systems.register('resize', this.onResize);
     this.unsubscribe.push(context.events.on(GameEvent.SCREEN_UNLOADED, this.onScreenUnloaded));
+
+    if (import.meta.env.DEV) this.initDebugPanel();
+  }
+
+  /**
+   * Add a "VFX Sequences" folder to the debug panel with a `seek: <id>` button
+   * per registered sequence. Clicking launches that sequence paused and
+   * scrubbable, so its timing can be inspected without waiting for an in-game
+   * trigger (e.g. winning a level).
+   */
+  private initDebugPanel(): void {
+    if (!DebugPanel.pane) return;
+    this.debugFolder = DebugPanel.folder({ title: 'VFX Sequences', expanded: false });
+    if (!this.debugFolder) return;
+
+    for (const def of VFX_EFFECTS) {
+      if (def.kind !== 'sequence') continue;
+      const seq = def as SequenceDef<unknown>;
+      this.debugFolder
+        .addButton({ title: `seek: ${seq.id}` })
+        .on('click', () => this.playSequence(seq, undefined, true));
+    }
   }
 
   destroy(): void {
@@ -115,6 +143,8 @@ export class VFXSystem implements System {
       filter.destroy();
     });
     this.screenFilters.clear();
+    this.debugFolder?.dispose();
+    this.debugFolder = null;
   }
 
   /** Fire a one-shot burst effect by reference (type-safe params, no string ids). */
@@ -123,7 +153,7 @@ export class VFXSystem implements System {
   play<P>(def: SequenceDef<P>, params: P): Promise<void>;
   play<P>(def: BurstDef<P> | SequenceDef<P>, params: P): void | Promise<void> {
     if (def.kind === 'sequence') {
-      return this.runSequence(def, params);
+      return this.playSequence(def, params, false);
     }
 
     if (def.cooldownMs) {
@@ -139,17 +169,32 @@ export class VFXSystem implements System {
     def.play(params, { emitter, camera: this.context.camera, layer: this.layer() });
   }
 
-  /** Pre-warm declared emitters, then drive the sequence body. Returns when it completes. */
-  private runSequence<P>(def: SequenceDef<P>, params: P): Promise<void> {
+  /**
+   * Pre-warm declared emitters, then drive the sequence body. Returns when it
+   * completes. In `debug` mode every timeline the sequence creates via
+   * `ctx.timeline()` is paused and exposed as a scrubbable seek control.
+   */
+  private playSequence<P>(def: SequenceDef<P>, params: P, debug: boolean): Promise<void> {
     if (def.prewarm?.length) this.warm(...def.prewarm);
+
+    const session = debug && import.meta.env.DEV ? new SequenceDebugSession(def.id, this.debugFolder) : null;
+
     const ctx: SequenceContext = {
       camera: this.context.camera,
       layer: this.layer(),
       stage: this.context.app.stage,
       size: { width: this.context.navigation.width, height: this.context.navigation.height },
       cutscene: (name, options) => this.playCutscene(name, options),
+      timeline: () => {
+        const tl = createTimeline(session ? { autoplay: false } : {});
+        session?.track(tl);
+        return tl;
+      },
     };
-    return Promise.resolve(def.build(params, ctx));
+
+    const result = Promise.resolve(def.build(params, ctx));
+    if (session) result.finally(() => session.dispose());
+    return result;
   }
 
   /**

@@ -3,6 +3,7 @@ import type { EntityBase } from '@/core/entity/scope';
 import type { EmitterConfig, ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import type { GameEventName } from '@/data/events';
 import type { LayerName } from '@/core/window/types';
+import type { Timeline } from 'animejs';
 import type { Container, Filter } from 'pixi.js';
 
 /**
@@ -111,6 +112,14 @@ export interface SequenceContext {
    * letting a sequence weave authored cutscenes between imperative VFX/camera beats.
    */
   cutscene(name: string, options?: { animation?: string; layer?: LayerName }): Promise<void>;
+  /**
+   * Create an anime.js timeline owned by the VFX system. Prefer this over
+   * `createTimeline` directly: when the sequence is launched in debug/seek mode,
+   * the system pauses the returned timeline and drives its playhead from a slider
+   * in the debug panel — so the whole animation can be scrubbed and every tween
+   * inspected. In normal playback it behaves exactly like `createTimeline()`.
+   */
+  timeline(): Timeline;
 }
 
 /**

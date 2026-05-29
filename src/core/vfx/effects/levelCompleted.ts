@@ -2,7 +2,6 @@ import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { punch } from '@/core/camera/effects/punch';
 import { shake } from '@/core/camera/effects/shake';
 import { GameEvent } from '@/data/events';
-import { createTimeline } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { defineSequence } from '../types';
 import { vfx } from '../vfx';
@@ -82,7 +81,7 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
   priority: 'critical',
   on: GameEvent.CAMPAIGN_LEVEL_WON,
   prewarm: [brickBreak],
-  async build({ text = 'LEVEL COMPLETED' }, { camera, size, stage }) {
+  async build({ text = 'LEVEL COMPLETED' }, { camera, size, stage, timeline }) {
     const w = size.width || MIN_WIDTH;
     const h = size.height || MIN_HEIGHT;
     const cx = w / 2;
@@ -136,7 +135,7 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
     root.addChild(wash, lines, burst, flash, textGroup, ...shards);
 
     // --- Choreograph it on one timeline ---
-    const tl = createTimeline();
+    const tl = timeline();
 
     // t0: white impact flash, camera punch + shake, a centered debris burst.
     tl.call(() => {
