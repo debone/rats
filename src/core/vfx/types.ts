@@ -113,6 +113,13 @@ export function defineBurst<P = void>(def: BurstDef<P>): BurstDef<P> {
   return def;
 }
 
+/** Identity helper that preserves the precise `ContinuousDef<P, H>` type for call-site inference. */
+export function defineContinuous<P = void, H extends EntityBase = EntityBase>(
+  def: ContinuousDef<P, H>,
+): ContinuousDef<P, H> {
+  return def;
+}
+
 /** Identity helper for any effect kind. */
 export function defineEffect<D extends EffectDef>(def: D): D {
   return def;

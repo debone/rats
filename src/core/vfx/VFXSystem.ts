@@ -1,11 +1,12 @@
 import type { System } from '@/core/game/System';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
+import { attach as scopeAttach, onCleanup, type AttachHandle, type EntityBase } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
 import type { GameContext } from '@/data/game-context';
 import type { Container, Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
 import { VFX_EFFECTS } from './registry';
-import type { BurstDef, EmitterBackedDef, ScreenDef, VfxPriority } from './types';
+import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef, VfxPriority } from './types';
 
 /** zIndex for emitter containers within the `effects` layer (mirrors ParticleEmitterEntity). */
 const EMITTER_Z_INDEX = 1000;
@@ -131,6 +132,31 @@ export class VFXSystem implements System {
   /** Pre-create emitters without locking them, so first use has no allocation cost. */
   warm(...defs: EmitterBackedDef[]): void {
     defs.forEach((def) => this.pool.warm(def));
+  }
+
+  /**
+   * Attach a continuous effect to a host entity. The emitter refcount is incremented
+   * for the attachment's lifetime and released automatically when the host entity is
+   * destroyed or the returned handle's `detach()` is called.
+   *
+   * Must be called after the entity is fully constructed (after `defineEntity` returns),
+   * not from inside the entity's factory scope.
+   */
+  attach<P, H extends EntityBase>(def: ContinuousDef<P, H>, host: H, params: P): AttachHandle<void> {
+    return scopeAttach(host, (entity) => {
+      // Retain the emitter before handing ctx to the effect — this blocks eviction
+      // while the host is alive (refCount > 0).
+      const emitter = def.emitter ? this.pool.retain(def) : undefined;
+      // Release the refcount when this child scope tears down (host destroyed or detach() called).
+      onCleanup(() => {
+        if (def.emitter) this.pool.release(def.id);
+      });
+      def.attach(entity, params, {
+        emitter,
+        camera: this.context.camera,
+        layer: this.layer(),
+      });
+    });
   }
 
   /** Attach a screen filter and start animating it. */

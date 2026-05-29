@@ -1,6 +1,7 @@
+import { type AttachHandle, type EntityBase } from '@/core/entity/scope';
 import { getGameContext } from '@/data/game-context';
 import { VFXSystem } from './VFXSystem';
-import type { BurstDef, EmitterBackedDef, ScreenDef } from './types';
+import type { BurstDef, ContinuousDef, EmitterBackedDef, ScreenDef } from './types';
 
 /**
  * Ambient accessor for the VFX system, mirroring `getGameContext()` / `sfx`.
@@ -29,5 +30,16 @@ export const vfx = {
   /** Toggle a full-screen filter at runtime. */
   screen(def: ScreenDef): { enable(): void; disable(): void } {
     return getGameContext().systems.get(VFXSystem).screen(def);
+  },
+
+  /**
+   * Attach a continuous effect to a host entity. Returns a handle whose `detach()`
+   * can be called early; the attachment is also torn down automatically when the
+   * host entity is destroyed.
+   *
+   * Call this after the entity is fully constructed (not from inside its factory scope).
+   */
+  attach<P, H extends EntityBase>(def: ContinuousDef<P, H>, host: H, params: P): AttachHandle<void> {
+    return getGameContext().systems.get(VFXSystem).attach(def, host, params);
   },
 };

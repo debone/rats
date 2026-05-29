@@ -24,6 +24,8 @@ import {
   b2RotateVector,
   b2Vec2,
 } from 'phaser-box2d';
+import { ballTrail } from '@/core/vfx/effects/ballTrail';
+import { vfx } from '@/core/vfx/vfx';
 import { attachPaddleBallSnap, SNAP_LAUNCH_COOLDOWN_MS } from './attachments/paddleBallSnap';
 import { CheeseBullet } from './CheeseBullet';
 import { NormBall, type NormBallEntity } from './NormBall';
@@ -130,6 +132,7 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
       assert(paddle, `${levelId}: paddle not found`);
       const pos = b2Body_GetPosition(paddle.bodyId);
       const ball = NormBall({ x: pos.x, y: pos.y + 1 });
+      vfx.attach(ballTrail, ball, undefined);
       snapBallToPaddle(paddle, ball);
     });
   };
@@ -148,6 +151,7 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
 
         const position = b2Body_GetPosition(ball.bodyId);
         const newBall = NormBall({ x: position.x, y: position.y });
+        vfx.attach(ballTrail, newBall, undefined);
         newBall.startUpdating();
 
         const angle = (Math.random() - 0.5) * (Math.PI / 10);
@@ -166,6 +170,7 @@ export const PaddleAndBall = defineEntity(({ levelId, paddleJoint }: PaddleBallP
       assert(paddle, `${levelId}: paddle not found`);
       const paddlePosition = b2Body_GetPosition(paddle.bodyId);
       const newBall = NormBall({ x: paddlePosition.x, y: paddlePosition.y + 1 });
+      vfx.attach(ballTrail, newBall, undefined);
       newBall.startUpdating();
 
       const ballPos = b2Body_GetPosition(newBall.bodyId);
