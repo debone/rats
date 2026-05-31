@@ -1,0 +1,89 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { compile, type TimelineLike } from './compile';
+import type { TimelineDoc } from './types';
+
+function makeTl(): TimelineLike & { add: ReturnType<typeof vi.fn>; call: ReturnType<typeof vi.fn> } {
+  return { add: vi.fn(), call: vi.fn() };
+}
+
+describe('compile', () => {
+  it('seeds the first key and emits a tween per adjacent pair (ease enters the later key)', () => {
+    const tl = makeTl();
+    const box = { alpha: 0 };
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 100,
+      tracks: [{ actor: 'box', property: 'alpha', keys: [{ time: 0, value: 0 }, { time: 50, value: 1, ease: 'out' }] }],
+      cues: [],
+    };
+
+    compile(doc, { box }, {}, tl);
+
+    expect(tl.add.mock.calls).toEqual([
+      [box, { alpha: 0, duration: 1 }, 0],
+      [box, { alpha: 1, duration: 50, ease: 'out' }, 0],
+    ]);
+  });
+
+  it('resolves dotted properties to the nested target object', () => {
+    const tl = makeTl();
+    const scale = { x: 0 };
+    const actor = { scale };
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 10,
+      tracks: [{ actor: 'a', property: 'scale.x', keys: [{ time: 0, value: 0 }, { time: 10, value: 1 }] }],
+      cues: [],
+    };
+
+    compile(doc, { a: actor }, {}, tl);
+
+    expect(tl.add.mock.calls).toEqual([
+      [scale, { x: 0, duration: 1 }, 0],
+      [scale, { x: 1, duration: 10 }, 0],
+    ]);
+  });
+
+  it('keeps tint values as strings so anime color-interpolates', () => {
+    const tl = makeTl();
+    const flash = { tint: '#000000' };
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 1,
+      tracks: [{ actor: 'flash', property: 'tint', keys: [{ time: 0, value: '#ffffff' }] }],
+      cues: [],
+    };
+
+    compile(doc, { flash }, {}, tl);
+
+    expect(tl.add.mock.calls).toEqual([[flash, { tint: '#ffffff', duration: 1 }, 0]]);
+  });
+
+  it('compiles cues into tl.call with the resolved hook', () => {
+    const tl = makeTl();
+    const boom = vi.fn();
+    const doc: TimelineDoc = { id: 't', duration: 10, tracks: [], cues: [{ time: 5, hook: 'boom' }] };
+
+    compile(doc, {}, { boom }, tl);
+
+    expect(tl.call.mock.calls).toEqual([[boom, 5]]);
+  });
+
+  it('skips (and warns about) unknown actors and hooks instead of throwing', () => {
+    const tl = makeTl();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 10,
+      tracks: [{ actor: 'missing', property: 'x', keys: [{ time: 0, value: 1 }] }],
+      cues: [{ time: 0, hook: 'missing' }],
+    };
+
+    expect(() => compile(doc, {}, {}, tl)).not.toThrow();
+    expect(tl.add).not.toHaveBeenCalled();
+    expect(tl.call).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+});

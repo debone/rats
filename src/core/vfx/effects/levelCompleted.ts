@@ -2,6 +2,7 @@ import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { addPunch, addShake } from '@/core/vfx/camera';
 import { GameEvent } from '@/data/events';
 import { Container, Graphics, Text } from 'pixi.js';
+import { playTimeline } from '../timeline/load';
 import { defineSequence } from '../types';
 import { vfx } from '../vfx';
 import { brickBreak } from './brickBreak';
@@ -13,6 +14,14 @@ import { brickBreak } from './brickBreak';
  * slam text, confetti shards, camera punch + escalating shakes, and cross-effect
  * composition firing `brickBreak` bursts.
  *
+ * This is the first sequence ported to the hybrid model: the *actors* (procedural
+ * Graphics/Text) and the in-code tweens that can't be data (parametric camera
+ * helpers, the randomized shards loop) are built here; the *timing* — every
+ * flash/wash/lines/burst/textGroup keyframe and the two burst cues — lives in
+ * `assets/timelines/levelCompleted.json` and is compiled onto the same timeline.
+ * Both halves share one `ctx.timeline()`, so `SequenceDebug`/the editor scrub the
+ * whole thing as one playhead.
+ *
  * Notable lifecycle choice: it renders on `ctx.stage` (the persistent application
  * stage), not the per-screen `effects`/`overlay` layers. The natural trigger is
  * `CAMPAIGN_LEVEL_WON`, which kicks off a screen transition ~500ms later that
@@ -23,9 +32,7 @@ const Z_INDEX = 9999; // above every game layer (debug sits at 25)
 const ACCENT = 0xffd23f; // warm gold
 const ACCENT_2 = 0xff3864; // hot pink
 
-const TOTAL = 1600;
 const SLAM = 150; // when the text lands
-const EXIT = 1250;
 
 export interface LevelCompletedParams {
   /** Heading copy. Defaults to "LEVEL COMPLETED". */
@@ -80,7 +87,8 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
   priority: 'critical',
   on: GameEvent.CAMPAIGN_LEVEL_WON,
   prewarm: [brickBreak],
-  async build({ text = 'LEVEL COMPLETED' }, { camera, size, stage, timeline }) {
+  async build({ text = 'LEVEL COMPLETED' }, ctx) {
+    const { camera, size, stage } = ctx;
     const w = size.width || MIN_WIDTH;
     const h = size.height || MIN_HEIGHT;
     const cx = w / 2;
@@ -93,7 +101,7 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
     stage.sortableChildren = true;
     stage.addChild(root);
 
-    // --- Build the layers (back to front) ---
+    // --- Build the actors (back to front) ---
     const wash = new Graphics().rect(0, 0, w, h).fill({ color: ACCENT_2, alpha: 1 });
     wash.alpha = 0;
 
@@ -133,83 +141,49 @@ export const levelCompleted = defineSequence<LevelCompletedParams>({
 
     root.addChild(wash, lines, burst, flash, textGroup, ...shards);
 
-    // --- Choreograph it on one timeline ---
-    const tl = timeline();
+    // --- The named stage map (data-driven tracks resolve actors by name) ---
+    const actors = { wash, lines, burst, flash, textGroup, tR, tC };
 
-    // Camera punch + opening shake — timeline-native so they honor the speed
-    // slider and scrub with the rest of the choreography.
-    addPunch(tl, camera, { intensity: 1.18, duration: 220 }, 0);
-    addShake(tl, camera, { intensity: 16, duration: 520 }, 0);
-    // Particle burst is still a fire-once call (not seekable by nature).
-    tl.call(() => vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2, count: 18, intensity: 0 }), 0);
+    // --- Named fire-once beats (cues resolve hooks by name) ---
+    const hooks = {
+      burst1: () => vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2, count: 18, intensity: 0 }),
+      burst2: () => vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 + 4, count: 12, intensity: 0 }),
+    };
 
-    // Impact frames as *seekable state*: instant tint sets (1ms) + quick alpha
-    // falloffs. Authored as tweens so scrubbing the timeline shows every flash —
-    // the held-frame staccato is preserved by the gaps between falloffs.
-    tl.add(flash, { tint: 0xffffff, duration: 1 }, 0);
-    tl.add(flash, { alpha: 1, duration: 1 }, 0);
-    tl.add(flash, { alpha: 0, duration: 55, ease: 'in' }, 5);
-    tl.add(flash, { tint: ACCENT, duration: 1 }, 110);
-    tl.add(flash, { alpha: 0.9, duration: 1 }, 110);
-    tl.add(flash, { alpha: 0, duration: 40, ease: 'in' }, 115);
-    tl.add(flash, { tint: 0x1a1a2e, duration: 1 }, 200);
-    tl.add(flash, { alpha: 0.85, duration: 1 }, 200);
-    tl.add(flash, { alpha: 0, duration: 35, ease: 'in' }, 205);
+    // Load the choreography, compile it onto a tracked timeline, and run it. The
+    // in-code tweens below coexist with the JSON tracks on the same playhead.
+    await playTimeline('levelCompleted', {
+      stage: actors,
+      hooks,
+      ctx,
+      decorate: (tl) => {
+        // Camera punch + opening/slam shakes — parametric helpers, not keyframe
+        // data, so they stay in code. They honor the speed slider and scrub.
+        addPunch(tl, camera, { intensity: 1.18, duration: 220 }, 0);
+        addShake(tl, camera, { intensity: 16, duration: 520 }, 0);
+        addShake(tl, camera, { intensity: 11, duration: 360 }, SLAM + 10);
 
-    // Background wash holds a faint color tint.
-    tl.add(wash, { alpha: 0.28, duration: 200, ease: 'out' }, 40);
-
-    // Concentration lines whip in and spin slowly.
-    tl.add(lines, { alpha: 0.9, duration: 120, ease: 'out' }, 30);
-    tl.add(lines.scale, { x: 1, y: 1, duration: 380, ease: 'outBack' }, 30);
-    tl.add(lines, { rotation: Math.PI * 0.5, duration: TOTAL, ease: 'linear' }, 30);
-
-    // Sunburst pops and counter-rotates.
-    tl.add(burst, { alpha: 1, duration: 120, ease: 'out' }, 90);
-    tl.add(burst.scale, { x: 1, y: 1, duration: 420, ease: 'outBack' }, 90);
-    tl.add(burst, { rotation: -Math.PI * 0.4, duration: TOTAL, ease: 'linear' }, 90);
-
-    // Text slam: scale overshoot, rotation settle, second camera hit + burst.
-    tl.add(textGroup, { alpha: 1, duration: 90, ease: 'out' }, SLAM);
-    tl.add(textGroup.scale, { x: 1, y: 1, duration: 320, ease: 'outBack' }, SLAM);
-    tl.add(textGroup, { rotation: [-0.08, 0.05, -0.02, 0], duration: 360, ease: 'out' }, SLAM);
-    addShake(tl, camera, { intensity: 11, duration: 360 }, SLAM + 10);
-    tl.call(() => vfx.play(brickBreak, { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 + 4, count: 12, intensity: 0 }), SLAM + 10);
-
-    // Chromatic aberration: wide split on impact, settling to a thin offset.
-    tl.add(tR, { x: [-26, 6, -3], duration: 420, ease: 'out' }, SLAM);
-    tl.add(tC, { x: [26, -6, 3], duration: 420, ease: 'out' }, SLAM);
-
-    // Confetti shards fly outward, staggered.
-    shards.forEach((s, i) => {
-      const a = (i / SHARDS) * Math.PI * 2 + Math.random() * 0.3;
-      const dist = diag * (0.35 + Math.random() * 0.25);
-      tl.add(
-        s,
-        {
-          alpha: [1, 1, 0],
-          x: cx + Math.cos(a) * dist,
-          y: cy + Math.sin(a) * dist,
-          rotation: (Math.random() - 0.5) * 12,
-          duration: 700,
-          ease: 'outQuad',
-        },
-        SLAM + (i % 6) * 12,
-      );
+        // Confetti shards fly outward, staggered — an array tween with per-shard
+        // randomness, so it stays in code rather than the doc.
+        shards.forEach((s, i) => {
+          const a = (i / SHARDS) * Math.PI * 2 + Math.random() * 0.3;
+          const dist = diag * (0.35 + Math.random() * 0.25);
+          tl.add(
+            s,
+            {
+              alpha: [1, 1, 0],
+              x: cx + Math.cos(a) * dist,
+              y: cy + Math.sin(a) * dist,
+              rotation: (Math.random() - 0.5) * 12,
+              duration: 700,
+              ease: 'outQuad',
+            },
+            SLAM + (i % 6) * 12,
+          );
+        });
+      },
     });
 
-    // Hold, then blow everything out with one last white pop.
-    tl.add(textGroup.scale, { x: 1.7, y: 1.7, duration: 320, ease: 'inOutQuad' }, EXIT);
-    tl.add(textGroup, { alpha: 0, duration: 320, ease: 'in' }, EXIT);
-    tl.add(lines, { alpha: 0, duration: 280 }, EXIT);
-    tl.add(burst, { alpha: 0, duration: 280 }, EXIT);
-    tl.add(wash, { alpha: 0, duration: 320 }, EXIT);
-    // Final white pop — seekable: instant set then fade.
-    tl.add(flash, { tint: 0xffffff, duration: 1 }, EXIT);
-    tl.add(flash, { alpha: 0.6, duration: 1 }, EXIT);
-    tl.add(flash, { alpha: 0, duration: 300, ease: 'out' }, EXIT + 20);
-
-    await tl;
     root.destroy({ children: true });
   },
 });
