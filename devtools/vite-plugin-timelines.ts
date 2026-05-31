@@ -16,6 +16,8 @@ import type { Plugin } from 'vite';
  *  - (dev) watches the source folder and re-copies on change,
  *  - (dev) serves `POST /api/save-timeline`, which writes the edited doc back to
  *    BOTH the committed source and the served copy so a hard-reload round-trips.
+ *  - exposes a `virtual:timeline-manifest` module listing the data-driven
+ *    sequence ids, so the VFX debug launcher knows which can be edited (Phase F).
  */
 
 const SRC_DIR = path.resolve(process.cwd(), 'assets/timelines');
@@ -24,12 +26,31 @@ const OUT_DIR = path.resolve(process.cwd(), 'public/assets/timelines');
 /** Valid timeline id: keeps the save endpoint from writing outside the folder. */
 const ID_RE = /^[a-zA-Z0-9_-]+$/;
 
+/**
+ * Virtual module the app imports to learn which sequences are *data-driven* (have
+ * an `assets/timelines/<id>.json`). The VFX debug launcher uses it to enable the
+ * "edit" action only for those — avoiding a failed fetch as the discovery
+ * mechanism (Phase F).
+ */
+const MANIFEST_ID = 'virtual:timeline-manifest';
+const RESOLVED_MANIFEST_ID = '\0' + MANIFEST_ID;
+
 function copyAll(): void {
   if (!fs.existsSync(SRC_DIR)) return;
   fs.mkdirSync(OUT_DIR, { recursive: true });
   for (const file of fs.readdirSync(SRC_DIR)) {
     if (file.endsWith('.json')) fs.copyFileSync(path.join(SRC_DIR, file), path.join(OUT_DIR, file));
   }
+}
+
+/** The timeline ids backed by a committed JSON doc, sorted for stable output. */
+function timelineIds(): string[] {
+  if (!fs.existsSync(SRC_DIR)) return [];
+  return fs
+    .readdirSync(SRC_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.slice(0, -'.json'.length))
+    .sort();
 }
 
 export function timelinesPlugin(): Plugin {
@@ -42,6 +63,16 @@ export function timelinesPlugin(): Plugin {
       copyAll();
     },
 
+    resolveId(id) {
+      if (id === MANIFEST_ID) return RESOLVED_MANIFEST_ID;
+    },
+
+    load(id) {
+      if (id === RESOLVED_MANIFEST_ID) {
+        return `export const TIMELINE_IDS = ${JSON.stringify(timelineIds())};\n`;
+      }
+    },
+
     configureServer(server) {
       copyAll();
 
@@ -51,6 +82,10 @@ export function timelinesPlugin(): Plugin {
             const from = path.join(SRC_DIR, filename);
             if (fs.existsSync(from)) fs.copyFileSync(from, path.join(OUT_DIR, filename));
           }
+          // A timeline added/removed changes the manifest — invalidate it so the
+          // launcher's data-driven set refreshes on the next full reload.
+          const mod = server.moduleGraph.getModuleById(RESOLVED_MANIFEST_ID);
+          if (mod) server.moduleGraph.invalidateModule(mod);
         });
       }
 

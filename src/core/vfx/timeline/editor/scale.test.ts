@@ -1,0 +1,89 @@
+import { describe, expect, it } from 'vitest';
+
+import type { Track } from '../types';
+import { chooseTickStep, fitPxPerMs, snapTime, tickTimes, valueAtTime } from './scale';
+
+describe('chooseTickStep', () => {
+  it('picks finer steps as zoom increases', () => {
+    // 1px/ms, 64px min gap → first step >= 64ms is 100.
+    expect(chooseTickStep(1)).toBe(100);
+    // 10px/ms → 10ms*10 = 100px >= 64 → 10.
+    expect(chooseTickStep(10)).toBe(10);
+    // very zoomed out → coarse.
+    expect(chooseTickStep(0.001)).toBe(25000);
+  });
+
+  it('honors a custom minimum gap', () => {
+    expect(chooseTickStep(1, 40)).toBe(50);
+  });
+});
+
+describe('tickTimes', () => {
+  it('spans 0..duration inclusive at the chosen step', () => {
+    const ticks = tickTimes(250, 10); // step 10
+    expect(ticks[0]).toBe(0);
+    expect(ticks).toContain(250);
+    expect(ticks.every((t, i) => i === 0 || t > ticks[i - 1])).toBe(true);
+  });
+});
+
+describe('fitPxPerMs', () => {
+  it('spreads the duration across the viewport', () => {
+    expect(fitPxPerMs(800, 1600)).toBe(0.5);
+  });
+  it('degrades safely on zero inputs', () => {
+    expect(fitPxPerMs(0, 1000)).toBe(1);
+    expect(fitPxPerMs(800, 0)).toBe(1);
+  });
+});
+
+describe('snapTime', () => {
+  it('rounds to the grid', () => {
+    expect(snapTime(123, { grid: 10 })).toBe(120);
+    expect(snapTime(126, { grid: 10 })).toBe(130);
+  });
+  it('prefers a nearby target over the grid result', () => {
+    expect(snapTime(148, { grid: 10, targets: [150], thresholdMs: 5 })).toBe(150);
+  });
+  it('ignores targets outside the threshold', () => {
+    expect(snapTime(120, { grid: 10, targets: [150], thresholdMs: 5 })).toBe(120);
+  });
+  it('passes through unsnapped when no options given', () => {
+    expect(snapTime(123.6)).toBe(124);
+  });
+});
+
+describe('valueAtTime', () => {
+  const track: Track = {
+    actor: 'a',
+    property: 'alpha',
+    keys: [
+      { time: 0, value: 0 },
+      { time: 100, value: 1 },
+      { time: 200, value: 0 },
+    ],
+  };
+
+  it('linear-interpolates between numeric keys', () => {
+    expect(valueAtTime(track, 50)).toBeCloseTo(0.5);
+    expect(valueAtTime(track, 150)).toBeCloseTo(0.5);
+  });
+  it('clamps to the endpoints', () => {
+    expect(valueAtTime(track, -10)).toBe(0);
+    expect(valueAtTime(track, 999)).toBe(0);
+  });
+  it('returns the nearest value for string tracks', () => {
+    const tint: Track = {
+      actor: 'a',
+      property: 'tint',
+      keys: [
+        { time: 0, value: '#fff' },
+        { time: 100, value: '#000' },
+      ],
+    };
+    expect(valueAtTime(tint, 40)).toBe('#fff');
+  });
+  it('returns null for an empty track', () => {
+    expect(valueAtTime({ actor: 'a', property: 'x', keys: [] }, 0)).toBeNull();
+  });
+});

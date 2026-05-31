@@ -3,7 +3,7 @@ import type { Timeline } from 'animejs';
 import type { SequenceContext } from '../../types';
 import { compile } from '../compile';
 import { Transport } from '../Transport';
-import type { Hooks, Stage, TimelineDoc } from '../types';
+import type { Hooks, Stage, TimelineDoc, Track } from '../types';
 
 /**
  * The editor's stateful core, independent of the DOM: it owns the live
@@ -23,6 +23,14 @@ export class EditorSession {
   readonly transport = new Transport();
   /** Bumped on every rebuild so the view can re-render against the new doc. */
   onChange?: () => void;
+
+  /**
+   * Tracks the author has muted (eye toggle, G1) so they can isolate one actor's
+   * contribution while scrubbing. Keyed by the `Track` object, not its index, so
+   * the state survives reordering/structural edits. Muted tracks are skipped when
+   * compiling but still render their rows.
+   */
+  private readonly muted = new Set<Track>();
 
   private rebuilding = false;
 
@@ -52,6 +60,23 @@ export class EditorSession {
     return Object.keys(this.hooks);
   }
 
+  /** The live actor object behind a track's `actor` name (for the canvas highlight, G1). */
+  actor(name: string): unknown {
+    return this.stage[name];
+  }
+
+  /** Whether `track` is muted (excluded from the compiled timeline). */
+  isMuted(track: Track): boolean {
+    return this.muted.has(track);
+  }
+
+  /** Toggle a track's mute and recompile so the change is heard on the next scrub. */
+  toggleMute(track: Track): void {
+    if (this.muted.has(track)) this.muted.delete(track);
+    else this.muted.add(track);
+    this.rebuild();
+  }
+
   /**
    * Discard the current compiled timeline and build a new one from the doc,
    * preserving the normalized playhead so an edit doesn't jump the view. Called
@@ -63,7 +88,11 @@ export class EditorSession {
 
     const tl = this.ctx.timeline(); // tracked by nothing else; we own it via transport
     this.decorate?.(tl);
-    compile(this.doc, this.stage, this.hooks, tl);
+    // Compile only the un-muted tracks; cues and code tweens are unaffected. A
+    // shallow doc copy keeps the editor's full track list (and its indices) intact.
+    const compiled =
+      this.muted.size === 0 ? this.doc : { ...this.doc, tracks: this.doc.tracks.filter((t) => !this.muted.has(t)) };
+    compile(compiled, this.stage, this.hooks, tl);
     this.transport.track(tl);
     this.transport.seek(progress);
 

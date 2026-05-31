@@ -16,6 +16,7 @@ import { Figure8Mover } from './effects/debug/figure8Mover';
 import { followBody } from './follow';
 import { VFX_EFFECTS } from './registry';
 import { requestTimelineEdit } from './timeline/editor/editMode';
+import { TIMELINE_IDS } from 'virtual:timeline-manifest';
 import type {
   BurstDef,
   ContinuousDef,
@@ -152,20 +153,14 @@ export class VFXSystem implements System {
 
     const center = { x: MIN_WIDTH / 2, y: MIN_HEIGHT / 2 };
 
+    const seqDefs: SequenceDef<unknown>[] = [];
+
     for (const def of VFX_EFFECTS) {
       switch (def.kind) {
         case 'sequence': {
-          const seq = def as SequenceDef<unknown>;
-          sequences.addButton({ title: seq.id, label: 'seek ▶' }).on('click', () => {
-            this.playSequence(seq, {}, true);
-          });
-          // Open the data-driven visual editor (only sequences backed by a JSON
-          // timeline respond; others just play normally). Routed through a flag
-          // consumed in `playTimeline`, so no special wiring per sequence.
-          sequences.addButton({ title: seq.id, label: 'edit ✎' }).on('click', () => {
-            requestTimelineEdit(seq.id);
-            this.playSequence(seq, {}, false);
-          });
+          // Collected and surfaced via a single dropdown launcher below, rather
+          // than a button pair per sequence (Phase F).
+          seqDefs.push(def as SequenceDef<unknown>);
           break;
         }
         case 'burst': {
@@ -195,6 +190,45 @@ export class VFXSystem implements System {
         }
       }
     }
+
+    this.initSequenceLauncher(sequences, seqDefs);
+  }
+
+  /**
+   * One dropdown to pick a sequence + a `seek`/`edit` action pair, replacing the
+   * per-sequence button wall (Phase F). `edit` is enabled only for *data-driven*
+   * sequences — those with a committed `assets/timelines/<id>.json`, surfaced via
+   * the build-time `virtual:timeline-manifest` — so opening the editor on a purely
+   * imperative sequence (which has no doc to edit) isn't offered.
+   */
+  private initSequenceLauncher(folder: FolderApi, seqDefs: SequenceDef<unknown>[]): void {
+    if (seqDefs.length === 0) return;
+
+    const dataDriven = new Set(TIMELINE_IDS);
+    const byId = new Map(seqDefs.map((s) => [s.id, s]));
+    const options: Record<string, string> = {};
+    for (const s of seqDefs) options[dataDriven.has(s.id) ? `${s.id}  ✎` : s.id] = s.id;
+
+    const state = { seq: seqDefs[0].id };
+    const select = folder.addBinding(state, 'seq', { label: 'sequence', options });
+
+    folder.addButton({ title: 'seek ▶', label: 'play' }).on('click', () => {
+      const def = byId.get(state.seq);
+      if (def) this.playSequence(def, {}, true);
+    });
+
+    const editBtn = folder.addButton({ title: 'edit ✎', label: 'editor' });
+    editBtn.on('click', () => {
+      const def = byId.get(state.seq);
+      if (!def || !dataDriven.has(def.id)) return;
+      requestTimelineEdit(def.id);
+      this.playSequence(def, {}, false);
+    });
+
+    // Disable `edit` whenever the selection has no JSON doc to edit.
+    const syncEdit = (): void => void (editBtn.disabled = !dataDriven.has(state.seq));
+    select.on('change', syncEdit);
+    syncEdit();
   }
 
   /** Spawn a figure-8 mover and attach a continuous effect to it for preview. */
