@@ -116,3 +116,112 @@ c.time)`. `tint` keys carry hex **strings** so anime.js color-interpolates (numb
   a key's easing → curve changes on next scrub.
 - After D: Save, hard-reload, confirm `assets/timelines/levelCompleted.json` round-trips and plays
   the edited timing. Run `npm test` and `npx tsc --noEmit`.
+
+---
+
+# v2 — Usability pass (post-first-version feedback)
+
+Phases A–D shipped and the model is proven: data-driven `levelCompleted` scrubs identically,
+edits live-recompile, Save round-trips. The first version "worked wonders" but is hard to *use*.
+This section plans the evolution. Two themes: **(I) make the timeline editor a real tool to drive**
+and **(II) make the workflow legible** (how you open it, what the controls mean, how you'd author a
+*new* sequence). Everything stays dev-only and on the same hybrid model — this is UX + docs, not a
+re-architecture.
+
+The findings below are grouped by phase. Each names the **root cause in the current code** so the
+work is concrete, not a wishlist.
+
+## Phase E — Timeline editor UX (the panel itself)
+
+Current shape (for reference): `TimelineEditor` renders three stacked regions into one fixed
+320px-tall bar — `toolbar`, `ruler`, `body` — and the `body` is a single `overflow-y:auto`
+scroller that contains the lanes grid **and** the add-track row **and** the inspector
+(`renderBody`, `TimelineEditor.ts:183`). `render()` does a full `replaceChildren()` teardown on
+*every* change (`:116`). `laneWidth` is pinned to the body's pixel width (`:120`), so time always
+spans exactly the visible area.
+
+| # | Symptom (your words) | Root cause | Fix |
+|---|---|---|---|
+| E1 | "Labels on the left are squeezed" | `.vfx-tl-label` fixed at `150px`, `white-space:nowrap; overflow:hidden`, and it *also* hosts the `+`/🗑 buttons (`styles.ts:37`, `renderTrackRow:204`) | Widen the gutter and make it **resizable** (drag the gutter/lane divider, persist px in `localStorage`). Show `actor` and `property` on two lines or with a tooltip; move the per-row action buttons to a hover affordance so the text owns the width. |
+| E2 | "No zooming function" | `laneWidth = body.clientWidth` (`:120`); `timeToX` maps the whole duration onto the visible width with no scale factor (`:101`) | Introduce a **pixels-per-ms zoom** state (`pxPerMs`), make the lanes a horizontally-scrollable strip wider than the viewport, and drive `timeToX`/`xToTime` from it. Controls: `+`/`−` buttons, `Ctrl/⌘ + wheel` to zoom around the cursor, "Fit" to reset. The ruler tick density derives from zoom (nice 50/100/250/500ms steps). |
+| E3 | "Value editor isn't fixed like the top toolbar → lots of scrolling" + "when a keyframe is selected, the panel scrolls to the top" | The inspector is the **last child inside the scrolling `body`** (`renderBody:200`), and selecting a key calls `render()` which rebuilds `body`, resetting `scrollTop` to 0 (`:116`, `beginDragKey` up-handler `:368`) | Pull the inspector **out of the scroller** into a fixed footer region (sibling of `body`, like `toolbar` is a fixed header). Then stop the scroll reset: see E6. |
+| E4 | "Can't vertically grow the panel to see more tracks" | `.vfx-tl-editor { height: 320px }` is hard-coded (`styles.ts`) | Add a **drag handle on the top edge** to resize the panel height (persist in `localStorage`); clamp to `[200px, 90vh]`. Optional: a maximize toggle. With more height the lane scroller (E2/E3) shows more rows. |
+| E5 | "Can't precisely set time values for the keys" | Time is only editable by dragging diamonds (`beginDragKey`), which is pixel-quantized and worsens at low zoom; the inspector shows `@ {time}ms` as static text (`renderInspector:315`) | Add a **numeric time field** to the inspector (next to value/ease), wired to the existing `retimeKey` op. Add **snapping** while dragging (to a configurable grid, e.g. 5/10/25ms, and optionally to other keys/cues) with a modifier to disable. |
+| E6 | (enabler for E1–E5) "everything flickers / scroll jumps" | `render()` is a full `replaceChildren()` on every edit and every selection (`:116`); drag-retime calls `session.edit` → `onChange` → full re-render *per pointermove* | Split rendering: structural re-render (tracks added/removed) vs. **cheap updates** (a key moved → reposition that diamond's `style.left`; selection changed → toggle a class + repopulate the fixed inspector). Keep scroll position. This makes E2's wide scroller and E3's fixed inspector behave. |
+
+Deliverable: the panel is resizable (height + gutter), zoomable/scrollable in time, the inspector
+is always visible, selection never scrolls the lanes, and key time is precisely editable. No data
+model change — all of this is `TimelineEditor.ts` + `styles.ts`, plus a tiny `editorPrefs` helper
+for the persisted px/zoom values.
+
+## Phase F — How the editor is accessed
+
+Current: the VFX debug panel adds **two buttons per sequence** — `seek ▶` and `edit ✎` —
+in a flat tweakpane folder (`VFXSystem.initDebugPanel`, the `case 'sequence'` block). With several
+sequences this is a wall of repeated buttons (your "list of repeated buttons").
+
+Plan:
+- Replace the per-sequence button pair with **one dropdown** (tweakpane `addBinding` list, or a
+  small select in the editor's own toolbar) to pick the sequence, plus a single `seek`/`edit`
+  action pair that operates on the selection. Keeps `requestTimelineEdit(id)` → `playSequence`
+  plumbing; only the launcher UI changes.
+- Distinguish **data-driven** sequences (have an `assets/timelines/<id>.json`, so `edit` is
+  meaningful) from purely-imperative ones. Cheapest signal: a static manifest of timeline ids
+  (generated by `vite-plugin-timelines` from the folder, mirroring how cutscene ids are surfaced)
+  so the dropdown can disable `edit` for sequences without a doc. Avoids a failed fetch + console
+  warning as the "discovery" mechanism.
+- Optional: a global keybind (dev-only) to toggle the editor for the last-played sequence.
+
+## Phase G — Legibility: make the tool self-explanatory
+
+This is the "left as an exercise for the reader" theme. Two parts: in-tool affordances and a real
+authoring doc.
+
+**G1 — In-tool clarity**
+- Label the mystery controls. The **`+` on a track row** adds a keyframe at the current playhead
+  (`renderTrackRow:207`) — but it's an unlabeled `+` next to a 🗑. Give them tooltips/labels
+  ("add key @ playhead", "remove track") and a clearer layout (E1).
+- "I lost track of what is what in the level animation." The rows are `actor.property`
+  (`flash.alpha`, `textGroup.scale.x`, …) which mean nothing without seeing the actor. Add:
+  - **Hover-to-highlight**: hovering a track row flashes/outlines that actor on the canvas (most
+    actors are `Container`/`Graphics`; a temporary tint or bounding box). Needs the editor to reach
+    the live stage map — it already has it via `EditorSession` (`actorNames()`); extend to expose
+    the objects for a highlight helper.
+  - **Solo/mute per track** (eye toggle) so you can isolate one actor's contribution while scrubbing.
+  - A **value readout at the playhead** per track (the interpolated current value), so a row reads
+    as "what is this doing *right now*."
+- A small **"?" help popover** in the toolbar summarizing controls and the code-vs-data boundary.
+
+**G2 — Authoring workflow docs ("how do I start adding sequences?")**
+Write `docs/timeline-authoring.md` (and link it from the help popover) covering the full loop:
+1. **Anatomy of a sequence** — the three pieces (actor setup in `build()`, the JSON doc, the
+   compiler) with the `levelCompleted` before/after as the worked example.
+2. **Add a track** to an existing sequence: pick an actor from the live stage map + a property,
+   key it, scrub. What properties are legal (`x`, `alpha`, `tint` as hex string, `scale.x`, …).
+3. **Cues** — what a hook is, how `build()` exposes named fire-once closures, why cues are muted
+   on scrub and only fire on real Play.
+4. **Authoring a brand-new sequence from scratch**: the `defineSequence` skeleton, building actors,
+   collecting the `stage`/`hooks` maps, calling `playTimeline(id, …)`, creating an empty
+   `assets/timelines/<id>.json` (or an editor **"New timeline"** action that scaffolds one), and
+   registering it in `registry.ts`.
+5. The **code-vs-data boundary** table (which tweens stay in `build()` and why), pointing back to
+   this plan.
+
+Deliverable: someone who has never seen the system can open the dropdown, pick a sequence, read the
+rows, add a track, and know where a brand-new sequence's code and JSON go — without reading source.
+
+## v2 phasing
+- **E. Editor UX** — resize (height + gutter), time zoom/scroll, fixed inspector, precise time
+  field, incremental render. Highest friction-reduction; do first.
+- **F. Access UX** — dropdown launcher + data-driven discovery manifest.
+- **G. Legibility** — in-tool labels/hover-highlight/solo + the authoring doc.
+
+## v2 verification
+- After E: open `levelCompleted`, drag the panel taller and the gutter wider (persists across
+  reload); `Ctrl+wheel` zooms the time axis and the ruler relabels; select keys rapidly — the lane
+  scroll position holds and the inspector stays put; type a time into the inspector and the diamond
+  jumps exactly. `npm test` + `tsc` clean.
+- After F: the VFX panel shows one sequence dropdown, not N button pairs; picking a sequence with
+  no JSON disables `edit`.
+- After G: a new contributor follows `docs/timeline-authoring.md` to add a track and scaffold a new
+  sequence; hovering a row highlights its actor on the canvas.
