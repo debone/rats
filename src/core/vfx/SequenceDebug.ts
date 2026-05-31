@@ -1,8 +1,6 @@
 import { DebugPanel, type FolderApi } from '@/core/devtools/debug-panel';
 import type { Timeline } from 'animejs';
-
-/** One display frame at 60fps, used by the step buttons. */
-const FRAME_MS = 1000 / 60;
+import { Transport } from './timeline/Transport';
 
 /**
  * A live, scrubbable debug session for a single sequence play.
@@ -11,6 +9,11 @@ const FRAME_MS = 1000 / 60;
  * being able to *seek* it. Every timeline the sequence creates (via
  * `ctx.timeline()`) is paused and handed here; we expose a normalized progress
  * slider, a speed control, frame step buttons, and transport controls.
+ *
+ * The playback mechanics — seek/step/speed, muted-callback scrubbing, the
+ * thenable interception that withholds completion — live in the shared
+ * {@link Transport} core, which the DOM timeline editor reuses. This class is
+ * just the tweakpane *view* over that core:
  *
  * - Scrubbing / stepping seeks with callbacks muted, so tween state updates
  *   without re-firing the imperative `tl.call` beats (camera shakes, spawns).
@@ -27,9 +30,8 @@ const FRAME_MS = 1000 / 60;
  */
 export class SequenceDebugSession {
   private folder: FolderApi | null = null;
-  private timelines: Timeline[] = [];
+  private readonly transport = new Transport();
   private readonly state = { progress: 0, speed: 1 };
-  private playing = false;
   /**
    * True while we are writing the slider ourselves (live playback mirror, step,
    * restart). tweakpane quantizes the value to the slider `step` and re-emits
@@ -38,42 +40,22 @@ export class SequenceDebugSession {
    * events as genuine user drags.
    */
   private suppressChange = false;
-  private rafId = 0;
-  private disposed = false;
-  /** Resolvers captured from each timeline's `then`, fired on Close so the sequence's teardown runs. */
-  private resolvers: Array<() => void> = [];
 
   constructor(
     private readonly id: string,
     private readonly parent: FolderApi | null,
-  ) {}
+  ) {
+    // Mirror the live playhead onto the slider as the transport advances it.
+    this.transport.onProgress = (progress) => this.writeSlider(progress);
+  }
 
   /**
-   * Register a timeline created by the sequence. Pauses it, withholds its natural
-   * completion from `await tl` (so the effect isn't torn down behind the still-open
-   * panel), and (re)builds the UI.
+   * Register a timeline created by the sequence. The transport pauses it and
+   * withholds its natural completion from `await tl` (so the effect isn't torn
+   * down behind the still-open panel); we (re)build the UI.
    */
   track(tl: Timeline): void {
-    tl.pause();
-
-    // Intercept the thenable: capture the resolver instead of resolving on
-    // completion. Fired later from finish()/Close so the sequence body's
-    // post-`await tl` teardown only runs when the user is done inspecting.
-    //
-    // Resolve with `undefined`, NOT `tl`: `await tl` makes `onFulfilled` the
-    // promise's own resolve, and resolving it with a thenable (tl) would re-enter
-    // `then` and hang forever. The sequence body ignores the awaited value anyway.
-    // (Cast through unknown — anime's `then` type is narrower than this shape, but
-    // the thenable contract `await` relies on is identical.)
-    tl.then = ((onFulfilled?: (value: unknown) => unknown) =>
-      new Promise<void>((resolve) => {
-        this.resolvers.push(() => {
-          onFulfilled?.(undefined);
-          resolve();
-        });
-      })) as unknown as Timeline['then'];
-
-    this.timelines.push(tl);
+    this.transport.track(tl);
     this.ensureUI();
   }
 
@@ -88,93 +70,20 @@ export class SequenceDebugSession {
       .on('change', () => {
         // Only a genuine user drag scrubs; ignore our own programmatic writes.
         if (this.suppressChange) return;
-        this.scrubTo(this.state.progress);
+        this.transport.seek(this.state.progress);
       });
 
     folder
       .addBinding(this.state, 'speed', { min: 0.05, max: 2, step: 0.05 })
-      .on('change', () => this.applySpeed());
+      .on('change', () => this.transport.setSpeed(this.state.speed));
 
-    folder.addButton({ title: '⏮ -1f', label: 'step' }).on('click', () => this.step(-1));
-    folder.addButton({ title: '+1f ⏭', label: 'step' }).on('click', () => this.step(+1));
-    folder.addButton({ title: 'Play ▶' }).on('click', () => this.play());
-    folder.addButton({ title: 'Pause ⏸' }).on('click', () => this.pause());
-    folder.addButton({ title: 'Restart ↺' }).on('click', () => this.restart());
+    folder.addButton({ title: '⏮ -1f', label: 'step' }).on('click', () => this.transport.step(-1));
+    folder.addButton({ title: '+1f ⏭', label: 'step' }).on('click', () => this.transport.step(+1));
+    folder.addButton({ title: 'Play ▶' }).on('click', () => this.transport.play());
+    folder.addButton({ title: 'Pause ⏸' }).on('click', () => this.transport.pause());
+    folder.addButton({ title: 'Restart ↺' }).on('click', () => this.transport.restart());
     // "Close" resolves the sequence (running its teardown) and removes the panel.
     folder.addButton({ title: 'Close ✕' }).on('click', () => this.finish());
-  }
-
-  /** User dragged the slider: pause and seek to a normalized [0..1] position. */
-  private scrubTo(progress: number): void {
-    this.pause();
-    this.seekAll(progress);
-  }
-
-  private applySpeed(): void {
-    this.timelines.forEach((tl) => (tl.speed = this.state.speed));
-  }
-
-  /** Advance/retreat by N frames, muted (stepping is inspection, not playback). */
-  private step(frames: number): void {
-    this.pause();
-    const duration = this.timelines[0]?.duration ?? 0;
-    if (duration <= 0) return;
-    const next = Math.min(1, Math.max(0, this.state.progress + (frames * FRAME_MS) / duration));
-    this.seekAll(next);
-    this.writeSlider(next);
-  }
-
-  /** Seek every tracked timeline to a normalized position, callbacks muted. */
-  private seekAll(progress: number): void {
-    for (const tl of this.timelines) {
-      tl.seek(progress * tl.duration, true);
-    }
-  }
-
-  private play(): void {
-    if (this.playing) return;
-    this.playing = true;
-    // If we're at the end, restart from 0 so Play always does something.
-    if (this.state.progress >= 1) this.seekAll(0);
-    this.applySpeed();
-    this.timelines.forEach((tl) => tl.play());
-    this.startSync();
-  }
-
-  private pause(): void {
-    this.playing = false;
-    this.stopSync();
-    this.timelines.forEach((tl) => tl.pause());
-  }
-
-  private restart(): void {
-    this.writeSlider(0);
-    this.seekAll(0);
-    this.play();
-  }
-
-  /** Mirror the live playhead onto the slider each frame while playing. */
-  private startSync(): void {
-    this.stopSync();
-    const tick = () => {
-      if (this.disposed || !this.playing) return;
-      const tl = this.timelines[0];
-      if (tl && tl.duration > 0) {
-        this.writeSlider(Math.min(1, tl.currentTime / tl.duration));
-        if (tl.completed) {
-          // Hold at the end — panel stays open for replay/scrub.
-          this.playing = false;
-          return;
-        }
-      }
-      this.rafId = requestAnimationFrame(tick);
-    };
-    this.rafId = requestAnimationFrame(tick);
-  }
-
-  private stopSync(): void {
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    this.rafId = 0;
   }
 
   /** Write a value to the slider with the change-echo suppressed. */
@@ -190,17 +99,12 @@ export class SequenceDebugSession {
    * (running the sequence's own teardown), and remove the panel.
    */
   finish(): void {
-    this.timelines.forEach((tl) => tl.complete());
-    const resolvers = this.resolvers;
-    this.resolvers = [];
-    resolvers.forEach((resolve) => resolve());
+    this.transport.finish();
     this.dispose();
   }
 
   private dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
-    this.stopSync();
+    this.transport.dispose();
     this.folder?.dispose();
     this.folder = null;
   }
