@@ -2,6 +2,7 @@ import type { Timeline } from 'animejs';
 
 import type { SequenceContext } from '../types';
 import { compile } from './compile';
+import { consumeEdit } from './editor/editMode';
 import type { Hooks, Stage, TimelineDoc } from './types';
 
 /**
@@ -35,9 +36,21 @@ export interface PlayTimelineArgs {
  * tracked `ctx.timeline()` (so `SequenceDebug`/the editor drive the same
  * playhead), let the caller decorate it with code tweens, compile the doc onto
  * it, and await completion.
+ *
+ * DEV: if the visual editor was requested for this id (via `requestTimelineEdit`
+ * from the debug panel), hand off to the DOM editor instead and await its close.
+ * The editor is dynamic-imported behind the DEV guard so its DOM code is fully
+ * tree-shaken from production builds.
  */
 export async function playTimeline(id: string, { stage, hooks, ctx, decorate }: PlayTimelineArgs): Promise<void> {
   const doc = await load(id);
+
+  if (import.meta.env.DEV && consumeEdit(id)) {
+    const { openTimelineEditor } = await import('./editor/controller');
+    await openTimelineEditor(id, { doc, stage, hooks, ctx, decorate });
+    return;
+  }
+
   const tl = ctx.timeline();
   decorate?.(tl);
   compile(doc, stage, hooks, tl);

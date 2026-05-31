@@ -15,6 +15,7 @@ import { SequenceDebugSession } from './SequenceDebug';
 import { Figure8Mover } from './effects/debug/figure8Mover';
 import { followBody } from './follow';
 import { VFX_EFFECTS } from './registry';
+import { requestTimelineEdit } from './timeline/editor/editMode';
 import type {
   BurstDef,
   ContinuousDef,
@@ -157,6 +158,13 @@ export class VFXSystem implements System {
           const seq = def as SequenceDef<unknown>;
           sequences.addButton({ title: seq.id, label: 'seek ▶' }).on('click', () => {
             this.playSequence(seq, {}, true);
+          });
+          // Open the data-driven visual editor (only sequences backed by a JSON
+          // timeline respond; others just play normally). Routed through a flag
+          // consumed in `playTimeline`, so no special wiring per sequence.
+          sequences.addButton({ title: seq.id, label: 'edit ✎' }).on('click', () => {
+            requestTimelineEdit(seq.id);
+            this.playSequence(seq, {}, false);
           });
           break;
         }

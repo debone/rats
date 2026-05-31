@@ -45,7 +45,10 @@ export function assetpackPlugin(): Plugin {
   const apConfig: AssetPackConfig = {
     entry: './assets',
     output: './public/assets/',
-    ignore: ['**/*.tiled-project', '**/*.tiled-session', '**/.gitkeep'],
+    // `assets/timelines` is handled verbatim by vite-plugin-timelines (stable
+    // names for the editor's fixed-path fetch), so keep assetpack's hashing pipe
+    // off it.
+    ignore: ['**/*.tiled-project', '**/*.tiled-session', '**/.gitkeep', 'timelines/**'],
     pipes: [packer(), tiled(), ...pxPipes],
   };
 

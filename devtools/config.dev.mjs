@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import { assetpackPlugin } from './vite-plugin-assetpack';
+import { timelinesPlugin } from './vite-plugin-timelines';
 
 const fullReloadAlways = {
   handleHotUpdate({ server }) {
@@ -12,7 +13,7 @@ const fullReloadAlways = {
 
 export default defineConfig({
   base: './',
-  plugins: [fullReloadAlways, assetpackPlugin()],
+  plugins: [fullReloadAlways, assetpackPlugin(), timelinesPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../src'),

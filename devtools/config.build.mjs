@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import { assetpackPlugin } from './vite-plugin-assetpack';
+import { timelinesPlugin } from './vite-plugin-timelines';
 
 export default defineConfig(({ mode }) => ({
   mode,
   base: './',
-  plugins: [assetpackPlugin()],
+  plugins: [assetpackPlugin(), timelinesPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../src'),
