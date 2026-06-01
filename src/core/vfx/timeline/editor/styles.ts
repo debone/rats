@@ -1,8 +1,9 @@
 /**
- * Injects the timeline editor's stylesheet once, on first use. The game has no
- * CSS pipeline (it's a canvas app), so rather than add a `.css` import we inline
- * a single scoped `<style>` for the dev-only overlay. All selectors are prefixed
- * `vfx-tl-` so nothing leaks onto the page.
+ * Injects the timeline editor's stylesheet once per document (the host page, or a
+ * popup window when the editor is hosted there). The game has no CSS pipeline (it's
+ * a canvas app), so rather than add a `.css` import we inline a single scoped
+ * `<style>` for the dev-only overlay. All selectors are prefixed `vfx-tl-` so
+ * nothing leaks onto the page.
  *
  * Layout (v2): a `--vfx-tl-gutter` (label column width) and `--vfx-tl-lane` (time
  * strip width, = duration × pxPerMs) custom property drive a single horizontally-
@@ -11,8 +12,6 @@
  * free. The inspector is a fixed footer (never scrolls); the panel height and the
  * gutter are drag-resizable.
  */
-let injected = false;
-
 const CSS = `
 .vfx-tl-editor {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 100000;
@@ -22,6 +21,12 @@ const CSS = `
   color: #d8d8e0; background: rgba(18,18,28,0.96);
   border-top: 1px solid #3a3a55; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
   user-select: none;
+}
+/* In a real popup window the editor fills the whole window; the OS chrome moves
+   and resizes it, so there's no docked bar and no top resize handle. */
+.vfx-tl-editor.vfx-tl-popup {
+  inset: 0; height: auto; width: auto; border-top: none; box-shadow: none;
+  background: #12121c;
 }
 .vfx-tl-rhandle { height: 5px; cursor: ns-resize; background: transparent; flex: 0 0 auto; }
 .vfx-tl-rhandle:hover { background: #4ad0ff55; }
@@ -94,11 +99,11 @@ const CSS = `
 .vfx-tl-help ul { margin: 2px 0; padding-left: 16px; }
 `;
 
-export function ensureEditorStyles(): void {
-  if (injected) return;
-  injected = true;
-  const style = document.createElement('style');
+/** Inject the editor stylesheet into `doc` once (per-document, so popups get it too). */
+export function ensureEditorStyles(doc: Document = document): void {
+  if (doc.querySelector('[data-vfx-timeline-editor-styles]')) return;
+  const style = doc.createElement('style');
   style.setAttribute('data-vfx-timeline-editor-styles', '');
   style.textContent = CSS;
-  document.head.appendChild(style);
+  doc.head.appendChild(style);
 }

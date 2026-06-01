@@ -16,6 +16,7 @@ import {
   setKeyValue,
 } from './ops';
 import { fitScale, snapTime, tickTimes, valueAtTime } from './scale';
+import { ensureEditorStyles } from './styles';
 
 /** anime.js eases offered in the per-key dropdown; '' means "no ease" (linear default). */
 const EASES = ['', 'linear', 'in', 'out', 'inOut', 'inQuad', 'outQuad', 'inOutQuad', 'outBack', 'inBack', 'outElastic'];
@@ -38,12 +39,19 @@ const ZOOM_STEP = 1.25;
 
 type El = HTMLElement;
 
+/**
+ * Document the `el()` factory creates nodes in. Defaults to the host page, but is
+ * pointed at the popup window's document while an editor lives there (single active
+ * editor, so a module-level handle is enough).
+ */
+let uiDoc: Document = document;
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   attrs: Partial<Record<string, string>> = {},
   children: (El | string)[] = [],
 ): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
+  const node = uiDoc.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (v == null) continue;
     if (k === 'class') node.className = v;
@@ -102,20 +110,37 @@ export class TimelineEditor {
   /** Currently-selected key, for the inspector. */
   private selected: { track: number; key: number } | null = null;
 
+  /** The window/document the UI lives in — a popup when one could be opened, else the host page. */
+  private readonly win: Window;
+  private readonly doc: Document;
+  /** True when hosted in a real popup window (fills it; OS chrome handles move/resize). */
+  private readonly popup: boolean;
+
   constructor(
     private readonly session: EditorSession,
     /** Persist the current doc to disk (Phase D); resolve truthy on success for Save feedback. Absent → no Save button. */
     private readonly onSave?: () => Promise<boolean | void> | void,
     /** Close the editor — resolves the sequence and tears down. Absent → finish() directly. */
     private readonly onClose?: () => void,
+    /** Host the editor in this window (a popup); defaults to the host page (docked overlay). */
+    targetWindow: Window = window,
   ) {
+    this.win = targetWindow;
+    this.doc = targetWindow.document;
+    this.popup = targetWindow !== window;
+    uiDoc = this.doc; // route el() at this document for the lifetime of this editor
+    ensureEditorStyles(this.doc);
+
     const prefs = loadPrefs();
     this.gutterW = prefs.gutterW;
     this.panelH = prefs.panelH;
 
-    this.root = el('div', { class: 'vfx-tl-editor', 'data-vfx-timeline-editor': '' });
+    this.root = el('div', {
+      class: `vfx-tl-editor${this.popup ? ' vfx-tl-popup' : ''}`,
+      'data-vfx-timeline-editor': '',
+    });
     this.applyVars();
-    document.body.appendChild(this.root);
+    this.doc.body.appendChild(this.root);
 
     this.buildShell();
 
@@ -126,28 +151,30 @@ export class TimelineEditor {
 
     this.refresh();
     // Fit the duration to the viewport once layout has measured the scroller.
-    requestAnimationFrame(() => this.fitZoom());
-    // Capture phase so we can swallow our shortcuts before the game's polled input
-    // (pixijs-input-devices listens on window in bubble phase) records them.
-    window.addEventListener('keydown', this.onKey, true);
+    this.win.requestAnimationFrame(() => this.fitZoom());
+    // Editor shortcuts. In a popup these keys go to the popup window, so the game
+    // never sees them; capture phase is the best-effort guard for the docked case.
+    this.win.addEventListener('keydown', this.onKey, true);
   }
 
   destroy(): void {
-    window.removeEventListener('keydown', this.onKey, true);
+    this.win.removeEventListener('keydown', this.onKey, true);
     disposeActorHighlight();
     this.root.remove();
+    if (uiDoc === this.doc) uiDoc = document; // restore default for any later docked editor
   }
 
   // ---- shell (built once) ------------------------------------------------
 
   private applyVars(): void {
-    this.root.style.height = `${this.panelH}px`;
+    // In a popup the OS window sets the size; docked, we drive the bar height.
+    if (!this.popup) this.root.style.height = `${this.panelH}px`;
     this.root.style.setProperty('--vfx-tl-gutter', `${this.gutterW}px`);
     this.root.style.setProperty('--vfx-tl-lane', `${this.laneW()}px`);
   }
 
   private buildShell(): void {
-    // Top edge: drag to resize panel height (E4).
+    // Top edge: drag to resize panel height (docked only; a popup resizes via OS chrome).
     const rhandle = el('div', { class: 'vfx-tl-rhandle', title: 'Drag to resize panel height' });
     rhandle.onpointerdown = (e) => this.beginResizeHeight(e);
 
@@ -180,7 +207,9 @@ export class TimelineEditor {
     this.inspectorEl = el('div', { class: 'vfx-tl-inspector' });
     const footer = el('div', { class: 'vfx-tl-footer' }, [this.buildAddTrack(), this.inspectorEl]);
 
-    this.root.append(rhandle, toolbar, bodywrap, footer);
+    // The height handle is meaningless in a popup (the window resizes instead).
+    if (this.popup) this.root.append(toolbar, bodywrap, footer);
+    else this.root.append(rhandle, toolbar, bodywrap, footer);
   }
 
   private buildToolbar(): El {
@@ -293,7 +322,7 @@ export class TimelineEditor {
     btn.textContent = ok ? '✓ Saved' : '✕ Failed';
     btn.classList.toggle('vfx-tl-saveok', ok);
     btn.classList.toggle('vfx-tl-savefail', !ok);
-    window.setTimeout(() => {
+    this.win.setTimeout(() => {
       btn.textContent = original;
       btn.classList.remove('vfx-tl-saveok', 'vfx-tl-savefail');
     }, 1400);
@@ -375,7 +404,7 @@ export class TimelineEditor {
     this.renderLanes();
     // Keep an in-progress inspector edit alive: if a field there is focused (e.g.
     // arrow-nudging the time/value), don't rebuild it — the lanes already moved.
-    if (!this.inspectorEl.contains(document.activeElement)) this.renderInspector();
+    if (!this.inspectorEl.contains(this.doc.activeElement)) this.renderInspector();
     this.positionPlayhead();
   }
 
@@ -629,11 +658,11 @@ export class TimelineEditor {
     };
     move(e);
     const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      this.win.removeEventListener('pointermove', move);
+      this.win.removeEventListener('pointerup', up);
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    this.win.addEventListener('pointermove', move);
+    this.win.addEventListener('pointerup', up);
   }
 
   /** Drag a diamond → retime live (snapped, Alt disables); click selects. */
@@ -665,13 +694,13 @@ export class TimelineEditor {
       if (this.timeInput) this.timeInput.value = String(Math.round(time));
     };
     const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      this.win.removeEventListener('pointermove', move);
+      this.win.removeEventListener('pointerup', up);
       this.dragging = false;
       this.refresh(); // resync indices / inspector / readouts
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    this.win.addEventListener('pointermove', move);
+    this.win.addEventListener('pointerup', up);
   }
 
   /** Drag a cue marker → move live (snapped, Alt disables). */
@@ -695,13 +724,13 @@ export class TimelineEditor {
       marker.style.left = `${this.timeToX(time)}px`;
     };
     const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      this.win.removeEventListener('pointermove', move);
+      this.win.removeEventListener('pointerup', up);
       this.dragging = false;
       this.refresh();
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    this.win.addEventListener('pointermove', move);
+    this.win.addEventListener('pointerup', up);
   }
 
   /** Times of other keys (excluding the dragged one) and all cues, for snap-to. */
@@ -724,18 +753,18 @@ export class TimelineEditor {
     e.preventDefault();
     const startY = e.clientY;
     const startH = this.panelH;
-    const maxH = Math.min(2000, window.innerHeight * 0.9);
+    const maxH = Math.min(2000, this.win.innerHeight * 0.9);
     const move = (ev: PointerEvent) => {
       this.panelH = Math.max(PANEL_MIN, Math.min(maxH, startH + (startY - ev.clientY)));
       this.root.style.height = `${this.panelH}px`;
     };
     const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      this.win.removeEventListener('pointermove', move);
+      this.win.removeEventListener('pointerup', up);
       savePrefs({ panelH: this.panelH });
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    this.win.addEventListener('pointermove', move);
+    this.win.addEventListener('pointerup', up);
   }
 
   private beginResizeGutter(e: PointerEvent): void {
@@ -748,12 +777,12 @@ export class TimelineEditor {
       this.positionPlayhead();
     };
     const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      this.win.removeEventListener('pointermove', move);
+      this.win.removeEventListener('pointerup', up);
       savePrefs({ gutterW: this.gutterW });
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    this.win.addEventListener('pointermove', move);
+    this.win.addEventListener('pointerup', up);
   }
 
   // ---- help popover ------------------------------------------------------
