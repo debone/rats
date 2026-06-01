@@ -4,46 +4,46 @@ import type { Track } from '../types';
  * Pure time-axis math for the editor's zoomable, scrollable lane strip (Phase E).
  *
  * The old editor pinned the whole duration onto the visible width with no scale
- * factor, so there was no zoom. Here time maps to pixels through an explicit
- * `pxPerMs`, the lanes are a strip wider than the viewport, and these helpers pick
- * sensible ruler ticks, snap dragged times, and read a track's value at the
- * playhead — all DOM-free so they can be unit-tested.
+ * factor, so there was no zoom. Here time (in **frames**) maps to pixels through an
+ * explicit `pxPerFrame`, the lanes are a strip wider than the viewport, and these
+ * helpers pick sensible ruler ticks, snap dragged times, and read a track's value
+ * at the playhead — all DOM-free so they can be unit-tested.
  */
 
-/** Candidate ruler tick spacings in ms — "nice" round numbers across zoom levels. */
-const TICK_STEPS = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000];
+/** Candidate ruler tick spacings in frames — "nice" counts across zoom levels. */
+const TICK_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 3000];
 
 /**
- * Pick the smallest nice tick spacing (ms) whose on-screen gap is at least
+ * Pick the smallest nice tick spacing (frames) whose on-screen gap is at least
  * `minGapPx`, so labels never crowd. Density follows zoom: zoom in → finer ticks.
  */
-export function chooseTickStep(pxPerMs: number, minGapPx = 64): number {
+export function chooseTickStep(pxPerFrame: number, minGapPx = 64): number {
   for (const step of TICK_STEPS) {
-    if (step * pxPerMs >= minGapPx) return step;
+    if (step * pxPerFrame >= minGapPx) return step;
   }
   return TICK_STEPS[TICK_STEPS.length - 1];
 }
 
-/** The tick times (ms) from 0..duration inclusive at the chosen spacing. */
-export function tickTimes(duration: number, pxPerMs: number, minGapPx = 64): number[] {
-  const step = chooseTickStep(pxPerMs, minGapPx);
+/** The tick times (frames) from 0..duration inclusive at the chosen spacing. */
+export function tickTimes(duration: number, pxPerFrame: number, minGapPx = 64): number[] {
+  const step = chooseTickStep(pxPerFrame, minGapPx);
   const out: number[] = [];
   for (let t = 0; t <= duration + 0.5; t += step) out.push(Math.round(t));
   return out;
 }
 
 /** "Fit" zoom: spread the whole duration across the available lane viewport. */
-export function fitPxPerMs(viewportPx: number, duration: number): number {
+export function fitScale(viewportPx: number, duration: number): number {
   if (duration <= 0 || viewportPx <= 0) return 1;
   return viewportPx / duration;
 }
 
 export interface SnapOpts {
-  /** Grid spacing in ms to round to (e.g. 10). 0/undefined disables grid snap. */
+  /** Grid spacing in frames to round to (e.g. 1). 0/undefined disables grid snap. */
   grid?: number;
   /** Other times (keys/cues) to snap onto when within threshold. */
   targets?: number[];
-  /** Max distance in ms at which a target wins over the grid result. */
+  /** Max distance in frames at which a target wins over the grid result. */
   thresholdMs?: number;
 }
 

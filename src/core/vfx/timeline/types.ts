@@ -15,7 +15,7 @@
  */
 export interface TimelineDoc {
   id: string;
-  /** Authored length in ms — drives the editor ruler. Playback length is the last tween's end. */
+  /** Authored length in **frames** — drives the editor ruler. Playback length is the last tween's end. */
   duration: number;
   tracks: Track[];
   cues: Cue[];
@@ -32,13 +32,14 @@ export interface Track {
 
 /** A single keyframe. `ease` is the curve used to *enter* this key from the previous one. */
 export interface Key {
+  /** Time in **frames** (see `time.ts`). */
   time: number;
   /** Numbers lerp linearly; `tint` keys carry hex strings (e.g. `'#ffd23f'`) so anime color-interpolates. */
   value: number | string;
   ease?: string;
 }
 
-/** A fire-once beat: at `time`, invoke the hook named `hook`. */
+/** A fire-once beat: at `time` (in **frames**), invoke the hook named `hook`. */
 export interface Cue {
   time: number;
   hook: string;

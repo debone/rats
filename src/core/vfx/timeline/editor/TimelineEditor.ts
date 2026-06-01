@@ -15,7 +15,7 @@ import {
   setKeyEase,
   setKeyValue,
 } from './ops';
-import { fitPxPerMs, snapTime, tickTimes, valueAtTime } from './scale';
+import { fitScale, snapTime, tickTimes, valueAtTime } from './scale';
 
 /** anime.js eases offered in the per-key dropdown; '' means "no ease" (linear default). */
 const EASES = ['', 'linear', 'in', 'out', 'inOut', 'inQuad', 'outQuad', 'inOutQuad', 'outBack', 'inBack', 'outElastic'];
@@ -23,13 +23,17 @@ const EASES = ['', 'linear', 'in', 'out', 'inOut', 'inQuad', 'outQuad', 'inOutQu
 /** Common animatable properties offered when adding a track. */
 const PROPERTIES = ['x', 'y', 'alpha', 'rotation', 'tint', 'scale.x', 'scale.y'];
 
-/** Default drag snap grid (ms); hold Alt while dragging to disable snapping. */
-const SNAP_GRID = 10;
-/** Within this many ms a key/cue snaps onto another key/cue while dragging. */
-const SNAP_THRESHOLD = 8;
-/** Zoom (pxPerMs) limits and step. */
-const ZOOM_MIN = 0.01;
-const ZOOM_MAX = 50;
+/** Drag snaps to whole frames; hold Alt to disable snapping. */
+const SNAP_GRID = 1;
+/** Within this many frames a key/cue snaps onto another key/cue while dragging. */
+const SNAP_THRESHOLD = 2;
+/** Shift multiplies the time-field nudge (1 frame → this many). */
+const COARSE_STEP = 10;
+/** Speed presets offered as one-click buttons. */
+const SPEED_PRESETS = [0.1, 0.5, 1, 2];
+/** Zoom (pxPerFrame) limits and step. */
+const ZOOM_MIN = 0.2;
+const ZOOM_MAX = 200;
 const ZOOM_STEP = 1.25;
 
 type El = HTMLElement;
@@ -63,7 +67,7 @@ function fmtValue(v: number | string | null): string {
  * which recompiles the timeline so tweaks show instantly against the running game.
  *
  * v2 (Phase E): one scroll container holds a sticky ruler + sticky labels, so the
- * time axis is zoomable (`pxPerMs`) and scrollable; the panel height and label
+ * time axis is zoomable (`pxPerFrame`) and scrollable; the panel height and label
  * gutter are drag-resizable and persisted; the inspector is a fixed footer that
  * never scrolls. Rendering is split — the persistent shell is built once, and
  * `refresh()` only rebuilds the scroll *contents* (so scroll position holds) and
@@ -83,9 +87,12 @@ export class TimelineEditor {
   private zoomLabel!: El;
   private timeInput: HTMLInputElement | null = null;
   private helpEl: El | null = null;
+  /** Speed preset buttons, highlighted to reflect the live transport speed. */
+  private speedButtons: { speed: number; el: HTMLButtonElement }[] = [];
+  private saveBtn: HTMLButtonElement | null = null;
 
-  /** Time-axis zoom in px per ms; reset to "fit" after the first layout. */
-  private pxPerMs = 1;
+  /** Time-axis zoom in px per frame; reset to "fit" after the first layout. */
+  private pxPerFrame = 1;
   private gutterW: number;
   private panelH: number;
   /** Per-track value readout spans, refreshed as the playhead moves (G1). */
@@ -97,8 +104,8 @@ export class TimelineEditor {
 
   constructor(
     private readonly session: EditorSession,
-    /** Persist the current doc to disk (Phase D). Absent → no Save button. */
-    private readonly onSave?: () => void,
+    /** Persist the current doc to disk (Phase D); resolve truthy on success for Save feedback. Absent → no Save button. */
+    private readonly onSave?: () => Promise<boolean | void> | void,
     /** Close the editor — resolves the sequence and tears down. Absent → finish() directly. */
     private readonly onClose?: () => void,
   ) {
@@ -120,11 +127,13 @@ export class TimelineEditor {
     this.refresh();
     // Fit the duration to the viewport once layout has measured the scroller.
     requestAnimationFrame(() => this.fitZoom());
-    window.addEventListener('keydown', this.onKey);
+    // Capture phase so we can swallow our shortcuts before the game's polled input
+    // (pixijs-input-devices listens on window in bubble phase) records them.
+    window.addEventListener('keydown', this.onKey, true);
   }
 
   destroy(): void {
-    window.removeEventListener('keydown', this.onKey);
+    window.removeEventListener('keydown', this.onKey, true);
     disposeActorHighlight();
     this.root.remove();
   }
@@ -186,16 +195,31 @@ export class TimelineEditor {
     const restart = el('button', { class: 'vfx-tl-btn', title: 'Restart' }, ['↺']);
     restart.onclick = () => t.restart();
 
+    // Speed preset buttons + a fine numeric control.
+    this.speedButtons = SPEED_PRESETS.map((speed) => {
+      const btn = el('button', { class: 'vfx-tl-btn vfx-tl-speed', title: `Speed ×${speed}` }, [
+        `${speed}×`,
+      ]) as HTMLButtonElement;
+      btn.onclick = () => {
+        t.setSpeed(speed);
+        this.syncSpeedButtons();
+        this.speedInput.value = String(speed);
+      };
+      return { speed, el: btn };
+    });
     this.speedInput = el('input', {
       class: 'vfx-tl-num',
       type: 'number',
       step: '0.05',
       min: '0.05',
-      max: '2',
+      max: '4',
     }) as HTMLInputElement;
-    this.speedInput.onchange = () => t.setSpeed(Number(this.speedInput.value) || 1);
+    this.speedInput.onchange = () => {
+      t.setSpeed(Number(this.speedInput.value) || 1);
+      this.syncSpeedButtons();
+    };
 
-    this.durationInput = el('input', { class: 'vfx-tl-num', type: 'number', step: '10', min: '1' }) as HTMLInputElement;
+    this.durationInput = el('input', { class: 'vfx-tl-num', type: 'number', step: '1', min: '1' }) as HTMLInputElement;
     this.durationInput.onchange = () =>
       this.session.edit((d) => setDuration(d, Number(this.durationInput.value) || d.duration));
 
@@ -213,9 +237,11 @@ export class TimelineEditor {
 
     const right: (El | string)[] = [];
     if (this.onSave) {
-      const save = el('button', { class: 'vfx-tl-btn vfx-tl-save', title: 'Save to assets/timelines' }, ['💾 Save']);
-      save.onclick = () => this.onSave?.();
-      right.push(save);
+      this.saveBtn = el('button', { class: 'vfx-tl-btn vfx-tl-save', title: 'Save to assets/timelines' }, [
+        '💾 Save',
+      ]) as HTMLButtonElement;
+      this.saveBtn.onclick = () => void this.doSave();
+      right.push(this.saveBtn);
     }
     const close = el('button', { class: 'vfx-tl-btn', title: 'Close (resolve sequence)' }, ['✕']);
     close.onclick = () => (this.onClose ? this.onClose() : this.session.finish());
@@ -227,8 +253,10 @@ export class TimelineEditor {
       step1,
       step2,
       restart,
-      el('label', { class: 'vfx-tl-field' }, ['speed', this.speedInput]),
-      el('label', { class: 'vfx-tl-field' }, ['dur', this.durationInput]),
+      el('span', { class: 'vfx-tl-sep' }),
+      ...this.speedButtons.map((b) => b.el),
+      el('label', { class: 'vfx-tl-field' }, ['×', this.speedInput]),
+      el('label', { class: 'vfx-tl-field' }, ['dur(f)', this.durationInput]),
       el('span', { class: 'vfx-tl-sep' }),
       zoomOut,
       this.zoomLabel,
@@ -239,6 +267,36 @@ export class TimelineEditor {
       el('span', { class: 'vfx-tl-sep' }),
       ...right,
     ]);
+  }
+
+  /** Highlight the speed preset matching the live transport speed (if any). */
+  private syncSpeedButtons(): void {
+    const speed = this.session.transport.speed;
+    for (const b of this.speedButtons) b.el.classList.toggle('on', Math.abs(b.speed - speed) < 1e-6);
+  }
+
+  /** Run the injected save and flash the button with the outcome (Phase F feedback). */
+  private async doSave(): Promise<void> {
+    const btn = this.saveBtn;
+    if (!btn || !this.onSave) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '… Saving';
+    let ok = true;
+    try {
+      const result = await this.onSave();
+      ok = result !== false;
+    } catch {
+      ok = false;
+    }
+    btn.disabled = false;
+    btn.textContent = ok ? '✓ Saved' : '✕ Failed';
+    btn.classList.toggle('vfx-tl-saveok', ok);
+    btn.classList.toggle('vfx-tl-savefail', !ok);
+    window.setTimeout(() => {
+      btn.textContent = original;
+      btn.classList.remove('vfx-tl-saveok', 'vfx-tl-savefail');
+    }, 1400);
   }
 
   private buildAddTrack(): El {
@@ -262,16 +320,16 @@ export class TimelineEditor {
   }
 
   private laneW(): number {
-    return Math.max(1, this.duration * this.pxPerMs);
+    return Math.max(1, this.duration * this.pxPerFrame);
   }
 
   private timeToX(time: number): number {
-    return time * this.pxPerMs;
+    return time * this.pxPerFrame;
   }
 
   /** Clamp & apply a new zoom, keeping the timeline content laid out. */
-  private setZoom(pxPerMs: number): void {
-    this.pxPerMs = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pxPerMs));
+  private setZoom(pxPerFrame: number): void {
+    this.pxPerFrame = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pxPerFrame));
     this.applyVars();
     this.refresh();
   }
@@ -280,29 +338,29 @@ export class TimelineEditor {
   private zoomBy(factor: number): void {
     const sRect = this.scrollEl.getBoundingClientRect();
     const centerClientX = sRect.left + (this.gutterW + this.scrollEl.clientWidth) / 2;
-    this.zoomAround(this.pxPerMs * factor, centerClientX);
+    this.zoomAround(this.pxPerFrame * factor, centerClientX);
   }
 
   /** Zoom so the time under `clientX` stays put (used by wheel + buttons). */
-  private zoomAround(pxPerMs: number, clientX: number): void {
+  private zoomAround(pxPerFrame: number, clientX: number): void {
     const sRect = this.scrollEl.getBoundingClientRect();
     const cursorContentX = clientX - sRect.left + this.scrollEl.scrollLeft;
-    const timeAtCursor = (cursorContentX - this.gutterW) / this.pxPerMs;
-    this.setZoom(pxPerMs);
-    const newContentX = this.gutterW + timeAtCursor * this.pxPerMs;
+    const timeAtCursor = (cursorContentX - this.gutterW) / this.pxPerFrame;
+    this.setZoom(pxPerFrame);
+    const newContentX = this.gutterW + timeAtCursor * this.pxPerFrame;
     this.scrollEl.scrollLeft = newContentX - (clientX - sRect.left);
   }
 
   private fitZoom(): void {
     const viewport = this.scrollEl.clientWidth - this.gutterW;
-    this.setZoom(fitPxPerMs(viewport, this.duration));
+    this.setZoom(fitScale(viewport, this.duration));
     this.scrollEl.scrollLeft = 0;
   }
 
   private onWheel = (e: WheelEvent): void => {
     if (!(e.ctrlKey || e.metaKey)) return; // let normal scroll through
     e.preventDefault();
-    this.zoomAround(this.pxPerMs * (e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP), e.clientX);
+    this.zoomAround(this.pxPerFrame * (e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP), e.clientX);
   };
 
   // ---- refresh (structural) ----------------------------------------------
@@ -311,16 +369,19 @@ export class TimelineEditor {
     this.applyVars();
     this.speedInput.value = String(this.session.transport.speed);
     this.durationInput.value = String(this.duration);
-    this.zoomLabel.textContent = `${Math.round(this.pxPerMs * 1000)} px/s`;
+    this.zoomLabel.textContent = `${this.pxPerFrame.toFixed(1)} px/f`;
+    this.syncSpeedButtons();
     this.renderRuler();
     this.renderLanes();
-    this.renderInspector();
+    // Keep an in-progress inspector edit alive: if a field there is focused (e.g.
+    // arrow-nudging the time/value), don't rebuild it — the lanes already moved.
+    if (!this.inspectorEl.contains(document.activeElement)) this.renderInspector();
     this.positionPlayhead();
   }
 
   private renderRuler(): void {
     this.rulerLane.replaceChildren();
-    for (const time of tickTimes(this.duration, this.pxPerMs)) {
+    for (const time of tickTimes(this.duration, this.pxPerFrame)) {
       const tick = el('span', { class: 'vfx-tl-tick' }, [`${time}`]);
       tick.style.left = `${this.timeToX(time)}px`;
       this.rulerLane.append(tick);
@@ -445,7 +506,7 @@ export class TimelineEditor {
       return;
     }
 
-    // Precise time field (E5).
+    // Precise time field, in frames (E5). Arrows nudge ±1 frame; Shift+arrow ±10.
     const timeInput = el('input', {
       class: 'vfx-tl-num',
       type: 'number',
@@ -454,27 +515,30 @@ export class TimelineEditor {
       max: String(this.duration),
     }) as HTMLInputElement;
     timeInput.value = String(key.time);
-    timeInput.onchange = () => {
-      const keyRef = this.session.doc.tracks[ti].keys[ki];
-      this.session.edit((d) => {
-        retimeKey(d, ti, ki, Number(timeInput.value));
-        const idx = d.tracks[ti].keys.indexOf(keyRef);
-        if (idx >= 0) this.selected = { track: ti, key: idx };
-      });
+    timeInput.onchange = () => this.commitKeyTime(Number(timeInput.value));
+    timeInput.onkeydown = (ev) => {
+      if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.shiftKey) {
+        ev.preventDefault();
+        const dir = ev.key === 'ArrowUp' ? 1 : -1;
+        timeInput.value = String((Number(timeInput.value) || 0) + dir * COARSE_STEP);
+        this.commitKeyTime(Number(timeInput.value));
+      }
     };
     this.timeInput = timeInput;
 
-    // Value field: number input for numerics, text for tint strings.
+    // Value field: number input (step 0.1 — most values are 0..1) or text for tint.
     const isString = typeof key.value === 'string';
     const valInput = el('input', {
       class: 'vfx-tl-num wide',
       type: isString ? 'text' : 'number',
-      step: 'any',
+      step: isString ? undefined : '0.1',
     }) as HTMLInputElement;
     valInput.value = String(key.value);
     valInput.onchange = () => {
+      const sel = this.selected;
+      if (!sel) return;
       const v = isString ? valInput.value : Number(valInput.value);
-      this.session.edit((d) => setKeyValue(d, ti, ki, v));
+      this.session.edit((d) => setKeyValue(d, sel.track, sel.key, v));
     };
 
     const easeSel = el('select', { class: 'vfx-tl-sel' }) as HTMLSelectElement;
@@ -493,11 +557,25 @@ export class TimelineEditor {
 
     this.inspectorEl.append(
       el('span', { class: 'vfx-tl-hint' }, [`${track.actor}.${track.property}`]),
-      el('label', { class: 'vfx-tl-field' }, ['time', timeInput]),
+      el('label', { class: 'vfx-tl-field' }, ['time(f)', timeInput]),
       el('label', { class: 'vfx-tl-field' }, ['value', valInput]),
       el('label', { class: 'vfx-tl-field' }, ['ease', easeSel]),
       del,
     );
+  }
+
+  /** Retime the selected key (resolved by identity, so re-sorts keep the selection). */
+  private commitKeyTime(time: number): void {
+    const sel = this.selected;
+    if (!sel) return;
+    const keyRef = this.session.doc.tracks[sel.track]?.keys[sel.key];
+    if (!keyRef) return;
+    this.session.edit((d) => {
+      const idx0 = d.tracks[sel.track].keys.indexOf(keyRef);
+      retimeKey(d, sel.track, idx0, time);
+      const idx1 = d.tracks[sel.track].keys.indexOf(keyRef);
+      if (idx1 >= 0) this.selected = { track: sel.track, key: idx1 };
+    });
   }
 
   // ---- playhead / readouts (cheap updates) -------------------------------
@@ -524,10 +602,14 @@ export class TimelineEditor {
     const target = e.target as HTMLElement;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
     if (e.code === 'Space') {
+      // stopImmediatePropagation so the game's window keydown listener never fires.
       e.preventDefault();
+      e.stopImmediatePropagation();
       const t = this.session.transport;
       t.isPlaying ? t.pause() : t.play();
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selected) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
       const { track, key } = this.selected;
       this.selected = null;
       this.session.edit((d) => deleteKey(d, track, key));
@@ -542,7 +624,7 @@ export class TimelineEditor {
     e.stopPropagation();
     const move = (ev: PointerEvent) => {
       const rect = this.rulerLane.getBoundingClientRect();
-      const time = (ev.clientX - rect.left) / this.pxPerMs;
+      const time = (ev.clientX - rect.left) / this.pxPerFrame;
       this.session.transport.seek(Math.max(0, Math.min(1, this.duration > 0 ? time / this.duration : 0)));
     };
     move(e);
@@ -563,7 +645,7 @@ export class TimelineEditor {
     const laneRect = (diamond.parentElement as El).getBoundingClientRect();
     let currentKi = ki;
     const move = (ev: PointerEvent) => {
-      const raw = (ev.clientX - laneRect.left) / this.pxPerMs;
+      const raw = (ev.clientX - laneRect.left) / this.pxPerFrame;
       const time = Math.max(
         0,
         Math.min(
@@ -599,7 +681,7 @@ export class TimelineEditor {
     this.dragging = true;
     const laneRect = (marker.parentElement as El).getBoundingClientRect();
     const move = (ev: PointerEvent) => {
-      const raw = (ev.clientX - laneRect.left) / this.pxPerMs;
+      const raw = (ev.clientX - laneRect.left) / this.pxPerFrame;
       const time = Math.max(
         0,
         Math.min(
@@ -685,10 +767,13 @@ export class TimelineEditor {
     this.helpEl = el('div', { class: 'vfx-tl-help' });
     this.helpEl.innerHTML = `
       <h4>Timeline editor</h4>
+      <p>Times are in <b>frames</b> (60fps reference); playback is the same speed on any display.</p>
       <ul>
-        <li><b>Space</b> play/pause · <b>Del</b> delete selected key</li>
-        <li><b>Ctrl/⌘ + wheel</b> zoom · <b>Fit</b> resets · drag the ruler/▼ to scrub</li>
-        <li>Drag a ◆ to retime (snaps to ${SNAP_GRID}ms / other keys; hold <b>Alt</b> for free)</li>
+        <li><b>Space</b> play/pause · <b>Del</b> delete selected key (kept from the game)</li>
+        <li>Pausing/finishing returns to where Play started — press Play to repeat</li>
+        <li>Speed presets (0.1–2×) or the <b>×</b> field; <b>Ctrl/⌘ + wheel</b> zooms, <b>Fit</b> resets</li>
+        <li>Drag the ruler/▼ to scrub; drag a ◆ to retime (snaps to frames/other keys; <b>Alt</b> = free)</li>
+        <li>Inspector: <b>time</b> nudges ±1 frame (<b>Shift</b> ±${COARSE_STEP}); <b>value</b> nudges ±0.1</li>
         <li>Drag the top edge to grow the panel; drag the label divider to widen it</li>
         <li>Row <b>👁</b> mutes a track to isolate others; <b>+</b> adds a key at the playhead</li>
         <li>Hover a row label to outline its actor on the canvas</li>

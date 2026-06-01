@@ -35,6 +35,9 @@ const CSS = `
 .vfx-tl-btn.on { background: #2a4a6a; border-color: #4a7aaa; }
 .vfx-tl-save { background: #2a5a3a; border-color: #3a7a4a; }
 .vfx-tl-save:hover { background: #3a7a4a; }
+.vfx-tl-saveok { background: #2a7a4a; border-color: #4ad07a; }
+.vfx-tl-savefail { background: #7a2a3a; border-color: #ff3864; }
+.vfx-tl-speed { padding: 3px 5px; }
 .vfx-tl-field { display: inline-flex; align-items: center; gap: 4px; color: #9a9ab0; }
 .vfx-tl-num { width: 56px; background: #14141e; color: #d8d8e0; border: 1px solid #3a3a55; border-radius: 3px; padding: 2px 4px; font: inherit; }
 .vfx-tl-num.wide { width: 72px; }

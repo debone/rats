@@ -1,183 +1,431 @@
 {
   "id": "levelCompleted",
-  "duration": 1690,
+  "duration": 101,
   "tracks": [
     {
       "actor": "flash",
       "property": "tint",
       "keys": [
-        { "time": 0, "value": "#ffffff" },
-        { "time": 109, "value": "#ffffff" },
-        { "time": 110, "value": "#ffd23f" },
-        { "time": 199, "value": "#ffd23f" },
-        { "time": 200, "value": "#1a1a2e" },
-        { "time": 1249, "value": "#1a1a2e" },
-        { "time": 1250, "value": "#ffffff" }
+        {
+          "time": 0,
+          "value": "#ffffff"
+        },
+        {
+          "time": 7,
+          "value": "#ffffff"
+        },
+        {
+          "time": 7,
+          "value": "#ffd23f"
+        },
+        {
+          "time": 12,
+          "value": "#ffd23f"
+        },
+        {
+          "time": 12,
+          "value": "#1a1a2e"
+        },
+        {
+          "time": 75,
+          "value": "#1a1a2e"
+        },
+        {
+          "time": 75,
+          "value": "#ffffff"
+        }
       ]
     },
     {
       "actor": "flash",
       "property": "alpha",
       "keys": [
-        { "time": 0, "value": 1 },
-        { "time": 5, "value": 1 },
-        { "time": 60, "value": 0, "ease": "in" },
-        { "time": 109, "value": 0 },
-        { "time": 110, "value": 0.9 },
-        { "time": 115, "value": 0.9 },
-        { "time": 155, "value": 0, "ease": "in" },
-        { "time": 199, "value": 0 },
-        { "time": 200, "value": 0.85 },
-        { "time": 205, "value": 0.85 },
-        { "time": 240, "value": 0, "ease": "in" },
-        { "time": 1249, "value": 0 },
-        { "time": 1250, "value": 0.6 },
-        { "time": 1270, "value": 0.6 },
-        { "time": 1570, "value": 0, "ease": "out" }
+        {
+          "time": 0,
+          "value": 1
+        },
+        {
+          "time": 0,
+          "value": 1
+        },
+        {
+          "time": 4,
+          "value": 0,
+          "ease": "in"
+        },
+        {
+          "time": 7,
+          "value": 0
+        },
+        {
+          "time": 7,
+          "value": 0.9
+        },
+        {
+          "time": 7,
+          "value": 0.9
+        },
+        {
+          "time": 9,
+          "value": 0,
+          "ease": "in"
+        },
+        {
+          "time": 12,
+          "value": 0
+        },
+        {
+          "time": 12,
+          "value": 0.85
+        },
+        {
+          "time": 12,
+          "value": 0.85
+        },
+        {
+          "time": 14,
+          "value": 0,
+          "ease": "in"
+        },
+        {
+          "time": 75,
+          "value": 0
+        },
+        {
+          "time": 75,
+          "value": 0.6
+        },
+        {
+          "time": 76,
+          "value": 0.6
+        },
+        {
+          "time": 94,
+          "value": 0,
+          "ease": "out"
+        }
       ]
     },
     {
       "actor": "wash",
       "property": "alpha",
       "keys": [
-        { "time": 40, "value": 0 },
-        { "time": 240, "value": 0.28, "ease": "out" },
-        { "time": 1250, "value": 0.28 },
-        { "time": 1570, "value": 0 }
+        {
+          "time": 2,
+          "value": 0
+        },
+        {
+          "time": 14,
+          "value": 0.28,
+          "ease": "out"
+        },
+        {
+          "time": 75,
+          "value": 0.28
+        },
+        {
+          "time": 94,
+          "value": 0
+        }
       ]
     },
     {
       "actor": "lines",
       "property": "alpha",
       "keys": [
-        { "time": 30, "value": 0 },
-        { "time": 150, "value": 0.9, "ease": "out" },
-        { "time": 1250, "value": 0.9 },
-        { "time": 1530, "value": 0 }
+        {
+          "time": 2,
+          "value": 0
+        },
+        {
+          "time": 9,
+          "value": 0.9,
+          "ease": "out"
+        },
+        {
+          "time": 75,
+          "value": 0.9
+        },
+        {
+          "time": 92,
+          "value": 0
+        }
       ]
     },
     {
       "actor": "lines",
       "property": "scale.x",
       "keys": [
-        { "time": 30, "value": 0.6 },
-        { "time": 410, "value": 1, "ease": "outBack" }
+        {
+          "time": 2,
+          "value": 0.6
+        },
+        {
+          "time": 25,
+          "value": 1,
+          "ease": "outBack"
+        }
       ]
     },
     {
       "actor": "lines",
       "property": "scale.y",
       "keys": [
-        { "time": 30, "value": 0.6 },
-        { "time": 410, "value": 1, "ease": "outBack" }
+        {
+          "time": 2,
+          "value": 0.6
+        },
+        {
+          "time": 25,
+          "value": 1,
+          "ease": "outBack"
+        }
       ]
     },
     {
       "actor": "lines",
       "property": "rotation",
       "keys": [
-        { "time": 30, "value": 0 },
-        { "time": 1630, "value": 1.5707963267948966, "ease": "linear" }
+        {
+          "time": 2,
+          "value": 0
+        },
+        {
+          "time": 98,
+          "value": 1.5707963267948966,
+          "ease": "linear"
+        }
       ]
     },
     {
       "actor": "burst",
       "property": "alpha",
       "keys": [
-        { "time": 90, "value": 0 },
-        { "time": 210, "value": 1, "ease": "out" },
-        { "time": 1250, "value": 1 },
-        { "time": 1530, "value": 0 }
+        {
+          "time": 5,
+          "value": 0
+        },
+        {
+          "time": 13,
+          "value": 1,
+          "ease": "out"
+        },
+        {
+          "time": 75,
+          "value": 1
+        },
+        {
+          "time": 92,
+          "value": 0
+        }
       ]
     },
     {
       "actor": "burst",
       "property": "scale.x",
       "keys": [
-        { "time": 90, "value": 0 },
-        { "time": 510, "value": 1, "ease": "outBack" }
+        {
+          "time": 5,
+          "value": 0
+        },
+        {
+          "time": 31,
+          "value": 1,
+          "ease": "outBack"
+        }
       ]
     },
     {
       "actor": "burst",
       "property": "scale.y",
       "keys": [
-        { "time": 90, "value": 0 },
-        { "time": 510, "value": 1, "ease": "outBack" }
+        {
+          "time": 5,
+          "value": 0
+        },
+        {
+          "time": 31,
+          "value": 1,
+          "ease": "outBack"
+        }
       ]
     },
     {
       "actor": "burst",
       "property": "rotation",
       "keys": [
-        { "time": 90, "value": 0 },
-        { "time": 1690, "value": -1.2566370614359172, "ease": "linear" }
+        {
+          "time": 5,
+          "value": 0
+        },
+        {
+          "time": 101,
+          "value": -1.2566370614359172,
+          "ease": "linear"
+        }
       ]
     },
     {
       "actor": "textGroup",
       "property": "alpha",
       "keys": [
-        { "time": 150, "value": 0 },
-        { "time": 240, "value": 1, "ease": "out" },
-        { "time": 1250, "value": 1 },
-        { "time": 1570, "value": 0, "ease": "in" }
+        {
+          "time": 9,
+          "value": 0
+        },
+        {
+          "time": 14,
+          "value": 1,
+          "ease": "out"
+        },
+        {
+          "time": 75,
+          "value": 1
+        },
+        {
+          "time": 94,
+          "value": 0,
+          "ease": "in"
+        }
       ]
     },
     {
       "actor": "textGroup",
       "property": "scale.x",
       "keys": [
-        { "time": 150, "value": 4 },
-        { "time": 470, "value": 1, "ease": "outBack" },
-        { "time": 1250, "value": 1 },
-        { "time": 1570, "value": 1.7, "ease": "inOutQuad" }
+        {
+          "time": 9,
+          "value": 4
+        },
+        {
+          "time": 28,
+          "value": 1,
+          "ease": "outBack"
+        },
+        {
+          "time": 75,
+          "value": 1
+        },
+        {
+          "time": 94,
+          "value": 1.7,
+          "ease": "inOutQuad"
+        }
       ]
     },
     {
       "actor": "textGroup",
       "property": "scale.y",
       "keys": [
-        { "time": 150, "value": 4 },
-        { "time": 470, "value": 1, "ease": "outBack" },
-        { "time": 1250, "value": 1 },
-        { "time": 1570, "value": 1.7, "ease": "inOutQuad" }
+        {
+          "time": 9,
+          "value": 4
+        },
+        {
+          "time": 28,
+          "value": 1,
+          "ease": "outBack"
+        },
+        {
+          "time": 75,
+          "value": 1
+        },
+        {
+          "time": 94,
+          "value": 1.7,
+          "ease": "inOutQuad"
+        }
       ]
     },
     {
       "actor": "textGroup",
       "property": "rotation",
       "keys": [
-        { "time": 150, "value": 0 },
-        { "time": 240, "value": -0.08, "ease": "out" },
-        { "time": 330, "value": 0.05, "ease": "out" },
-        { "time": 420, "value": -0.02, "ease": "out" },
-        { "time": 510, "value": 0, "ease": "out" }
+        {
+          "time": 9,
+          "value": 0
+        },
+        {
+          "time": 14,
+          "value": -0.08,
+          "ease": "out"
+        },
+        {
+          "time": 20,
+          "value": 0.05,
+          "ease": "out"
+        },
+        {
+          "time": 25,
+          "value": -0.02,
+          "ease": "out"
+        },
+        {
+          "time": 31,
+          "value": 0,
+          "ease": "out"
+        }
       ]
     },
     {
       "actor": "tR",
       "property": "x",
       "keys": [
-        { "time": 150, "value": 0 },
-        { "time": 290, "value": -26, "ease": "out" },
-        { "time": 430, "value": 6, "ease": "out" },
-        { "time": 570, "value": -3, "ease": "out" }
+        {
+          "time": 9,
+          "value": 0
+        },
+        {
+          "time": 17,
+          "value": -26,
+          "ease": "out"
+        },
+        {
+          "time": 26,
+          "value": 6,
+          "ease": "out"
+        },
+        {
+          "time": 34,
+          "value": -3,
+          "ease": "out"
+        }
       ]
     },
     {
       "actor": "tC",
       "property": "x",
       "keys": [
-        { "time": 150, "value": 0 },
-        { "time": 290, "value": 26, "ease": "out" },
-        { "time": 430, "value": -6, "ease": "out" },
-        { "time": 570, "value": 3, "ease": "out" }
+        {
+          "time": 9,
+          "value": 0
+        },
+        {
+          "time": 17,
+          "value": 26,
+          "ease": "out"
+        },
+        {
+          "time": 26,
+          "value": -6,
+          "ease": "out"
+        },
+        {
+          "time": 34,
+          "value": 3,
+          "ease": "out"
+        }
       ]
     }
   ],
   "cues": [
-    { "time": 0, "hook": "burst1" },
-    { "time": 160, "hook": "burst2" }
+    {
+      "time": 0,
+      "hook": "burst1"
+    },
+    {
+      "time": 10,
+      "hook": "burst2"
+    }
   ]
 }

@@ -1,3 +1,4 @@
+import { framesToMs } from './time';
 import type { Hooks, Stage, TimelineDoc } from './types';
 
 /**
@@ -25,12 +26,16 @@ function resolve(actor: object, property: string): { target: object; prop: strin
  * human would hand-author — onto a timeline that may already carry code-driven
  * tweens (camera fx, array/onUpdate loops). The two coexist on one playhead.
  *
+ * Times are authored in **frames** and converted to milliseconds here via
+ * {@link framesToMs}, so anime.js (which runs on wall-clock ms) plays the sequence
+ * at the same speed on any display.
+ *
  * Per track: seed the first key as an instant set (`duration: 1`), then for each
  * adjacent pair emit a tween to the later key's value over the gap, using that
  * key's `ease` (the curve that *enters* it). Dotted properties resolve to nested
  * targets (`actor.scale.x`). `tint` values stay strings so anime color-interpolates.
  *
- * Per cue: `tl.call(hooks[cue.hook], cue.time)` — a fire-once beat, muted on scrub.
+ * Per cue: `tl.call(hooks[cue.hook], frameMs)` — a fire-once beat, muted on scrub.
  */
 export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: TimelineLike): void {
   for (const track of doc.tracks) {
@@ -46,17 +51,17 @@ export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: Timeli
 
     // Seed: reproduce the property's value at the first key as an instant set, so
     // scrubbing before any motion still shows the authored starting state.
-    tl.add(target, { [prop]: keys[0].value, duration: 1 }, keys[0].time);
+    tl.add(target, { [prop]: keys[0].value, duration: 1 }, framesToMs(keys[0].time));
 
     for (let i = 0; i < keys.length - 1; i++) {
       const from = keys[i];
       const to = keys[i + 1];
       const params: Record<string, unknown> = {
         [prop]: to.value,
-        duration: Math.max(1, to.time - from.time),
+        duration: Math.max(1, framesToMs(to.time - from.time)),
       };
       if (to.ease) params.ease = to.ease;
-      tl.add(target, params, from.time);
+      tl.add(target, params, framesToMs(from.time));
     }
   }
 
@@ -66,6 +71,6 @@ export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: Timeli
       console.warn(`[timeline:${doc.id}] cue references unknown hook "${cue.hook}"`);
       continue;
     }
-    tl.call(hook, cue.time);
+    tl.call(hook, framesToMs(cue.time));
   }
 }

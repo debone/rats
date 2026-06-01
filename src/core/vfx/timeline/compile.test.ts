@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { compile, type TimelineLike } from './compile';
+import { framesToMs } from './time';
 import type { TimelineDoc } from './types';
 
 function makeTl(): TimelineLike & { add: ReturnType<typeof vi.fn>; call: ReturnType<typeof vi.fn> } {
@@ -8,13 +9,22 @@ function makeTl(): TimelineLike & { add: ReturnType<typeof vi.fn>; call: ReturnT
 }
 
 describe('compile', () => {
-  it('seeds the first key and emits a tween per adjacent pair (ease enters the later key)', () => {
+  it('seeds the first key and emits a tween per adjacent pair (ease enters the later key), frames→ms', () => {
     const tl = makeTl();
     const box = { alpha: 0 };
     const doc: TimelineDoc = {
       id: 't',
       duration: 100,
-      tracks: [{ actor: 'box', property: 'alpha', keys: [{ time: 0, value: 0 }, { time: 50, value: 1, ease: 'out' }] }],
+      tracks: [
+        {
+          actor: 'box',
+          property: 'alpha',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 50, value: 1, ease: 'out' },
+          ],
+        },
+      ],
       cues: [],
     };
 
@@ -22,7 +32,7 @@ describe('compile', () => {
 
     expect(tl.add.mock.calls).toEqual([
       [box, { alpha: 0, duration: 1 }, 0],
-      [box, { alpha: 1, duration: 50, ease: 'out' }, 0],
+      [box, { alpha: 1, duration: framesToMs(50), ease: 'out' }, framesToMs(0)],
     ]);
   });
 
@@ -33,7 +43,16 @@ describe('compile', () => {
     const doc: TimelineDoc = {
       id: 't',
       duration: 10,
-      tracks: [{ actor: 'a', property: 'scale.x', keys: [{ time: 0, value: 0 }, { time: 10, value: 1 }] }],
+      tracks: [
+        {
+          actor: 'a',
+          property: 'scale.x',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 10, value: 1 },
+          ],
+        },
+      ],
       cues: [],
     };
 
@@ -41,7 +60,7 @@ describe('compile', () => {
 
     expect(tl.add.mock.calls).toEqual([
       [scale, { x: 0, duration: 1 }, 0],
-      [scale, { x: 1, duration: 10 }, 0],
+      [scale, { x: 1, duration: framesToMs(10) }, framesToMs(0)],
     ]);
   });
 
@@ -67,7 +86,7 @@ describe('compile', () => {
 
     compile(doc, {}, { boom }, tl);
 
-    expect(tl.call.mock.calls).toEqual([[boom, 5]]);
+    expect(tl.call.mock.calls).toEqual([[boom, framesToMs(5)]]);
   });
 
   it('skips (and warns about) unknown actors and hooks instead of throwing', () => {

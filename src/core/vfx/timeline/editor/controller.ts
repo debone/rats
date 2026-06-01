@@ -39,7 +39,7 @@ export function openTimelineEditor(_id: string, { doc, stage, hooks, ctx, decora
 
     const editor = new TimelineEditor(
       session,
-      () => void saveTimeline(session.doc),
+      () => saveTimeline(session.doc),
       () => {
         session.finish(); // resolve the withheld sequence await → teardown
         editor.destroy();

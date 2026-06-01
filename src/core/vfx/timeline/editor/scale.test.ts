@@ -1,39 +1,41 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Track } from '../types';
-import { chooseTickStep, fitPxPerMs, snapTime, tickTimes, valueAtTime } from './scale';
+import { chooseTickStep, fitScale, snapTime, tickTimes, valueAtTime } from './scale';
 
 describe('chooseTickStep', () => {
   it('picks finer steps as zoom increases', () => {
-    // 1px/ms, 64px min gap → first step >= 64ms is 100.
-    expect(chooseTickStep(1)).toBe(100);
-    // 10px/ms → 10ms*10 = 100px >= 64 → 10.
-    expect(chooseTickStep(10)).toBe(10);
+    // 9px/frame, 64px min gap → first step where step*9 >= 64 is 10.
+    expect(chooseTickStep(9)).toBe(10);
+    // 20px/frame → 5*20 = 100px >= 64 → 5.
+    expect(chooseTickStep(20)).toBe(5);
+    // 64px/frame → 1 frame fits → finest step.
+    expect(chooseTickStep(64)).toBe(1);
     // very zoomed out → coarse.
-    expect(chooseTickStep(0.001)).toBe(25000);
+    expect(chooseTickStep(0.001)).toBe(3000);
   });
 
   it('honors a custom minimum gap', () => {
-    expect(chooseTickStep(1, 40)).toBe(50);
+    expect(chooseTickStep(9, 40)).toBe(5);
   });
 });
 
 describe('tickTimes', () => {
   it('spans 0..duration inclusive at the chosen step', () => {
-    const ticks = tickTimes(250, 10); // step 10
+    const ticks = tickTimes(50, 9); // step 10
     expect(ticks[0]).toBe(0);
-    expect(ticks).toContain(250);
+    expect(ticks).toContain(50);
     expect(ticks.every((t, i) => i === 0 || t > ticks[i - 1])).toBe(true);
   });
 });
 
-describe('fitPxPerMs', () => {
+describe('fitScale', () => {
   it('spreads the duration across the viewport', () => {
-    expect(fitPxPerMs(800, 1600)).toBe(0.5);
+    expect(fitScale(800, 1600)).toBe(0.5);
   });
   it('degrades safely on zero inputs', () => {
-    expect(fitPxPerMs(0, 1000)).toBe(1);
-    expect(fitPxPerMs(800, 0)).toBe(1);
+    expect(fitScale(0, 1000)).toBe(1);
+    expect(fitScale(800, 0)).toBe(1);
   });
 });
 

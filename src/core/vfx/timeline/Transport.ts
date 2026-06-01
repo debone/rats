@@ -26,6 +26,12 @@ export class Transport {
   private rafId = 0;
   private disposed = false;
   private speedValue = 1;
+  /**
+   * The normalized position where the current play started — the "repeat anchor".
+   * Pausing or finishing playback returns the playhead here so pressing Play again
+   * replays the same span without scrubbing back (the repeat-a-sequence workflow).
+   */
+  private playAnchor = 0;
 
   /** Notified with normalized progress [0..1] on every seek and each playing frame. */
   onProgress?: (progress: number) => void;
@@ -101,14 +107,14 @@ export class Transport {
 
   /** User scrub: pause and seek every timeline to a normalized position, muted. */
   seek(progress: number): void {
-    this.pause();
+    this.halt();
     this.seekAll(progress);
     this.onProgress?.(this.progress);
   }
 
   /** Advance/retreat by N frames, muted (stepping is inspection, not playback). */
   step(frames: number): void {
-    this.pause();
+    this.halt();
     if (this.duration <= 0) return;
     const next = Math.min(1, Math.max(0, this.progress + (frames * FRAME_MS) / this.duration));
     this.seekAll(next);
@@ -122,15 +128,28 @@ export class Transport {
 
   play(): void {
     if (this.playing || this.timelines.length === 0) return;
+    // Anchor the repeat point at where playback begins; parked-at-end starts over.
+    this.playAnchor = this.progress >= 1 ? 0 : this.progress;
     this.playing = true;
-    // If parked at the end, restart from 0 so Play always does something.
     if (this.progress >= 1) this.seekAll(0);
     this.setSpeed(this.speedValue);
     this.timelines.forEach((tl) => tl.play());
     this.startSync();
   }
 
+  /**
+   * User pause: stop, then return the playhead to the repeat anchor so the next
+   * Play replays the same span. (Stepping/scrubbing use {@link halt}, which leaves
+   * the playhead where the explicit seek puts it.)
+   */
   pause(): void {
+    this.halt();
+    this.seekAll(this.playAnchor);
+    this.onProgress?.(this.progress);
+  }
+
+  /** Stop playback without moving the playhead (internal; seek/step seek after). */
+  private halt(): void {
     this.playing = false;
     this.stopSync();
     this.timelines.forEach((tl) => tl.pause());
@@ -177,8 +196,10 @@ export class Transport {
       if (tl && tl.duration > 0) {
         this.onProgress?.(this.progress);
         if (tl.completed) {
-          // Hold at the end — owner stays open for replay/scrub.
+          // Return to the repeat anchor so the next Play replays the same span.
           this.playing = false;
+          this.seekAll(this.playAnchor);
+          this.onProgress?.(this.progress);
           this.onComplete?.();
           return;
         }

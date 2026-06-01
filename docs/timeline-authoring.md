@@ -69,6 +69,10 @@ interface Cue {
 }
 ```
 
+- `time` / `duration` are in **frames** (a 60fps reference, see
+  [`time.ts`](../src/core/vfx/timeline/time.ts)). The compiler converts frames→ms,
+  and anime.js advances on wall-clock time, so a sequence plays at the same speed on
+  a 60Hz or 120Hz display. Frames also keep the numbers small and snappable.
 - `property` is dot-nested into the actor: `x`, `y`, `alpha`, `rotation`, `tint`,
   `scale.x`, `scale.y`.
 - `value` numbers lerp linearly; **`tint` carries a hex string** (e.g. `"#ffd23f"`)
@@ -103,19 +107,25 @@ Add a new JSON file → reload the dev server to refresh the list.
 
 ### Editor controls
 
-- **Transport**: ▶/⏸ (or `Space`), step ±1 frame, restart, speed.
+- **Transport**: ▶/⏸ (or `Space`), step ±1 frame, restart. Pausing or finishing
+  returns the playhead to **where Play started**, so pressing Play again repeats the
+  same span without scrubbing back.
+- **Speed**: one-click `0.1×` / `0.5×` / `1×` / `2×` presets, or the `×` field for
+  fine control.
 - **Zoom**: `−`/`+`/`Fit`, or `Ctrl/⌘ + wheel` to zoom around the cursor. The ruler
-  tick density follows the zoom.
+  (in frames) tick density follows the zoom.
 - **Scrub**: drag the ruler or the ▼ playhead handle.
 - **Panel size**: drag the top edge to grow it; drag the label-column divider to
   widen the gutter. Both persist across reloads.
-- **Inspector** (fixed footer): edit the selected key's **time** (precise numeric),
-  **value**, and **easing**; `Del` removes it.
+- **Inspector** (fixed footer): edit the selected key's **time** (frames — arrows
+  ±1, `Shift`+arrow ±10), **value** (arrows ±0.1), and **easing**; `Del` removes it.
+  Editor shortcuts are captured, so `Space`/`Del` don't leak to the game.
 - **Per row**: `👁` mutes the track (isolate others while scrubbing), `+` adds a key
   at the playhead, `🗑` removes the track. The cyan number is the track's value _at
   the playhead_. Hover the row label to **outline its actor on the canvas**.
-- **Save** writes the doc back to `assets/timelines/<id>.json` (and the served copy),
-  so a hard reload round-trips the edited timing.
+- **Save** writes the doc back to `assets/timelines/<id>.json` (and the served copy)
+  and flashes `✓`. It does _not_ trigger a page reload — the editor already applies
+  edits live, so saving just persists them.
 
 ---
 
@@ -126,8 +136,8 @@ Add a new JSON file → reload the dev server to refresh the list.
    **property**, then **+ track**. A track starts with a single key.
 3. Scrub to a time, press the row's **+** to drop a key, and set its **value** in the
    inspector. Add a second key at another time to get a tween between them.
-4. Tune **easing** per key, drag diamonds to retime (snaps to 10ms / other keys; hold
-   **Alt** for free placement), and **Save**.
+4. Tune **easing** per key, drag diamonds to retime (snaps to whole frames / other
+   keys; hold **Alt** for free placement), and **Save**.
 
 Only actors present in the sequence's stage map are offered. To animate something not
 yet exposed, add it to the `stage` object in the sequence's `build()` first.
@@ -186,8 +196,10 @@ const hooks = {
    enough to open the editor and build it up by hand:
 
    ```json
-   { "id": "mySequence", "duration": 1000, "tracks": [], "cues": [] }
+   { "id": "mySequence", "duration": 60, "tracks": [], "cues": [] }
    ```
+
+   (`duration` is in frames — `60` ≈ 1 second at the 60fps reference.)
 
 3. **Register it** in [`src/core/vfx/registry.ts`](../src/core/vfx/registry.ts) so it
    appears in the debug launcher (and, if it self-triggers, add an `on:` event).
