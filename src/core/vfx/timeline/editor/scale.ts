@@ -71,9 +71,11 @@ export function snapTime(time: number, opts: SnapOpts = {}): number {
 }
 
 /**
- * The track's value at `time`, for the per-row readout (G1). Linear-interpolates
- * between the two surrounding numeric keys; for string-valued tracks (tint) or
- * outside the keyed range it returns the nearest key's value. Empty → `null`.
+ * The track's value at `time`, for the per-row readout (G1). Interpolates between
+ * the two surrounding numeric keys **along the later key's easing** (matching how
+ * the compiler tweens), so the readout and a key inserted here sit on the curve.
+ * For string-valued tracks (tint) or outside the keyed range it returns the nearest
+ * key's value. Empty → `null`.
  */
 export function valueAtTime(track: Track, time: number): number | string | null {
   const keys = track.keys;
@@ -88,9 +90,33 @@ export function valueAtTime(track: Track, time: number): number | string | null 
     if (time >= a.time && time <= b.time) {
       if (typeof a.value !== 'number' || typeof b.value !== 'number') return a.value;
       const span = b.time - a.time || 1;
-      const f = (time - a.time) / span;
+      const f = easeFn(b.ease)((time - a.time) / span);
       return a.value + (b.value - a.value) * f;
     }
   }
   return last.value;
+}
+
+/**
+ * Normalized easing curves matching the names offered in the inspector, so the
+ * graph's ramps and the interpolated readout bend the way playback does (concave
+ * in, overshooting back, …). Approximations — close enough for the editor.
+ */
+const EASES_FN: Record<string, (t: number) => number> = {
+  linear: (t) => t,
+  in: (t) => t * t,
+  out: (t) => 1 - (1 - t) ** 2,
+  inOut: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
+  inQuad: (t) => t * t,
+  outQuad: (t) => 1 - (1 - t) ** 2,
+  inOutQuad: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
+  inBack: (t) => 2.70158 * t * t * t - 1.70158 * t * t,
+  outBack: (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2,
+  outElastic: (t) =>
+    t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1,
+};
+
+/** Resolve an ease name (incl. ''/undefined → linear) to its curve function. */
+export function easeFn(name?: string): (t: number) => number {
+  return EASES_FN[name || 'linear'] ?? EASES_FN.linear;
 }

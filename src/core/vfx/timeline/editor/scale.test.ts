@@ -88,4 +88,16 @@ describe('valueAtTime', () => {
   it('returns null for an empty track', () => {
     expect(valueAtTime({ actor: 'a', property: 'x', keys: [] }, 0)).toBeNull();
   });
+  it('follows the later key easing (so an inserted key sits on the curve)', () => {
+    // 'out' (outQuad) at p=0.5 is 0.75, not the linear 0.5.
+    const eased: Track = {
+      actor: 'a',
+      property: 'alpha',
+      keys: [
+        { time: 0, value: 0 },
+        { time: 100, value: 1, ease: 'out' },
+      ],
+    };
+    expect(valueAtTime(eased, 50)).toBeCloseTo(0.75);
+  });
 });

@@ -16,7 +16,7 @@ import {
   setKeyEase,
   setKeyValue,
 } from './ops';
-import { chooseTickStep, fitScale, snapTime, tickTimes, valueAtTime } from './scale';
+import { chooseTickStep, easeFn, fitScale, snapTime, tickTimes, valueAtTime } from './scale';
 import { ensureEditorStyles } from './styles';
 
 /** anime.js eases offered in the per-key dropdown; '' means "no ease" (linear default). */
@@ -109,26 +109,6 @@ function valueY(v: number, range: { min: number; max: number }): number {
 function isHexColor(v: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
 }
-
-/**
- * Normalized easing curves matching the names offered in the inspector, so the
- * graph's ramps bend the way playback does (concave in, overshooting back, …)
- * instead of straight lines. Approximations — close enough for a visual guide.
- */
-const EASES_FN: Record<string, (t: number) => number> = {
-  linear: (t) => t,
-  in: (t) => t * t,
-  out: (t) => 1 - (1 - t) ** 2,
-  inOut: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
-  inQuad: (t) => t * t,
-  outQuad: (t) => 1 - (1 - t) ** 2,
-  inOutQuad: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
-  inBack: (t) => 2.70158 * t * t * t - 1.70158 * t * t,
-  outBack: (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2,
-  outElastic: (t) =>
-    t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1,
-};
-const easeFn = (name?: string): ((t: number) => number) => EASES_FN[name || 'linear'] ?? EASES_FN.linear;
 
 /** A stable hue per track so adjacent lanes are easy to tell apart. */
 function trackHue(key: string): number {
@@ -344,10 +324,12 @@ export class TimelineEditor {
       t.setSpeed(Number(this.speedInput.value) || 1);
       this.syncSpeedButtons();
     };
+    this.blurOnEnter(this.speedInput);
 
     this.durationInput = el('input', { class: 'vfx-tl-num', type: 'number', step: '1', min: '1' }) as HTMLInputElement;
     this.durationInput.onchange = () =>
       this.session.edit((d) => setDuration(d, Number(this.durationInput.value) || d.duration));
+    this.blurOnEnter(this.durationInput);
 
     // Zoom controls (E2).
     const zoomOut = el('button', { class: 'vfx-tl-btn', title: 'Zoom out (Ctrl/⌘ + wheel)' }, ['−']);
@@ -584,8 +566,22 @@ export class TimelineEditor {
     const actorObj = this.session.actor(track.actor);
     const missing = actorObj == null || typeof actorObj !== 'object';
 
+    const range = numericRange(track.keys.map((k) => k.value));
+
     const readout = el('span', { class: 'vfx-tl-readout' });
     this.readouts.set(track, readout);
+    // Per-lane vertical scale: this lane normalizes to its own range, so show its
+    // max (top) and min (bottom) flanking the live value, aligned with the band.
+    const scaleCol = el('div', { class: 'vfx-tl-scalecol' });
+    if (range) {
+      scaleCol.append(
+        el('span', { class: 'vfx-tl-scaleedge' }, [fmtValue(range.max)]),
+        readout,
+        el('span', { class: 'vfx-tl-scaleedge' }, [fmtValue(range.min)]),
+      );
+    } else {
+      scaleCol.append(readout);
+    }
 
     const labelText = el('div', { class: 'vfx-tl-labeltext' }, [
       el(
@@ -608,8 +604,11 @@ export class TimelineEditor {
     const addK = el('button', { class: 'vfx-tl-mini', title: 'Add key at playhead' }, ['+']);
     addK.onclick = () => {
       const time = this.session.transport.progress * this.duration;
+      // Seed with the value the curve actually has at this time (eased
+      // interpolation), so inserting a key on a ramp doesn't snap the animation.
+      const onCurve = valueAtTime(track, time);
       this.session.edit((d) => {
-        const ki = addKey(d, ti, time);
+        const ki = addKey(d, ti, time, onCurve == null ? undefined : onCurve);
         this.selected = { track: ti, key: ki };
       });
     };
@@ -618,7 +617,7 @@ export class TimelineEditor {
 
     const label = el('div', { class: 'vfx-tl-label' }, [
       labelText,
-      readout,
+      scaleCol,
       el('div', { class: 'vfx-tl-actions' }, [eye, addK, del]),
     ]);
     // Hover the label → outline the actor on the canvas (G1).
@@ -629,7 +628,6 @@ export class TimelineEditor {
     // Value graph: position each numeric key vertically by value (high = top,
     // low = bottom), join them along their easing curves, and fill below — so a
     // track reads at a glance (e.g. alpha's visible vs invisible keys).
-    const range = numericRange(track.keys.map((k) => k.value));
     if (range) lane.append(this.renderEnvelope(track.keys, range, trackHue(`${track.actor}.${track.property}`)));
     for (let ki = 0; ki < track.keys.length; ki++) lane.append(this.renderKey(ti, ki, range));
 
@@ -668,6 +666,9 @@ export class TimelineEditor {
 
     const line = pts.map(([x, y]) => `${x},${y}`).join(' ');
     const s = svg('svg', { class: 'vfx-tl-env', viewBox: `0 0 ${w} 100`, preserveAspectRatio: 'none' });
+    // Faint max/min reference lines (the vertical scale's gridlines for this lane).
+    s.append(svg('line', { x1: 0, y1: GRAPH_TOP, x2: w, y2: GRAPH_TOP, class: 'vfx-tl-envaxis' }));
+    s.append(svg('line', { x1: 0, y1: GRAPH_BOTTOM, x2: w, y2: GRAPH_BOTTOM, class: 'vfx-tl-envaxis' }));
     const fill = svg('polygon', { points: `${line} ${w},${GRAPH_BOTTOM} 0,${GRAPH_BOTTOM}`, class: 'vfx-tl-envfill' });
     fill.style.fill = `hsl(${hue} 70% 55%)`;
     const stroke = svg('polyline', { points: line, class: 'vfx-tl-envline' });
@@ -757,7 +758,9 @@ export class TimelineEditor {
     timeInput.value = String(key.time);
     timeInput.onchange = () => this.commitKeyTime(Number(timeInput.value));
     timeInput.onkeydown = (ev) => {
-      if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.shiftKey) {
+      if (ev.key === 'Enter') {
+        timeInput.blur(); // commit and hand focus back so shortcuts resume
+      } else if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.shiftKey) {
         ev.preventDefault();
         const dir = ev.key === 'ArrowUp' ? 1 : -1;
         timeInput.value = String((Number(timeInput.value) || 0) + dir * COARSE_STEP);
@@ -780,6 +783,7 @@ export class TimelineEditor {
       const v = isString ? valInput.value : Number(valInput.value);
       this.session.edit((d) => setKeyValue(d, sel.track, sel.key, v));
     };
+    this.blurOnEnter(valInput);
 
     const easeSel = el('select', { class: 'vfx-tl-sel' }) as HTMLSelectElement;
     for (const e of EASES) {
@@ -787,7 +791,10 @@ export class TimelineEditor {
       if ((key.ease ?? '') === e) opt.selected = true;
       easeSel.append(opt);
     }
-    easeSel.onchange = () => this.session.edit((d) => setKeyEase(d, ti, ki, easeSel.value || undefined));
+    easeSel.onchange = () => {
+      this.session.edit((d) => setKeyEase(d, ti, ki, easeSel.value || undefined));
+      easeSel.blur(); // picking an ease commits — hand focus back for shortcuts
+    };
 
     const del = el('button', { class: 'vfx-tl-btn', title: 'Delete key (Del)' }, ['Delete key']);
     del.onclick = () => {
@@ -802,6 +809,13 @@ export class TimelineEditor {
       el('label', { class: 'vfx-tl-field' }, ['ease', easeSel]),
       del,
     );
+  }
+
+  /** Enter in a field commits it and returns focus to the window so shortcuts resume. */
+  private blurOnEnter(input: HTMLElement): void {
+    input.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter') input.blur();
+    });
   }
 
   /** Retime the selected key (resolved by identity, so re-sorts keep the selection). */

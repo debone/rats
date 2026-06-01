@@ -71,8 +71,12 @@ const CSS = `
 .vfx-tl-labeltext { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; flex: 1; }
 .vfx-tl-actor { color: #e8e8f0; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vfx-tl-prop { color: #8a8aa5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vfx-tl-readout { color: #4ad0ff; font-size: 9px; opacity: 0.85; min-width: 30px; text-align: right; }
-.vfx-tl-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.1s; flex: 0 0 auto; }
+/* Per-lane vertical scale in the gutter: max (top) / live value / min (bottom). */
+.vfx-tl-scalecol { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; align-self: stretch; flex: 0 0 auto; min-width: 24px; padding: 3px 0; }
+.vfx-tl-scaleedge { font-size: 8px; line-height: 1; color: #6a6a85; }
+.vfx-tl-readout { color: #4ad0ff; font-size: 9px; opacity: 0.9; text-align: right; }
+/* Action buttons overlay the scale only on hover, so the scale is normally visible. */
+.vfx-tl-actions { position: absolute; right: 2px; top: 0; bottom: 0; display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 0.1s; padding-left: 6px; background: rgba(18,18,28,0.96); }
 .vfx-tl-row:hover .vfx-tl-actions, .vfx-tl-row.muted .vfx-tl-actions { opacity: 1; }
 .vfx-tl-mini { background: #2a2a40; color: #b8b8c8; border: 1px solid #3a3a55; border-radius: 3px; cursor: pointer; font-size: 10px; line-height: 1; padding: 2px 4px; }
 .vfx-tl-mini:hover { background: #3a3a55; }
@@ -87,6 +91,7 @@ const CSS = `
 .vfx-tl-env { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
 .vfx-tl-envfill { fill-opacity: 0.16; stroke: none; }
 .vfx-tl-envline { fill: none; stroke-width: 1.5; stroke-opacity: 0.9; vector-effect: non-scaling-stroke; }
+.vfx-tl-envaxis { stroke: rgba(255,255,255,0.08); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .vfx-tl-key { position: absolute; top: 50%; width: 9px; height: 9px; background: #4ad0ff; border: 1px solid #14141e; transform: translate(-50%, -50%) rotate(45deg); cursor: ew-resize; z-index: 1; }
 .vfx-tl-key:hover { background: #ffd23f; }
 .vfx-tl-key.sel { background: #ff3864; outline: 1px solid #fff; z-index: 2; }
