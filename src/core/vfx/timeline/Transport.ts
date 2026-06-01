@@ -32,6 +32,8 @@ export class Transport {
    * replays the same span without scrubbing back (the repeat-a-sequence workflow).
    */
   private playAnchor = 0;
+  /** When true, playback restarts from the anchor on completion instead of stopping. */
+  private looping = false;
 
   /** Notified with normalized progress [0..1] on every seek and each playing frame. */
   onProgress?: (progress: number) => void;
@@ -56,6 +58,14 @@ export class Transport {
 
   get speed(): number {
     return this.speedValue;
+  }
+
+  get isLooping(): boolean {
+    return this.looping;
+  }
+
+  setLoop(on: boolean): void {
+    this.looping = on;
   }
 
   /**
@@ -196,11 +206,17 @@ export class Transport {
       if (tl && tl.duration > 0) {
         this.onProgress?.(this.progress);
         if (tl.completed) {
-          // Hold at the end so the final pose stays inspectable; the next Play (parked
-          // at the end) restarts from 0. Pausing mid-play is what returns to the anchor.
-          this.playing = false;
-          this.onComplete?.();
-          return;
+          if (this.looping) {
+            // Restart the same span (anchor→end) and keep playing.
+            this.seekAll(this.playAnchor);
+            this.timelines.forEach((t) => t.play());
+          } else {
+            // Hold at the end so the final pose stays inspectable; the next Play
+            // (parked at the end) restarts from 0. Pausing returns to the anchor.
+            this.playing = false;
+            this.onComplete?.();
+            return;
+          }
         }
       }
       this.rafId = requestAnimationFrame(tick);

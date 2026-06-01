@@ -4,6 +4,7 @@ import type { SequenceContext } from '../../types';
 import { compile } from '../compile';
 import { Transport } from '../Transport';
 import type { Hooks, Stage, TimelineDoc, Track } from '../types';
+import { DocHistory } from './history';
 
 /**
  * The editor's stateful core, independent of the DOM: it owns the live
@@ -31,6 +32,9 @@ export class EditorSession {
    * compiling but still render their rows.
    */
   private readonly muted = new Set<Track>();
+
+  /** Undo/redo snapshots; `edit` records before mutating (single mutation choke point). */
+  private readonly history = new DocHistory();
 
   private rebuilding = false;
 
@@ -101,9 +105,10 @@ export class EditorSession {
 
   /**
    * Run a doc edit then rebuild. Wraps the rebuild's `onChange` so a batch of
-   * mutations triggers a single re-render.
+   * mutations triggers a single re-render. Snapshots the pre-edit doc for undo.
    */
   edit(mutate: (doc: TimelineDoc) => void): void {
+    this.history.record(this.doc);
     this.rebuilding = true;
     mutate(this.doc);
     this.rebuild();
@@ -111,14 +116,39 @@ export class EditorSession {
     this.onChange?.();
   }
 
+  get canUndo(): boolean {
+    return this.history.canUndo;
+  }
+
+  get canRedo(): boolean {
+    return this.history.canRedo;
+  }
+
+  /** Revert the last edit (whole-doc snapshot swap) and recompile. */
+  undo(): void {
+    const prev = this.history.undo(this.doc);
+    if (prev) this.swapDoc(prev);
+  }
+
+  /** Re-apply the last undone edit and recompile. */
+  redo(): void {
+    const next = this.history.redo(this.doc);
+    if (next) this.swapDoc(next);
+  }
+
+  private swapDoc(doc: TimelineDoc): void {
+    this.doc = doc;
+    this.muted.clear();
+    this.rebuild();
+  }
+
   /**
    * Swap in a different document (e.g. restoring an unsaved draft) and recompile.
    * Mute state is cleared since it keyed off the old doc's `Track` objects.
    */
   replaceDoc(doc: TimelineDoc): void {
-    this.doc = doc;
-    this.muted.clear();
-    this.rebuild();
+    this.history.record(this.doc); // restoring a draft is itself undoable
+    this.swapDoc(doc);
   }
 
   /** Tear down the transport (resolving the withheld sequence await → teardown). */

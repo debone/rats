@@ -99,6 +99,9 @@ export class TimelineEditor {
   /** Speed preset buttons, highlighted to reflect the live transport speed. */
   private speedButtons: { speed: number; el: HTMLButtonElement }[] = [];
   private saveBtn: HTMLButtonElement | null = null;
+  private loopBtn!: HTMLButtonElement;
+  private undoBtn!: HTMLButtonElement;
+  private redoBtn!: HTMLButtonElement;
   /** Body wrapper, so the restore banner can be inserted above it. */
   private bodywrap!: El;
   /** Debounce timer for autosaving the working doc as a draft. */
@@ -235,6 +238,18 @@ export class TimelineEditor {
     step2.onclick = () => t.step(+1);
     const restart = el('button', { class: 'vfx-tl-btn', title: 'Restart' }, ['↺']);
     restart.onclick = () => t.restart();
+    this.loopBtn = el('button', { class: 'vfx-tl-btn', title: 'Loop playback' }, ['🔁']) as HTMLButtonElement;
+    this.loopBtn.onclick = () => {
+      t.setLoop(!t.isLooping);
+      this.loopBtn.classList.toggle('on', t.isLooping);
+      if (t.isLooping && !t.isPlaying) t.play();
+    };
+
+    // Undo / redo (history is the doc-snapshot stack in EditorSession).
+    this.undoBtn = el('button', { class: 'vfx-tl-btn', title: 'Undo (Ctrl/⌘+Z)' }, ['↶']) as HTMLButtonElement;
+    this.undoBtn.onclick = () => this.session.undo();
+    this.redoBtn = el('button', { class: 'vfx-tl-btn', title: 'Redo (Ctrl/⌘+Shift+Z)' }, ['↷']) as HTMLButtonElement;
+    this.redoBtn.onclick = () => this.session.redo();
 
     // Speed preset buttons + a fine numeric control.
     this.speedButtons = SPEED_PRESETS.map((speed) => {
@@ -294,6 +309,10 @@ export class TimelineEditor {
       step1,
       step2,
       restart,
+      this.loopBtn,
+      el('span', { class: 'vfx-tl-sep' }),
+      this.undoBtn,
+      this.redoBtn,
       el('span', { class: 'vfx-tl-sep' }),
       ...this.speedButtons.map((b) => b.el),
       el('label', { class: 'vfx-tl-field' }, ['×', this.speedInput]),
@@ -457,6 +476,9 @@ export class TimelineEditor {
     this.durationInput.value = String(this.duration);
     this.zoomLabel.textContent = `${this.pxPerFrame.toFixed(1)} px/f`;
     this.syncSpeedButtons();
+    this.loopBtn.classList.toggle('on', this.session.transport.isLooping);
+    this.undoBtn.disabled = !this.session.canUndo;
+    this.redoBtn.disabled = !this.session.canRedo;
     this.renderRuler();
     this.renderLanes();
     // Keep an in-progress inspector edit alive: if a field there is focused (e.g.
@@ -695,8 +717,17 @@ export class TimelineEditor {
 
   private onKey = (e: KeyboardEvent): void => {
     const target = e.target as HTMLElement;
+    // Let inputs handle their own keys (incl. native text undo in a field).
     if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
-    if (e.code === 'Space') {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      e.shiftKey ? this.session.redo() : this.session.undo();
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this.session.redo();
+    } else if (e.code === 'Space') {
       // stopImmediatePropagation so the game's window keydown listener never fires.
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -864,8 +895,8 @@ export class TimelineEditor {
       <h4>Timeline editor</h4>
       <p>Times are in <b>frames</b> (60fps reference); playback is the same speed on any display.</p>
       <ul>
-        <li><b>Space</b> play/pause · <b>Del</b> delete selected key (kept from the game)</li>
-        <li>Pausing/finishing returns to where Play started — press Play to repeat</li>
+        <li><b>Space</b> play/pause · <b>Del</b> delete key · <b>Ctrl/⌘+Z</b> undo · <b>Shift</b> to redo</li>
+        <li>Pausing returns to where Play started; <b>🔁</b> loops that span continuously</li>
         <li>Speed presets (0.1–2×) or the <b>×</b> field; <b>Ctrl/⌘ + wheel</b> zooms, <b>Fit</b> resets</li>
         <li>Drag the ruler/▼ to scrub; drag a ◆ to retime (snaps to frames/other keys; <b>Alt</b> = free)</li>
         <li>Inspector: <b>time</b> nudges ±1 frame (<b>Shift</b> ±${COARSE_STEP}); <b>value</b> nudges ±0.1</li>
