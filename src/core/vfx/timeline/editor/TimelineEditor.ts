@@ -16,7 +16,7 @@ import {
   setKeyEase,
   setKeyValue,
 } from './ops';
-import { fitScale, snapTime, tickTimes, valueAtTime } from './scale';
+import { chooseTickStep, fitScale, snapTime, tickTimes, valueAtTime } from './scale';
 import { ensureEditorStyles } from './styles';
 
 /** anime.js eases offered in the per-key dropdown; '' means "no ease" (linear default). */
@@ -67,6 +67,47 @@ function fmtValue(v: number | string | null): string {
   if (v == null) return '–';
   if (typeof v === 'string') return v;
   return Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/\.?0+$/, '');
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svg<K extends keyof SVGElementTagNameMap>(
+  tag: K,
+  attrs: Record<string, string | number> = {},
+): SVGElementTagNameMap[K] {
+  const node = uiDoc.createElementNS(SVG_NS, tag) as SVGElementTagNameMap[K];
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+  return node;
+}
+
+/** A track's numeric value range, for normalizing the lane's value graph; null if none. */
+function numericRange(values: (number | string)[]): { min: number; max: number } | null {
+  let min = Infinity;
+  let max = -Infinity;
+  let any = false;
+  for (const v of values) {
+    if (typeof v === 'number') {
+      any = true;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+  }
+  return any ? { min, max } : null;
+}
+
+/** Vertical inset (percent) the value graph occupies in a lane — high value near the top. */
+const GRAPH_TOP = 20;
+const GRAPH_BOTTOM = 80;
+
+/** Map a value to a lane Y (percent): max → top, min → bottom, flat → middle. */
+function valueY(v: number, range: { min: number; max: number }): number {
+  const norm = range.max === range.min ? 0.5 : (v - range.min) / (range.max - range.min);
+  return GRAPH_BOTTOM - norm * (GRAPH_BOTTOM - GRAPH_TOP);
+}
+
+/** Whether a string looks like a hex color (so a tint diamond can wear its value). */
+function isHexColor(v: string): boolean {
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
 }
 
 /**
@@ -185,6 +226,8 @@ export class TimelineEditor {
     if (!this.popup) this.root.style.height = `${this.panelH}px`;
     this.root.style.setProperty('--vfx-tl-gutter', `${this.gutterW}px`);
     this.root.style.setProperty('--vfx-tl-lane', `${this.laneW()}px`);
+    // Vertical gridline spacing = the ruler tick interval, so lanes line up with it.
+    this.root.style.setProperty('--vfx-tl-grid', `${chooseTickStep(this.pxPerFrame) * this.pxPerFrame}px`);
   }
 
   private buildShell(): void {
@@ -556,16 +599,45 @@ export class TimelineEditor {
     label.onmouseleave = () => hideActorHighlight();
 
     const lane = el('div', { class: 'vfx-tl-lane' });
-    for (let ki = 0; ki < track.keys.length; ki++) lane.append(this.renderKey(ti, ki));
+    // Value graph: position each numeric key vertically by its value (high = top,
+    // low = bottom) and connect them, so a track reads at a glance (e.g. alpha's
+    // visible vs invisible keys) without inspecting each one.
+    const range = numericRange(track.keys.map((k) => k.value));
+    if (range && track.keys.length >= 2) lane.append(this.renderEnvelope(track.keys, range));
+    for (let ki = 0; ki < track.keys.length; ki++) lane.append(this.renderKey(ti, ki, range));
 
     return el('div', { class: `vfx-tl-row${muted ? ' muted' : ''}${missing ? ' missing' : ''}` }, [label, lane]);
   }
 
-  private renderKey(ti: number, ki: number): El {
+  /** A faint polyline through the track's numeric keys (the value envelope). */
+  private renderEnvelope(
+    keys: { time: number; value: number | string }[],
+    range: { min: number; max: number },
+  ): SVGElement {
+    const w = this.laneW();
+    const pts = keys
+      .filter((k) => typeof k.value === 'number')
+      .map((k) => `${this.timeToX(k.time)},${valueY(k.value as number, range)}`)
+      .join(' ');
+    const line = svg('polyline', { points: pts, class: 'vfx-tl-envline' });
+    const s = svg('svg', { class: 'vfx-tl-env', viewBox: `0 0 ${w} 100`, preserveAspectRatio: 'none' });
+    s.append(line);
+    return s;
+  }
+
+  private renderKey(ti: number, ki: number, range: { min: number; max: number } | null): El {
     const key = this.session.doc.tracks[ti].keys[ki];
     const isSel = this.selected?.track === ti && this.selected?.key === ki;
-    const diamond = el('div', { class: `vfx-tl-key${isSel ? ' sel' : ''}`, title: `t=${key.time}ms  v=${key.value}` });
+    const diamond = el('div', { class: `vfx-tl-key${isSel ? ' sel' : ''}`, title: `f=${key.time}  v=${key.value}` });
     diamond.style.left = `${this.timeToX(key.time)}px`;
+    if (typeof key.value === 'number' && range) {
+      // Position by value so the diamond's height encodes it.
+      diamond.style.top = `${valueY(key.value, range)}%`;
+    } else if (typeof key.value === 'string' && isHexColor(key.value)) {
+      // Tint key: wear the color so it's recognizable without opening it.
+      diamond.classList.add('swatch');
+      diamond.style.background = key.value;
+    }
     diamond.onpointerdown = (e) => this.beginDragKey(e, ti, ki, diamond);
     return diamond;
   }
@@ -902,6 +974,8 @@ export class TimelineEditor {
         <li>Inspector: <b>time</b> nudges ±1 frame (<b>Shift</b> ±${COARSE_STEP}); <b>value</b> nudges ±0.1</li>
         <li>Drag the top edge to grow the panel; drag the label divider to widen it</li>
         <li>Row <b>👁</b> mutes a track to isolate others; <b>+</b> adds a key at the playhead</li>
+        <li>Keys sit at their value (high=top, low=bottom) with a faint envelope; tint keys show their colour</li>
+        <li>Vertical gridlines mark the ruler ticks for alignment</li>
         <li>Hover a row label to outline its actor on the canvas</li>
       </ul>
       <h4>Code vs. data</h4>

@@ -137,6 +137,10 @@ Add a new JSON file → reload the dev server to refresh the list.
 - **Per row**: `👁` mutes the track (isolate others while scrubbing), `+` adds a key
   at the playhead, `🗑` removes the track. The cyan number is the track's value _at
   the playhead_. Hover the row label to **outline its actor on the canvas**.
+- **Reading a lane at a glance**: keys are placed vertically by value (high near the
+  top, low near the bottom) and joined by a faint envelope, so e.g. an `alpha`
+  track's visible vs invisible keys are obvious without opening each. `tint` keys
+  wear their colour. Vertical gridlines line up with the ruler ticks.
 - **Save** writes the doc back to `assets/timelines/<id>.json` (and the served copy)
   and flashes `✓`. It does _not_ trigger a page reload — the editor already applies
   edits live, so saving just persists them.

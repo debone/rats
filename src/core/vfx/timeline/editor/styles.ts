@@ -60,7 +60,7 @@ const CSS = `
 .vfx-tl-tick { position: absolute; top: 0; font-size: 9px; color: #7a7a95; padding-top: 3px; border-left: 1px solid #2a2a40; padding-left: 2px; }
 
 .vfx-tl-rows { position: relative; }
-.vfx-tl-row { display: flex; align-items: stretch; height: 24px; border-bottom: 1px solid #20202e; }
+.vfx-tl-row { display: flex; align-items: stretch; height: 30px; border-bottom: 1px solid #20202e; }
 .vfx-tl-row.muted .vfx-tl-lane { opacity: 0.35; }
 .vfx-tl-row.missing .vfx-tl-actor { color: #ff6a8a; }
 .vfx-tl-row.missing .vfx-tl-lane { opacity: 0.5; }
@@ -77,10 +77,17 @@ const CSS = `
 .vfx-tl-mini:disabled { opacity: 0.4; cursor: default; }
 .vfx-tl-mini.eye-off { color: #ff3864; }
 
-.vfx-tl-lane { position: relative; width: var(--vfx-tl-lane); flex: 0 0 var(--vfx-tl-lane); }
-.vfx-tl-key { position: absolute; top: 50%; width: 9px; height: 9px; background: #4ad0ff; border: 1px solid #14141e; transform: translate(-50%, -50%) rotate(45deg); cursor: ew-resize; }
+/* Vertical alignment gridlines (spacing = ruler tick interval) behind the keys. */
+.vfx-tl-lane {
+  position: relative; width: var(--vfx-tl-lane); flex: 0 0 var(--vfx-tl-lane);
+  background-image: repeating-linear-gradient(to right, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent var(--vfx-tl-grid, 64px));
+}
+.vfx-tl-env { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.vfx-tl-envline { fill: none; stroke: #4ad0ff; stroke-width: 1.5; stroke-opacity: 0.45; vector-effect: non-scaling-stroke; }
+.vfx-tl-key { position: absolute; top: 50%; width: 9px; height: 9px; background: #4ad0ff; border: 1px solid #14141e; transform: translate(-50%, -50%) rotate(45deg); cursor: ew-resize; z-index: 1; }
 .vfx-tl-key:hover { background: #ffd23f; }
 .vfx-tl-key.sel { background: #ff3864; outline: 1px solid #fff; z-index: 2; }
+.vfx-tl-key.swatch { border: 1px solid #d8d8e0; }
 .vfx-tl-cue { position: absolute; top: 2px; color: #ffd23f; cursor: ew-resize; transform: translateX(-50%); font-size: 12px; }
 
 .vfx-tl-playhead { position: absolute; top: 18px; bottom: 0; width: 1px; background: #ff3864; pointer-events: none; z-index: 6; }
