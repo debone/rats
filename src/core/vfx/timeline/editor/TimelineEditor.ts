@@ -1,4 +1,4 @@
-import type { Track } from '../types';
+import type { Key, Track } from '../types';
 import type { EditorSession } from './EditorSession';
 import { GUTTER_MAX, GUTTER_MIN, loadPrefs, PANEL_MIN, savePrefs } from './editorPrefs';
 import { clearDraft, type Draft, draftDiffers, loadDraft, saveDraft } from './draft';
@@ -96,8 +96,8 @@ function numericRange(values: (number | string)[]): { min: number; max: number }
 }
 
 /** Vertical inset (percent) the value graph occupies in a lane — high value near the top. */
-const GRAPH_TOP = 20;
-const GRAPH_BOTTOM = 80;
+const GRAPH_TOP = 24;
+const GRAPH_BOTTOM = 78;
 
 /** Map a value to a lane Y (percent): max → top, min → bottom, flat → middle. */
 function valueY(v: number, range: { min: number; max: number }): number {
@@ -108,6 +108,33 @@ function valueY(v: number, range: { min: number; max: number }): number {
 /** Whether a string looks like a hex color (so a tint diamond can wear its value). */
 function isHexColor(v: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
+}
+
+/**
+ * Normalized easing curves matching the names offered in the inspector, so the
+ * graph's ramps bend the way playback does (concave in, overshooting back, …)
+ * instead of straight lines. Approximations — close enough for a visual guide.
+ */
+const EASES_FN: Record<string, (t: number) => number> = {
+  linear: (t) => t,
+  in: (t) => t * t,
+  out: (t) => 1 - (1 - t) ** 2,
+  inOut: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
+  inQuad: (t) => t * t,
+  outQuad: (t) => 1 - (1 - t) ** 2,
+  inOutQuad: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
+  inBack: (t) => 2.70158 * t * t * t - 1.70158 * t * t,
+  outBack: (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2,
+  outElastic: (t) =>
+    t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1,
+};
+const easeFn = (name?: string): ((t: number) => number) => EASES_FN[name || 'linear'] ?? EASES_FN.linear;
+
+/** A stable hue per track so adjacent lanes are easy to tell apart. */
+function trackHue(key: string): number {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return h % 360;
 }
 
 /**
@@ -599,29 +626,53 @@ export class TimelineEditor {
     label.onmouseleave = () => hideActorHighlight();
 
     const lane = el('div', { class: 'vfx-tl-lane' });
-    // Value graph: position each numeric key vertically by its value (high = top,
-    // low = bottom) and connect them, so a track reads at a glance (e.g. alpha's
-    // visible vs invisible keys) without inspecting each one.
+    // Value graph: position each numeric key vertically by value (high = top,
+    // low = bottom), join them along their easing curves, and fill below — so a
+    // track reads at a glance (e.g. alpha's visible vs invisible keys).
     const range = numericRange(track.keys.map((k) => k.value));
-    if (range && track.keys.length >= 2) lane.append(this.renderEnvelope(track.keys, range));
+    if (range) lane.append(this.renderEnvelope(track.keys, range, trackHue(`${track.actor}.${track.property}`)));
     for (let ki = 0; ki < track.keys.length; ki++) lane.append(this.renderKey(ti, ki, range));
 
     return el('div', { class: `vfx-tl-row${muted ? ' muted' : ''}${missing ? ' missing' : ''}` }, [label, lane]);
   }
 
-  /** A faint polyline through the track's numeric keys (the value envelope). */
-  private renderEnvelope(
-    keys: { time: number; value: number | string }[],
-    range: { min: number; max: number },
-  ): SVGElement {
+  /**
+   * The track's value envelope: a filled area + line through its numeric keys.
+   * Ramps follow each key's easing (sampled), the value is held flat out to both
+   * lane edges (it extends indefinitely before the first / after the last key), and
+   * the area is filled to a floor so each lane reads as a distinct coloured band.
+   */
+  private renderEnvelope(keys: Key[], range: { min: number; max: number }, hue: number): SVGElement {
     const w = this.laneW();
-    const pts = keys
-      .filter((k) => typeof k.value === 'number')
-      .map((k) => `${this.timeToX(k.time)},${valueY(k.value as number, range)}`)
-      .join(' ');
-    const line = svg('polyline', { points: pts, class: 'vfx-tl-envline' });
+    const nk = keys
+      .filter((k): k is Key & { value: number } => typeof k.value === 'number')
+      .sort((a, b) => a.time - b.time);
+
+    const pts: Array<[number, number]> = [];
+    if (nk.length > 0) {
+      pts.push([0, valueY(nk[0].value, range)]); // held lead-in from the left edge
+      pts.push([this.timeToX(nk[0].time), valueY(nk[0].value, range)]);
+      const STEPS = 16;
+      for (let i = 0; i < nk.length - 1; i++) {
+        const a = nk[i];
+        const b = nk[i + 1];
+        const fn = easeFn(b.ease); // ease enters the later key
+        for (let s = 1; s <= STEPS; s++) {
+          const p = s / STEPS;
+          const v = a.value + (b.value - a.value) * fn(p);
+          pts.push([this.timeToX(a.time + (b.time - a.time) * p), valueY(v, range)]);
+        }
+      }
+      pts.push([w, valueY(nk[nk.length - 1].value, range)]); // held tail-out to the right edge
+    }
+
+    const line = pts.map(([x, y]) => `${x},${y}`).join(' ');
     const s = svg('svg', { class: 'vfx-tl-env', viewBox: `0 0 ${w} 100`, preserveAspectRatio: 'none' });
-    s.append(line);
+    const fill = svg('polygon', { points: `${line} ${w},${GRAPH_BOTTOM} 0,${GRAPH_BOTTOM}`, class: 'vfx-tl-envfill' });
+    fill.style.fill = `hsl(${hue} 70% 55%)`;
+    const stroke = svg('polyline', { points: line, class: 'vfx-tl-envline' });
+    stroke.style.stroke = `hsl(${hue} 80% 72%)`;
+    s.append(fill, stroke);
     return s;
   }
 
@@ -974,7 +1025,7 @@ export class TimelineEditor {
         <li>Inspector: <b>time</b> nudges ±1 frame (<b>Shift</b> ±${COARSE_STEP}); <b>value</b> nudges ±0.1</li>
         <li>Drag the top edge to grow the panel; drag the label divider to widen it</li>
         <li>Row <b>👁</b> mutes a track to isolate others; <b>+</b> adds a key at the playhead</li>
-        <li>Keys sit at their value (high=top, low=bottom) with a faint envelope; tint keys show their colour</li>
+        <li>Keys sit at their value (high=top, low=bottom); the filled curve follows the easing and holds flat past the ends. Tint keys show their colour</li>
         <li>Vertical gridlines mark the ruler ticks for alignment</li>
         <li>Hover a row label to outline its actor on the canvas</li>
       </ul>

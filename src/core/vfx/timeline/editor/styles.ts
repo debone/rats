@@ -60,7 +60,9 @@ const CSS = `
 .vfx-tl-tick { position: absolute; top: 0; font-size: 9px; color: #7a7a95; padding-top: 3px; border-left: 1px solid #2a2a40; padding-left: 2px; }
 
 .vfx-tl-rows { position: relative; }
-.vfx-tl-row { display: flex; align-items: stretch; height: 30px; border-bottom: 1px solid #20202e; }
+.vfx-tl-row { display: flex; align-items: stretch; height: 34px; border-bottom: 1px solid #2a2a3e; }
+/* Zebra striping so adjacent lanes are easy to tell apart. */
+.vfx-tl-row:nth-child(odd) .vfx-tl-lane { background-color: rgba(255,255,255,0.022); }
 .vfx-tl-row.muted .vfx-tl-lane { opacity: 0.35; }
 .vfx-tl-row.missing .vfx-tl-actor { color: #ff6a8a; }
 .vfx-tl-row.missing .vfx-tl-lane { opacity: 0.5; }
@@ -82,8 +84,9 @@ const CSS = `
   position: relative; width: var(--vfx-tl-lane); flex: 0 0 var(--vfx-tl-lane);
   background-image: repeating-linear-gradient(to right, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent var(--vfx-tl-grid, 64px));
 }
-.vfx-tl-env { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.vfx-tl-envline { fill: none; stroke: #4ad0ff; stroke-width: 1.5; stroke-opacity: 0.45; vector-effect: non-scaling-stroke; }
+.vfx-tl-env { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+.vfx-tl-envfill { fill-opacity: 0.16; stroke: none; }
+.vfx-tl-envline { fill: none; stroke-width: 1.5; stroke-opacity: 0.9; vector-effect: non-scaling-stroke; }
 .vfx-tl-key { position: absolute; top: 50%; width: 9px; height: 9px; background: #4ad0ff; border: 1px solid #14141e; transform: translate(-50%, -50%) rotate(45deg); cursor: ew-resize; z-index: 1; }
 .vfx-tl-key:hover { background: #ffd23f; }
 .vfx-tl-key.sel { background: #ff3864; outline: 1px solid #fff; z-index: 2; }
