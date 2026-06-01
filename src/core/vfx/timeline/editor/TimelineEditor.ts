@@ -1,6 +1,7 @@
 import type { Track } from '../types';
 import type { EditorSession } from './EditorSession';
 import { GUTTER_MAX, GUTTER_MIN, loadPrefs, PANEL_MIN, savePrefs } from './editorPrefs';
+import { clearDraft, type Draft, draftDiffers, loadDraft, saveDraft } from './draft';
 import { disposeActorHighlight, hideActorHighlight, showActorHighlight } from './highlight';
 import {
   addCue,
@@ -98,6 +99,10 @@ export class TimelineEditor {
   /** Speed preset buttons, highlighted to reflect the live transport speed. */
   private speedButtons: { speed: number; el: HTMLButtonElement }[] = [];
   private saveBtn: HTMLButtonElement | null = null;
+  /** Body wrapper, so the restore banner can be inserted above it. */
+  private bodywrap!: El;
+  /** Debounce timer for autosaving the working doc as a draft. */
+  private draftTimer = 0;
 
   /** Time-axis zoom in px per frame; reset to "fit" after the first layout. */
   private pxPerFrame = 1;
@@ -145,11 +150,16 @@ export class TimelineEditor {
     this.buildShell();
 
     session.onChange = () => {
+      this.scheduleDraftSave();
       if (!this.dragging) this.refresh();
     };
     session.transport.onProgress = () => this.onProgress();
 
     this.refresh();
+    // Offer to restore an unsaved draft from a previous session (e.g. before a
+    // game reload) — never auto-applied, so the on-disk JSON isn't clobbered.
+    const draft = loadDraft(session.doc.id);
+    if (draft && draftDiffers(draft, session.doc)) this.showRestoreBanner(draft);
     // Fit the duration to the viewport once layout has measured the scroller.
     this.win.requestAnimationFrame(() => this.fitZoom());
     // Editor shortcuts. In a popup these keys go to the popup window, so the game
@@ -159,6 +169,7 @@ export class TimelineEditor {
 
   destroy(): void {
     this.win.removeEventListener('keydown', this.onKey, true);
+    if (this.draftTimer) this.win.clearTimeout(this.draftTimer);
     disposeActorHighlight();
     this.root.remove();
     if (uiDoc === this.doc) uiDoc = document; // restore default for any later docked editor
@@ -202,6 +213,7 @@ export class TimelineEditor {
     gutterResize.onpointerdown = (e) => this.beginResizeGutter(e);
 
     const bodywrap = el('div', { class: 'vfx-tl-bodywrap' }, [this.scrollEl, gutterResize]);
+    this.bodywrap = bodywrap;
 
     // Footer: add-track row + the fixed inspector (E3 — out of the scroller).
     this.inspectorEl = el('div', { class: 'vfx-tl-inspector' });
@@ -326,6 +338,51 @@ export class TimelineEditor {
       btn.textContent = original;
       btn.classList.remove('vfx-tl-saveok', 'vfx-tl-savefail');
     }, 1400);
+    // Saved to disk → the in-memory draft is now redundant.
+    if (ok) {
+      clearDraft(this.session.doc.id);
+      this.removeRestoreBanner();
+    }
+  }
+
+  // ---- draft autosave / restore ------------------------------------------
+
+  /** Debounced autosave of the working doc to localStorage (crash/reload safety). */
+  private scheduleDraftSave(): void {
+    if (this.draftTimer) this.win.clearTimeout(this.draftTimer);
+    this.draftTimer = this.win.setTimeout(() => {
+      this.draftTimer = 0;
+      saveDraft(this.session.doc);
+    }, 400);
+  }
+
+  /** A dismissible bar offering to restore an unsaved draft; never auto-applies. */
+  private showRestoreBanner(draft: Draft): void {
+    this.removeRestoreBanner();
+    const ago = Math.max(0, Math.round((Date.now() - draft.savedAt) / 1000));
+    const when = ago < 60 ? `${ago}s ago` : `${Math.round(ago / 60)}m ago`;
+    const restore = el('button', { class: 'vfx-tl-btn' }, ['Restore']);
+    restore.onclick = () => {
+      this.selected = null;
+      this.session.replaceDoc(draft.doc);
+      this.removeRestoreBanner();
+    };
+    const discard = el('button', { class: 'vfx-tl-btn' }, ['Discard']);
+    discard.onclick = () => {
+      clearDraft(this.session.doc.id);
+      this.removeRestoreBanner();
+    };
+    const banner = el('div', { class: 'vfx-tl-banner', 'data-vfx-tl-banner': '' }, [
+      el('span', {}, [`⟳ Unsaved draft from ${when} — restore it?`]),
+      el('span', { class: 'vfx-tl-spacer' }),
+      restore,
+      discard,
+    ]);
+    this.root.insertBefore(banner, this.bodywrap);
+  }
+
+  private removeRestoreBanner(): void {
+    this.root.querySelector('[data-vfx-tl-banner]')?.remove();
   }
 
   private buildAddTrack(): El {
@@ -429,12 +486,21 @@ export class TimelineEditor {
   private renderTrackRow(ti: number): El {
     const track = this.session.doc.tracks[ti];
     const muted = this.session.isMuted(track);
+    // A track whose actor isn't in the live stage map (e.g. a restored draft after
+    // the sequence's actors changed) won't animate — the compiler skips it. Flag it
+    // so it's visibly orphaned rather than mysteriously dead.
+    const actorObj = this.session.actor(track.actor);
+    const missing = actorObj == null || typeof actorObj !== 'object';
 
     const readout = el('span', { class: 'vfx-tl-readout' });
     this.readouts.set(track, readout);
 
     const labelText = el('div', { class: 'vfx-tl-labeltext' }, [
-      el('span', { class: 'vfx-tl-actor', title: track.actor }, [track.actor]),
+      el(
+        'span',
+        { class: 'vfx-tl-actor', title: missing ? `${track.actor} — not in stage (won't animate)` : track.actor },
+        [missing ? `⚠ ${track.actor}` : track.actor],
+      ),
       el('span', { class: 'vfx-tl-prop', title: track.property }, [track.property]),
     ]);
 
@@ -470,7 +536,7 @@ export class TimelineEditor {
     const lane = el('div', { class: 'vfx-tl-lane' });
     for (let ki = 0; ki < track.keys.length; ki++) lane.append(this.renderKey(ti, ki));
 
-    return el('div', { class: `vfx-tl-row${muted ? ' muted' : ''}` }, [label, lane]);
+    return el('div', { class: `vfx-tl-row${muted ? ' muted' : ''}${missing ? ' missing' : ''}` }, [label, lane]);
   }
 
   private renderKey(ti: number, ki: number): El {

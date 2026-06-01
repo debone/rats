@@ -49,6 +49,7 @@ const CSS = `
 .vfx-tl-sel { background: #14141e; color: #d8d8e0; border: 1px solid #3a3a55; border-radius: 3px; padding: 2px; font: inherit; }
 .vfx-tl-zoom { color: #7a7a95; min-width: 64px; text-align: center; }
 
+.vfx-tl-banner { display: flex; align-items: center; gap: 8px; padding: 5px 8px; flex: 0 0 auto; background: #3a2f12; color: #ffd23f; border-bottom: 1px solid #5a4a1a; }
 .vfx-tl-bodywrap { position: relative; flex: 1 1 auto; min-height: 0; }
 .vfx-tl-scroll { position: absolute; inset: 0; overflow: auto; }
 .vfx-tl-content { position: relative; width: calc(var(--vfx-tl-gutter) + var(--vfx-tl-lane)); min-height: 100%; }
@@ -61,6 +62,8 @@ const CSS = `
 .vfx-tl-rows { position: relative; }
 .vfx-tl-row { display: flex; align-items: stretch; height: 24px; border-bottom: 1px solid #20202e; }
 .vfx-tl-row.muted .vfx-tl-lane { opacity: 0.35; }
+.vfx-tl-row.missing .vfx-tl-actor { color: #ff6a8a; }
+.vfx-tl-row.missing .vfx-tl-lane { opacity: 0.5; }
 .vfx-tl-cuerow { background: rgba(255,210,63,0.04); }
 .vfx-tl-label { position: sticky; left: 0; z-index: 7; width: var(--vfx-tl-gutter); flex: 0 0 var(--vfx-tl-gutter); padding: 2px 4px 2px 6px; display: flex; align-items: center; gap: 4px; color: #b8b8c8; background: rgba(18,18,28,0.98); border-right: 1px solid #2a2a40; box-sizing: border-box; overflow: hidden; }
 .vfx-tl-labeltext { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; flex: 1; }

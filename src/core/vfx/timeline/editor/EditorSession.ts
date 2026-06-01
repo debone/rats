@@ -111,6 +111,16 @@ export class EditorSession {
     this.onChange?.();
   }
 
+  /**
+   * Swap in a different document (e.g. restoring an unsaved draft) and recompile.
+   * Mute state is cleared since it keyed off the old doc's `Track` objects.
+   */
+  replaceDoc(doc: TimelineDoc): void {
+    this.doc = doc;
+    this.muted.clear();
+    this.rebuild();
+  }
+
   /** Tear down the transport (resolving the withheld sequence await → teardown). */
   finish(): void {
     this.transport.finish();

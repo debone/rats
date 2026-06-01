@@ -229,6 +229,16 @@ export class VFXSystem implements System {
     const syncEdit = (): void => void (editBtn.disabled = !dataDriven.has(state.seq));
     select.on('change', syncEdit);
     syncEdit();
+
+    // Re-launch a sequence's editor by id — used by the popup's "Re-open" button
+    // after the game window reloads (the detached popup calls this on the opener).
+    (window as unknown as { __vfxEditTimeline?: (id: string) => boolean }).__vfxEditTimeline = (id) => {
+      const def = byId.get(id);
+      if (!def || !dataDriven.has(id)) return false;
+      requestTimelineEdit(id);
+      void this.playSequence(def, {}, false);
+      return true;
+    };
   }
 
   /** Spawn a figure-8 mover and attach a continuous effect to it for preview. */
