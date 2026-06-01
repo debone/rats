@@ -196,10 +196,9 @@ export class Transport {
       if (tl && tl.duration > 0) {
         this.onProgress?.(this.progress);
         if (tl.completed) {
-          // Return to the repeat anchor so the next Play replays the same span.
+          // Hold at the end so the final pose stays inspectable; the next Play (parked
+          // at the end) restarts from 0. Pausing mid-play is what returns to the anchor.
           this.playing = false;
-          this.seekAll(this.playAnchor);
-          this.onProgress?.(this.progress);
           this.onComplete?.();
           return;
         }

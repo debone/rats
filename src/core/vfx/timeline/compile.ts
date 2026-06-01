@@ -31,9 +31,14 @@ function resolve(actor: object, property: string): { target: object; prop: strin
  * at the same speed on any display.
  *
  * Per track: seed the first key as an instant set (`duration: 1`), then for each
- * adjacent pair emit a tween to the later key's value over the gap, using that
- * key's `ease` (the curve that *enters* it). Dotted properties resolve to nested
- * targets (`actor.scale.x`). `tint` values stay strings so anime color-interpolates.
+ * adjacent pair emit an explicit **from→to** tween over the gap (`[from, to]`),
+ * using that key's `ease` (the curve that *enters* it). The from-to array is
+ * essential: each segment is added at an absolute timeline position, and anime.js
+ * resolves an *implicit* start value from the target's build-time value (not the
+ * preceding tween's end) — so without pinning `from`, every segment would spring
+ * from the original value (a saw-wave / blink) instead of continuing the chain.
+ * Dotted properties resolve to nested targets (`actor.scale.x`). `tint` values stay
+ * strings so anime color-interpolates.
  *
  * Per cue: `tl.call(hooks[cue.hook], frameMs)` — a fire-once beat, muted on scrub.
  */
@@ -57,7 +62,9 @@ export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: Timeli
       const from = keys[i];
       const to = keys[i + 1];
       const params: Record<string, unknown> = {
-        [prop]: to.value,
+        // Explicit [from, to] so the segment continues the chain rather than
+        // springing from the target's original value (see the note above).
+        [prop]: [from.value, to.value],
         duration: Math.max(1, framesToMs(to.time - from.time)),
       };
       if (to.ease) params.ease = to.ease;

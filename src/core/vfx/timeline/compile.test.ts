@@ -32,7 +32,7 @@ describe('compile', () => {
 
     expect(tl.add.mock.calls).toEqual([
       [box, { alpha: 0, duration: 1 }, 0],
-      [box, { alpha: 1, duration: framesToMs(50), ease: 'out' }, framesToMs(0)],
+      [box, { alpha: [0, 1], duration: framesToMs(50), ease: 'out' }, framesToMs(0)],
     ]);
   });
 
@@ -60,7 +60,41 @@ describe('compile', () => {
 
     expect(tl.add.mock.calls).toEqual([
       [scale, { x: 0, duration: 1 }, 0],
-      [scale, { x: 1, duration: framesToMs(10) }, framesToMs(0)],
+      [scale, { x: [0, 1], duration: framesToMs(10) }, framesToMs(0)],
+    ]);
+  });
+
+  it('chains each segment from the previous key (no spring-from-origin / saw-wave)', () => {
+    // Regression: a hold like 0→1→1→0 must ramp up, hold, then fade — every
+    // segment must carry the previous value as its `from`, not the original 0.
+    const tl = makeTl();
+    const box = { alpha: 0 };
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 30,
+      tracks: [
+        {
+          actor: 'box',
+          property: 'alpha',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 10, value: 1 },
+            { time: 20, value: 1 },
+            { time: 30, value: 0 },
+          ],
+        },
+      ],
+      cues: [],
+    };
+
+    compile(doc, { box }, {}, tl);
+
+    // The three segment tweens carry [prev, next]: 0→1, 1→1 (flat hold), 1→0.
+    const segments = tl.add.mock.calls.slice(1).map((c) => (c[1] as { alpha: unknown }).alpha);
+    expect(segments).toEqual([
+      [0, 1],
+      [1, 1],
+      [1, 0],
     ]);
   });
 
