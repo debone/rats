@@ -1,7 +1,15 @@
+/**
+ * SHADER: CRT Monitor Controls  [screen]
+ *
+ * Interactive slider panel for CRT2Filter params (curvature, noise, vignetting, …).
+ * VFX type: defineScreen — crtEffect wraps CRT2Filter for full-screen post-processing.
+ * Storybook exposes sliders to tune the parameters live.
+ */
 import { CRT2Filter } from '@/lib/CRT/CRT';
 import { app } from '@/main';
 import { Assets, Container, Graphics, Text, TilingSprite } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { crtEffect } from '@/core/vfx/effects/screen/crt';
 
 type Param = { label: string; key: keyof CRT2Filter; min: number; max: number; step: number };
 
@@ -14,7 +22,12 @@ const PARAMS: Param[] = [
 ];
 
 export function crtControls(root: Container, w: number, h: number): () => void {
-  const crt = new CRT2Filter({ curvature: 2, noise: 0.3, vignetting: 0.4, lineContrast: 0.25, lineWidth: 1 });
+  const crt = crtEffect.create() as CRT2Filter;
+  crt.curvature = 2;
+  crt.noise = 0.3;
+  crt.vignetting = 0.4;
+  crt.lineContrast = 0.25;
+  crt.lineWidth = 1;
 
   // Preview target — the grid background
   const grid = new TilingSprite({ texture: Assets.get('tiles').textures.grid, width: w, height: h });

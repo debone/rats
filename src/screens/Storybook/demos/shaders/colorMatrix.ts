@@ -1,3 +1,11 @@
+/**
+ * SHADER: Color Matrix Presets  [screen / interactive]
+ *
+ * ColorMatrixFilter preset switcher: normal, sepia, grayscale, invert, etc.
+ * VFX type: defineScreen — apply a ColorMatrixFilter as a post-process.
+ * In storybook: interactive preset buttons toggle the matrix. In-game:
+ *   defineScreen({ kind:'screen', id:'colorMatrix', create: () => new ColorMatrixFilter() })
+ */
 import { Assets, ColorMatrixFilter, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';

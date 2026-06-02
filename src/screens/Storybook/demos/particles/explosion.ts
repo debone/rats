@@ -1,27 +1,25 @@
+/**
+ * PARTICLE: Explosion Burst  [burst]
+ *
+ * Fire spray: defineBurst with fire ball emitter.
+ * Debris shrapnel: secondary inline emitter for scraps.
+ *
+ * VFX type: defineBurst — click triggers an explode() on the pooled emitter.
+ * Multiple clicks coalesce into the same emitter pool.
+ */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { app } from '@/main';
 import { Assets, Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ASSETS } from '@/assets';
+import { explosionBurst } from '@/core/vfx/effects/explosion';
+import type { BurstContext } from '@/core/vfx/types';
 
 export function explosion(root: Container, w: number, h: number): () => void {
-  const textureBall = Assets.get('tiles').textures.ball;
   const textureScrap = Assets.get(ASSETS.prototype).textures['scraps#0'];
 
-  const burst = new ParticleEmitter({
-    texture: textureBall,
-    maxParticles: 150,
-    emitting: false,
-    lifespan: { min: 300, max: 800 },
-    speed: { min: 40, max: 220 },
-    angle: { min: 0, max: 360 },
-    scale: { start: { min: 0.15, max: 0.5 }, end: 0 },
-    alpha: { start: 1, end: 0 },
-    tint: { start: 0xffff88, end: 0xff4400 },
-    gravityY: 200,
-    rotate: { min: -200, max: 200 },
-  });
-  root.addChild(burst.container);
+  const burstEmitter = new ParticleEmitter(explosionBurst.emitter());
+  root.addChild(burstEmitter.container);
 
   const debris = new ParticleEmitter({
     texture: textureScrap,
@@ -51,18 +49,17 @@ export function explosion(root: Container, w: number, h: number): () => void {
   hint.y = h - 30;
   root.addChild(hint);
 
+  const burstCtx: BurstContext = { emitter: burstEmitter, camera: null as any, layer: root };
   let flashAlpha = 0;
 
   const trigger = (x: number, y: number) => {
-    burst.x = x;
-    burst.y = y;
     debris.x = x;
     debris.y = y;
+    debris.explode(40);
     flash.x = x;
     flash.y = y;
     flashAlpha = 1;
-    burst.explode(60);
-    debris.explode(40);
+    explosionBurst.play({ x, y }, burstCtx);
   };
 
   // First explosion at center
@@ -85,7 +82,7 @@ export function explosion(root: Container, w: number, h: number): () => void {
 
   return () => {
     app.ticker.remove(tick);
-    burst.destroy();
+    burstEmitter.destroy();
     debris.destroy();
     flash.destroy();
     hint.destroy();

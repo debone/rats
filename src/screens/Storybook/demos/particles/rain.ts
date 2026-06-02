@@ -1,24 +1,20 @@
+/**
+ * PARTICLE: Rain (drops + ground splash)  [continuous]
+ *
+ * Wide X spread from top of screen, gravity-driven drop, splash near floor.
+ * VFX type: defineContinuous — weather runs perpetually for a level/zone.
+ */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { Assets, Container } from 'pixi.js';
+import { rainContinuous } from '@/core/vfx/effects/rainContinuous';
 
 export function rain(root: Container, w: number, h: number): () => void {
   const texture = Assets.get('tiles').textures.ball;
 
   const emitter = new ParticleEmitter({
-    texture,
-    maxParticles: 300,
-    frequency: 30,
-    quantity: 4,
-    emitting: true,
-    lifespan: { min: 1800, max: 2400 },
-    speedX: { min: 20, max: 40 },
-    speedY: { min: 180, max: 260 },
+    ...rainContinuous.emitter!(),
     x: { min: -w / 2, max: w / 2 },
-    scale: { min: 0.06, max: 0.15 },
-    alpha: { start: 0.7, end: 0.2 },
-    tint: 0x88aaff,
   });
-
   emitter.x = w / 2;
   emitter.y = -10;
   root.addChild(emitter.container);
@@ -38,7 +34,6 @@ export function rain(root: Container, w: number, h: number): () => void {
     alpha: { start: 0.6, end: 0 },
     tint: 0xaaccff,
   });
-
   splash.x = w / 2;
   splash.y = h - 20;
   root.addChild(splash.container);

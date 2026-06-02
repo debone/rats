@@ -1,25 +1,18 @@
+/**
+ * PARTICLE: Fire (flames + embers + smoke)  [continuous]
+ *
+ * Three layered emitters: fast hot flames, slow rising embers, expanding smoke.
+ * VFX type: defineContinuous — fire is alive for as long as the host entity is.
+ * Position updates are done manually here (no game entity scope in storybook).
+ */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { Assets, Container } from 'pixi.js';
+import { fireContinuous } from '@/core/vfx/effects/fireContinuous';
 
 export function fire(root: Container, w: number, h: number): () => void {
   const texture = Assets.get('tiles').textures.ball;
 
-  const flames = new ParticleEmitter({
-    texture,
-    maxParticles: 200,
-    frequency: 25,
-    quantity: 5,
-    emitting: true,
-    lifespan: { min: 500, max: 900 },
-    speedY: { min: -80, max: -160 },
-    speedX: { min: -20, max: 20 },
-    x: { min: -30, max: 30 },
-    scale: { start: { min: 0.5, max: 0.9 }, end: 0.05 },
-    alpha: { start: 1, end: 0 },
-    tint: { start: 0xffee22, end: 0xcc1100 },
-    rotate: { min: -40, max: 40 },
-  });
-
+  const flames = new ParticleEmitter(fireContinuous.emitter!());
   flames.x = w / 2;
   flames.y = h - 40;
   root.addChild(flames.container);
@@ -39,7 +32,6 @@ export function fire(root: Container, w: number, h: number): () => void {
     alpha: { start: 0.9, end: 0 },
     tint: { start: 0xff8800, end: 0x330000 },
   });
-
   embers.x = w / 2;
   embers.y = h - 45;
   root.addChild(embers.container);
@@ -59,7 +51,6 @@ export function fire(root: Container, w: number, h: number): () => void {
     alpha: { start: 0.25, end: 0 },
     tint: 0x444444,
   });
-
   smoke.x = w / 2;
   smoke.y = h - 80;
   root.addChild(smoke.container);
