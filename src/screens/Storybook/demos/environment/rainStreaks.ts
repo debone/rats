@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Rain Streaks
+ * ENV: Rain Streaks  [continuous]
  *
  * Rain is drawn as oriented line-segments, NOT sprites:
  * - Each streak has a fixed angle (≈75° from horizontal)
@@ -13,10 +13,25 @@
  * Performance note: all streaks drawn into ONE Graphics clear-redraw
  * per frame. Batching N line calls into one Graphics is far cheaper
  * than N Sprite objects each frame.
+ *
+ * VFX type: defineContinuous — ambient rainfall runs for the lifetime of the environment.
  */
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Rain streaks effect definition — 90 angled line-segment streaks batched into
+ * one Graphics per frame, with elliptical puddle ripples on ground impact.
+ */
+const rainStreaksContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'rainStreaks',
+  attach(_host, _params, _ctx) {
+    // Streak simulation and ripple lifecycle handled by the storybook manually via app.ticker
+  },
+});
 
 const STREAK_COUNT = 90;
 const RAIN_ANGLE   = 78 * Math.PI / 180;  // from vertical

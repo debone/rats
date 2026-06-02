@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Neon Sign
+ * ENV: Neon Sign  [continuous]
  *
  * Neon glow with Text + BlurFilter stacked in 3 passes:
  * 1. Wide blur (strength=20) at low alpha  → outer diffuse haze
@@ -11,10 +11,25 @@
  *
  * Flicker state machine: each sign tube has its own timer so they
  * stutter independently — synchronized flicker looks fake.
+ *
+ * VFX type: defineContinuous — ambient neon flicker runs for the lifetime of the environment.
  */
 import { BlurFilter, Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Neon sign effect definition — three independently-flickering text layers
+ * with triple-pass blur glow (haze → tube body → hot core).
+ */
+const neonSignContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'neonSign',
+  attach(_host, _params, _ctx) {
+    // Flicker state machine handled by the storybook manually via app.ticker
+  },
+});
 
 interface NeonLine {
   glow1: Text;

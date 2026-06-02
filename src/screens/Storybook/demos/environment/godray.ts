@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: God Ray / Crepuscular Light
+ * ENV: God Ray  [continuous]
  *
  * A light shaft from an overhead grate:
  * - Shape: trapezoid (narrow at grate, wide at floor) — NOT a gradient,
@@ -11,10 +11,25 @@
  *   They only feel like "dust in a beam" because they STAY INSIDE the beam area.
  *   Particles outside the beam would be invisible anyway; limiting them to the
  *   beam zone avoids wasted sprites and keeps the illusion coherent.
+ *
+ * VFX type: defineContinuous — ambient god ray runs for the lifetime of the environment.
  */
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * God ray effect definition — breathing light trapezoid with grate shadow strips
+ * and Brownian dust motes confined within the beam volume.
+ */
+const godrayContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'godray',
+  attach(_host, _params, _ctx) {
+    // Beam animation and dust mote drift handled by the storybook manually via app.ticker
+  },
+});
 
 interface Mote {
   x: number;

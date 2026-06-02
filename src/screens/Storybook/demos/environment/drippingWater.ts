@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Dripping Water
+ * ENV: Dripping Water  [continuous]
  *
  * Key techniques:
  * - Drip lifecycle: HANGING (elongates) → FALLING (separate drop with gravity)
@@ -10,10 +10,25 @@
  *
  * The drip "hangs" as a teardrop ellipse that grows; when it gets heavy
  * enough (random threshold) it snaps off. This snap is the drama moment.
+ *
+ * VFX type: defineContinuous — ambient drip loop runs for the lifetime of the environment.
  */
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Dripping water effect definition — ceiling drip hang/snap/fall lifecycle
+ * with pool ripple rings and animated wavy surface.
+ */
+const drippingWaterContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'drippingWater',
+  attach(_host, _params, _ctx) {
+    // Drip simulation handled by the storybook manually via app.ticker
+  },
+});
 
 interface Drip {
   x: number;

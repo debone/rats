@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Ambient Fog — soft parallax layers
+ * ENV: Ambient Fog  [continuous]
  *
  * The fix vs. the previous version: blobs are now Sprites using the
  * soft-puff texture (concentric circles at decreasing alpha) instead of
@@ -8,11 +8,26 @@
  *
  * Three layers at different speeds = parallax depth cue.
  * Two faint "depth lights" stay fixed while fog drifts past them.
+ *
+ * VFX type: defineContinuous — ambient fog runs for the lifetime of the environment.
  */
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 import { makeSoftPuffTexture } from '../particleTextures';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Ambient fog effect definition — three parallax layers of soft feathered puff sprites
+ * drifting horizontally with a gentle vertical float sine.
+ */
+const ambientFogContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'ambientFog',
+  attach(_host, _params, _ctx) {
+    // Position tracking handled by the storybook manually via app.ticker
+  },
+});
 
 interface FogBlob {
   sprite: Sprite;

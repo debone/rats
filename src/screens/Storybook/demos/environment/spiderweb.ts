@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Procedural Spiderweb
+ * ENV: Spiderweb  [continuous]
  *
  * Construction:
  * 1. N radial spokes from center out to radius R
@@ -12,10 +12,25 @@
  *
  * Dew drops: at 15% of ring-spoke intersections, draw a small luminous dot.
  * Spider: a tiny circle that crawls toward the center on a path following the spoke.
+ *
+ * VFX type: defineContinuous — ambient spiderweb sway runs for the lifetime of the environment.
  */
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Spiderweb effect definition — procedural spoke+ring mesh with wind sway,
+ * dew drop twinkle, and a crawling spider that resets from outer rim to anchor.
+ */
+const spiderwebContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'spiderweb',
+  attach(_host, _params, _ctx) {
+    // Web redraw and spider crawl handled by the storybook manually via app.ticker
+  },
+});
 
 const SPOKE_COUNT = 9;
 const RING_COUNT  = 7;

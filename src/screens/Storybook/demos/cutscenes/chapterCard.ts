@@ -1,6 +1,16 @@
 import { animate } from 'animejs';
+import { createTimeline } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { defineSequence } from '@/core/vfx/types';
+import type { SequenceContext } from '@/core/vfx/types';
+
+/**
+ * CUTSCENE: Chapter Card  [sequence]
+ *
+ * Cinematic letterbox bars slide in, chapter number and title reveal.
+ * VFX type: defineSequence — complete choreographed moment with clear start/end.
+ */
 
 const CHAPTERS = [
   { num: 'I', title: 'THE CHEESE VAULT', subtitle: 'Deep beneath the city, a legend.' },
@@ -8,88 +18,74 @@ const CHAPTERS = [
   { num: 'III', title: 'THE RATFATHER', subtitle: 'Every empire has its price.' },
 ];
 
-export function chapterCard(root: Container, w: number, h: number): () => void {
-  let cancelled = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let chapterIndex = 0;
+let chapterIndex = 0;
 
-  // Letterbox bars
-  const barTop = new Graphics();
-  barTop.rect(0, 0, w, 28).fill(0x000000);
-  barTop.y = -28;
-  root.addChild(barTop);
-
-  const barBot = new Graphics();
-  barBot.rect(0, h - 28, w, 28).fill(0x000000);
-  barBot.y = 28;
-  root.addChild(barBot);
-
-  // Full dark overlay
-  const overlay = new Graphics();
-  overlay.rect(0, 0, w, h).fill(0x000000);
-  overlay.alpha = 0;
-  root.addChild(overlay);
-
-  // Horizontal line (grows from center)
-  const line = new Graphics();
-  root.addChild(line);
-
-  // Chapter number (roman numeral, large)
-  const numText = new Text({
-    text: '',
-    style: { ...TEXT_STYLE_DEFAULT, fontSize: 9, letterSpacing: 6, fill: 0x9944bb },
-  });
-  numText.anchor.set(0.5);
-  numText.x = w / 2;
-  numText.y = h / 2 - 28;
-  numText.alpha = 0;
-  root.addChild(numText);
-
-  // Chapter title (big, letterSpaced)
-  const titleText = new Text({
-    text: '',
-    style: {
-      ...TEXT_STYLE_DEFAULT,
-      fontSize: 18,
-      letterSpacing: 5,
-      fontWeight: 'bold',
-      fill: 0xffffff,
-    },
-  });
-  titleText.anchor.set(0.5);
-  titleText.x = w / 2;
-  titleText.y = h / 2 - 4;
-  titleText.alpha = 0;
-  root.addChild(titleText);
-
-  // Subtitle (typewriter reveal)
-  const subtitleText = new Text({
-    text: '',
-    style: { ...TEXT_STYLE_DEFAULT, fontSize: 8, fill: 0x665588, letterSpacing: 2 },
-  });
-  subtitleText.anchor.set(0.5);
-  subtitleText.x = w / 2;
-  subtitleText.y = h / 2 + 22;
-  subtitleText.alpha = 0;
-  root.addChild(subtitleText);
-
-  const play = async () => {
-    if (cancelled) return;
-
+const chapterCardSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'chapterCard',
+  async build({ w, h }, { layer }) {
     const ch = CHAPTERS[chapterIndex % CHAPTERS.length];
     chapterIndex++;
 
-    // Reset
+    // Letterbox bars
+    const barTop = new Graphics();
+    barTop.rect(0, 0, w, 28).fill(0x000000);
     barTop.y = -28;
+    layer.addChild(barTop);
+
+    const barBot = new Graphics();
+    barBot.rect(0, h - 28, w, 28).fill(0x000000);
     barBot.y = 28;
+    layer.addChild(barBot);
+
+    // Full dark overlay
+    const overlay = new Graphics();
+    overlay.rect(0, 0, w, h).fill(0x000000);
     overlay.alpha = 0;
-    line.clear();
+    layer.addChild(overlay);
+
+    // Horizontal line (grows from center)
+    const line = new Graphics();
+    layer.addChild(line);
+
+    // Chapter number (roman numeral, large)
+    const numText = new Text({
+      text: `CHAPTER  ${ch.num}`,
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 9, letterSpacing: 6, fill: 0x9944bb },
+    });
+    numText.anchor.set(0.5);
+    numText.x = w / 2;
+    numText.y = h / 2 - 28;
     numText.alpha = 0;
+    layer.addChild(numText);
+
+    // Chapter title (big, letterSpaced)
+    const titleText = new Text({
+      text: ch.title,
+      style: {
+        ...TEXT_STYLE_DEFAULT,
+        fontSize: 18,
+        letterSpacing: 5,
+        fontWeight: 'bold',
+        fill: 0xffffff,
+      },
+    });
+    titleText.anchor.set(0.5);
+    titleText.x = w / 2;
+    titleText.y = h / 2 - 4;
     titleText.alpha = 0;
+    layer.addChild(titleText);
+
+    // Subtitle (typewriter reveal)
+    const subtitleText = new Text({
+      text: '',
+      style: { ...TEXT_STYLE_DEFAULT, fontSize: 8, fill: 0x665588, letterSpacing: 2 },
+    });
+    subtitleText.anchor.set(0.5);
+    subtitleText.x = w / 2;
+    subtitleText.y = h / 2 + 22;
     subtitleText.alpha = 0;
-    subtitleText.text = '';
-    numText.text = `CHAPTER  ${ch.num}`;
-    titleText.text = ch.title;
+    layer.addChild(subtitleText);
 
     // Letterbox bars slide in
     await Promise.all([
@@ -97,7 +93,6 @@ export function chapterCard(root: Container, w: number, h: number): () => void {
       animate(barBot, { y: 0, duration: 400, ease: 'outQuad' }),
       animate(overlay, { alpha: 0.85, duration: 400 }),
     ]);
-    if (cancelled) return;
 
     // Line grows from center outward
     const lp = { w: 0 };
@@ -112,15 +107,12 @@ export function chapterCard(root: Container, w: number, h: number): () => void {
           .fill(0x9944bb);
       },
     });
-    if (cancelled) return;
 
     // Chapter label fades in
     await animate(numText, { alpha: 1, duration: 300 });
-    if (cancelled) return;
 
     // Title scales in
     await animate(titleText, { alpha: 1, scaleX: [0.85, 1], scaleY: [0.85, 1], duration: 400, ease: 'outBack(1.5)' });
-    if (cancelled) return;
 
     // Subtitle types out
     const full = ch.subtitle;
@@ -134,12 +126,8 @@ export function chapterCard(root: Container, w: number, h: number): () => void {
         subtitleText.text = full.slice(0, Math.floor(proxy.n));
       },
     });
-    if (cancelled) return;
 
-    await new Promise<void>((res) => {
-      timer = setTimeout(res, 1600);
-    });
-    if (cancelled) return;
+    await new Promise<void>((res) => setTimeout(res, 1600));
 
     // Fade and retract bars
     await Promise.all([
@@ -151,19 +139,33 @@ export function chapterCard(root: Container, w: number, h: number): () => void {
       animate(subtitleText, { alpha: 0, duration: 300 }),
     ]);
     line.clear();
-    if (cancelled) return;
 
-    await new Promise<void>((res) => {
-      timer = setTimeout(res, 600);
-    });
-    if (!cancelled) play();
+    // Cleanup
+    [barTop, barBot, overlay, line, numText, titleText, subtitleText].forEach((e) => e.destroy());
+  },
+});
+
+export function chapterCard(root: Container, w: number, h: number): () => void {
+  let cancelled = false;
+
+  const ctx: SequenceContext = {
+    camera: null as any,
+    layer: root,
+    stage: root,
+    size: { width: w, height: h },
+    cutscene: () => Promise.resolve(),
+    timeline: () => createTimeline(),
   };
 
-  play();
+  const loop = async () => {
+    while (!cancelled) {
+      await chapterCardSequence.build({ w, h }, ctx);
+      await new Promise<void>((res) => setTimeout(res, 600));
+    }
+  };
+  loop();
 
   return () => {
     cancelled = true;
-    if (timer) clearTimeout(timer);
-    [barTop, barBot, overlay, line, numText, titleText, subtitleText].forEach((e) => e.destroy());
   };
 }

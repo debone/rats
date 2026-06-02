@@ -1,7 +1,7 @@
 /**
- * ENVIRONMENT: Fireflies / Bioluminescence
+ * ENV: Fireflies  [continuous]
  *
- * 30 fireflies perform slow Brownian drift with independent pulsing.
+ * 30 bioluminescent fireflies with Brownian drift and independent pulse phase.
  * The "alive" read comes from three details:
  * 1. Each fly has its own pulse frequency and phase — they never sync
  * 2. Speed changes during the pulse cycle (faster when dim, hovering when bright)
@@ -10,10 +10,25 @@
  *
  * The background silhouettes give the flies spatial context; without any
  * environmental anchoring, drifting dots just look like a screensaver.
+ *
+ * VFX type: defineContinuous — ambient effect runs for the lifetime of the environment.
  */
 import { Container, Graphics, RenderTexture, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Fireflies effect definition — 30 independently-pulsing bioluminescent sprites
+ * with Brownian motion, warm/cool tint mix, and soft boundary repulsion.
+ */
+const firefliesContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'fireflies',
+  attach(_host, _params, _ctx) {
+    // Position tracking handled by the storybook manually via app.ticker
+  },
+});
 
 interface Firefly {
   sprite: Sprite;

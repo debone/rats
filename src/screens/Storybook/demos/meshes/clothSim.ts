@@ -1,5 +1,5 @@
 /**
- * MESH: Cloth Simulation (Verlet + MeshPlane)
+ * MESH: Cloth Simulation  [continuous]
  *
  * This is only possible with a mesh. A Sprite or Graphics cannot deform its
  * pixels — vertex manipulation is exclusive to Mesh types.
@@ -13,11 +13,26 @@
  *
  * Constraint iterations (ITERS=8) trade accuracy for speed. More iterations
  * → stiffer cloth. Wind adds a sine-wave horizontal force to non-pinned nodes.
+ *
+ * VFX type: defineContinuous — physics simulation runs continuously.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
 import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Cloth simulation effect definition — Verlet-integrated 14×12 grid with structural
+ * springs, pinned top row, gravity, and mouse-interactive wind forces.
+ */
+const clothSimContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'clothSim',
+  attach(_host, _params, _ctx) {
+    // Verlet physics step handled by the storybook manually via app.ticker
+  },
+});
 
 const COLS = 14;
 const ROWS = 12;

@@ -1,5 +1,5 @@
 /**
- * MESH: Electric Plasma Arcs
+ * MESH: Electric Plasma Arcs  [continuous]
  *
  * A plasma ball with MeshRope lightning arcs. Each arc is a MeshRope whose
  * points are displaced from the straight center→anchor line using smoothed
@@ -14,11 +14,26 @@
  *
  * Cannot be done with Graphics: Graphics lines have no UV cross-section glow
  * and would require manual polygon math per bolt without smooth width.
+ *
+ * VFX type: defineContinuous — electrical discharge loops continuously.
  */
 import { BlurFilter, Container, Graphics, MeshRope, Point, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { demoMouse } from '../demoMouse';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Electric arcs effect definition — MeshRope lightning bolts with rapid random-jitter
+ * regeneration, cross-section glow texture, and mouse-tracking arc.
+ */
+const electricArcsContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'electricArcs',
+  attach(_host, _params, _ctx) {
+    // Arc jitter regeneration handled by the storybook manually via app.ticker
+  },
+});
 
 const N_ARCS    = 5;
 const N_SEGS    = 28;

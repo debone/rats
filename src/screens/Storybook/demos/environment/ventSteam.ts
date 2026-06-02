@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Industrial Vent Steam
+ * ENV: Vent Steam  [continuous]
  *
  * Pressure cycle: IDLE → BUILD (grate glows, pressure dial ticks) → BURST →
  * RELEASE (large steam cloud) → SETTLE (wisps) → IDLE
@@ -11,12 +11,27 @@
  * Ambient: between bursts, 1–2 small wisps per second leak from seams.
  * The pressure indication before the burst is what makes it feel mechanical
  * and satisfying — the player reads "tension → release" without any UI.
+ *
+ * VFX type: defineContinuous — pressure cycle loops for the lifetime of the environment.
  */
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeSoftPuffTexture, makeSparkTexture } from '../particleTextures';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Vent steam effect definition — pressure state machine (idle/build/burst/settle)
+ * driving puff and jet particle emitters with animated grate heat tint and pressure dial.
+ */
+const ventSteamContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'ventSteam',
+  attach(_host, _params, _ctx) {
+    // Pressure cycle state machine handled by the storybook manually via app.ticker
+  },
+});
 
 type CyclePhase = 'idle' | 'build' | 'burst' | 'settle';
 

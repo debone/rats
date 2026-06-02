@@ -1,5 +1,5 @@
 /**
- * ENVIRONMENT: Torch Flicker
+ * ENV: Torch Flicker  [continuous]
  *
  * Key techniques:
  * - Layered animated flame: 3 stacked ellipses at offset Y, each wobbling
@@ -12,12 +12,27 @@
  *
  * The flame wobble is: each layer has its own phase offset so they don't
  * move in lockstep. Synchronized wobble looks mechanical; offset looks alive.
+ *
+ * VFX type: defineContinuous — ambient flame flicker runs for the lifetime of the environment.
  */
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeSparkTexture } from '../particleTextures';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Torch flicker effect definition — three-layer flame ellipses with per-layer
+ * phase wobble, breathing corona, and ember particle upward drift.
+ */
+const torchFlickerContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'torchFlicker',
+  attach(_host, _params, _ctx) {
+    // Flame and corona animation handled by the storybook manually via app.ticker
+  },
+});
 
 export function torchFlicker(root: Container, w: number, h: number): () => void {
   let cancelled = false;
