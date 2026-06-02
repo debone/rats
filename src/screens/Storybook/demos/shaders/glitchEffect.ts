@@ -1,5 +1,5 @@
 /**
- * SHADER: Chromatic Aberration + Digital Glitch
+ * SHADER: Chromatic Aberration + Digital Glitch  [screen]
  *
  * Two combined techniques:
  *
@@ -15,10 +15,14 @@
  *
  * Both effects are driven by uGlitch (0..1). At 0: subtle aberration only.
  * At 1: heavy scanline disruption. Glitch pulses on a timer.
+ *
+ * VFX type: defineScreen — glitchScreen wraps GlitchFilter for viewport post-processing.
+ * update() advances uTime each frame for the animated scanline disruption.
  */
 import { Container, Filter, GlProgram, GpuProgram, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineScreen } from '@/core/vfx/types';
 
 const VERT_GLSL = `
 in vec2 aPosition;
@@ -143,6 +147,15 @@ class GlitchFilter extends Filter {
   set glitch(v){ this.resources.glitchUniforms.uniforms.uGlitch = v; }
 }
 
+export const glitchScreen = defineScreen({
+  kind: 'screen',
+  id: 'glitchScreen',
+  create(): Filter { return new GlitchFilter(); },
+  update(filter: Filter, dtMs: number): void {
+    (filter as GlitchFilter).time += dtMs * 0.001;
+  },
+});
+
 export function glitchEffect(root: Container, w: number, h: number): () => void {
   let cancelled = false;
   let time = 0;
@@ -192,7 +205,7 @@ export function glitchEffect(root: Container, w: number, h: number): () => void 
   scene.addChild(bg);
 
   // Apply glitch filter to the whole scene
-  const glitch = new GlitchFilter();
+  const glitch = glitchScreen.create() as GlitchFilter;
   scene.filters = [glitch];
 
   // Glitch pulse timer

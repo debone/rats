@@ -1,14 +1,21 @@
+/**
+ * SHADER: Reflection Filter Controls  [screen]
+ *
+ * Interactive boundary slider for ReflectionFilter2 params (alpha, amplitude, boundary).
+ * VFX type: defineScreen — reflectionEffect wraps ReflectionFilter2 for full-screen post-processing.
+ * Storybook exposes a slider to tune the reflection boundary live.
+ */
 import { ReflectionFilter2 } from '@/lib/ReflectionFilter/ReflectionFilter';
 import { app } from '@/main';
 import { Assets, Container, Graphics, Text, TilingSprite } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { reflectionEffect } from '@/core/vfx/effects/screen/reflection';
 
 export function reflectionControls(root: Container, w: number, h: number): () => void {
-  const mirror = new ReflectionFilter2({
-    alpha: [1.0, 0.0],
-    amplitude: [20, 120],
-    boundary: 0.5,
-  });
+  const mirror = reflectionEffect.create() as ReflectionFilter2;
+  mirror.alpha = [1.0, 0.0];
+  mirror.amplitude = [20, 120];
+  mirror.boundary = 0.5;
 
   const grid = new TilingSprite({ texture: Assets.get('tiles').textures.grid, width: w, height: h / 2 });
   grid.tint = 0x112233;

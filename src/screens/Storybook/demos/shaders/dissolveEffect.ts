@@ -1,5 +1,5 @@
 /**
- * SHADER: Dissolve / Burn Transition
+ * SHADER: Dissolve / Burn Transition  [screen + sequence]
  *
  * Technique: noise threshold masking with a "burn edge".
  *   1. Compute a smooth noise value n at each pixel (0..1)
@@ -13,10 +13,14 @@
  *
  * Used for: death/destruction effects, portal openings, spell cast,
  * environmental destruction, collectible pickups.
+ *
+ * VFX type: defineScreen (filter creation) + the threshold animation is a defineSequence.
+ * In-game: apply dissolveScreen, then animate .threshold from 0→1 in a sequence.
  */
 import { Container, Filter, GlProgram, GpuProgram, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineScreen } from '@/core/vfx/types';
 
 const VERT_GLSL = `
 in vec2 aPosition;
@@ -139,6 +143,15 @@ class DissolveFilter extends Filter {
   set edge(v)     { this.resources.dissolveUniforms.uniforms.uEdge = v; }
 }
 
+export const dissolveScreen = defineScreen({
+  kind: 'screen',
+  id: 'dissolveScreen',
+  create(): Filter { return new DissolveFilter(); },
+  update(_filter: Filter, _dtMs: number): void {
+    // threshold animation is driven externally in the demo
+  },
+});
+
 export function dissolveEffect(root: Container, w: number, h: number): () => void {
   let cancelled = false;
   let time = 0;
@@ -190,7 +203,7 @@ export function dissolveEffect(root: Container, w: number, h: number): () => voi
   skull.rect(sx + 1, sy + 9, 4, 5).fill({ color: 0x080608, alpha: 0.7 });
   subject.addChild(skull);
 
-  const dissolveFilter = new DissolveFilter();
+  const dissolveFilter = dissolveScreen.create() as DissolveFilter;
   subject.filters = [dissolveFilter];
 
   // Threshold oscillates: 0→1 over 2.5s, hold dissolved 0.5s, 1→0 over 2.5s, hold intact 1s

@@ -15,6 +15,7 @@
 import { Container, Filter, GlProgram, GpuProgram, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineScreen } from '@/core/vfx/types';
 
 const VERT_GLSL = `
 in vec2 aPosition;
@@ -113,6 +114,15 @@ class WaterCausticsFilter extends Filter {
   set strength(v){ this.resources.causticsUniforms.uniforms.uStrength = v; }
 }
 
+export const waterCausticsScreen = defineScreen({
+  kind: 'screen',
+  id: 'waterCausticsScreen',
+  create(): Filter { return new WaterCausticsFilter(); },
+  update(filter: Filter, dtMs: number): void {
+    (filter as WaterCausticsFilter).time += dtMs * 0.001;
+  },
+});
+
 export function waterCaustics(root: Container, w: number, h: number): () => void {
   let cancelled = false;
   let time = 0;
@@ -155,7 +165,7 @@ export function waterCaustics(root: Container, w: number, h: number): () => void
   label.x = 6; label.y = 6;
   root.addChild(label);
 
-  const causticsFilter = new WaterCausticsFilter();
+  const causticsFilter = waterCausticsScreen.create() as WaterCausticsFilter;
   causticsFilter.strength = 0.38;
   scene.filters = [causticsFilter];
 

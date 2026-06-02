@@ -1,5 +1,5 @@
 /**
- * SHADER: Spotlight / Fog of War
+ * SHADER: Spotlight / Fog of War  [screen]
  *
  * A dark overlay where the darkness is computed per-pixel as a function
  * of distance from one or more light sources. Uses smoothstep() for the
@@ -15,11 +15,15 @@
  *
  * Visibility is max(v1, v2) — any light that reaches a pixel contributes.
  * Aspect ratio correction on distance prevents oval light circles.
+ *
+ * VFX type: defineScreen — spotlightScreen wraps SpotlightFilter for viewport post-processing.
+ * In-game: apply spotlightScreen and update light positions each frame to create fog-of-war.
  */
 import { Container, Filter, GlProgram, GpuProgram, Graphics, Text } from 'pixi.js';
 import type { FilterSystem, RenderSurface, Texture } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineScreen } from '@/core/vfx/types';
 
 const VERT_GLSL = `
 in vec2 aPosition;
@@ -140,6 +144,16 @@ class SpotlightFilter extends Filter {
     filterManager.applyFilter(this, input, output, clearMode);
   }
 }
+
+export const spotlightScreen = defineScreen({
+  kind: 'screen',
+  id: 'spotlightScreen',
+  create(): Filter { return new SpotlightFilter(320, 200); },
+  resize(filter: Filter, w: number, h: number): void {
+    // SpotlightFilter.apply() self-updates dimensions per-draw; resize hook is a no-op here
+    void filter; void w; void h;
+  },
+});
 
 export function spotlight(root: Container, w: number, h: number): () => void {
   let cancelled = false;

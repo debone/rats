@@ -15,6 +15,7 @@ import { Container, Filter, GlProgram, GpuProgram, Graphics, Text } from 'pixi.j
 import type { FilterSystem, RenderSurface, Texture } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineScreen } from '@/core/vfx/types';
 
 // ── Shared vertex boilerplate (identical for all custom filters) ──────────
 const VERT_GLSL = `
@@ -115,6 +116,15 @@ class HeatDistortFilter extends Filter {
   set heatY(v)   { this.resources.heatUniforms.uniforms.uHeatY = v; }
 }
 
+export const heatDistortScreen = defineScreen({
+  kind: 'screen',
+  id: 'heatDistortScreen',
+  create(): Filter { return new HeatDistortFilter(); },
+  update(filter: Filter, dtMs: number): void {
+    (filter as HeatDistortFilter).time += dtMs * 0.001;
+  },
+});
+
 export function heatDistort(root: Container, w: number, h: number): () => void {
   let cancelled = false;
   let time = 0;
@@ -162,7 +172,7 @@ export function heatDistort(root: Container, w: number, h: number): () => void {
   root.addChild(label); // label outside scene (not distorted)
 
   // Apply heat distortion filter to the scene
-  const heatFilter = new HeatDistortFilter();
+  const heatFilter = heatDistortScreen.create() as HeatDistortFilter;
   heatFilter.strength = 0.022;
   heatFilter.heatY = 0.73;
   scene.filters = [heatFilter];
