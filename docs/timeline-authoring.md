@@ -193,11 +193,11 @@ const hooks = {
 
 ## 5. Authoring a brand-new sequence from scratch
 
-1. **Create the effect file** `src/core/vfx/effects/<id>.ts`:
+1. **Create the effect file** `src/gameplay/vfx/<id>.ts`:
 
    ```ts
-   import { defineSequence } from '../types';
-   import { playTimeline } from '../timeline/load';
+   import { defineSequence } from '@/core/vfx/types';
+   import { playTimeline } from '@/core/vfx/timeline/load';
 
    export const mySequence = defineSequence({
      kind: 'sequence',
@@ -229,11 +229,13 @@ const hooks = {
 
    (`duration` is in frames — `60` ≈ 1 second at the 60fps reference.)
 
-3. **Register it** in [`src/core/vfx/registry.ts`](../src/core/vfx/registry.ts) so it
-   appears in the debug launcher (and, if it self-triggers, add an `on:` event).
+3. **That's the registration** — effects in `src/gameplay/vfx/` are auto-discovered
+   (`gameplay/vfx/index.ts` globs the folder and registers them with `VFXSystem`), so
+   there's no central list to edit. If it should self-trigger on an event, add an
+   `on:` to the def.
 
-4. **Restart the dev server** (so the manifest picks up the new JSON), open the VFX
-   tab → Sequences → pick `mySequence` → **editor ✎**, add tracks/cues, and **Save**.
+4. **Restart the dev server** (so the manifest + glob pick up the new files), open the
+   VFX tab → Sequences → pick `mySequence` → **editor ✎**, add tracks/cues, and **Save**.
 
 That's the full loop: code owns the actors and the parametric/array tweens; the JSON
 owns the timing; the editor makes the timing fast to tune against the running game.
