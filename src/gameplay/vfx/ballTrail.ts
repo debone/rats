@@ -2,7 +2,7 @@ import { ASSETS } from '@/assets';
 import type { EntityBase } from '@/core/entity/scope';
 import { useImmediateUpdate } from '@/hooks/hooks';
 import { Assets } from 'pixi.js';
-import { defineContinuous } from '../types';
+import { defineContinuous } from '@/core/vfx/types';
 
 /**
  * Structural shape required from the host. The trail no longer reads a physics

@@ -19,6 +19,9 @@ import { createGameState, type GameState, setGameState } from '@/data/game-state
 import { NavigationSystem } from '@/systems/navigation/system';
 import { SaveSystem } from '@/systems/save/system';
 
+// Register all gameplay VFX effects with the engine's VFXSystem (auto-discovered).
+import '@/gameplay/vfx';
+
 // Commands
 
 import { initDevtools } from '@pixi/devtools';
@@ -128,7 +131,6 @@ async function init() {
         debugUpdateTime = 0;
       }
     }
-
   });
 
   const resizer = () => {

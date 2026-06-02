@@ -1,6 +1,6 @@
 import { CRT2Filter } from '@/lib/CRT/CRT';
 import type { Filter } from 'pixi.js';
-import { defineScreen } from '../../types';
+import { defineScreen } from '@/core/vfx/types';
 
 export const crtEffect = defineScreen({
   kind: 'screen',

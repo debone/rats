@@ -1,6 +1,6 @@
 import { BloomFilter } from 'pixi-filters';
 import type { Filter } from 'pixi.js';
-import { defineScreen } from '../../types';
+import { defineScreen } from '@/core/vfx/types';
 
 export const bloomEffect = defineScreen({
   kind: 'screen',

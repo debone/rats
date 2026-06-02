@@ -12,9 +12,9 @@ import { createTimeline } from 'animejs';
 import { Assets, Container, type Filter } from 'pixi.js';
 import { VfxResourcePool } from './ResourceManager';
 import { SequenceDebugSession } from './SequenceDebug';
-import { Figure8Mover } from './effects/debug/figure8Mover';
+import { Figure8Mover } from './debug/figure8Mover';
 import { followBody } from './follow';
-import { VFX_EFFECTS } from './registry';
+import { registeredEffects } from './registry';
 import { requestTimelineEdit } from './timeline/editor/editMode';
 import { TIMELINE_IDS } from 'virtual:timeline-manifest';
 import type {
@@ -112,7 +112,7 @@ export class VFXSystem implements System {
     // The binding lives in the effect's own file, not a central table; the
     // event payload is forwarded as the effect's params. Both one-shot bursts
     // and composed sequences can self-trigger this way.
-    for (const def of VFX_EFFECTS) {
+    for (const def of registeredEffects()) {
       if ((def.kind === 'burst' || def.kind === 'sequence') && def.on) {
         const triggered = def as BurstDef<unknown> | SequenceDef<unknown>;
         this.unsubscribe.push(
@@ -155,7 +155,7 @@ export class VFXSystem implements System {
 
     const seqDefs: SequenceDef<unknown>[] = [];
 
-    for (const def of VFX_EFFECTS) {
+    for (const def of registeredEffects()) {
       switch (def.kind) {
         case 'sequence': {
           // Collected and surfaced via a single dropdown launcher below, rather

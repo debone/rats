@@ -2,9 +2,9 @@ import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { addPunch, addShake } from '@/core/vfx/camera';
 import { GameEvent } from '@/data/events';
 import { Container, Graphics, Text } from 'pixi.js';
-import { playTimeline } from '../timeline/load';
-import { defineSequence } from '../types';
-import { vfx } from '../vfx';
+import { playTimeline } from '@/core/vfx/timeline/load';
+import { defineSequence } from '@/core/vfx/types';
+import { vfx } from '@/core/vfx/vfx';
 import { brickBreak } from './brickBreak';
 
 /**
@@ -40,14 +40,24 @@ export interface LevelCompletedParams {
 }
 
 /** Radial "concentration lines": thin triangles pointing inward, clear oval in the middle. */
-function drawConcentrationLines(g: Graphics, count: number, innerR: number, outerR: number, color: number, alpha: number) {
+function drawConcentrationLines(
+  g: Graphics,
+  count: number,
+  innerR: number,
+  outerR: number,
+  color: number,
+  alpha: number,
+) {
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2;
     const half = ((Math.PI * 2) / count) * 0.4;
     g.poly([
-      Math.cos(a) * innerR, Math.sin(a) * innerR,
-      Math.cos(a - half) * outerR, Math.sin(a - half) * outerR,
-      Math.cos(a + half) * outerR, Math.sin(a + half) * outerR,
+      Math.cos(a) * innerR,
+      Math.sin(a) * innerR,
+      Math.cos(a - half) * outerR,
+      Math.sin(a - half) * outerR,
+      Math.cos(a + half) * outerR,
+      Math.sin(a + half) * outerR,
     ]);
     g.fill({ color, alpha });
   }

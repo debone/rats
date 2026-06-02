@@ -2,7 +2,7 @@ import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { shake } from '@/core/camera/effects/shake';
 import type { EmitterConfig } from '@/core/particles/ParticleEmitter';
-import { defineBurst } from '../types';
+import { defineBurst } from '@/core/vfx/types';
 
 /**
  * Debris + camera shake when a brick breaks.

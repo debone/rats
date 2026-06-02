@@ -5,8 +5,8 @@ import { getGameContext } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { b2Body_GetPosition, b2Body_IsValid, b2Body_SetTransform, b2Rot, type b2BodyId } from 'phaser-box2d';
-import { defineSequence } from '../types';
-import { vfx } from '../vfx';
+import { defineSequence } from '@/core/vfx/types';
+import { vfx } from '@/core/vfx/vfx';
 import { brickBreak } from './brickBreak';
 
 /**

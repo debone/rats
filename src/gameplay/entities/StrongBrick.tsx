@@ -4,7 +4,7 @@ import { sfx } from '@/core/audio/audio';
 import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { EventEmitter } from '@/core/game/EventEmitter';
-import { brickBreak } from '@/core/vfx/effects/brickBreak';
+import { brickBreak } from '@/gameplay/vfx/brickBreak';
 import { vfx } from '@/core/vfx/vfx';
 import { getRunState } from '@/data/game-state';
 import { useBodySprite, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';

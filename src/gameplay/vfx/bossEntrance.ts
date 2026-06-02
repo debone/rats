@@ -1,7 +1,7 @@
 import { MIN_HEIGHT, MIN_WIDTH } from '@/consts';
 import { addShake, addZoom } from '@/core/vfx/camera';
-import { defineSequence } from '../types';
-import { vfx } from '../vfx';
+import { defineSequence } from '@/core/vfx/types';
+import { vfx } from '@/core/vfx/vfx';
 import { brickBreak } from './brickBreak';
 
 /**

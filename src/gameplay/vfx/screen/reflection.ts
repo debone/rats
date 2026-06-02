@@ -1,7 +1,7 @@
 import { MIN_HEIGHT } from '@/consts';
 import { ReflectionFilter2 } from '@/lib/ReflectionFilter/ReflectionFilter';
 import type { Filter } from 'pixi.js';
-import { defineScreen } from '../../types';
+import { defineScreen } from '@/core/vfx/types';
 
 export const reflectionEffect = defineScreen({
   kind: 'screen',

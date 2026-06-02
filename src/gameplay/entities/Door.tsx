@@ -1,6 +1,6 @@
 import { ASSETS, type PrototypeTextures } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
-import { doorOpen } from '@/core/vfx/effects/doorOpen';
+import { doorOpen } from '@/gameplay/vfx/doorOpen';
 import { vfx } from '@/core/vfx/vfx';
 import { defineEntity, entity, onMount, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { useBodySprite, usePhysics, useWorldId } from '@/hooks/hooks';

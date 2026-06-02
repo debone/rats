@@ -24,7 +24,7 @@ import {
   b2RotateVector,
   b2Vec2,
 } from 'phaser-box2d';
-import { ballTrail } from '@/core/vfx/effects/ballTrail';
+import { ballTrail } from '@/gameplay/vfx/ballTrail';
 import { followBody } from '@/core/vfx/follow';
 import { vfx } from '@/core/vfx/vfx';
 import { attachPaddleBallSnap, SNAP_LAUNCH_COOLDOWN_MS } from './attachments/paddleBallSnap';
