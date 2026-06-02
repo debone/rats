@@ -60,7 +60,7 @@ const CSS = `
 .vfx-tl-tick { position: absolute; top: 0; font-size: 9px; color: #7a7a95; padding-top: 3px; border-left: 1px solid #2a2a40; padding-left: 2px; }
 
 .vfx-tl-rows { position: relative; }
-.vfx-tl-row { display: flex; align-items: stretch; height: 34px; border-bottom: 1px solid #2a2a3e; }
+.vfx-tl-row { display: flex; align-items: stretch; height: var(--vfx-tl-row, 34px); border-bottom: 1px solid #2a2a3e; }
 /* Zebra striping so adjacent lanes are easy to tell apart. */
 .vfx-tl-row:nth-child(odd) .vfx-tl-lane { background-color: rgba(255,255,255,0.022); }
 .vfx-tl-row.muted .vfx-tl-lane { opacity: 0.35; }

@@ -1,6 +1,6 @@
 import type { Key, Track } from '../types';
 import type { EditorSession } from './EditorSession';
-import { GUTTER_MAX, GUTTER_MIN, loadPrefs, PANEL_MIN, savePrefs } from './editorPrefs';
+import { GUTTER_MAX, GUTTER_MIN, loadPrefs, PANEL_MIN, ROW_MAX, ROW_MIN, savePrefs } from './editorPrefs';
 import { clearDraft, type Draft, draftDiffers, loadDraft, saveDraft } from './draft';
 import { disposeActorHighlight, hideActorHighlight, showActorHighlight } from './highlight';
 import {
@@ -159,6 +159,8 @@ export class TimelineEditor {
   private pxPerFrame = 1;
   private gutterW: number;
   private panelH: number;
+  /** Vertical (value) zoom: lane row height in px. */
+  private rowH: number;
   /** Per-track value readout spans, refreshed as the playhead moves (G1). */
   private readouts = new Map<Track, El>();
   /** Suppress the structural refresh during a drag so the dragged node survives. */
@@ -190,6 +192,7 @@ export class TimelineEditor {
     const prefs = loadPrefs();
     this.gutterW = prefs.gutterW;
     this.panelH = prefs.panelH;
+    this.rowH = prefs.rowH;
 
     this.root = el('div', {
       class: `vfx-tl-editor${this.popup ? ' vfx-tl-popup' : ''}`,
@@ -233,6 +236,7 @@ export class TimelineEditor {
     if (!this.popup) this.root.style.height = `${this.panelH}px`;
     this.root.style.setProperty('--vfx-tl-gutter', `${this.gutterW}px`);
     this.root.style.setProperty('--vfx-tl-lane', `${this.laneW()}px`);
+    this.root.style.setProperty('--vfx-tl-row', `${this.rowH}px`);
     // Vertical gridline spacing = the ruler tick interval, so lanes line up with it.
     this.root.style.setProperty('--vfx-tl-grid', `${chooseTickStep(this.pxPerFrame) * this.pxPerFrame}px`);
   }
@@ -514,10 +518,26 @@ export class TimelineEditor {
     this.scrollEl.scrollLeft = 0;
   }
 
+  /** Vertical (value) zoom: grow/shrink lane height so curves show finer detail. */
+  private zoomRows(factor: number): void {
+    this.rowH = Math.max(ROW_MIN, Math.min(ROW_MAX, this.rowH * factor));
+    this.root.style.setProperty('--vfx-tl-row', `${this.rowH}px`);
+    savePrefs({ rowH: this.rowH });
+  }
+
   private onWheel = (e: WheelEvent): void => {
-    if (!(e.ctrlKey || e.metaKey)) return; // let normal scroll through
-    e.preventDefault();
-    this.zoomAround(this.pxPerFrame * (e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP), e.clientX);
+    const delta = e.deltaY || e.deltaX; // Shift+wheel reports on deltaX on some platforms
+    const step = delta < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
+    if (e.ctrlKey || e.metaKey) {
+      // Horizontal (time) zoom around the cursor.
+      e.preventDefault();
+      this.zoomAround(this.pxPerFrame * step, e.clientX);
+    } else if (e.shiftKey || e.clientX - this.scrollEl.getBoundingClientRect().left < this.gutterW) {
+      // Vertical (value) zoom: Shift+wheel, or wheel over the track-name gutter.
+      e.preventDefault();
+      this.zoomRows(step);
+    }
+    // else: native scroll
   };
 
   // ---- refresh (structural) ----------------------------------------------
@@ -1034,7 +1054,8 @@ export class TimelineEditor {
       <ul>
         <li><b>Space</b> play/pause · <b>Del</b> delete key · <b>Ctrl/⌘+Z</b> undo · <b>Shift</b> to redo</li>
         <li>Pausing returns to where Play started; <b>🔁</b> loops that span continuously</li>
-        <li>Speed presets (0.1–2×) or the <b>×</b> field; <b>Ctrl/⌘ + wheel</b> zooms, <b>Fit</b> resets</li>
+        <li>Speed presets (0.1–2×) or the <b>×</b> field; <b>Ctrl/⌘ + wheel</b> zooms time, <b>Fit</b> resets</li>
+        <li><b>Shift + wheel</b> (or wheel over the track names) zooms the lanes taller for finer value detail</li>
         <li>Drag the ruler/▼ to scrub; drag a ◆ to retime (snaps to frames/other keys; <b>Alt</b> = free)</li>
         <li>Inspector: <b>time</b> nudges ±1 frame (<b>Shift</b> ±${COARSE_STEP}); <b>value</b> nudges ±0.1</li>
         <li>Drag the top edge to grow the panel; drag the label divider to widen it</li>

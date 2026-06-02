@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { GUTTER_MAX, GUTTER_MIN, loadPrefs, PANEL_MIN, PREFS_DEFAULTS, savePrefs, type PrefStore } from './editorPrefs';
+import {
+  GUTTER_MAX,
+  GUTTER_MIN,
+  loadPrefs,
+  PANEL_MIN,
+  PREFS_DEFAULTS,
+  ROW_MAX,
+  savePrefs,
+  type PrefStore,
+} from './editorPrefs';
 
 function fakeStore(initial?: string): PrefStore {
   let value = initial ?? null;
@@ -34,6 +43,13 @@ describe('editorPrefs', () => {
     const prefs = loadPrefs(store);
     expect(prefs.gutterW).toBe(200); // preserved across the second save
     expect(prefs.panelH).toBe(500);
+  });
+
+  it('round-trips and clamps the row-height (vertical zoom)', () => {
+    const store = fakeStore();
+    savePrefs({ rowH: 80 }, store);
+    expect(loadPrefs(store).rowH).toBe(80);
+    expect(savePrefs({ rowH: 9999 }, store).rowH).toBe(ROW_MAX);
   });
 
   it('clamps on save below the minimum', () => {

@@ -13,9 +13,11 @@ export interface EditorPrefs {
   gutterW: number;
   /** Overall panel height in px (E4). */
   panelH: number;
+  /** Lane row height in px — the vertical (value) zoom. */
+  rowH: number;
 }
 
-export const PREFS_DEFAULTS: EditorPrefs = { gutterW: 170, panelH: 320 };
+export const PREFS_DEFAULTS: EditorPrefs = { gutterW: 170, panelH: 320, rowH: 34 };
 
 /** Clamp ranges, shared with the drag handlers so persisted values stay sane. */
 export const GUTTER_MIN = 110;
@@ -23,6 +25,8 @@ export const GUTTER_MAX = 420;
 export const PANEL_MIN = 200;
 /** Upper bound is `min(PANEL_MAX_PX, 90vh)`; the px cap guards headless/odd viewports. */
 export const PANEL_MAX_PX = 2000;
+export const ROW_MIN = 22;
+export const ROW_MAX = 400;
 
 const STORAGE_KEY = 'vfx-tl-prefs';
 
@@ -62,7 +66,8 @@ export function loadPrefs(store: PrefStore = defaultStore()): EditorPrefs {
   }
   const gutterW = Number.isFinite(raw.gutterW) ? clamp(raw.gutterW!, GUTTER_MIN, GUTTER_MAX) : PREFS_DEFAULTS.gutterW;
   const panelH = Number.isFinite(raw.panelH) ? clamp(raw.panelH!, PANEL_MIN, PANEL_MAX_PX) : PREFS_DEFAULTS.panelH;
-  return { gutterW, panelH };
+  const rowH = Number.isFinite(raw.rowH) ? clamp(raw.rowH!, ROW_MIN, ROW_MAX) : PREFS_DEFAULTS.rowH;
+  return { gutterW, panelH, rowH };
 }
 
 /** Merge a partial update into the stored prefs (clamped) and persist. Returns the merged value. */
@@ -71,6 +76,7 @@ export function savePrefs(patch: Partial<EditorPrefs>, store: PrefStore = defaul
   const clamped: EditorPrefs = {
     gutterW: clamp(merged.gutterW, GUTTER_MIN, GUTTER_MAX),
     panelH: clamp(merged.panelH, PANEL_MIN, PANEL_MAX_PX),
+    rowH: clamp(merged.rowH, ROW_MIN, ROW_MAX),
   };
   try {
     store.setItem(STORAGE_KEY, JSON.stringify(clamped));
