@@ -11,11 +11,26 @@
         { "time": 300, "value": 0 },
         { "time": 420, "value": 1, "ease": "out" }
       ]
+    },
+    {
+      "actor": "door",
+      "property": "progress",
+      "keys": [
+        { "time": 90, "value": 0 },
+        { "time": 240, "value": 1, "ease": "out" }
+      ]
     }
   ],
   "cues": [
     { "time": 18, "hook": "clunk" },
     { "time": 90, "hook": "creak" },
+    { "time": 110, "hook": "puff" },
+    { "time": 130, "hook": "puff" },
+    { "time": 150, "hook": "puff" },
+    { "time": 170, "hook": "puff" },
+    { "time": 190, "hook": "puff" },
+    { "time": 210, "hook": "puff" },
+    { "time": 230, "hook": "puff" },
     { "time": 240, "hook": "settle" }
   ]
 }

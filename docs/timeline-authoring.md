@@ -93,9 +93,13 @@ _how an actor is built, or a parametric/random/system effect_ → code.
 
 [`doorOpen`](../src/gameplay/vfx/doorOpen.ts) is the system-coupled worked example:
 its JSON holds a `physics.ramp` 0↔1 track (freezing/resuming the world's time-scale)
-plus `clunk`/`creak`/`settle` cues, while the per-body door slide, camera shakes and
-dust puffs stay in `decorate`. The `physics` actor is only in the stage map when a
-live world exists, so the track simply compiles to nothing in a no-level preview.
+and a `door.progress` 0→1 track (the open amount, with its own easing — retime/ease
+it to retune the slide), plus `clunk`/`creak`/`puff`/`settle` cues. Only the
+_mechanism_ stays in `decorate`: the parametric camera shakes and a one-line applier
+that writes `door.progress` onto the door pieces each frame. When there's no real
+door (a debug/editor preview), it builds a **stand-in door** so the whole
+choreography is visible without a level — the way continuous effects preview on a
+dummy mover.
 
 ---
 
