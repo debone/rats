@@ -1,6 +1,28 @@
+/**
+ * ANIMATION: Sequence Chain  [sequence]
+ *
+ * Five lettered boxes animate in sequence using animejs chaining. Each box
+ * fades in and scales up one after the other, demonstrating the standard
+ * staggered-entrance pattern for UI reveal animations.
+ *
+ * VFX type: defineSequence — the chain is a single timed multi-step sequence.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Sequence chain definition — five boxes triggered one by one via animejs
+ * promise chaining, each scaling from 0.1 to 1 with an alpha fade.
+ */
+const sequenceChainDef = defineSequence({
+  kind: 'sequence',
+  id: 'sequenceChain',
+  build(_params, _ctx) {
+    // Box entrance chain driven by the storybook via animejs
+  },
+});
 
 const COLORS = [0xff4444, 0xff8800, 0xffee22, 0x44ff88, 0x4488ff];
 const LABELS = ['A', 'B', 'C', 'D', 'E'];

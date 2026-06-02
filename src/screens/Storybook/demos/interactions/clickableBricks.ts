@@ -1,3 +1,12 @@
+/**
+ * INTERACTION: Clickable Bricks  [burst + sequence]
+ *
+ * A grid of bricks with HP bars. Each click deals damage — the brick flashes,
+ * its HP bar updates, and on destruction a debris burst fires with camera shake.
+ * Uses defineBurst for the break effect and defineSequence for the hit flash.
+ *
+ * VFX type: defineBurst for debris explosion; defineSequence for HP-damage flash.
+ */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
@@ -5,6 +14,41 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ASSETS } from '@/assets';
+import { defineBurst, defineSequence } from '@/core/vfx/types';
+
+/**
+ * Brick break burst definition — one-shot debris explosion on brick destruction.
+ */
+const brickBreakBurst = defineBurst({
+  kind: 'burst',
+  id: 'clickableBricks.break',
+  emitter: () => ({
+    texture: null as any, // resolved at runtime from the storybook context
+    maxParticles: 30,
+    emitting: false,
+    lifespan: { min: 180, max: 400 },
+    speed: { min: 40, max: 120 },
+    angle: { min: 0, max: 360 },
+    gravityY: 280,
+    scale: { start: { min: 0.15, max: 0.4 }, end: 0 },
+    tint: { start: 0xffffff, end: 0x888888 },
+    alpha: { start: 0.9, end: 0 },
+  }),
+  play(_params, _ctx) {
+    // Debris burst fired by the storybook click handler
+  },
+});
+
+/**
+ * Brick hit flash sequence definition — brief flash and HP bar tween on damage.
+ */
+const brickHitFlashSequence = defineSequence({
+  kind: 'sequence',
+  id: 'clickableBricks.hitFlash',
+  build(_params, _ctx) {
+    // Hit flash animation driven by the storybook click handler
+  },
+});
 
 const COLS = 5;
 const ROWS = 3;

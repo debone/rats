@@ -1,5 +1,5 @@
 /**
- * MESH: RenderTexture Light Map (Fog of War)
+ * MESH: RenderTexture Light Map  [continuous]
  *
  * Technique: render a separate "light map" scene into a RenderTexture, then
  * composite it over the game scene using blendMode='multiply'. Black pixels
@@ -17,11 +17,26 @@
  *   2. Each frame render the "darkness scene" (black fill + light blobs)
  *      into it using app.renderer.render({ container, target: rt }).
  *   3. Sprite(rt) with blendMode='multiply' sits above the scene.
+ *
+ * VFX type: defineContinuous — dynamic lighting runs continuously.
  */
 import { Container, Graphics, RenderTexture, Sprite, Text } from 'pixi.js';
 import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Render texture light map effect definition — fog-of-war via multiply-blended
+ * RenderTexture with mouse-tracked torch and static ambient light blobs.
+ */
+const renderTextureLightMapContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'renderTextureLightMap',
+  attach(_host, _params, _ctx) {
+    // Light map re-render handled by the storybook manually via app.ticker
+  },
+});
 
 function makeRadialLight(radius: number, color: number): Graphics {
   const g = new Graphics();

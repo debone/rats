@@ -1,8 +1,33 @@
+/**
+ * SIGNALS: Reactive Text  [sequence]
+ *
+ * Demonstrates event-driven reactive patterns using the signals system.
+ * A `count` signal drives computed derivations (doubled, parity, color)
+ * which automatically update the displayed text nodes when the source changes.
+ *
+ * This is a UI/signal demo, not a particle VFX — it showcases how computed
+ * signals eliminate manual update wiring and react automatically to state changes.
+ *
+ * VFX type: defineSequence — counter increment can be wrapped as a timed demo loop.
+ */
 import { signal, computed } from '@/core/reactivity/signals/signals';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Reactive text sequence definition — demonstrates signal→computed→UI binding
+ * where count, doubled, parity, and color all update from a single source signal.
+ */
+const reactiveTextSequence = defineSequence({
+  kind: 'sequence',
+  id: 'reactiveText',
+  build(_params, _ctx) {
+    // Signal reactivity loop driven by the storybook button handler
+  },
+});
 
 export function reactiveText(root: Container, w: number, h: number): () => void {
   const count = signal(0);

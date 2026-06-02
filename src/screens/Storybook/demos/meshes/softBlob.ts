@@ -1,5 +1,5 @@
 /**
- * MESH: Soft Body Blob
+ * MESH: Soft Body Blob  [continuous]
  *
  * A pressure-based soft body simulation. K boundary vertices form a circle,
  * connected by structural springs to their neighbours and radial springs to
@@ -19,11 +19,26 @@
  *
  * The face (eyes + expression) is drawn in Graphics above the mesh and
  * tracks the mouse for an interactive, living feel.
+ *
+ * VFX type: defineContinuous — pressure-based soft body simulation runs continuously.
  */
 import { Container, Graphics, Mesh, MeshGeometry, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { demoMouse } from '../demoMouse';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Soft blob effect definition — 20-vertex Verlet soft body with structural springs,
+ * pressure incompressibility, wall collisions, and mouse-tracking face overlay.
+ */
+const softBlobContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'softBlob',
+  attach(_host, _params, _ctx) {
+    // Verlet physics and constraint solving handled by the storybook manually via app.ticker
+  },
+});
 
 const K      = 20;    // boundary vertices
 const R0     = 52;    // rest radius

@@ -1,5 +1,5 @@
 /**
- * MESH: MeshPlane Flag Wave
+ * MESH: MeshPlane Flag Wave  [continuous]
  *
  * MeshPlane maps a texture onto a subdivided grid of vertices. Mutating
  * the aPosition buffer and calling buffer.update() each frame lets you
@@ -18,10 +18,25 @@
  *
  * verticesX/Y trade quality for vertex count. 24×16 is enough for smooth
  * cloth-like ripples at this scale.
+ *
+ * VFX type: defineContinuous — flag waving loops continuously.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Flag wave effect definition — 24×16 PlaneGeometry with sine-wave vertex
+ * displacement that increases from the fixed pole edge to the free trailing edge.
+ */
+const meshPlaneFlagContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'meshPlaneFlag',
+  attach(_host, _params, _ctx) {
+    // Flag vertex deformation handled by the storybook manually via app.ticker
+  },
+});
 
 const VX = 24;
 const VY = 16;

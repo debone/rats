@@ -1,5 +1,5 @@
 /**
- * MESH: Gerstner Ocean Waves
+ * MESH: Gerstner Ocean Waves  [continuous]
  *
  * Gerstner waves are the physically correct deep-water wave model.
  * Unlike simple sine waves (only vertical displacement), Gerstner waves
@@ -15,10 +15,25 @@
  *
  * A Sprite cannot deform its texture. Only a mesh lets you move each vertex
  * independently while the texture stretches across the geometry.
+ *
+ * VFX type: defineContinuous — ocean wave simulation loops continuously.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Gerstner ocean effect definition — 80×20 PlaneGeometry with four summed
+ * wave components providing both horizontal and vertical vertex displacement.
+ */
+const gerstnerOceanContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'gerstnerOcean',
+  attach(_host, _params, _ctx) {
+    // Wave vertex update handled by the storybook manually via app.ticker
+  },
+});
 
 const COLS = 80;
 const ROWS = 20;

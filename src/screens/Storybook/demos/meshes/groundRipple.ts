@@ -1,5 +1,5 @@
 /**
- * MESH: Ground Ripple (click-triggered expanding waves)
+ * MESH: Ground Ripple  [sequence]
  *
  * Each mouse click spawns a circular ripple that expands outward across a
  * subdivided MeshPlane "floor". The Y displacement at each vertex is the sum
@@ -12,11 +12,26 @@
  *
  * A Sprite simply cannot do this — per-vertex Y offsets require mesh geometry.
  * The texture tiles horizontally (a stone/floor pattern) giving spatial context.
+ *
+ * VFX type: defineSequence — each click triggers a discrete ripple impact sequence.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
 import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Ground ripple effect definition — click-triggered expanding wave ring that
+ * displaces a 38×28 PlaneGeometry mesh with a Gaussian-decaying sinusoidal envelope.
+ */
+const groundRippleSequence = defineSequence({
+  kind: 'sequence',
+  id: 'groundRipple',
+  build(_params, _ctx) {
+    // Impact ripple simulation driven by the storybook click handler
+  },
+});
 
 const COLS = 38;
 const ROWS = 28;

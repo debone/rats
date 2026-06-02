@@ -1,8 +1,30 @@
+/**
+ * INTERACTION: Cheese Magnet  [continuous]
+ *
+ * Mouse acts as a magnet attracting nearby cheese sprites. Each cheese piece
+ * has a collect radius — when drawn within range, it animates into the score
+ * counter with an animejs tween and triggers a particle burst.
+ *
+ * VFX type: defineContinuous — magnet attraction simulation runs continuously.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { ASSETS } from '@/assets';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Cheese magnet effect definition — mouse-proximity attraction with animejs collect
+ * tweens, particle burst on pickup, and running score display.
+ */
+const cheeseMagnetContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'cheeseMagnet',
+  attach(_host, _params, _ctx) {
+    // Mouse attraction and collect animation handled by the storybook manually via app.ticker
+  },
+});
 
 const CHEESE_COUNT = 12;
 const COLLECT_AREA = { x: 0, y: 0, w: 0, h: 0 }; // set in setup

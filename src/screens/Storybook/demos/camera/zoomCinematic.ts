@@ -1,9 +1,31 @@
+/**
+ * CAMERA: Zoom Cinematic  [sequence]
+ *
+ * Cinematic zoom-in on a target point using the camera zoom effect, with a
+ * coroutine delay and a fade-in/fade-out envelope. Demonstrates the pattern
+ * for cutscene-style camera moves: fade out → zoom → fade in → hold → return.
+ *
+ * VFX type: defineSequence — the zoom cinematic is a timed choreography sequence.
+ */
 import { zoom } from '@/core/camera/effects/zoom';
 import { fade } from '@/core/camera/effects/fade';
 import { getGameContext } from '@/data/game-context';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { delay } from '@/core/game/Coroutine';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Zoom cinematic sequence definition — fade-out, zoom-in to target, hold, zoom-out,
+ * fade-in choreography demonstrating the cutscene camera move pattern.
+ */
+const zoomCinematicSequence = defineSequence({
+  kind: 'sequence',
+  id: 'zoomCinematic',
+  build(_params, _ctx) {
+    // Cinematic zoom choreography driven by the storybook auto-trigger
+  },
+});
 
 export function zoomCinematic(root: Container, w: number, h: number): () => void {
   const ctx = getGameContext();

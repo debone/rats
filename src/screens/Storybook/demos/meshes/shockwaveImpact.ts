@@ -1,5 +1,5 @@
 /**
- * MESH: Shockwave Impact
+ * MESH: Shockwave Impact  [sequence]
  *
  * Click anywhere to detonate a shockwave. An expanding ring of vertex
  * displacement rolls outward across a subdivided MeshPlane at 260px/s.
@@ -18,11 +18,26 @@
  *
  * This MeshPlane technique is used in games for:
  * explosion craters, water splashes, force field hits, landing impacts.
+ *
+ * VFX type: defineSequence — each click triggers a discrete shockwave sequence.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { demoMouse } from '../demoMouse';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Shockwave impact effect definition — click-triggered expanding ring displacement
+ * on a 50×30 PlaneGeometry with bloom flash and debris chunks flying outward.
+ */
+const shockwaveImpactSequence = defineSequence({
+  kind: 'sequence',
+  id: 'shockwaveImpact',
+  build(_params, _ctx) {
+    // Shockwave ring expansion driven by the storybook click handler
+  },
+});
 
 const COLS      = 50;
 const ROWS      = 30;

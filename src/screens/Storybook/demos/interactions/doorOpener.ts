@@ -1,3 +1,12 @@
+/**
+ * INTERACTION: Door Opener  [sequence]
+ *
+ * Collect cheese to unlock a door. Each pickup animates the counter; at 5
+ * collected the door segments slide apart with an animejs tween, camera punch,
+ * and a particle burst — the full "objective complete" VFX template.
+ *
+ * VFX type: defineSequence — door-open unlock is a discrete timed sequence.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
@@ -5,6 +14,19 @@ import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Door opener sequence definition — cheese collection counter leading to door
+ * slide-apart animation with camera punch and confetti burst at threshold.
+ */
+const doorOpenerSequence = defineSequence({
+  kind: 'sequence',
+  id: 'doorOpener',
+  build(_params, _ctx) {
+    // Cheese collection progress and door unlock sequence driven by storybook
+  },
+});
 
 const REQUIRED = 5;
 

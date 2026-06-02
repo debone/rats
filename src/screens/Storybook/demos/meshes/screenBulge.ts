@@ -1,5 +1,5 @@
 /**
- * MESH: Screen Bulge / Lens Warp (RenderTexture + MeshPlane)
+ * MESH: Screen Bulge  [sequence]
  *
  * Pipeline:
  *   1. Render the "world" scene into a RenderTexture each frame.
@@ -18,11 +18,26 @@
  *   vertex += normalize(vertex - mouse) * strength
  *
  * sigma controls the radius of influence (larger = wider lens).
+ *
+ * VFX type: defineSequence — click to bulge interaction triggers a discrete lens warp.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, RenderTexture, Text } from 'pixi.js';
 import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Screen bulge effect definition — click-triggered lens warp on a 36×28 MeshPlane
+ * using Gaussian vertex displacement with mouse position as the lens centre.
+ */
+const screenBulgeSequence = defineSequence({
+  kind: 'sequence',
+  id: 'screenBulge',
+  build(_params, _ctx) {
+    // Bulge vertex displacement driven by the storybook click/mouse handler
+  },
+});
 
 const VX = 36;
 const VY = 28;

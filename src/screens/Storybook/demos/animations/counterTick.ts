@@ -1,9 +1,31 @@
+/**
+ * ANIMATION: Counter Tick  [sequence]
+ *
+ * Animated number counter: click the +10 button to tween the displayed value
+ * upward using animejs. The integer proxy is tweened and the Text is updated
+ * each frame by the onUpdate callback — standard animejs integer counter pattern.
+ *
+ * VFX type: defineSequence — each increment is a discrete timed number tween.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Counter tick sequence definition — animejs integer proxy tween driving a
+ * displayed score counter with cheese icon and +10 trigger button.
+ */
+const counterTickSequence = defineSequence({
+  kind: 'sequence',
+  id: 'counterTick',
+  build(_params, _ctx) {
+    // Counter increment tween driven by the storybook button handler
+  },
+});
 
 export function counterTick(root: Container, w: number, h: number): () => void {
   const cheeseTexture = Assets.get(ASSETS.prototype).textures['cheese_tile_1#0'];

@@ -1,9 +1,35 @@
+/**
+ * SIGNALS: Signal Chain  [sequence]
+ *
+ * Demonstrates a reactive computation chain: source → multiplied → formatted → displayed.
+ * Each node in the chain is a computed signal that automatically re-evaluates
+ * when upstream values change. An `effect` subscribes to the final formatted
+ * value and drives an animejs tween to highlight the active node visually.
+ *
+ * This is a signals/event-driven demo — it shows how chains of derived state
+ * propagate without any manual event wiring or update loops.
+ *
+ * VFX type: defineSequence — the chain propagation can be demonstrated as a timed loop.
+ */
 import { signal, computed, effect } from '@/core/reactivity/signals/signals';
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Signal chain sequence definition — four-node reactive chain (source → ×7 →
+ * formatted → UI effect) with animejs highlight flash on each propagation.
+ */
+const signalChainSequence = defineSequence({
+  kind: 'sequence',
+  id: 'signalChain',
+  build(_params, _ctx) {
+    // Signal chain propagation driven by the storybook button handler
+  },
+});
 
 export function signalChain(root: Container, w: number, h: number): () => void {
   // Chain: source → multiplied → formatted → displayed

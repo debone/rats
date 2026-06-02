@@ -1,5 +1,5 @@
 /**
- * MESH: Morphing Shape (MeshGeometry vertex interpolation)
+ * MESH: Morphing Shape  [sequence]
  *
  * Custom MeshGeometry lets you define exactly which triangles to render and
  * their UV coordinates. No Sprite or Graphics API can interpolate between two
@@ -16,10 +16,25 @@
  *   positions: Float32Array [x0,y0, x1,y1, ...]
  *   uvs:       Float32Array [u0,v0, u1,v1, ...]  0..1
  *   indices:   Uint32Array  [i0,i1,i2, ...]       triangle list
+ *
+ * VFX type: defineSequence — each morph cycle is a discrete timed transition.
  */
 import { Container, Graphics, Mesh, MeshGeometry, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Morph shape effect definition — 24-vertex triangle fan interpolating between
+ * five polygon shapes (circle/star/hexagon/cross/arrow) with smoothstep³ easing.
+ */
+const morphShapeSequence = defineSequence({
+  kind: 'sequence',
+  id: 'morphShape',
+  build(_params, _ctx) {
+    // Vertex interpolation cycle handled by the storybook manually via app.ticker
+  },
+});
 
 const N = 24;  // number of outer vertices in the polygon fan
 

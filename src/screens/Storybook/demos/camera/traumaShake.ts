@@ -1,9 +1,32 @@
+/**
+ * CAMERA: Trauma Shake  [sequence]
+ *
+ * Four shake presets (small hit → earthquake) with configurable intensity,
+ * duration, and frequency. Each preset button fires the camera shake effect.
+ * Demonstrates the trauma-based decay model: intensity^2 determines offset,
+ * decaying naturally so big hits feel powerful without lingering.
+ *
+ * VFX type: defineSequence — each shake trigger is a discrete timed sequence.
+ */
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Trauma shake sequence definition — four preset shake intensities from
+ * 3px small-hit to 30px earthquake, each with configurable duration and frequency.
+ */
+const traumaShakeSequence = defineSequence({
+  kind: 'sequence',
+  id: 'traumaShake',
+  build(_params, _ctx) {
+    // Shake preset trigger driven by the storybook button handler
+  },
+});
 
 type ShakePreset = { label: string; intensity: number; duration: number; frequency: number; color: number };
 

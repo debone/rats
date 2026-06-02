@@ -1,3 +1,13 @@
+/**
+ * UI: Flex Playground
+ *
+ * Interactive layout explorer for @pixi/layout's flexbox-style container.
+ * Controls cycle through flexDirection (row/column), justifyContent, and alignItems
+ * presets — rebuilding the preview LayoutContainer on each change.
+ *
+ * This is a UI demo — it demonstrates layout composition, not particle VFX.
+ * No VFX wrapper is needed for purely layout/UI exploration demos.
+ */
 import { Container, Text } from 'pixi.js';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';

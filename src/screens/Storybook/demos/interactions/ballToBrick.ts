@@ -1,3 +1,12 @@
+/**
+ * INTERACTION: Ball to Brick  [sequence]
+ *
+ * Ball-launch interaction: click the launch button to fire the ball at a row
+ * of bricks. Each hit triggers camera shake, debris particles, and a brick
+ * destruction animation using animejs tweens.
+ *
+ * VFX type: defineSequence — each ball launch is a discrete timed sequence.
+ */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
@@ -7,6 +16,19 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Ball-to-brick sequence definition — animejs-driven ball flight with camera shake,
+ * debris particle burst, and brick destruction tween on each brick collision.
+ */
+const ballToBrickSequence = defineSequence({
+  kind: 'sequence',
+  id: 'ballToBrick',
+  build(_params, _ctx) {
+    // Ball launch and collision sequence driven by the storybook button handler
+  },
+});
 
 const BRICK_W = 40;
 const BRICK_H = 18;

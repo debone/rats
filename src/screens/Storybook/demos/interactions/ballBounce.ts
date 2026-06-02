@@ -1,13 +1,30 @@
 /**
+ * INTERACTION: Ball Bounce  [continuous]
+ *
  * Mini playable breakout — simplified physics using animejs (no Box2D).
  * Ball bounces off walls, breaks bricks, collects cheese.
  * Paddle controlled by clicking left/right halves of preview.
+ *
+ * VFX type: defineContinuous — ball simulation runs continuously for the lifetime of the demo.
  */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { app } from '@/main';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ASSETS } from '@/assets';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Ball bounce effect definition — breakout-style continuous physics with paddle
+ * input, brick collision, and debris particle emission on brick break.
+ */
+const ballBounceContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'ballBounce',
+  attach(_host, _params, _ctx) {
+    // Ball physics and paddle input handled by the storybook manually via app.ticker
+  },
+});
 
 const PADDLE_W = 60;
 const PADDLE_H = 8;

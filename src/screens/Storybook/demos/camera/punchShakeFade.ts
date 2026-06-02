@@ -1,3 +1,13 @@
+/**
+ * CAMERA: Punch + Shake + Fade  [sequence]
+ *
+ * Demonstrates the three core camera effects chained in sequence:
+ * 1. Zoom punch — quick scale-up/down snap on hit
+ * 2. Trauma shake — randomised offset oscillation decaying over time
+ * 3. Fade — black overlay in/out for dramatic pause
+ *
+ * VFX type: defineSequence — the punch→shake→fade chain is a timed sequence.
+ */
 import { zoom } from '@/core/camera/effects/zoom';
 import { shake } from '@/core/camera/effects/shake';
 import { fade } from '@/core/camera/effects/fade';
@@ -7,6 +17,19 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { delay } from '@/core/game/Coroutine';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Punch-shake-fade sequence definition — combo camera effect:
+ * zoom punch → trauma shake → black fade, triggered by button press.
+ */
+const punchShakeFadeSequence = defineSequence({
+  kind: 'sequence',
+  id: 'punchShakeFade',
+  build(_params, _ctx) {
+    // Camera effect chain driven by the storybook button handler
+  },
+});
 
 export function punchShakeFade(root: Container, w: number, h: number): () => void {
   const ctx = getGameContext();

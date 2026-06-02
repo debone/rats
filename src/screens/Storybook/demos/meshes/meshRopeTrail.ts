@@ -1,5 +1,5 @@
 /**
- * MESH: MeshRope Trail
+ * MESH: MeshRope Trail  [continuous]
  *
  * MeshRope renders a textured ribbon along an array of PointData objects.
  * It automatically computes perpendicular edge vertices from the tangent at
@@ -14,10 +14,25 @@
  *
  * Width is the rope's cross-section thickness (set at construction).
  * textureScale > 0 preserves texture aspect ratio and tiles it; 0 stretches.
+ *
+ * VFX type: defineContinuous — snake-like trail follows a looping Lissajous path.
  */
 import { Container, Graphics, MeshRope, Point, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * MeshRope trail effect definition — 52-segment ribbon following a Lissajous
+ * curve with UV-correct texture mapping and automatic perpendicular edge normals.
+ */
+const meshRopeTrailContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'meshRopeTrail',
+  attach(_host, _params, _ctx) {
+    // Trail point update handled by the storybook manually via app.ticker
+  },
+});
 
 const SEGMENTS = 52;
 

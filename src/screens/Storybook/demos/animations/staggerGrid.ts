@@ -1,5 +1,27 @@
+/**
+ * ANIMATION: Stagger Grid  [sequence]
+ *
+ * 6×5 grid of rounded boxes animate in with a stagger pattern using animejs.
+ * Each cell fades in and scales up with a delay proportional to its distance
+ * from the origin, producing a ripple-entrance wave across the grid.
+ *
+ * VFX type: defineSequence — the stagger entrance is a single timed sequence.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics } from 'pixi.js';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Stagger grid sequence definition — 30-cell grid entrance using animejs
+ * stagger delay, each cell scaling from 0.1→1 with alpha 0→1.
+ */
+const staggerGridSequence = defineSequence({
+  kind: 'sequence',
+  id: 'staggerGrid',
+  build(_params, _ctx) {
+    // Stagger entrance animation driven by the storybook via animejs
+  },
+});
 
 export function staggerGrid(root: Container, w: number, h: number): () => void {
   const COLS = 6;

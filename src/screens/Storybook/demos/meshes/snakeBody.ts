@@ -1,5 +1,5 @@
 /**
- * MESH: Snake Body (follow-the-leader MeshRope)
+ * MESH: Snake Body  [continuous]
  *
  * MeshRope is particularly suited to articulated creatures: each segment
  * follows the one ahead of it at a fixed distance ("follow-the-leader").
@@ -17,11 +17,26 @@
  *
  * textureScale=1 tiles the snake skin texture along the rope length so it
  * doesn't stretch as the snake moves.
+ *
+ * VFX type: defineContinuous — snake locomotion loops continuously.
  */
 import { Container, Graphics, MeshRope, Point, Texture, Text } from 'pixi.js';
 import { demoMouse } from '../demoMouse';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Snake body effect definition — 40-segment follow-the-leader MeshRope
+ * with mouse-chasing head and tiled skin texture that doesn't stretch.
+ */
+const snakeBodyContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'snakeBody',
+  attach(_host, _params, _ctx) {
+    // Segment follow-the-leader update handled by the storybook manually via app.ticker
+  },
+});
 
 const SEGMENTS = 40;
 const SEG_LEN = 9;

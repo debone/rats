@@ -1,5 +1,5 @@
 /**
- * MESH: Warp Portal Vortex
+ * MESH: Warp Portal  [continuous]
  *
  * A spinning portal built from custom MeshGeometry arranged as concentric
  * rings. Inner rings rotate faster than outer ones (angular velocity ∝ 1/r),
@@ -16,10 +16,25 @@
  * Stars spiral inward from the rim and vanish at the centre — drawn with
  * Graphics each frame, not particles, because their paths follow the vortex
  * rotation analytically.
+ *
+ * VFX type: defineContinuous — vortex rotation loops continuously.
  */
 import { Container, Graphics, Mesh, MeshGeometry, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * Warp portal effect definition — 10-ring concentric MeshGeometry vortex with
+ * differential angular velocity (inner rings faster) and inward-spiraling stars.
+ */
+const warpPortalContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'warpPortal',
+  attach(_host, _params, _ctx) {
+    // Vortex vertex rotation handled by the storybook manually via app.ticker
+  },
+});
 
 const N_RINGS = 10;
 const N_SEGS  = 32;

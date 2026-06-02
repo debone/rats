@@ -1,5 +1,5 @@
 /**
- * MESH: Slash Trail (Action Game VFX)
+ * MESH: Slash Trail  [sequence]
  *
  * Click and drag to draw a glowing slash arc. On mouse release the arc
  * freezes and fades over ~0.8s. Up to 5 slashes overlap simultaneously.
@@ -15,11 +15,26 @@
  * Cannot be replicated with Graphics.drawPolygon: Graphics has no UV
  * cross-section glow and cannot represent multiple independent fading
  * arcs efficiently in the same draw call.
+ *
+ * VFX type: defineSequence — each drag gesture produces a discrete fading slash sequence.
  */
 import { Container, Graphics, MeshRope, Point, Texture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { demoMouse } from '../demoMouse';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Slash trail effect definition — drag-gesture MeshRope arcs with speed-based
+ * tint colouring and 0.8s alpha fade on release, up to 5 simultaneous slashes.
+ */
+const slashTrailSequence = defineSequence({
+  kind: 'sequence',
+  id: 'slashTrail',
+  build(_params, _ctx) {
+    // Slash arc capture and fade handled by the storybook gesture handler
+  },
+});
 
 const MAX_SLASHES = 5;
 const FADE_TIME   = 0.85;

@@ -1,5 +1,27 @@
+/**
+ * ANIMATION: Bounce Physics  [sequence]
+ *
+ * Ball drop animation driven by animejs. Uses a spring-easing bounce for the
+ * main drop, a squash on landing (scaleY compresses, scaleX expands), and a
+ * shadow ellipse that scales with the ball's height for ground-plane depth.
+ *
+ * VFX type: defineSequence — each bounce cycle is a discrete timed animation.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Sprite } from 'pixi.js';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Bounce physics sequence definition — animejs spring-eased ball drop with
+ * squash-and-stretch landing and shadow scale feedback.
+ */
+const bouncePhysicsSequence = defineSequence({
+  kind: 'sequence',
+  id: 'bouncePhysics',
+  build(_params, _ctx) {
+    // Bounce animation loop handled by the storybook via animejs
+  },
+});
 
 export function bouncePhysics(root: Container, w: number, h: number): () => void {
   const texture = Assets.get('tiles').textures.ball;

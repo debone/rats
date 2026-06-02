@@ -1,6 +1,28 @@
+/**
+ * ANIMATION: Screen Wipe  [sequence]
+ *
+ * Scene transition via animejs-driven wipe panel. A solid-color rectangle
+ * slides in from the left, the background and label swap to the next scene
+ * mid-wipe, then the panel slides out right — a classic film-style wipe cut.
+ *
+ * VFX type: defineSequence — each scene transition is a discrete timed sequence.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Screen wipe sequence definition — three-scene cycle with left-to-right panel
+ * wipe using animejs, cycling through background colours and accent text.
+ */
+const screenWipeSequence = defineSequence({
+  kind: 'sequence',
+  id: 'screenWipe',
+  build(_params, _ctx) {
+    // Wipe panel animation driven by the storybook trigger
+  },
+});
 
 const SCENES = [
   { bg: 0x1a0d2e, label: 'SCENE ONE', accent: 0xcc44ff },

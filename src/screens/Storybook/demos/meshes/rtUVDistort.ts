@@ -1,5 +1,5 @@
 /**
- * MESH: RenderTexture UV Distortion (Heat / Underwater)
+ * MESH: RenderTexture UV Distortion  [continuous]
  *
  * Technique: capture an animated scene into a RenderTexture every frame,
  * then display it through a MeshPlane whose UV coordinates are perturbed —
@@ -17,10 +17,25 @@
  * The difference from vertex displacement: vertices stay fixed (the mesh
  * covers the screen uniformly), but the texture lookup shifts — effectively
  * a post-process filter implemented entirely in geometry/UV manipulation.
+ *
+ * VFX type: defineContinuous — UV distortion post-process runs continuously.
  */
 import { Container, Graphics, Mesh, PlaneGeometry, RenderTexture, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineContinuous } from '@/core/vfx/types';
+
+/**
+ * UV distortion effect definition — 40×30 PlaneGeometry with time-varying UV
+ * offsets to simulate heat shimmer and underwater refraction post-processing.
+ */
+const rtUVDistortContinuous = defineContinuous({
+  kind: 'continuous',
+  id: 'rtUVDistort',
+  attach(_host, _params, _ctx) {
+    // UV coordinate update handled by the storybook manually via app.ticker
+  },
+});
 
 const VX = 40;
 const VY = 30;

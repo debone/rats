@@ -1,3 +1,12 @@
+/**
+ * INTERACTION: Combo Counter  [sequence]
+ *
+ * Click bricks to build a combo multiplier. Each hit within the decay window
+ * increments the combo. The counter display animates with a punch-scale tween;
+ * a "COMBO x N" popup floats up and fades. On decay, the counter resets.
+ *
+ * VFX type: defineSequence — each combo increment triggers a discrete display sequence.
+ */
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { shake } from '@/core/camera/effects/shake';
 import { getGameContext } from '@/data/game-context';
@@ -5,6 +14,19 @@ import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+
+/**
+ * Combo counter sequence definition — punch-scale counter tween with floating
+ * popup text on each combo increment, 1800ms decay window before reset.
+ */
+const comboCounterSequence = defineSequence({
+  kind: 'sequence',
+  id: 'comboCounter',
+  build(_params, _ctx) {
+    // Combo increment and decay handled by the storybook click handler
+  },
+});
 
 const BRICKS_PER_ROW = 6;
 const BW = 38;

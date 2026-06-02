@@ -1,3 +1,13 @@
+/**
+ * UI: Button States
+ *
+ * Interactive button showcase: Primary, Success, Danger, and Disabled states.
+ * Each button uses @pixi/ui Button with hover/press tint overrides to demonstrate
+ * the standard visual feedback pattern for interactive UI in PixiJS.
+ *
+ * This is a UI demo — it shows button theming and state transitions,
+ * not particle VFX. No VFX wrapper is needed for purely interactive UI.
+ */
 import { Container, Text } from 'pixi.js';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
