@@ -2,10 +2,14 @@ import { ballTrail } from './effects/ballTrail';
 import { bossEntrance } from './effects/bossEntrance';
 import { brickBreak } from './effects/brickBreak';
 import { doorOpen } from './effects/doorOpen';
+import { explosionBurst } from './effects/explosion';
+import { fireContinuous } from './effects/fireContinuous';
+import { fountainContinuous } from './effects/fountainContinuous';
 import { impactSpark } from './effects/impactSpark';
 import { levelCompleted } from './effects/levelCompleted';
 import { lightningStrike } from './effects/lightningStrike';
 import { orbAura } from './effects/orbAura';
+import { rainContinuous } from './effects/rainContinuous';
 import { bloomEffect } from './effects/screen/bloom';
 import { crtEffect } from './effects/screen/crt';
 import { reflectionEffect } from './effects/screen/reflection';
@@ -33,9 +37,13 @@ export const VFX_EFFECTS: EffectDef[] = [
   // Particle bursts
   impactSpark,
   starCollect,
+  explosionBurst,
   // Continuous particle attachees
   starAura,
   orbAura,
+  fireContinuous,
+  fountainContinuous,
+  rainContinuous,
   // Sequences
   swordSwing,
   lightningStrike,
