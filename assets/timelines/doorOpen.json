@@ -1,0 +1,21 @@
+{
+  "id": "doorOpen",
+  "duration": 420,
+  "tracks": [
+    {
+      "actor": "physics",
+      "property": "ramp",
+      "keys": [
+        { "time": 18, "value": 1 },
+        { "time": 78, "value": 0, "ease": "out" },
+        { "time": 300, "value": 0 },
+        { "time": 420, "value": 1, "ease": "out" }
+      ]
+    }
+  ],
+  "cues": [
+    { "time": 18, "hook": "clunk" },
+    { "time": 90, "hook": "creak" },
+    { "time": 240, "hook": "settle" }
+  ]
+}

@@ -91,6 +91,12 @@ interface Cue {
 Rule of thumb: if it's _which actor moves to what value, when_ → JSON. If it's
 _how an actor is built, or a parametric/random/system effect_ → code.
 
+[`doorOpen`](../src/gameplay/vfx/doorOpen.ts) is the system-coupled worked example:
+its JSON holds a `physics.ramp` 0↔1 track (freezing/resuming the world's time-scale)
+plus `clunk`/`creak`/`settle` cues, while the per-body door slide, camera shakes and
+dust puffs stay in `decorate`. The `physics` actor is only in the stage map when a
+live world exists, so the track simply compiles to nothing in a no-level preview.
+
 ---
 
 ## 2. Opening the editor
