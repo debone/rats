@@ -121,18 +121,6 @@ export class CrewPickerOverlay extends Container implements AppScreen {
     this._background.height = h;
   }
 
-  blur() {
-    const context = getGameContext();
-    context.phase = 'paused';
-  }
-
-  focus() {
-    const context = getGameContext();
-    if (context.phase === 'paused') {
-      context.phase = 'level';
-    }
-  }
-
   reset() {
     console.log('[CrewPickerOverlay] Resetting...');
 

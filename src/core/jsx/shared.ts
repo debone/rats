@@ -4,7 +4,6 @@ import { cleanupSymbol, type SignalCleanup } from '@/core/reactivity/signals/typ
 import type { Container, ContainerChild } from 'pixi.js';
 
 // Signal binding
-
 export function createSignalBinding(
   target: Container & Partial<SignalCleanup>,
   property: string,

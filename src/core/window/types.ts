@@ -27,10 +27,10 @@ export interface AppScreen extends Container {
   reset?(): void;
   /** Handle viewport resize */
   resize?(width: number, height: number): void;
-  /** Called when window loses focus */
-  blur?(): void;
-  /** Called when window gains focus */
-  focus?(): void;
+  /** Pause gameplay under this screen (overlay, window blur, etc.) */
+  pause?(): void | Promise<void>;
+  /** Resume after {@link pause} */
+  resume?(): void | Promise<void>;
 }
 
 /** Interface for app screens constructors */

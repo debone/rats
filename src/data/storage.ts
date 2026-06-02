@@ -6,6 +6,7 @@ export const DEFAULT_STORAGE = {
    * Indicates if the audio is muted
    */
   muted: false,
+
   [META_SAVE_KEY]: {},
   [RUN_SAVE_KEY]: {},
 };

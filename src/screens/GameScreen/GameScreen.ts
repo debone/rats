@@ -5,7 +5,7 @@ import { typedAssets } from '@/core/assets/typed-assets';
 import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
-import { getGameContext } from '@/data/game-context';
+import { getGameContext, type GamePhase } from '@/data/game-context';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
@@ -16,6 +16,9 @@ import { CheeseCounter } from './ui/CheeseCounter';
 import { CrewIndicator } from './ui/CrewIndicator';
 import { LevelIndicator } from './ui/LevelIndicator';
 import { ScrapCounter } from './ui/ScrapCounter';
+import { OptionsOverlay } from '../OptionsOverlay';
+import { execute } from '@/core/game/Command';
+import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -30,6 +33,7 @@ export class GameScreen extends Container implements AppScreen {
 
   private _background?: TilingSprite;
   private _popupLayer?: LayoutContainer;
+  private _phaseBeforePause: GamePhase = 'level';
 
   constructor() {
     super();
@@ -128,6 +132,30 @@ export class GameScreen extends Container implements AppScreen {
     countersContainer.addChild(new BallCounter());
     countersContainer.addChild(new CheeseCounter());
     countersContainer.addChild(new ScrapCounter());
+
+    const optionsBtnBg = new LayoutContainer({
+      layout: {
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 8,
+        paddingRight: 8,
+        backgroundColor: 0x272736,
+        borderColor: 0x57294b,
+        borderWidth: 1,
+        borderRadius: 3,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+      },
+    });
+    optionsBtnBg.addChild(
+      new Text({ text: '⚙ Options', style: { ...TEXT_STYLE_DEFAULT, fontSize: 10 }, layout: true }),
+    );
+    const optionsBtn = new Button(optionsBtnBg);
+    optionsBtn.onPress.connect(() => {
+      execute(ShowOverlayCommand, { overlay: OptionsOverlay });
+    });
+    countersContainer.addChild(optionsBtnBg);
 
     const popupLayer = new LayoutContainer({
       layout: {
@@ -247,24 +275,21 @@ export class GameScreen extends Container implements AppScreen {
     };
   }
 
-  /**
-   * Called when window loses focus.
-   */
-  blur() {
-    console.log('[GameScreen] Blurring...');
+  async pause() {
     const context = getGameContext();
-    context.phase = 'paused';
+    if (context.phase !== 'paused') {
+      this._phaseBeforePause = context.phase;
+      context.phase = 'paused';
+    }
+    context.systems.pause();
   }
 
-  /**
-   * Called when window gains focus.
-   */
-  focus() {
-    console.log('[GameScreen] Focusing...');
+  async resume() {
     const context = getGameContext();
     if (context.phase === 'paused') {
-      context.phase = 'level';
+      context.phase = this._phaseBeforePause;
     }
+    context.systems.resume();
   }
 
   /**

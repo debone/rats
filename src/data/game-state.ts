@@ -34,6 +34,10 @@ export interface MetaGameState {
   // Last session info for restoration
   lastPlayedLevel?: string;
   currentRun?: RunState;
+
+  muted: Signal<boolean>;
+  musicVolume: Signal<number>;
+  sfxVolume: Signal<number>;
 }
 
 /** Current run state - survives across levels in same run */

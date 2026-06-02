@@ -109,18 +109,6 @@ export class CrewShopOverlay extends Container implements AppScreen {
     this._background.height = h;
   }
 
-  blur() {
-    const context = getGameContext();
-    context.phase = 'paused';
-  }
-
-  focus() {
-    const context = getGameContext();
-    if (context.phase === 'paused') {
-      context.phase = 'level';
-    }
-  }
-
   reset() {
     for (let i = this.children.length - 1; i >= 0; i--) {
       this.children[i].destroy({ children: true });

@@ -30,6 +30,11 @@ export class Navigation {
   /** Game layers */
   private layers: GameLayers | null = null;
 
+  /** Nested pause count (overlay + window blur) */
+  private pauseDepth = 0;
+  private overlayPaused = false;
+  private blurPaused = false;
+
   addToLayer(child: Container, layer: LayerName, makeVisible: boolean = true): void {
     if (this.layers && this.layers[layer]) {
       this.layers[layer].addChild(child);
@@ -99,9 +104,48 @@ export class Navigation {
     }
   }
 
+  private resetPauseState() {
+    this.pauseDepth = 0;
+    this.overlayPaused = false;
+    this.blurPaused = false;
+  }
+
+  private async pauseUnderlyingScreen(reason: 'overlay' | 'blur') {
+    if (!this.currentScreen) return;
+
+    if (reason === 'overlay') {
+      if (this.overlayPaused) return;
+      this.overlayPaused = true;
+    } else {
+      if (this.blurPaused) return;
+      this.blurPaused = true;
+    }
+
+    if (this.pauseDepth++ === 0) {
+      await this.currentScreen.pause?.();
+    }
+  }
+
+  private async resumeUnderlyingScreen(reason: 'overlay' | 'blur') {
+    if (!this.currentScreen) return;
+
+    if (reason === 'overlay') {
+      if (!this.overlayPaused) return;
+      this.overlayPaused = false;
+    } else {
+      if (!this.blurPaused) return;
+      this.blurPaused = false;
+    }
+
+    if (this.pauseDepth > 0 && --this.pauseDepth === 0) {
+      await this.currentScreen.resume?.();
+    }
+  }
+
   /** Remove screen from the stage, unlink update & resize functions */
   private async hideAndRemoveScreen(screen: AppScreen) {
     console.log('[Navigation] Hiding and removing screen', screen.constructor.name);
+    this.resetPauseState();
     // Prevent interaction in the screen
     screen.interactiveChildren = false;
 
@@ -223,6 +267,8 @@ export class Navigation {
   public async showOverlay(ctor: AppScreenConstructor) {
     assert(!this.currentOverlay, 'An overlay is already being displayed');
 
+    await this.pauseUnderlyingScreen('overlay');
+
     if (this.currentScreen) {
       this.currentScreen.interactiveChildren = false;
     }
@@ -241,6 +287,8 @@ export class Navigation {
 
     await this.hideAndRemoveOverlay(this.currentOverlay);
     this.currentOverlay = undefined;
+
+    await this.resumeUnderlyingScreen('overlay');
 
     if (this.currentScreen) {
       this.currentScreen.interactiveChildren = true;
@@ -277,14 +325,14 @@ export class Navigation {
     }
   }
 
-  /** Blur screen when window loses focus */
+  /** Pause underlying screen when window loses focus */
   public blur() {
-    this.currentScreen?.blur?.();
+    void this.pauseUnderlyingScreen('blur');
   }
 
-  /** Focus screen when window gains focus */
+  /** Resume after window blur if nothing else keeps the screen paused */
   public focus() {
-    this.currentScreen?.focus?.();
+    void this.resumeUnderlyingScreen('blur');
   }
 }
 

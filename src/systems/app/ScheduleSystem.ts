@@ -24,6 +24,13 @@ export class ScheduleSystem implements System {
 
   private context!: GameContext;
   private updateHandler = this.update.bind(this);
+  private pauseHandler = () => {
+    this.paused = true;
+  };
+  private resumeHandler = () => {
+    this.paused = false;
+  };
+  private paused = false;
 
   private clocks = new Map<ScheduleContexts, Set<ScheduledTask>>();
 
@@ -33,9 +40,12 @@ export class ScheduleSystem implements System {
     Object.keys(SCHEDULE_CONTEXTS).forEach((k) => this.clocks.set(k as ScheduleContexts, new Set()));
 
     this.context.systems.register('update', this.updateHandler);
+    this.context.systems.register('pause', this.pauseHandler);
+    this.context.systems.register('resume', this.resumeHandler);
   }
 
   update(delta: number) {
+    if (this.paused) return;
     this.clocks.forEach((set) => {
       set.forEach((scheduledTask) => {
         scheduledTask.timeout -= delta;
@@ -80,6 +90,12 @@ export class ScheduleSystem implements System {
         cancelledCallback();
       }
     };
+  }
+
+  destroy() {
+    this.context.systems.unregister('update', this.updateHandler);
+    this.context.systems.unregister('pause', this.pauseHandler);
+    this.context.systems.unregister('resume', this.resumeHandler);
   }
 
   schedule(callback: () => void, duration: number, context: ScheduleContexts = SCHEDULE_CONTEXTS.LEVEL) {

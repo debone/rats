@@ -1,11 +1,12 @@
 import type { Signal, SignalValue } from '@/core/reactivity/signals/types';
 import type { LayoutStyles } from '@pixi/layout';
 import type { LayoutContainer, LayoutContainerOptions } from '@pixi/layout/components';
-import type { ListType } from '@pixi/ui';
+import type { Button, ListType } from '@pixi/ui';
 import type {
   ColorSource,
   Container,
   ContainerChild,
+  FederatedPointerEvent,
   Graphics,
   Sprite,
   Text,
@@ -113,9 +114,26 @@ export interface GodotGridContainerElement extends PixiJsxProps<Container> {
 }
 
 // @pixi/ui elements (minimal for now)
+
+export type ButtonEvent = (btn?: Button, e?: FederatedPointerEvent) => void;
+
 export interface ButtonElement extends PixiJsxProps {
   enabled?: boolean;
-  onPress?: () => void;
+  onPress?: ButtonEvent;
+  onHover?: ButtonEvent;
+  onOut?: ButtonEvent;
+}
+
+export interface SliderElement extends PixiJsxProps {
+  value?: SignalValue<number>;
+  min?: number;
+  max?: number;
+  step?: number;
+  bg: Graphics;
+  fill: Graphics;
+  slider: Container;
+  onUpdate?: (value: number) => void;
+  onChange?: (value: number) => void;
 }
 
 // Structural elements
@@ -143,6 +161,7 @@ export interface IntrinsicElementMap {
   scrollContainer: GodotScrollContainerElement;
   spacer: LayoutContainerElement;
   button: ButtonElement;
+  slider: SliderElement;
   mount: MountElement;
 }
 

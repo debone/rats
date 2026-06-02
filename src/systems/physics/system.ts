@@ -35,8 +35,8 @@ import {
   SetWorldScale,
 } from 'phaser-box2d';
 import { Graphics } from 'pixi.js';
-import { ClearWorldSprites, DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
 import { EntityCollisionSystem } from './EntityCollisionSystem';
+import { ClearWorldSprites, DestroyWorldSprites, UpdateWorldSprites } from './WorldSprites';
 
 export class PhysicsSystem implements System {
   static SYSTEM_ID = 'physics';
@@ -49,6 +49,8 @@ export class PhysicsSystem implements System {
   private enableDebug = signal(false, { label: 'enableDebug' });
 
   private updateHandler = this.update.bind(this);
+  private pauseHandler = this.onPause.bind(this);
+  private resumeHandler = this.onResume.bind(this);
 
   private orphanBodies: b2BodyId[] = [];
 
@@ -59,7 +61,21 @@ export class PhysicsSystem implements System {
 
   init(context: GameContext) {
     this.context = context;
+    context.systems.register('pause', this.pauseHandler);
+    context.systems.register('resume', this.resumeHandler);
     console.log('[PhysicsSystem] Initializing...');
+  }
+
+  private onPause() {
+    if (this.context.worldId) {
+      this.stop();
+    }
+  }
+
+  private onResume() {
+    if (this.context.worldId) {
+      this.start();
+    }
   }
 
   createWorld(start: boolean) {
@@ -319,7 +335,8 @@ export class PhysicsSystem implements System {
   }
 
   destroy() {
-    // Unregister from scheduler
+    this.context.systems.unregister('pause', this.pauseHandler);
+    this.context.systems.unregister('resume', this.resumeHandler);
     this.context.systems.unregister('update', this.updateHandler);
 
     this.pendingDestructions = [];
