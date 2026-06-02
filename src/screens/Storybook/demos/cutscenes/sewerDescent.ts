@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Sewer Descent  [sequence]
+ *
+ * Grate bars slide apart alternately, toxic glow pulses up from below,
+ * fog and drip particles rise. DESCENDING title fades in.
+ * VFX type: defineSequence — transition moment from surface to sewer.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeDropletTexture, makeSoftPuffTexture } from '../particleTextures';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const sewerDescentSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'sewerDescent',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 export function sewerDescent(root: Container, w: number, h: number): () => void {
   let cancelled = false;

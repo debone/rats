@@ -1,5 +1,5 @@
 /**
- * MESH CUTSCENE: Sewer Channel
+ * MESH CUTSCENE: Sewer Channel  [sequence]
  *
  * Ambient establishing shot of a sewer tunnel. The sewage river is a
  * MeshPlane whose top-row vertices undulate — three overlapping sine
@@ -12,6 +12,8 @@
  *
  * Rats scurry along the ledge. Drips fall from ceiling pipes. A toxic
  * green glow rises from the sewage surface.
+ *
+ * VFX type: defineSequence — establishing shot with scheduled animation beats.
  */
 import { animate } from 'animejs';
 import { Container, Graphics, Mesh, PlaneGeometry, Text, Texture } from 'pixi.js';
@@ -19,6 +21,15 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeDropletTexture, makeSoftPuffTexture } from '../particleTextures';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const sewerChannelSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'sewerChannel',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const COLS = 56;
 const ROWS = 10;

@@ -1,6 +1,22 @@
+/**
+ * CUTSCENE: Safe Crack  [sequence]
+ *
+ * Vault door appears, dial spins to crack a 4-digit combo,
+ * doors split open, UNLOCKED reveal. Cycles repeatedly.
+ * VFX type: defineSequence — heist mini-moment with clear start/end.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const safecrackSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'safecrack',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 export function safecrack(root: Container, w: number, h: number): () => void {
   let cancelled = false;

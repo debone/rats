@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Sewage Surge  [sequence]
+ *
+ * Toxic liquid rises through tunnel walls with bubble and splatter particles,
+ * holds, then drains. SEWAGE SURGE warning text fades in.
+ * VFX type: defineSequence — rising-liquid hazard moment with clear arc.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeBubbleTexture, makeSplatTexture } from '../particleTextures';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const sewageSurgeSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'sewageSurge',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 export function sewageSurge(root: Container, w: number, h: number): () => void {
   let cancelled = false;

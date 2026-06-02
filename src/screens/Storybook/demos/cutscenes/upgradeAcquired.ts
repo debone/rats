@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Upgrade Acquired  [sequence]
+ *
+ * Darkened overlay, banner, icon spins in with sparkle burst, stat bars grow
+ * from before→after with +N indicators. Cycles through upgrade types.
+ * VFX type: defineSequence — item acquisition moment with complete stat reveal.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const upgradeAcquiredSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'upgradeAcquired',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const UPGRADES = [
   {

@@ -1,5 +1,5 @@
 /**
- * MESH CUTSCENE: Toxic Leak
+ * MESH CUTSCENE: Toxic Leak  [sequence]
  *
  * A cracked overhead pipe leaks a dangerous substance. Each leak is a
  * MeshRope whose points hang vertically from the pipe, growing longer
@@ -13,11 +13,22 @@
  * A MeshRope is essential here: a Graphics line would look like a stick,
  * not a gooey strand. The rope geometry gives the correct soft-tube
  * cross-section at every point along the tendril's length.
+ *
+ * VFX type: defineSequence — atmosphere + hazard sequence with scheduled beats.
  */
 import { animate } from 'animejs';
 import { Container, Graphics, MeshRope, Point, Text, Texture } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const toxicLeakSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'toxicLeak',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const N_DRIPS  = 5;
 const N_SEG    = 18;

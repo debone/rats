@@ -1,7 +1,23 @@
+/**
+ * CUTSCENE: Transmission Received  [sequence]
+ *
+ * Terminal frame with typewriter text: INCOMING blinks, signal bars fill,
+ * message lines type out, TRANSMISSION ENDED closes. Cycles through messages.
+ * VFX type: defineSequence — radio intercept moment with clear start/end.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const transmissionReceivedSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'transmissionReceived',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const MESSAGES = [
   {

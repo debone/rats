@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Wanted Poster  [sequence]
+ *
+ * Parchment poster slams in with particle burst, portrait, name, reward,
+ * and status stamp. Cycles through wanted rat profiles.
+ * VFX type: defineSequence — wanted-poster reveal with clear slam-in/out.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const wantedPosterSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'wantedPoster',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const RATS = [
   { avatar: 1, name: 'NUGGETS', reward: '500 CHEESE', status: 'AT LARGE', statusColor: 0xff4444 },

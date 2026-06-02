@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Secret Found  [sequence]
+ *
+ * Gold shimmer sweep, banner drops in, cheese icon bounces up with sparkles,
+ * +500 PTS pop, idle spin, then fade out. Loops.
+ * VFX type: defineSequence — collectible discovery moment with clear start/end.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const secretFoundSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'secretFound',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 export function secretFound(root: Container, w: number, h: number): () => void {
   let cancelled = false;

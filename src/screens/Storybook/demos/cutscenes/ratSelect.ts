@@ -1,7 +1,23 @@
+/**
+ * CUTSCENE: Rat Select  [sequence]
+ *
+ * Character select screen: three rat portraits pop in staggered,
+ * cursor cycles through each one highlighting them with ability info.
+ * VFX type: defineSequence — complete intro-select-fadeout cycle.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const ratSelectSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'ratSelect',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const RATS = [
   { avatar: 1, name: 'NUGGETS', role: 'COMMANDER', ability: 'Free ability once per level', color: 0xffee44 },

@@ -1,6 +1,22 @@
+/**
+ * CUTSCENE: Tunnel Map  [sequence]
+ *
+ * Green tactical map: connection lines draw one-by-one, nodes pop in,
+ * optimal route highlights in bright green, ROUTE CONFIRMED appears.
+ * VFX type: defineSequence — mission briefing map reveal with clear start/end.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const tunnelMapSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'tunnelMap',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 interface MapNode {
   x: number;

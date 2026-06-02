@@ -1,6 +1,22 @@
+/**
+ * CUTSCENE: Score Summary  [sequence]
+ *
+ * Results panel slides up, rows tick in with dotted lines and point values,
+ * total counter animates, then slide-out. Loops continuously.
+ * VFX type: defineSequence — post-level summary moment with clear start/end.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const scoreSummarySequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'scoreSummary',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const STATS = [
   { label: 'BRICKS', value: '48', pts: 240, color: 0xff8844 },

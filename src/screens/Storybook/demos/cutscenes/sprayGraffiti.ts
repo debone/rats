@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Spray Graffiti  [sequence]
+ *
+ * Paint spray sweeps left→right across a brick wall, "RATS RUN THIS" tag
+ * appears with splat + mist particles and paint drips.
+ * VFX type: defineSequence — graffiti tagging moment with spray-paint arc.
+ */
 import { animate } from 'animejs';
 import { Container, Graphics, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeSplatTexture, makeSoftPuffTexture } from '../particleTextures';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const sprayGraffitiSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'sprayGraffiti',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 export function sprayGraffiti(root: Container, w: number, h: number): () => void {
   let cancelled = false;

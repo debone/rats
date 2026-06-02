@@ -1,8 +1,24 @@
+/**
+ * CUTSCENE: Victory Screen  [sequence]
+ *
+ * LEVEL CLEAR! slams in with confetti, cheese-star icons pop staggered,
+ * score counter ticks up, then fades out. Loops.
+ * VFX type: defineSequence — post-level victory moment with score reveal.
+ */
 import { animate } from 'animejs';
 import { Assets, Container, Graphics, Sprite, Text } from 'pixi.js';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { ASSETS } from '@/assets';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const victoryScreenSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'victoryScreen',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 export function victoryScreen(root: Container, w: number, h: number): () => void {
   let cancelled = false;

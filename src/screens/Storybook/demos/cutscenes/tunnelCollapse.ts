@@ -1,5 +1,5 @@
 /**
- * MESH CUTSCENE: Tunnel Collapse
+ * MESH CUTSCENE: Tunnel Collapse  [sequence]
  *
  * Structural failure sequence. A MeshPlane represents the tunnel wall.
  * Vertex displacement starts subtle (trembling) then escalates through
@@ -13,6 +13,8 @@
  * The MeshPlane vertex displacement is the ONLY way to do this: a Sprite
  * would have to be swapped for a completely different image. The mesh
  * distorts continuously with no art assets needed.
+ *
+ * VFX type: defineSequence — dramatic 4-phase collapse with escalating mesh distortion.
  */
 import { animate } from 'animejs';
 import { Container, Graphics, Mesh, PlaneGeometry, Text, Texture } from 'pixi.js';
@@ -20,6 +22,15 @@ import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { makeShardTexture, makeSoftPuffTexture } from '../particleTextures';
 import { app } from '@/main';
+import { defineSequence } from '@/core/vfx/types';
+import { createTimeline } from 'animejs';
+import type { SequenceContext } from '@/core/vfx/types';
+
+const tunnelCollapseSequence = defineSequence<{ w: number; h: number }>({
+  kind: 'sequence',
+  id: 'tunnelCollapse',
+  async build(_params, _ctx) { /* storybook drives via loop below */ },
+});
 
 const COLS = 40;
 const ROWS = 24;
