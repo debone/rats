@@ -26,7 +26,7 @@ debug panel and the visual editor scrub the whole thing as a single playhead:
 3. **Compiler (code)** — `compile(doc, stage, hooks, tl)` walks the doc and emits the
    same `tl.add(...)` / `tl.call(...)` calls you'd hand-write today.
 
-The worked example is [`levelCompleted`](../src/core/vfx/effects/levelCompleted.ts).
+The worked example is [`levelCompleted`](../src/gameplay/vfx/levelCompleted.ts).
 Its `build()` creates the Graphics/Text actors and keeps the camera punch and the
 randomized confetti loop in code (`decorate`), while every flash/lines/burst/text
 keyframe and the two `brickBreak` cues live in
