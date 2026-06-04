@@ -1,3 +1,6 @@
+import type { Timeline } from 'animejs';
+import type { TimelineLike } from './compile';
+
 /**
  * Data model for the in-engine visual timeline.
  *
@@ -18,7 +21,7 @@
  */
 export interface TimelineDoc {
   id: string;
-  /** Authored length in **frames** — drives the editor ruler. Playback length is the last tween's end. */
+  /** Authored length in **frames** — drives both the editor ruler and the playback duration. */
   duration: number;
   tracks: Track[];
   cues: CueTrack[];
@@ -84,4 +87,4 @@ export type Stage = Record<string, unknown>;
  * Each hook receives the firing cue key's `value` (a number/string the author sets in
  * the editor); hooks that take no argument simply ignore it.
  */
-export type Hooks = Record<string, (value?: number | string) => void>;
+export type Hooks = Record<string, (tl: TimelineLike, key: CueKey) => void>;

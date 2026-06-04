@@ -84,12 +84,12 @@ export const levelCompleted = defineSequence({
     const lines = new Graphics();
     drawConcentrationLines(lines, 60, 200, diag, 0xffffff, 0.85);
     lines.position.set(cx, cy);
+    lines.alpha = 0;
     root.addChild(lines);
 
     const burst = new Graphics();
     drawSunburst(burst, 16, diag * 0.6, ACCENT, 0.5);
     burst.position.set(cx, cy);
-    burst.alpha = 0.5;
     burst.scale.set(0.5);
     root.addChild(burst);
 

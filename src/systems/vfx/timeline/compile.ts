@@ -89,8 +89,14 @@ export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: Timeli
       continue;
     }
     for (const key of cueTrack.keys) {
-      const { value } = key;
-      tl.call(() => hook(value), framesToMs(key.time));
+      tl.call(() => hook(tl, key), framesToMs(key.time));
     }
+  }
+
+  // Anchor the timeline's end to the authored duration so that a sequence whose
+  // last keyframe is before `doc.duration` still runs for its full length.
+  // Without this, anime.js ends the timeline at the last tween/cue endpoint.
+  if (doc.duration > 0) {
+    tl.call(() => {}, framesToMs(doc.duration));
   }
 }

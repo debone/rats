@@ -2,6 +2,46 @@ import type { Timeline } from 'animejs';
 import { FRAME_MS } from './time';
 
 /**
+ * The internal shape of an anime.js child (Animation/Timer) we need to touch to
+ * prime cue (`tl.call`) firing. anime doesn't expose these, so we reach in via a
+ * narrow structural cast. Children form a linked list off the timeline's `_head`.
+ */
+interface AnimeChild {
+  _offset: number;
+  _delay: number;
+  duration: number;
+  began: boolean;
+  completed: boolean;
+  _next: AnimeChild | null;
+}
+
+/** Tolerance (ms) so a cue sitting exactly on the playhead counts as "at" it (fires). */
+const PRIME_EPSILON_MS = 1e-3;
+
+/**
+ * Set each child's `began`/`completed` flags relative to `startMs` so a forward
+ * play from that position fires only the cues at/after it. Children whose end is
+ * strictly before the playhead are marked completed (skipped); the rest are
+ * marked pending. Only flags are touched — tween values were already applied by
+ * the preceding muted seek, so this never re-renders or flashes anything.
+ */
+function primeCallbacks(tl: Timeline, startMs: number): void {
+  let child = (tl as unknown as { _head: AnimeChild | null })._head;
+  while (child) {
+    const start = child._offset + child._delay;
+    const end = start + child.duration;
+    if (end < startMs - PRIME_EPSILON_MS) {
+      child.began = true;
+      child.completed = true;
+    } else {
+      child.began = start < startMs - PRIME_EPSILON_MS;
+      child.completed = false;
+    }
+    child = child._next;
+  }
+}
+
+/**
  * The reusable playback core for a set of anime.js timelines: seek / step /
  * speed / play / pause, a normalized [0..1] playhead, muted-callback scrubbing,
  * and the thenable interception that withholds a timeline's natural completion.
@@ -136,12 +176,13 @@ export class Transport {
 
   play(): void {
     if (this.playing || this.timelines.length === 0) return;
-    // Anchor the repeat point at where playback begins; parked-at-end starts over.
-    this.playAnchor = this.progress >= 1 ? 0 : this.progress;
+    // When parked at the end, resume from the last anchor (where the user placed
+    // the playhead), not 0. Otherwise use the current playhead position.
+    const startProgress = this.progress >= 1 ? this.playAnchor : this.progress;
+    this.playAnchor = startProgress;
     this.playing = true;
-    if (this.progress >= 1) this.seekAll(0);
     this.setSpeed(this.speedValue);
-    this.timelines.forEach((tl) => tl.play());
+    this.timelines.forEach((tl) => this.startFrom(tl, startProgress));
     this.startSync();
   }
 
@@ -164,9 +205,13 @@ export class Transport {
   }
 
   restart(): void {
-    this.seekAll(0);
+    this.halt();
+    this.playAnchor = 0;
+    this.playing = true;
+    this.setSpeed(this.speedValue);
+    this.timelines.forEach((tl) => this.startFrom(tl, 0));
     this.onProgress?.(0);
-    this.play();
+    this.startSync();
   }
 
   /**
@@ -195,6 +240,30 @@ export class Transport {
     }
   }
 
+  /**
+   * Position a timeline at `progress` and start it playing, with cue callbacks
+   * primed so only cues at/after the playhead fire during this run.
+   *
+   * Two anime.js quirks make this non-trivial:
+   * 1. A muted `seek()` never sets the `completed` flag on a zero-duration child
+   *    (a `tl.call` cue) — that flag is only written inside a `!muteCallbacks`
+   *    branch of the renderer. So after a muted seek to mid-timeline, every cue
+   *    still reads `completed === false`, and the first *unmuted* forward tick
+   *    fires ALL of them at once (the "previous keyframes play all at once" bug).
+   * 2. After a full play, every cue reads `completed === true`, so replaying
+   *    without resetting that flag fires no cues at all (the "hooks fire once" bug).
+   *
+   * Priming `completed` per cue from the playhead fixes both: cues strictly
+   * before the playhead are marked done (won't refire); cues at/after it are
+   * marked pending (will fire as the playhead crosses them).
+   */
+  private startFrom(tl: Timeline, progress: number): void {
+    const startMs = progress * tl.duration;
+    tl.seek(startMs, true); // muted: jump to position without firing cues
+    primeCallbacks(tl, startMs);
+    tl.play();
+  }
+
   /** Mirror the live playhead via `onProgress` each frame while playing. */
   private startSync(): void {
     this.stopSync();
@@ -206,12 +275,13 @@ export class Transport {
         if (tl.completed) {
           if (this.looping) {
             // Restart the same span (anchor→end) and keep playing.
-            this.seekAll(this.playAnchor);
-            this.timelines.forEach((t) => t.play());
+            this.timelines.forEach((t) => this.startFrom(t, this.playAnchor));
           } else {
-            // Hold at the end so the final pose stays inspectable; the next Play
-            // (parked at the end) restarts from 0. Pausing returns to the anchor.
+            // Return the playhead to the anchor so the next Play re-uses it
+            // (pressing space replays the same span, not from 0).
             this.playing = false;
+            this.seekAll(this.playAnchor);
+            this.onProgress?.(this.progress);
             this.onComplete?.();
             return;
           }

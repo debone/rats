@@ -38,7 +38,15 @@
       "hook": "burst1",
       "keys": [
         {
-          "time": 37
+          "time": 20
+        }
+      ]
+    },
+    {
+      "hook": "burst2",
+      "keys": [
+        {
+          "time": 80
         }
       ]
     }
