@@ -9,16 +9,19 @@
  *
  * - `Track` — per-actor, per-property keyframe envelope (position, scale, alpha,
  *   tint, rotation …). Compiled into seekable `tl.add(...)` tweens.
- * - `Cue` — a fire-once beat (sfx, particle burst, debris) bound to a named hook.
- *   Compiled into `tl.call(...)`, so it's muted while scrubbing and fires only on
- *   real playback — the same contract as a hand-authored `tl.call`.
+ * - `CueTrack` — a fire-once beat track bound to a named hook (sfx, particle burst,
+ *   debris). Each of its keys fires the hook at a frame, passing the key's value to
+ *   it. Compiled into `tl.call(...)`, so cues are muted while scrubbing and fire only
+ *   on real playback — the same contract as a hand-authored `tl.call`. Unlike a
+ *   `Track`, a cue key's value isn't interpolated (there's no envelope/graph): it's an
+ *   arbitrary argument handed to the hook the instant it fires.
  */
 export interface TimelineDoc {
   id: string;
   /** Authored length in **frames** — drives the editor ruler. Playback length is the last tween's end. */
   duration: number;
   tracks: Track[];
-  cues: Cue[];
+  cues: CueTrack[];
 }
 
 export function emptyTimelineDoc(id: string): TimelineDoc {
@@ -48,10 +51,24 @@ export interface Key {
   ease?: string;
 }
 
-/** A fire-once beat: at `time` (in **frames**), invoke the hook named `hook`. */
-export interface Cue {
-  time: number;
+/**
+ * A fire-once beat track: every key invokes the named `hook`, the same way a `Track`
+ * groups an actor/property's keys. One track per hook, so each cue gets its own lane.
+ */
+export interface CueTrack {
+  /** Name into the `Hooks` map. */
   hook: string;
+  keys: CueKey[];
+}
+
+/**
+ * A single cue keyframe: at `time` (in **frames**) fire the hook, passing `value` as
+ * its argument. `value` is arbitrary and uninterpolated — set by hand in the editor
+ * (number or string), and `undefined` when the hook takes no argument.
+ */
+export interface CueKey {
+  time: number;
+  value?: number | string;
 }
 
 /**
@@ -62,5 +79,9 @@ export interface Cue {
  */
 export type Stage = Record<string, unknown>;
 
-/** Named fire-once closures a doc's cues resolve against (sfx, particle bursts, debris). */
-export type Hooks = Record<string, () => void>;
+/**
+ * Named fire-once closures a doc's cues resolve against (sfx, particle bursts, debris).
+ * Each hook receives the firing cue key's `value` (a number/string the author sets in
+ * the editor); hooks that take no argument simply ignore it.
+ */
+export type Hooks = Record<string, (value?: number | string) => void>;

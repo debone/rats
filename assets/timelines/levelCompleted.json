@@ -35,8 +35,12 @@
   ],
   "cues": [
     {
-      "time": 37,
-      "hook": "burst1"
+      "hook": "burst1",
+      "keys": [
+        {
+          "time": 37
+        }
+      ]
     }
   ]
 }

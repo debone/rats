@@ -96,7 +96,9 @@ const CSS = `
 .vfx-tl-key:hover { background: #ffd23f; }
 .vfx-tl-key.sel { background: #ff3864; outline: 1px solid #fff; z-index: 2; }
 .vfx-tl-key.swatch { border: 1px solid #d8d8e0; }
-.vfx-tl-cue { position: absolute; top: 2px; color: #ffd23f; cursor: ew-resize; transform: translateX(-50%); font-size: 12px; }
+.vfx-tl-cue { position: absolute; top: 2px; color: #ffd23f; cursor: ew-resize; transform: translateX(-50%); font-size: 12px; z-index: 1; }
+.vfx-tl-cue:hover { color: #fff; }
+.vfx-tl-cue.sel { color: #ff3864; text-shadow: 0 0 0 #ff3864; z-index: 2; filter: drop-shadow(0 0 1px #fff); }
 
 .vfx-tl-playhead { position: absolute; top: 18px; bottom: 0; width: 1px; background: #ff3864; pointer-events: none; z-index: 6; }
 .vfx-tl-playhandle { position: absolute; top: -18px; left: -5px; width: 11px; height: 18px; pointer-events: auto; cursor: ew-resize; }
