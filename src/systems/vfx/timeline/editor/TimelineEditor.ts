@@ -996,6 +996,37 @@ export class TimelineEditor {
       e.stopImmediatePropagation();
       const t = this.session.transport;
       t.isPlaying ? t.pause() : t.play();
+      // Left/right keys: nudge selected key or playhead by 1 frame (shift = coarse step)
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const step = e.shiftKey ? COARSE_STEP : 1;
+      const dir = e.key === 'ArrowLeft' ? -1 : 1;
+      if (this.selected && this.selected.kind === 'key') {
+        // Nudge selected key in time
+        const { track, key } = this.selected;
+        this.session.edit((d) => {
+          const keys = d.tracks[track].keys;
+          if (!keys[key]) return;
+          keys[key].time = Math.max(0, Math.round(keys[key].time + dir * step));
+        });
+      } else if (this.selected && this.selected.kind === 'cue') {
+        // Nudge selected cue in time
+        const { hook, key } = this.selected;
+        this.session.edit((d) => {
+          const cue = d.cues.find((c) => c.hook === hook);
+          if (!cue) return;
+          const time = cue.keys[key].time;
+          const newTime = Math.max(0, Math.round(time + dir * step));
+          cue.keys[key].time = newTime;
+        });
+      } else {
+        // Nudge playhead
+        const t = this.session.transport;
+        const time = t.progress * this.duration;
+        const newTime = Math.max(0, Math.min(this.duration, Math.round(time + dir * step)));
+        t.seek(this.duration > 0 ? newTime / this.duration : 0);
+      }
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selected) {
       e.preventDefault();
       e.stopImmediatePropagation();
