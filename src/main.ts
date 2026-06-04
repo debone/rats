@@ -19,20 +19,16 @@ import { createGameState, type GameState, setGameState } from '@/data/game-state
 import { NavigationSystem } from '@/systems/navigation/system';
 import { SaveSystem } from '@/systems/save/system';
 
-// Commands
-
-import { BloomFilter } from 'pixi-filters';
-import { CRT2Filter } from './lib/CRT/CRT';
+import '@/gameplay/vfx';
 
 import { initDevtools } from '@pixi/devtools';
 import '@pixi/layout/devtools';
 
-import { CAMERA_Z_INDEX, MIN_HEIGHT } from './consts';
+import { CAMERA_Z_INDEX } from './consts';
 import { Camera } from './core/camera/camera';
 import { CameraDebug } from './core/camera/camera-debug';
 import { DebugPanel } from './core/devtools/debug-panel';
 import { navigation } from './core/window/navigation';
-import { ReflectionFilter2 } from './lib/ReflectionFilter/ReflectionFilter';
 import { HomeScene } from './scenes/HomeScene';
 import { ScheduleSystem } from './systems/app/ScheduleSystem';
 
@@ -69,34 +65,6 @@ async function init() {
 
   await initTone();
 
-  const mirror = new ReflectionFilter2({
-    alpha: [1.0, 0.0],
-    amplitude: [20, 200],
-  });
-
-  const c = new CRT2Filter({
-    curvature: 0,
-    lineWidth: 0,
-    lineContrast: 0,
-    noise: 0.12,
-    vignetting: 0,
-  });
-
-  //app.stage.filters = [c, mirror];
-
-  const bloom = new BloomFilter({
-    quality: 3,
-    strength: 1,
-  });
-  /*
-   */
-  //app.stage.filters = [bloom, c];
-  //app.stage.filters = [c, c, bloom];
-  //app.stage.filters = [mirror, c, bloom];
-  //app.stage.filters = [c, mirror];
-  //app.stage.filters = [c, mirror, bloom];
-  //app.stage.filters = [c, bloom, glow];
-
   // Add pixi canvas element (app.canvas) to the document's body
   document.body.appendChild(app.canvas);
 
@@ -108,8 +76,6 @@ async function init() {
   const camera = new Camera();
   camera.viewport.zIndex = CAMERA_Z_INDEX;
   app.stage.addChild(camera.viewport);
-
-  camera.viewport.filters = [mirror, c];
 
   if (import.meta.env.DEV) {
     camera.debug = new CameraDebug(camera);
@@ -162,25 +128,10 @@ async function init() {
         debugUpdateTime = 0;
       }
     }
-
-    c.time += time.deltaMS / 500;
-    mirror.time += time.deltaMS / 200;
   });
 
   const resizer = () => {
-    const { height } = resize(app, context);
-
-    // The game world is MIN_HEIGHT (640px) tall. When the renderer height is larger,
-    // the world is centered with equal empty space above and below.
-    // border/amplitude describe that geometry in renderer-normalized [0..1] space,
-    // which is the same coordinate space the filter shader uses (uDimensions.y = height).
-    const border = (height - MIN_HEIGHT) / 2 / height;
-    const amplitude = MIN_HEIGHT / height;
-
-    const boundaryPlace = 0.938;
-
-    const mirrorBoundary = border + amplitude * boundaryPlace;
-    mirror.boundary = mirrorBoundary;
+    resize(app, context);
   };
 
   // Resize handler

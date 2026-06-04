@@ -7,6 +7,7 @@ import { LevelSystem } from '../../level/system';
 import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { EntityCollisionSystem } from '../../physics/EntityCollisionSystem';
 import { PhysicsSystem } from '../../physics/system';
+import { VFXSystem } from '@/systems/vfx/VFXSystem';
 
 export class ResumeRunCommand extends Command<{ run: RunState }> {
   *execute({ run }: { run: RunState }): Coroutine {
@@ -22,6 +23,7 @@ export class ResumeRunCommand extends Command<{ run: RunState }> {
     this.context.systems.add(PhysicsSystem);
     this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
+    this.context.systems.add(VFXSystem);
 
     // Resume from current level
     yield execute(LoadLevelCommand, { levelId: run.currentLevelId });

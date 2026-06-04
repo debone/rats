@@ -1,0 +1,241 @@
+# Authoring VFX timelines
+
+A practical guide to the in-engine visual timeline: how a sequence is wired, how to
+add a track or a cue with the editor, and how to scaffold a brand-new sequence from
+scratch. For the design rationale and the code-vs-data boundary, see
+[`timeline-editor-plan.md`](./timeline-editor-plan.md).
+
+Everything here is **dev-only**. The editor and its save endpoint exist only under
+`import.meta.env.DEV`; production builds tree-shake the DOM editor entirely and just
+compile the committed JSON.
+
+---
+
+## 1. Anatomy of a sequence
+
+A sequence is split into three pieces that share **one** `ctx.timeline()`, so the
+debug panel and the visual editor scrub the whole thing as a single playhead:
+
+1. **Actor setup (code, in `build()`)** — create/look-up the live objects
+   (procedural `Graphics`, `Container`, `Text`, plus `camera`/`physics` handles) and
+   collect them into a named **stage map**: `{ flash, lines, textGroup, … }`. Also
+   collect named **hooks** — fire-once closures for system beats (sfx, debris bursts).
+2. **Choreography (data, `assets/timelines/<id>.json`)** — per-actor/per-property
+   keyframe **tracks** + **cues** (which hook fires when). This is the magic-number
+   timing content, now editable in the visual tool.
+3. **Compiler (code)** — `compile(doc, stage, hooks, tl)` walks the doc and emits the
+   same `tl.add(...)` / `tl.call(...)` calls you'd hand-write today.
+
+The worked example is [`levelCompleted`](../src/gameplay/vfx/levelCompleted.ts).
+Its `build()` creates the Graphics/Text actors and keeps the camera punch and the
+randomized confetti loop in code (`decorate`), while every flash/lines/burst/text
+keyframe and the two `brickBreak` cues live in
+[`assets/timelines/levelCompleted.json`](../assets/timelines/levelCompleted.json):
+
+```ts
+await playTimeline('levelCompleted', {
+  stage: { wash, lines, burst, flash, textGroup, tR, tC }, // named actors
+  hooks: { burst1: () => vfx.play(brickBreak, …), burst2: … }, // named fire-once beats
+  ctx,
+  decorate: (tl) => {
+    addPunch(tl, camera, …);          // parametric → stays in code
+    shards.forEach((s) => tl.add(s, …)); // array/random → stays in code
+  },
+});
+```
+
+### The data model (`src/core/vfx/timeline/types.ts`)
+
+```ts
+interface TimelineDoc {
+  id: string;
+  duration: number;
+  tracks: Track[];
+  cues: Cue[];
+}
+interface Track {
+  actor: string;
+  property: string;
+  keys: Key[];
+}
+interface Key {
+  time: number;
+  value: number | string;
+  ease?: string;
+}
+interface Cue {
+  time: number;
+  hook: string;
+}
+```
+
+- `time` / `duration` are in **frames** (a 60fps reference, see
+  [`time.ts`](../src/core/vfx/timeline/time.ts)). The compiler converts frames→ms,
+  and anime.js advances on wall-clock time, so a sequence plays at the same speed on
+  a 60Hz or 120Hz display. Frames also keep the numbers small and snappable.
+- `property` is dot-nested into the actor: `x`, `y`, `alpha`, `rotation`, `tint`,
+  `scale.x`, `scale.y`.
+- `value` numbers lerp linearly; **`tint` carries a hex string** (e.g. `"#ffd23f"`)
+  so anime.js color-interpolates (numbers lerp wrong).
+- `ease` is the curve used to _enter_ this key from the previous one.
+
+### The code-vs-data boundary
+
+| Stays in code (`build()` / `decorate`) | Lives in JSON (editable)                       |
+| -------------------------------------- | ---------------------------------------------- |
+| Creating procedural Graphics / actors  | Position/scale/rotation/alpha/tint keyframes   |
+| Array/loop tweens (e.g. shards)        | A `physics.ramp` 0↔1 freeze (a numeric track) |
+| Per-body `onUpdate` sync               | **Cue times**: when sfx / bursts / dust fire   |
+| Camera `shake`/`zoom`/`punch` helpers  | Easing + offset of every keyframe and cue      |
+
+Rule of thumb: if it's _which actor moves to what value, when_ → JSON. If it's
+_how an actor is built, or a parametric/random/system effect_ → code.
+
+[`doorOpen`](../src/gameplay/vfx/doorOpen.ts) is the system-coupled worked example:
+its JSON holds a `physics.ramp` 0↔1 track (freezing/resuming the world's time-scale)
+and a `door.progress` 0→1 track (the open amount, with its own easing — retime/ease
+it to retune the slide), plus `clunk`/`creak`/`puff`/`settle` cues. Only the
+_mechanism_ stays in `decorate`: the parametric camera shakes and a one-line applier
+that writes `door.progress` onto the door pieces each frame. When there's no real
+door (a debug/editor preview), it builds a **stand-in door** so the whole
+choreography is visible without a level — the way continuous effects preview on a
+dummy mover.
+
+---
+
+## 2. Opening the editor
+
+In the dev **VFX** debug tab, the **Sequences** folder has a single dropdown:
+pick a sequence, then **seek ▶** (scrub it in the tweakpane panel) or **editor ✎**
+(open the visual timeline). The `✎` action is enabled only for **data-driven**
+sequences — those with an `assets/timelines/<id>.json` (marked `✎` in the dropdown).
+Purely imperative sequences have nothing to edit, so `editor` is disabled for them.
+
+The editor opens in a **separate popup window** so it doesn't cover the game and so
+its `Space`/`Del` shortcuts go to that window instead of the game (the game's input
+listens on the game window). If the browser blocks the popup, it falls back to a
+docked bar at the bottom of the page — allow popups for `localhost` once for the
+nicer experience.
+
+If the **game window reloads** (an HMR code edit or a manual refresh) the popup is
+left detached — the live actors/timeline it drove no longer exist. It shows a notice
+with **Re-open** (relaunches the editor against the reloaded game) and **Close**.
+Your in-progress edits aren't lost: the editor autosaves a **draft** to
+`localStorage`, and on re-open it offers to **restore** it (never auto-applied, and
+cleared on Save). A restored track whose actor no longer exists in the sequence is
+flagged with `⚠` and simply doesn't animate (the compiler skips it).
+
+The set of data-driven ids comes from a build-time manifest
+(`virtual:timeline-manifest`, generated by `devtools/vite-plugin-timelines.ts`).
+Add a new JSON file → reload the dev server to refresh the list.
+
+### Editor controls
+
+- **Transport**: ▶/⏸ (or `Space`), step ±1 frame, restart. Pausing or finishing
+  returns the playhead to **where Play started**, so pressing Play again repeats the
+  same span without scrubbing back.
+- **Speed**: one-click `0.1×` / `0.5×` / `1×` / `2×` presets, or the `×` field for
+  fine control.
+- **Zoom**: `−`/`+`/`Fit`, or `Ctrl/⌘ + wheel` to zoom around the cursor. The ruler
+  (in frames) tick density follows the zoom.
+- **Scrub**: drag the ruler or the ▼ playhead handle.
+- **Panel size**: drag the top edge to grow it; drag the label-column divider to
+  widen the gutter. Both persist across reloads.
+- **Inspector** (fixed footer): edit the selected key's **time** (frames — arrows
+  ±1, `Shift`+arrow ±10), **value** (arrows ±0.1), and **easing**; `Del` removes it.
+  Editor shortcuts are captured, so `Space`/`Del` don't leak to the game.
+- **Per row**: `👁` mutes the track (isolate others while scrubbing), `+` adds a key
+  at the playhead, `🗑` removes the track. The cyan number is the track's value _at
+  the playhead_. Hover the row label to **outline its actor on the canvas**.
+- **Reading a lane at a glance**: keys are placed vertically by value (high near the
+  top, low near the bottom) and joined by a faint envelope, so e.g. an `alpha`
+  track's visible vs invisible keys are obvious without opening each. `tint` keys
+  wear their colour. Vertical gridlines line up with the ruler ticks.
+- **Save** writes the doc back to `assets/timelines/<id>.json` (and the served copy)
+  and flashes `✓`. It does _not_ trigger a page reload — the editor already applies
+  edits live, so saving just persists them.
+
+---
+
+## 3. Adding a track to an existing sequence
+
+1. Open the sequence in the editor.
+2. In the footer **Add track** row, pick an **actor** (from the live stage map) and a
+   **property**, then **+ track**. A track starts with a single key.
+3. Scrub to a time, press the row's **+** to drop a key, and set its **value** in the
+   inspector. Add a second key at another time to get a tween between them.
+4. Tune **easing** per key, drag diamonds to retime (snaps to whole frames / other
+   keys; hold **Alt** for free placement), and **Save**.
+
+Only actors present in the sequence's stage map are offered. To animate something not
+yet exposed, add it to the `stage` object in the sequence's `build()` first.
+
+---
+
+## 4. Cues (fire-once beats)
+
+A **cue** fires a named **hook** — a fire-once closure the sequence exposes in
+`build()` (sfx, a particle burst, debris). Cues compile to `tl.call(...)`, so they are
+**muted while scrubbing** and fire **only on real Play** — the same contract as a
+hand-written `tl.call`. In the editor, the **Cues** row's **+** drops a cue at the
+playhead (using the first hook); drag it to retime, double-click to delete.
+
+To offer a new beat, add a closure to the `hooks` map in `build()`:
+
+```ts
+const hooks = {
+  clunk: () => sound.play('clunk'),
+  debris: () => vfx.play(brickBreak, { x, y, count: 12 }),
+};
+```
+
+---
+
+## 5. Authoring a brand-new sequence from scratch
+
+1. **Create the effect file** `src/gameplay/vfx/<id>.ts`:
+
+   ```ts
+   import { defineSequence } from '@/core/vfx/types';
+   import { playTimeline } from '@/core/vfx/timeline/load';
+
+   export const mySequence = defineSequence({
+     kind: 'sequence',
+     id: 'mySequence',
+     async build(params, ctx) {
+       // a) build actors on a root container (remember to destroy it at the end)
+       const flash = new Graphics().rect(0, 0, w, h).fill(0xffffff);
+       flash.alpha = 0;
+       root.addChild(flash);
+
+       // b) collect the named stage + hooks maps
+       const stage = { flash };
+       const hooks = { clunk: () => sound.play('clunk') };
+
+       // c) load + compile + run the JSON choreography on ctx.timeline()
+       await playTimeline('mySequence', { stage, hooks, ctx });
+
+       root.destroy({ children: true });
+     },
+   });
+   ```
+
+2. **Create the JSON doc** `assets/timelines/mySequence.json` — an empty shell is
+   enough to open the editor and build it up by hand:
+
+   ```json
+   { "id": "mySequence", "duration": 60, "tracks": [], "cues": [] }
+   ```
+
+   (`duration` is in frames — `60` ≈ 1 second at the 60fps reference.)
+
+3. **That's the registration** — effects in `src/gameplay/vfx/` are auto-discovered
+   (`gameplay/vfx/index.ts` globs the folder and registers them with `VFXSystem`), so
+   there's no central list to edit. If it should self-trigger on an event, add an
+   `on:` to the def.
+
+4. **Restart the dev server** (so the manifest + glob pick up the new files), open the
+   VFX tab → Sequences → pick `mySequence` → **editor ✎**, add tracks/cues, and **Save**.
+
+That's the full loop: code owns the actors and the parametric/array tweens; the JSON
+owns the timing; the editor makes the timing fast to tune against the running game.

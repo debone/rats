@@ -144,7 +144,6 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
         const brick = Brick({
           bodyId,
           powerUp,
-          debrisEmitter: particles.brickDebris.emitter,
         });
 
         if (!behavior) {

@@ -45,7 +45,10 @@ export function assetpackPlugin(): Plugin {
   const apConfig: AssetPackConfig = {
     entry: './assets',
     output: './public/assets/',
-    ignore: ['**/*.tiled-project', '**/*.tiled-session', '**/.gitkeep'],
+    // `assets/timelines` is handled verbatim by vite-plugin-timelines (stable
+    // names for the editor's fixed-path fetch), so keep assetpack's hashing pipe
+    // off it.
+    ignore: ['**/*.tiled-project', '**/*.tiled-session', '**/.gitkeep', 'timelines/**'],
     pipes: [packer(), tiled(), ...pxPipes],
   };
 
@@ -68,11 +71,21 @@ export function assetpackPlugin(): Plugin {
     copyGodotSounds('./assets/sounds');
 
     // Godot: convert authored cutscenes to runtime JSON + generate types
-    generateCutsceneJsonFiles('./godot/cutscenes', './public/assets/cutscenes', './godot/sprite-map.json', './src/assets/cutscenes.ts');
+    generateCutsceneJsonFiles(
+      './godot/cutscenes',
+      './public/assets/cutscenes',
+      './godot/sprite-map.json',
+      './src/assets/cutscenes.ts',
+    );
     injectCutsceneAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/cutscenes');
 
     // Godot: convert authored geometry (.tscn with Box2D bodies/joints) → runtime JSON
-    generateGeometryJsonFiles('./godot/geometry', './public/assets/geometry', './godot/sprite-map.json', './src/assets/geometry.ts');
+    generateGeometryJsonFiles(
+      './godot/geometry',
+      './public/assets/geometry',
+      './godot/sprite-map.json',
+      './src/assets/geometry.ts',
+    );
     injectGeometryAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/geometry');
 
     generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
@@ -103,7 +116,12 @@ export function assetpackPlugin(): Plugin {
           tscnWatcher = fs.watch(cutscenesDir, (_, filename) => {
             if (filename?.endsWith('.tscn')) {
               console.log(`[Godot] ${filename} changed, regenerating cutscenes...`);
-              generateCutsceneJsonFiles(cutscenesDir, './public/assets/cutscenes', './godot/sprite-map.json', './src/assets/cutscenes.ts');
+              generateCutsceneJsonFiles(
+                cutscenesDir,
+                './public/assets/cutscenes',
+                './godot/sprite-map.json',
+                './src/assets/cutscenes.ts',
+              );
               injectCutsceneAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/cutscenes');
               generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
             }
@@ -116,7 +134,12 @@ export function assetpackPlugin(): Plugin {
           geometryWatcher = fs.watch(geometryDir, { recursive: true }, (_, filename) => {
             if (filename?.endsWith('.tscn')) {
               console.log(`[Godot] ${filename} changed, regenerating geometry...`);
-              generateGeometryJsonFiles(geometryDir, './public/assets/geometry', './godot/sprite-map.json', './src/assets/geometry.ts');
+              generateGeometryJsonFiles(
+                geometryDir,
+                './public/assets/geometry',
+                './godot/sprite-map.json',
+                './src/assets/geometry.ts',
+              );
               injectGeometryAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/geometry');
               generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
             }

@@ -8,6 +8,7 @@ import { ShowScreenCommand } from '../../navigation/commands/ShowScreenCommand';
 import { SaveSystem } from '../../save/system';
 import { ResumeRunCommand } from './ResumeRunCommand';
 import { StartNewRunCommand } from './StartNewRunCommand';
+import { VFXSystem } from '@/systems/vfx/VFXSystem';
 
 export class AppStartCommand extends Command {
   *execute(): Coroutine {
@@ -27,6 +28,7 @@ export class AppStartCommand extends Command {
     this.context.systems.add(PhysicsSystem);
     this.context.systems.add(EntityCollisionSystem);
     this.context.systems.add(LevelSystem);
+    this.context.systems.add(VFXSystem);
 
     if (savedRun) {
       yield execute(ResumeRunCommand, { run: savedRun });

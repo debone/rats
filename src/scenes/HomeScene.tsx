@@ -12,6 +12,7 @@ import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenComma
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { GameScene } from './GameScene';
+import { VFXSystem } from '@/systems/vfx/VFXSystem';
 
 export const HomeScene = defineEntity(() => {
   const destroy = getUnmount();
@@ -45,6 +46,7 @@ export class StartNewRunCommand extends Command {
     context.systems.add(PhysicsSystem);
     context.systems.add(EntityCollisionSystem);
     context.systems.add(LevelSystem);
+    context.systems.add(VFXSystem);
 
     setBallsRemaining(STARTING_BALLS);
 
