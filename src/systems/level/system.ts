@@ -42,12 +42,11 @@ export class LevelSystem implements System {
   }
 
   async unloadLevel(): Promise<void> {
-    assert(this.currentLevel, 'Current level is not set');
-    this.currentLevel.destroy();
+    if (!this.currentLevel) return;
 
+    this.currentLevel.destroy();
     this.context.systems.get(PhysicsSystem).clearOrphans();
     this.context.systems.get(EntityCollisionSystem).clear();
-
     this.currentLevel = undefined;
   }
 

@@ -1,21 +1,16 @@
 import { defineEntity, getUnmount, onMount } from '@/core/entity/scope';
-import { Command, execute } from '@/core/game/Command';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
-import { setCurrentLevelId } from '@/data/game-state';
 import { Campaign } from '@/gameplay/campaign/Campaign';
 import { CAMPAIGN_LEVELS } from '@/gameplay/campaign/campaign-def';
 import { useGameEvent } from '@/hooks/hooks';
-import { GameScreen } from '@/screens/GameScreen/GameScreen';
-import { LoadLevelCommand } from '@/systems/level/commands/LoadLevelCommand';
-import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';
+import { KeyListener } from '@/systems/keyboard/KeyListener';
 
 export interface GameSceneProps {
-  startingLevelId: string;
   onEnd: () => void;
 }
 
-export const GameScene = defineEntity(({ startingLevelId, onEnd }: GameSceneProps) => {
+export const GameScene = defineEntity(({ onEnd }: GameSceneProps) => {
   const destroy = getUnmount();
 
   useGameEvent(GameEvent.GAME_OVER_ACTION, (action) => {
@@ -29,18 +24,10 @@ export const GameScene = defineEntity(({ startingLevelId, onEnd }: GameSceneProp
   });
 
   onMount(() => {
-    execute(RunGameFlowCommand, { startingLevelId });
+    Campaign({ levels: CAMPAIGN_LEVELS });
   });
+
+  KeyListener({ key: 'KeyG', onPress: () => getGameContext().events.emit(GameEvent.BALL_EXITED) });
 
   return {};
 });
-
-// LevelSelectedCommand
-export class RunGameFlowCommand extends Command<{ startingLevelId: string }> {
-  *execute({ startingLevelId }: { startingLevelId: string }) {
-    setCurrentLevelId(startingLevelId);
-    yield execute(ShowScreenCommand, { screen: GameScreen });
-    Campaign({ levels: CAMPAIGN_LEVELS });
-    yield execute(LoadLevelCommand, { levelId: startingLevelId });
-  }
-}

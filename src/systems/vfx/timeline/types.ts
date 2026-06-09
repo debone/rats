@@ -1,4 +1,3 @@
-import type { Timeline } from 'animejs';
 import type { TimelineLike } from './compile';
 
 /**

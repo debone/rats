@@ -12,6 +12,7 @@ export class Levels_BallExitedLevelCommand extends Command<void> {
   *execute() {
     const navigation = this.context.navigation;
 
+    // TODO: move to vfx system
     const dark = new Graphics();
     dark.rect(0, 0, navigation.width, navigation.height);
     dark.fill(0x322947);

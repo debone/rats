@@ -30,8 +30,8 @@ export const GameEvent = {
   // Run lifecycle
   START_NEW_RUN: 'run:start-new',
   RESUME_RUN: 'run:resume',
-  CAMPAIGN_LEVEL_WON: 'campaign:level-won',
-  CAMPAIGN_LEVEL_LOST: 'campaign:level-lost',
+  CAMPAIGN_LEVEL_COMPLETED: 'campaign:level-completed',
+  CAMPAIGN_LEVEL_FAILED: 'campaign:level-failed',
 
   // Game flow events
   GAME_SHOW_MAP: 'game:show-map',
@@ -74,10 +74,10 @@ export interface GameEvents extends EnsureAllGameEventKeys<typeof GameEvent> {
   [GameEvent.OVERLAY_UNLOADED]: { overlayId: string };
 
   // Run lifecycle
-  [GameEvent.START_NEW_RUN]: { startingLevelId: string };
+  [GameEvent.START_NEW_RUN]: void;
   [GameEvent.RESUME_RUN]: { run: RunState };
-  [GameEvent.CAMPAIGN_LEVEL_WON]: { levelId: string };
-  [GameEvent.CAMPAIGN_LEVEL_LOST]: void;
+  [GameEvent.CAMPAIGN_LEVEL_COMPLETED]: { levelId: string };
+  [GameEvent.CAMPAIGN_LEVEL_FAILED]: void;
 
   // Game flow events
   [GameEvent.GAME_SHOW_MAP]: {

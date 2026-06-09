@@ -1,14 +1,37 @@
-export function state(
-  handlers: Record<string, (transition: (to: string) => void) => (() => void) | void>,
-  initial: string,
-) {
-  let cleanup: (() => void) | void;
+export type TransitionHandler<V extends readonly string[]> = () => V[number] | undefined;
 
-  const transition = (to: string) => {
-    cleanup?.();
-    cleanup = handlers[to]?.(transition);
+/**
+ * A simplified state machine
+ *
+ * @param handlers - a record of handlers for each state
+ * @param initial - which state the machine starts
+ * @returns
+ */
+export function state<ValidStates extends readonly string[]>(
+  handlers: Record<ValidStates[number], TransitionHandler<ValidStates>>,
+  initial: ValidStates[number],
+) {
+  let nextHandler: ValidStates[number] = initial;
+  let finished = false;
+
+  const next = () => {
+    const handler = handlers[nextHandler];
+    const nextState = handler();
+
+    if (nextState) {
+      nextHandler = nextState;
+    } else {
+      finished = true;
+    }
   };
 
-  transition(initial);
-  return () => cleanup?.();
+  return {
+    next,
+    get current() {
+      return nextHandler;
+    },
+    get finished() {
+      return finished;
+    },
+  };
 }
