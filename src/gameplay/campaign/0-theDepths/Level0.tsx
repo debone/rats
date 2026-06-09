@@ -14,6 +14,7 @@ import { Scrap } from '@/gameplay/entities/Scrap';
 import { useLevelOutcome } from '@/gameplay/levels/hooks/useLevelOutcome';
 import { useChildren, useSubscribe } from '@/hooks/hooks';
 import { t } from '@/i18n/i18n';
+import { b2Vec2 } from 'phaser-box2d';
 
 export const Level0 = defineEntity(() => {
   const { withChildren } = useChildren();
@@ -55,7 +56,7 @@ export const Level0 = defineEntity(() => {
         useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
           if (powerUp === 'blue') {
             BlueCheese({
-              pos: { x, y },
+              pos: new b2Vec2(x, y),
               onCollected: () => {
                 doorA.open();
               },
@@ -63,13 +64,13 @@ export const Level0 = defineEntity(() => {
             });
           } else if (powerUp === 'green') {
             GreenCheese({
-              pos: { x, y },
+              pos: new b2Vec2(x, y),
               onCollected: () => doorC.open(),
               onLost: () => handleBrick(brick.unbreak()),
             });
           } else if (powerUp === 'yellow') {
             YellowCheese({
-              pos: { x, y },
+              pos: new b2Vec2(x, y),
               onCollected: () => {
                 doorBCheeseLeft--;
                 if (doorBCheeseLeft === 0) doorB.open();
