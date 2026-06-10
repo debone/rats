@@ -19,8 +19,11 @@ export const EmptyCrewMember: CrewMemberDef = {
 
   passiveAbility: {
     name: t.dict['crew.empty.passive.name'],
-    effect: () => {
-      console.log('Empty ability effect');
+    mount: () => {
+      console.log('Empty passive ability effect');
+    },
+    unmount: () => {
+      console.log('Empty passive ability unmount');
     },
   },
 };

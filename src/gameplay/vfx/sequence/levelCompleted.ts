@@ -69,8 +69,8 @@ export const levelCompleted = defineSequence({
   priority: 'critical',
   on: GameEvent.BALL_LOST,
   prewarm: [brickBreak],
-  async build(params, ctx) {
-    const { camera, size, stage } = ctx;
+  async build(_params, ctx) {
+    const { size, stage } = ctx;
     const width = size.width;
     const height = size.height;
     const cx = width / 2;

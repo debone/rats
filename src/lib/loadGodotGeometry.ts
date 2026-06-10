@@ -206,7 +206,7 @@ export interface LoadGodotGeometryResult {
   bodiesByName: Map<string, b2BodyId>;
   jointsByName: Map<string, b2JointId>;
   /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
-  sprites: SpriteObject[];
+  sprites: Sprite[];
   /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers). */
   background: { meshes: Mesh[]; sprites: Sprite[]; tileLayers: Container[] };
 }
@@ -225,7 +225,7 @@ export function loadGodotGeometry(
 
   const bodies: b2BodyId[] = [];
   const bodiesByName = new Map<string, b2BodyId>();
-  const sprites: SpriteObject[] = [];
+  const sprites: Sprite[] = [];
 
   for (const def of geo.bodies) {
     const bd = b2DefaultBodyDef();

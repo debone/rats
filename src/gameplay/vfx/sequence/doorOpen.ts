@@ -95,8 +95,8 @@ export const doorOpen = defineSequence<DoorOpenParams>({
         sfx.playPitched(ASSETS.sounds_Rock_Impact_Small_10, { speed: 1.3, volume: 0.5 });
         sfx.play(ASSETS.sounds_Sell_Building_A, { volume: 0.5 });
       },
-      shake: (tl, { time }) => {
-        addShake(tl, camera, { intensity: 1, frequency: 25, duration: 500 }, time);
+      shake: () => {
+        addShake(camera, { intensity: 1, frequency: 25, duration: 500 });
       },
       openDoor: () => {
         animate(door, { progress: 1, duration: 1000, onUpdate: () => pieces.forEach((p) => p.open(door.progress)) });
