@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="2_5briw"]
 [ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="3_gjamm"]
 [ext_resource type="Script" uid="uid://cnhmcyfwdovrq" path="res://box2d/box2d_prismatic_joint.gd" id="4_cmt68"]
+[ext_resource type="PackedScene" uid="uid://d1o4h4p5gkrw7" path="res://geometry/bricks/shop-brick.tscn" id="4_gjamm"]
 [ext_resource type="Texture2D" path="res://sprites/level-1{ss=32}/level-1_spritesheet.tres" id="5_5briw"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gjamm"]
@@ -430,6 +431,20 @@ polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("2_5briw")
 restitution = 1.0
 
+[node name="brick_31" type="StaticBody2D" parent="bricks" unique_id=1778527805]
+position = Vector2(0, 112)
+script = ExtResource("1_8aav6")
+user_data = Dictionary[String, Variant]({
+"behaviour": "Level0",
+"powerup": "blue",
+"type": "brick"
+})
+
+[node name="fixture1_35" type="CollisionPolygon2D" parent="bricks/brick_31" unique_id=168864679]
+polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
+script = ExtResource("2_5briw")
+restitution = 1.0
+
 [node name="brick_30" type="StaticBody2D" parent="bricks" unique_id=104517533]
 position = Vector2(0, 56)
 script = ExtResource("1_8aav6")
@@ -443,6 +458,18 @@ user_data = Dictionary[String, Variant]({
 polygon = PackedVector2Array(-16, 8, 16, 8, 16, -8, -16, -8)
 script = ExtResource("2_5briw")
 restitution = 1.0
+
+[node name="shop-bricks" type="Node2D" parent="." unique_id=1747889301]
+position = Vector2(-0.028708884, 337.1034)
+
+[node name="ShopBrick" parent="shop-bricks" unique_id=1179592842 instance=ExtResource("4_gjamm")]
+position = Vector2(-127.97129, -329.1034)
+
+[node name="ShopBrick2" parent="shop-bricks" unique_id=1315658439 instance=ExtResource("4_gjamm")]
+position = Vector2(128.02872, -329.1034)
+
+[node name="ShopBrick3" parent="shop-bricks" unique_id=1030461115 instance=ExtResource("4_gjamm")]
+position = Vector2(0.028709412, -513.1034)
 
 [node name="paddle-joint-holder" type="StaticBody2D" parent="." unique_id=223513663]
 position = Vector2(-0.028708884, 337.1034)
