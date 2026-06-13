@@ -97,7 +97,7 @@ the runtime renders behind/in front of the physics. The point is to
 author the level's background art in the same scene as the physics so
 brick placements line up exactly with the painted environment.
 
-Two node types are supported today:
+These node types are supported today:
 
 - **`Polygon2D` with `texture`** — free-form textured polygons. Author the
   shape with Godot's polygon editor, assign a texture (atlas-resolved
@@ -127,6 +127,18 @@ Two node types are supported today:
   instantiates as Pixi `Sprite`s in a `Container` per layer. v1: no
   autotile / alternative tiles / animated tiles / tile-collisions
   (collision still goes through `Box2DPolygonFixture`).
+
+- **`Box2DNineSlice`** (extends `Sprite2D`) — a stretchable nine-slice
+  panel for frames/backgrounds that need to resize without distorting
+  their corners. Assign the sliced texture (an atlas frame whose aseprite
+  source had a `-slices` layer) and set `size` to the stretched
+  dimensions. The non-stretching borders (`left/top/right/bottom`) are NOT
+  re-entered here — they're authored once in the aseprite slice layer,
+  baked into the atlas metadata, and threaded through `sprite-map.json` →
+  geometry JSON → the runtime's Pixi `NineSliceSprite`. In the editor the
+  source texture shows at its natural size; `size` only affects the
+  runtime stretch. `attached = false` marks it editor-only, same as
+  `Box2DSprite`.
 
 The exporter walks the whole tree, so background nodes can live at the
 scene root, inside logical group nodes, or inside an instanced subscene

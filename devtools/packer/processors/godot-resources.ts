@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import type { SpritesheetData } from '../types.ts';
+import type { SpritesheetData, TextureBorders } from '../types.ts';
 
 const GODOT_DIR = path.resolve('./godot');
 
@@ -19,6 +19,13 @@ export interface GodotSpriteEntry {
    * tile frames.
    */
   tilesheet?: TilesheetInfo;
+  /**
+   * Present when this entry's frame carries 9-slice borders (authored via the
+   * aseprite slice layer). Threaded through so the Box2D geometry exporter can
+   * emit explicit borders for Box2DNineSlice nodes — the runtime renders a
+   * NineSliceSprite without having to rely on Pixi's texture.defaultBorders.
+   */
+  borders?: TextureBorders;
 }
 
 export interface TilesheetInfo {
@@ -273,6 +280,9 @@ function writeGodotSprites(
       type: 'AtlasTexture',
       pixiFrame: frameName,
     };
+    if (frameData.borders) {
+      spriteMap[spriteKey].borders = frameData.borders;
+    }
   }
 
   // Multi-frame animated sprites

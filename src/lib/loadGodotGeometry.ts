@@ -42,7 +42,7 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Mesh, MeshGeometry, Sprite, Texture } from 'pixi.js';
+import { Assets, Container, Mesh, MeshGeometry, NineSliceSprite, Sprite, Texture } from 'pixi.js';
 import { AddSpriteToWorld, type SpriteObject } from '@/systems/physics/WorldSprites';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +60,23 @@ export interface BackgroundDef {
   meshes: MeshDef[];
   sprites: BackgroundSpriteDef[];
   tileLayers: TileLayerDef[];
+  ninePatches: NinePatchDef[];
+}
+
+export interface NinePatchDef {
+  name: string;
+  pixiFrame: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  anchor: V2;
+  /** Stretched size in pixels. */
+  size: V2;
+  /** Non-stretching border widths in texture pixels. */
+  borders: { left: number; top: number; right: number; bottom: number };
+  z?: number;
+  tint?: number;
+  alpha?: number;
 }
 
 export interface TileLayerDef {
@@ -207,8 +224,8 @@ export interface LoadGodotGeometryResult {
   jointsByName: Map<string, b2JointId>;
   /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
   sprites: SpriteObject[];
-  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers). */
-  background: { meshes: Mesh[]; sprites: Sprite[]; tileLayers: Container[] };
+  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
+  background: { meshes: Mesh[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
 }
 
 export function loadGodotGeometry(
@@ -298,6 +315,7 @@ export function loadGodotGeometry(
   const bgMeshes: Mesh[] = [];
   const bgSprites: Sprite[] = [];
   const bgTileLayers: Container[] = [];
+  const bgNinePatches: NineSliceSprite[] = [];
   if (spritesEnabled && geo.background && options.container) {
     for (const m of geo.background.meshes) {
       const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
@@ -320,6 +338,15 @@ export function loadGodotGeometry(
         bgTileLayers.push(container);
       }
     }
+    // `?? []` keeps older geometry blobs (emitted before nine-slice support)
+    // loadable — they simply have no `ninePatches` array.
+    for (const np of geo.background.ninePatches ?? []) {
+      const sprite = instantiateNinePatch(np, tx, ty, cosT, sinT, ta);
+      if (sprite) {
+        options.container.addChild(sprite);
+        bgNinePatches.push(sprite);
+      }
+    }
   }
 
   return {
@@ -328,7 +355,7 @@ export function loadGodotGeometry(
     bodiesByName,
     jointsByName,
     sprites,
-    background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers },
+    background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers, ninePatches: bgNinePatches },
   };
 }
 
@@ -459,6 +486,48 @@ function instantiateBackgroundSprite(
   sprite.scale.set(def.scale.x, def.scale.y);
   if (def.flipH) sprite.scale.x *= -1;
   if (def.flipV) sprite.scale.y *= -1;
+  if (def.tint !== undefined) sprite.tint = def.tint;
+  if (def.alpha !== undefined) sprite.alpha = def.alpha;
+  if (def.z !== undefined) sprite.zIndex = def.z;
+
+  const localX = def.position.x;
+  const localY = def.position.y;
+  sprite.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
+  sprite.rotation = def.rotation + ta;
+  return sprite;
+}
+
+function instantiateNinePatch(
+  def: NinePatchDef,
+  tx: number,
+  ty: number,
+  cosT: number,
+  sinT: number,
+  ta: number,
+): NineSliceSprite | null {
+  let texture: Texture | undefined;
+  try {
+    texture = Assets.get<Texture>(def.pixiFrame) ?? Texture.from(def.pixiFrame);
+  } catch {
+    console.warn(`[loadGodotGeometry] Nine-slice texture not found: "${def.pixiFrame}"`);
+    return null;
+  }
+  if (!texture) return null;
+
+  const sprite = new NineSliceSprite({
+    texture,
+    leftWidth: def.borders.left,
+    topHeight: def.borders.top,
+    rightWidth: def.borders.right,
+    bottomHeight: def.borders.bottom,
+    width: def.size.x,
+    height: def.size.y,
+  });
+  sprite.label = def.name;
+  // NineSliceSprite draws from its top-left; honour Godot's `centered` anchor by
+  // pivoting so position/rotation pivot around the same point a Sprite2D would.
+  sprite.pivot.set(def.anchor.x * def.size.x, def.anchor.y * def.size.y);
+  sprite.scale.set(def.scale.x, def.scale.y);
   if (def.tint !== undefined) sprite.tint = def.tint;
   if (def.alpha !== undefined) sprite.alpha = def.alpha;
   if (def.z !== undefined) sprite.zIndex = def.z;

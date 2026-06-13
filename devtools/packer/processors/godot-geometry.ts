@@ -62,6 +62,7 @@ const SCRIPT_TO_JOINT_TYPE: Record<string, 'revolute' | 'prismatic' | 'distance'
 };
 
 const BOX2D_ROOT_SCRIPT = 'res://box2d/box2d_root.gd';
+const BOX2D_NINE_SLICE_SCRIPT = 'res://box2d/box2d_nine_slice.gd';
 
 // ---------------------------------------------------------------------------
 // Output schema (mirrored in src/lib/loadGodotGeometry.ts)
@@ -82,6 +83,31 @@ export interface BackgroundDef {
   sprites: BackgroundSpriteDef[];
   /** TileMapLayer nodes, flattened to per-cell sprite placements. */
   tileLayers: TileLayerDef[];
+  /** Box2DNineSlice nodes, rendered as Pixi NineSliceSprites. */
+  ninePatches: NinePatchDef[];
+}
+
+/**
+ * A stretchable nine-slice authored as a Box2DNineSlice node (a Sprite2D with
+ * the box2d_nine_slice.gd script). The texture resolves to a Pixi frame and the
+ * non-stretching `borders` come from the aseprite slice layer (threaded through
+ * sprite-map.json). `size` is the stretched target; the runtime instantiates a
+ * NineSliceSprite at that size with the corners pinned by `borders`.
+ */
+export interface NinePatchDef {
+  name: string;
+  pixiFrame: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  anchor: V2;
+  /** Stretched size in pixels (Godot's exported `size`). */
+  size: V2;
+  /** Non-stretching border widths in texture pixels. */
+  borders: { left: number; top: number; right: number; bottom: number };
+  z?: number;
+  tint?: number;
+  alpha?: number;
 }
 
 /**
@@ -972,6 +998,14 @@ function buildBackground(
   const meshes: MeshDef[] = [];
   const sprites: BackgroundSpriteDef[] = [];
   const tileLayers: TileLayerDef[] = [];
+  const ninePatches: NinePatchDef[] = [];
+
+  // Reverse lookup: texture .tres path → 9-slice borders (from the aseprite
+  // slice layer, threaded through sprite-map.json by generateGodotResources).
+  const godotPathToBorders: Record<string, NinePatchDef['borders']> = {};
+  for (const entry of Object.values(spriteMap)) {
+    if (entry.borders) godotPathToBorders[entry.godotPath] = entry.borders;
+  }
 
   // Cache parsed TileSet .tres files — one TileSet is usually shared by many
   // TileMapLayer nodes in the same scene.
@@ -988,6 +1022,13 @@ function buildBackground(
     if (n.type === 'Polygon2D') {
       const m = buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
       if (m) meshes.push(m);
+    } else if (n.scriptResPath === BOX2D_NINE_SLICE_SCRIPT) {
+      // Box2DNineSlice is a Sprite2D subclass, so this must be checked before
+      // the plain Sprite2D branch below or it would be exported twice.
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const np = buildNinePatch(n, extResources, godotPathToPixi, godotPathToBorders, globalTransforms);
+      if (np) ninePatches.push(np);
     } else if (n.type === 'Sprite2D' || n.type === 'AnimatedSprite2D') {
       // Respect Box2DSprite's `attached = false` (editor-only reference art).
       const attachedProp = n.props.get('attached');
@@ -1000,8 +1041,15 @@ function buildBackground(
     }
   }
 
-  if (meshes.length === 0 && sprites.length === 0 && tileLayers.length === 0) return null;
-  return { meshes, sprites, tileLayers };
+  if (
+    meshes.length === 0 &&
+    sprites.length === 0 &&
+    tileLayers.length === 0 &&
+    ninePatches.length === 0
+  ) {
+    return null;
+  }
+  return { meshes, sprites, tileLayers, ninePatches };
 }
 
 // ---------------------------------------------------------------------------
@@ -1350,6 +1398,68 @@ function buildBackgroundSprite(
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
   if (flipH) out.flipH = true;
   if (flipV) out.flipV = true;
+  return out;
+}
+
+function buildNinePatch(
+  node: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToBorders: Record<string, NinePatchDef['borders']>,
+  globalTransforms: Map<string, GTransform>,
+): NinePatchDef | null {
+  const texProp = node.props.get('texture');
+  const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const texResPath = extId ? extResources[extId] : undefined;
+  const pixiFrame = texResPath ? godotPathToPixi[texResPath]?.frame : undefined;
+  if (!pixiFrame) {
+    console.warn(`[Godot] Box2DNineSlice "${node.name}" has no resolvable texture; skipping`);
+    return null;
+  }
+
+  // Borders are authored in the aseprite slice layer and threaded through the
+  // sprite-map. Falling back to zero just makes the runtime stretch uniformly.
+  const resolvedBorders = texResPath ? godotPathToBorders[texResPath] : undefined;
+  const borders = resolvedBorders ?? { left: 0, top: 0, right: 0, bottom: 0 };
+  if (!resolvedBorders) {
+    console.warn(`[Godot] Box2DNineSlice "${node.name}" texture has no slice borders; rendering as a plain stretch`);
+  }
+
+  const size = parseVector2(node.props.get('size') ?? '') ?? { x: 48, y: 48 };
+  const centeredRaw = node.props.get('centered');
+  const centered = centeredRaw === undefined ? true : decodeGodotValue(centeredRaw) === true;
+  const offset = parseVector2(node.props.get('offset') ?? '') ?? { x: 0, y: 0 };
+  const zIndex = parseInt(unquote(node.props.get('z_index') ?? '0'), 10) || undefined;
+
+  const modulate = node.props.get('modulate');
+  let tint: number | undefined;
+  let alpha: number | undefined;
+  if (modulate) {
+    const colorMatch = modulate.match(/Color\(([^)]+)\)/);
+    if (colorMatch) {
+      const parts = colorMatch[1].split(',').map((s) => parseFloat(s.trim()));
+      const r = Math.round((parts[0] ?? 1) * 255);
+      const g = Math.round((parts[1] ?? 1) * 255);
+      const b = Math.round((parts[2] ?? 1) * 255);
+      tint = (r << 16) | (g << 8) | b;
+      if (parts.length > 3) alpha = parts[3];
+    }
+  }
+
+  const gt = globalTransforms.get(node.fullPath)!;
+  const out: NinePatchDef = {
+    name: node.name,
+    pixiFrame,
+    position: { x: gt.origin.x + offset.x, y: gt.origin.y + offset.y },
+    rotation: gt.rotation,
+    scale: gt.scale,
+    anchor: centered ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 },
+    size,
+    borders,
+  };
+  if (zIndex) out.z = zIndex;
+  if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
+  if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
   return out;
 }
 

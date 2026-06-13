@@ -317,6 +317,80 @@ texture = ExtResource("1_tex")
     expect(geo.background!.sprites[0].position).toEqual({ x: 64, y: 96 });
     expect(geo.background!.sprites[0].pixiFrame).toBe('prop#0');
   });
+
+  it('extracts a Box2DNineSlice as a nine-patch with borders from the sprite-map', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+position = Vector2(100, 50)
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+size = Vector2(120, 80)
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: {
+        godotPath: 'res://bg.tres',
+        type: 'AtlasTexture',
+        pixiFrame: 'bg#0',
+        borders: { left: 15, top: 16, right: 16, bottom: 16 },
+      },
+    });
+    // It must NOT also leak into the plain Sprite2D background bucket.
+    expect(geo.background!.sprites).toHaveLength(0);
+    expect(geo.background!.ninePatches).toHaveLength(1);
+    const np = geo.background!.ninePatches[0];
+    expect(np.pixiFrame).toBe('bg#0');
+    expect(np.size).toEqual({ x: 120, y: 80 });
+    expect(np.borders).toEqual({ left: 15, top: 16, right: 16, bottom: 16 });
+    expect(np.position).toEqual({ x: 100, y: 50 });
+    // Sprite2D defaults to centered → anchor (0.5, 0.5).
+    expect(np.anchor).toEqual({ x: 0.5, y: 0.5 });
+  });
+
+  it('defaults nine-patch borders to zero when the texture has no slice metadata', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+size = Vector2(64, 64)
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: { godotPath: 'res://bg.tres', type: 'AtlasTexture', pixiFrame: 'bg#0' },
+    });
+    expect(geo.background!.ninePatches).toHaveLength(1);
+    expect(geo.background!.ninePatches[0].borders).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
+  });
+
+  it('skips a Box2DNineSlice flagged attached = false (editor-only reference art)', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+size = Vector2(64, 64)
+attached = false
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: { godotPath: 'res://bg.tres', type: 'AtlasTexture', pixiFrame: 'bg#0' },
+    });
+    expect(geo.background).toBeUndefined();
+  });
 });
 
 describe('decodeTileMapData', () => {
