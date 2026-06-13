@@ -108,22 +108,17 @@ These node types are supported today:
   polygons only** — concave will need an earcut pass; we'll add that the
   first time an author hits it.
 
-- **`Box2DPolygon`** (extends `Polygon2D`) — same triangulated mesh, but with
-  a **tiled fill** and an optional **tiled rope border** traced along the
-  outline. Assign the fill `texture` and, optionally, a `border_texture`;
-  tune `border_width`, `border_texture_scale` (0 stretches one copy, >0 tiles
-  preserving aspect), `border_closed`, and `tile_fill`. The runtime tiles the
-  fill via GPU texture-repeat and draws the border as a Pixi `MeshRope`.
-  **Tiling needs standalone textures, not atlas frames** — see below.
-  `attached = false` marks it editor-only, same as `Box2DSprite`.
-
-  > **Standalone tileable textures.** GPU repeat only works on a texture that
-  > owns its whole image; an atlas sub-frame would wrap into neighbouring atlas
-  > content. So fill/border textures for `Box2DPolygon` must be standalone.
-  > Drop the source images under `assets/textures/` (e.g.
-  > `assets/textures/water{m}.png`); the asset build copies them into
-  > `godot/textures/` and indexes them in `sprite-map.json`. Assign them in
-  > the inspector as `res://textures/<name>.png`.
+- **`Box2DPolygon`** (extends `Polygon2D`) — a textured polygon with a **tiled
+  fill** and an optional **tiled border** traced along the outline. Assign the
+  fill `texture` and, optionally, a `border_texture` (both ordinary atlas
+  frames); tune `border_width`, `border_texture_scale` (length of each repeated
+  tile, 1 = one frame width), `border_closed`, and `tile_fill`. At runtime the
+  fill is a `CompositeTilemap` clipped to the polygon by a mask, and the border
+  is a tiled quad-strip mesh. Both tile atlas frames correctly — each tile/quad
+  is its own draw with a 0..1 UV, so no GPU texture-repeat is involved.
+  `attached = false` marks it editor-only, same as `Box2DSprite`. Tip: author
+  seamless fill/border art with no transparent edges so the packer doesn't trim
+  the frame (trimmed frames tile with seams).
 
 - **Standalone `Sprite2D` / `AnimatedSprite2D` / `Box2DAnimatedSprite`** —
   any sprite that *isn't* a child of a body becomes a free-standing

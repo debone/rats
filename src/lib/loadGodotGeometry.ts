@@ -42,7 +42,8 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Mesh, MeshGeometry, MeshRope, NineSliceSprite, Point, Sprite, Texture } from 'pixi.js';
+import { Assets, Container, Graphics, Mesh, MeshGeometry, NineSliceSprite, Sprite, Texture } from 'pixi.js';
+import { CompositeTilemap } from '@pixi/tilemap';
 import { AddSpriteToWorld, type SpriteObject } from '@/systems/physics/WorldSprites';
 
 // ---------------------------------------------------------------------------
@@ -101,19 +102,19 @@ export interface MeshDef {
   z?: number;
   tint?: number;
   alpha?: number;
-  /** Tile the fill texture across the polygon (repeat wrap) instead of stretching it. */
+  /** Tile the fill texture across the polygon (masked tilemap) instead of stretching it. */
   tileFill?: boolean;
-  /** Optional tiled rope border traced along the polygon outline (`vertices`). */
+  /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
   border?: MeshBorderDef;
 }
 
 export interface MeshBorderDef {
   pixiFrame: string;
-  /** Rope thickness in pixels. 0 → fall back to the texture's height. */
+  /** Strip thickness in pixels. 0 → fall back to the texture's height. */
   width: number;
-  /** >0 tiles preserving aspect ratio; 0 stretches one copy across the length. */
+  /** Scales the length of each repeated tile along the edge (1 = one frame width). */
   textureScale: number;
-  /** Close the rope back to the first vertex so it wraps the whole shape. */
+  /** Close the strip back to the first vertex so it wraps the whole shape. */
   closed: boolean;
 }
 
@@ -239,7 +240,7 @@ export interface LoadGodotGeometryResult {
   /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
   sprites: SpriteObject[];
   /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
-  background: { meshes: Mesh[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
+  background: { meshes: Container[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
 }
 
 export function loadGodotGeometry(
@@ -326,7 +327,7 @@ export function loadGodotGeometry(
   }
 
   // Background visuals — Polygon2D meshes, standalone Sprite2D, TileMapLayers
-  const bgMeshes: Mesh[] = [];
+  const bgMeshes: Container[] = [];
   const bgSprites: Sprite[] = [];
   const bgTileLayers: Container[] = [];
   const bgNinePatches: NineSliceSprite[] = [];
@@ -430,7 +431,21 @@ function instantiateTileLayer(
   return container;
 }
 
-function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sinT: number, ta: number): Mesh | null {
+/**
+ * A textured background polygon. Returns a Container holding the fill (a
+ * polygon-masked CompositeTilemap when `tileFill`, otherwise a stretched Mesh)
+ * and, optionally, a tiled quad-strip border traced along the outline. Both the
+ * fill tiling and the border tile atlas frames correctly — no GPU texture-repeat
+ * is used, so the fill/border textures stay regular atlas frames.
+ */
+function instantiateMesh(
+  def: MeshDef,
+  tx: number,
+  ty: number,
+  cosT: number,
+  sinT: number,
+  ta: number,
+): Container | null {
   if (!def.pixiFrame) return null;
   let texture: Texture;
   try {
@@ -441,14 +456,35 @@ function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sin
   }
   if (!texture) return null;
 
-  // Position: apply the spawn transform (rotation + translation) to the mesh
-  // node's authored position. The mesh's own vertices stay in node-local space
-  // and the Mesh's transform handles the rotation/scale.
+  const fill = def.tileFill ? buildTiledFill(texture, def.vertices) : buildStretchedFill(texture, def);
+  if (def.tint !== undefined && 'tint' in fill) (fill as Mesh).tint = def.tint;
+
+  const container = new Container();
+  container.label = def.name;
+  container.addChild(fill);
+
+  if (def.border) {
+    const border = buildBorderStrip(def.border, def.vertices);
+    if (border) {
+      if (def.tint !== undefined) border.tint = def.tint;
+      container.addChild(border);
+    }
+  }
+
+  // The fill/border geometry stays in node-local space; the container carries
+  // the node's spawn transform (translation + rotation + scale).
   const localX = def.position.x;
   const localY = def.position.y;
-  const worldX = cosT * localX - sinT * localY + tx;
-  const worldY = sinT * localX + cosT * localY + ty;
+  container.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
+  container.rotation = def.rotation + ta;
+  container.scale.set(def.scale.x, def.scale.y);
+  if (def.alpha !== undefined) container.alpha = def.alpha;
+  if (def.z !== undefined) container.zIndex = def.z;
+  return container;
+}
 
+/** Plain stretched fill: one frame mapped across the polygon (legacy Polygon2D behaviour). */
+function buildStretchedFill(texture: Texture, def: MeshDef): Mesh {
   const positions = new Float32Array(def.vertices.length * 2);
   for (let i = 0; i < def.vertices.length; i++) {
     positions[i * 2] = def.vertices[i].x;
@@ -462,48 +498,58 @@ function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sin
     uvs[i * 2] = def.uvs[i].x / tw;
     uvs[i * 2 + 1] = def.uvs[i].y / th;
   }
-  const indices = new Uint32Array(def.indices);
-
-  // Tiled fill: repeat-wrap the texture so UVs > 1 wrap within the (standalone)
-  // texture instead of clamping. Only valid for textures that own their whole
-  // source image — atlas sub-frames would wrap into neighbouring atlas content.
-  if (def.tileFill) {
-    setRepeatWrap(texture);
-  }
-
-  const geometry = new MeshGeometry({ positions, uvs, indices });
+  const geometry = new MeshGeometry({ positions, uvs, indices: new Uint32Array(def.indices) });
   const mesh = new Mesh({ geometry, texture });
-  mesh.label = def.name;
-  mesh.position.set(worldX, worldY);
-  mesh.rotation = def.rotation + ta;
-  mesh.scale.set(def.scale.x, def.scale.y);
-  if (def.tint !== undefined) mesh.tint = def.tint;
-  if (def.alpha !== undefined) mesh.alpha = def.alpha;
-  if (def.z !== undefined) mesh.zIndex = def.z;
-
-  // Tiled rope border traced along the polygon outline. Added as a child of the
-  // fill mesh so it shares the mesh's local space (rope points = node-local
-  // vertices) and transform.
-  if (def.border) {
-    const rope = instantiateMeshBorder(def.border, def.vertices);
-    if (rope) mesh.addChild(rope);
-  }
+  mesh.label = 'fill';
   return mesh;
 }
 
 /**
- * Force a texture's source to repeat-wrap so UVs outside 0..1 tile rather than
- * clamp. Mutates the shared source — intended only for standalone tileable
- * textures (one sprite per source), never atlas frames.
+ * Tiled fill: a CompositeTilemap covering the polygon's bounding box, clipped to
+ * the polygon by a Graphics mask. The frame tiles within the atlas correctly
+ * because each cell is its own quad (no GPU wrap).
  */
-function setRepeatWrap(texture: Texture): void {
-  const style = texture.source?.style;
-  if (style && style.addressMode !== 'repeat') {
-    style.addressMode = 'repeat';
+function buildTiledFill(texture: Texture, vertices: V2[]): Container {
+  const group = new Container();
+  group.label = 'fill';
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const v of vertices) {
+    minX = Math.min(minX, v.x);
+    minY = Math.min(minY, v.y);
+    maxX = Math.max(maxX, v.x);
+    maxY = Math.max(maxY, v.y);
   }
+
+  const tw = texture.width || 1;
+  const th = texture.height || 1;
+  const tilemap = new CompositeTilemap();
+  // Snap the tiling origin to the grid so cells line up regardless of bbox edges.
+  const startX = Math.floor(minX / tw) * tw;
+  const startY = Math.floor(minY / th) * th;
+  for (let y = startY; y < maxY; y += th) {
+    for (let x = startX; x < maxX; x += tw) {
+      tilemap.tile(texture, x, y);
+    }
+  }
+
+  const mask = new Graphics();
+  mask.poly(vertices.flatMap((v) => [v.x, v.y])).fill(0xffffff);
+  group.addChild(mask);
+  group.addChild(tilemap);
+  tilemap.mask = mask;
+  return group;
 }
 
-function instantiateMeshBorder(border: MeshBorderDef, vertices: V2[]): MeshRope | null {
+/**
+ * Tiled quad-strip border traced along the polygon edges. Each repeat is a
+ * discrete quad mapping the frame's full 0..1 UV, so it tiles an atlas frame
+ * without any GPU texture-repeat. The strip is centred on each edge.
+ */
+function buildBorderStrip(border: MeshBorderDef, vertices: V2[]): Mesh | null {
   if (vertices.length < 2) return null;
   let texture: Texture;
   try {
@@ -513,20 +559,62 @@ function instantiateMeshBorder(border: MeshBorderDef, vertices: V2[]): MeshRope 
     return null;
   }
   if (!texture) return null;
-  if (border.textureScale > 0) setRepeatWrap(texture);
 
-  const points = vertices.map((v) => new Point(v.x, v.y));
-  // Close the loop so the strip wraps back to the first vertex.
-  if (border.closed) points.push(new Point(vertices[0].x, vertices[0].y));
+  const frameW = texture.width || 1;
+  const frameH = texture.height || 1;
+  const halfWidth = (border.width > 0 ? border.width : frameH) / 2;
+  const tileLen = Math.max(1, frameW * (border.textureScale > 0 ? border.textureScale : 1));
 
-  const rope = new MeshRope({
-    texture,
-    points,
-    textureScale: border.textureScale,
-    ...(border.width > 0 ? { width: border.width } : {}),
+  const ring = border.closed ? [...vertices, vertices[0]] : vertices;
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  let vi = 0;
+
+  for (let i = 0; i < ring.length - 1; i++) {
+    const a = ring[i];
+    const b = ring[i + 1];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-3) continue;
+    const ax = dx / len; // along-edge unit
+    const ay = dy / len;
+    const nx = -ay; // edge normal
+    const ny = ax;
+
+    for (let dist = 0; dist < len - 1e-3; dist += tileLen) {
+      const seg = Math.min(tileLen, len - dist);
+      const u = seg / tileLen; // partial quad → clip the U end
+      const p0x = a.x + ax * dist;
+      const p0y = a.y + ay * dist;
+      const p1x = a.x + ax * (dist + seg);
+      const p1y = a.y + ay * (dist + seg);
+      positions.push(
+        p0x + nx * halfWidth,
+        p0y + ny * halfWidth, // u=0, v=0
+        p1x + nx * halfWidth,
+        p1y + ny * halfWidth, // u,   v=0
+        p1x - nx * halfWidth,
+        p1y - ny * halfWidth, // u,   v=1
+        p0x - nx * halfWidth,
+        p0y - ny * halfWidth, // u=0, v=1
+      );
+      uvs.push(0, 0, u, 0, u, 1, 0, 1);
+      indices.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
+      vi += 4;
+    }
+  }
+
+  if (indices.length === 0) return null;
+  const geometry = new MeshGeometry({
+    positions: new Float32Array(positions),
+    uvs: new Float32Array(uvs),
+    indices: new Uint32Array(indices),
   });
-  rope.label = `${border.pixiFrame}-border`;
-  return rope;
+  const mesh = new Mesh({ geometry, texture });
+  mesh.label = `${border.pixiFrame}-border`;
+  return mesh;
 }
 
 function instantiateBackgroundSprite(

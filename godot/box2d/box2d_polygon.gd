@@ -3,16 +3,16 @@
 extends Polygon2D
 class_name Box2DPolygon
 
-## A textured background polygon with a tiled fill and an optional tiled rope
+## A textured background polygon with a tiled fill and an optional tiled
 ## border traced along its outline. Draw the shape with Godot's polygon editor
-## and assign the fill `texture` (a standalone tileable texture, NOT an atlas
-## frame — tiling needs GPU texture-repeat, which only works on a texture that
-## owns its whole image). Generated standalone textures live under
-## `res://textures/` after an asset build.
+## and assign the fill `texture` (a normal atlas frame, resolved through
+## sprite-map.json like any other sprite — seamless tile art works best with no
+## transparent edges so the packer doesn't trim it).
 ##
-## The fill is rendered at runtime as a Pixi Mesh whose texture repeats across
-## the polygon (when `tile_fill` is on). The border is rendered as a Pixi
-## MeshRope: the `border_texture` strip is tiled along the polygon edges.
+## At runtime the fill is a Pixi CompositeTilemap clipped to the polygon by a
+## mask, so the frame tiles across the shape. The border is a tiled quad-strip
+## mesh: the `border_texture` frame is repeated along the polygon edges. Both
+## tile atlas frames correctly (no GPU texture-repeat involved).
 ##
 ## `attached = false` marks the node as editor-only reference art; the exporter
 ## skips it entirely (same as Box2DSprite).
@@ -25,11 +25,10 @@ class_name Box2DPolygon
 @export var border_texture: Texture2D
 ## Rope thickness in pixels. 0 falls back to the border texture's height.
 @export var border_width: float = 0.0
-## How the strip is tiled along the rope:
-## - 0 stretches one copy across the whole length
-## - > 0 repeats it preserving aspect ratio (1.0 = original pixel size)
+## Length of each repeated tile along the edge, as a multiple of the border
+## frame width (1.0 = one frame per repeat; 0.5 = half-width tiles, etc).
 @export var border_texture_scale: float = 1.0
-## Close the rope back to the first vertex so the border wraps the whole shape.
+## Close the strip back to the first vertex so the border wraps the whole shape.
 @export var border_closed: bool = true
 
 @export_group("Export")

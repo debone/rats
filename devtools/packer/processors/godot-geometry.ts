@@ -160,26 +160,26 @@ export interface MeshDef {
   tint?: number;
   alpha?: number;
   /**
-   * Tile the fill texture across the polygon (GPU texture-repeat) instead of
-   * stretching one frame over it. Only meaningful for Box2DPolygon nodes whose
-   * texture is a standalone (non-atlas) tileable texture.
+   * Tile the fill texture across the polygon instead of stretching one frame
+   * over it. Rendered at runtime as a CompositeTilemap clipped to the polygon
+   * by a mask, so ordinary atlas frames tile correctly.
    */
   tileFill?: boolean;
-  /** Optional tiled rope border traced along the polygon outline (`vertices`). */
+  /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
   border?: MeshBorderDef;
 }
 
 /**
  * A strip texture tiled along a polygon's outline, rendered at runtime as a
- * Pixi MeshRope whose `points` are the mesh `vertices`.
+ * tiled quad-strip mesh whose path is the mesh `vertices`.
  */
 export interface MeshBorderDef {
   pixiFrame: string;
-  /** Rope thickness in pixels. 0 → fall back to the texture's height. */
+  /** Strip thickness in pixels. 0 → fall back to the texture's height. */
   width: number;
-  /** >0 tiles preserving aspect ratio; 0 stretches one copy across the length. */
+  /** Scales the length of each repeated tile along the edge (1 = one frame width). */
   textureScale: number;
-  /** Close the rope back to the first vertex so it wraps the whole shape. */
+  /** Close the strip back to the first vertex so it wraps the whole shape. */
   closed: boolean;
 }
 
@@ -1043,7 +1043,7 @@ function buildBackground(
   for (const n of nodes) {
     if (isUnderBody(n.fullPath)) continue;
     if (n.type === 'Polygon2D') {
-      // Box2DPolygon (textured fill + rope border) is also a Polygon2D; the
+      // Box2DPolygon (tiled fill + tiled border) is also a Polygon2D; the
       // `attached = false` flag marks it as editor-only reference art.
       if (n.scriptResPath === BOX2D_POLYGON_SCRIPT) {
         const attachedProp = n.props.get('attached');
@@ -1358,7 +1358,7 @@ function buildMeshDef(
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
 
-  // Box2DPolygon adds tiled-fill + a tiled rope border on top of a plain
+  // Box2DPolygon adds tiled-fill + a tiled quad-strip border on top of a plain
   // textured Polygon2D. Plain Polygon2D nodes keep the existing stretch behaviour.
   if (polyNode.scriptResPath === BOX2D_POLYGON_SCRIPT) {
     const tileFill = decodeGodotValue(polyNode.props.get('tile_fill') ?? 'true') !== false;

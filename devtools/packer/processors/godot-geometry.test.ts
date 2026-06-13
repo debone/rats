@@ -392,11 +392,11 @@ attached = false
     expect(geo.background).toBeUndefined();
   });
 
-  it('extracts a Box2DPolygon as a tiled-fill mesh with a rope border', () => {
+  it('extracts a Box2DPolygon as a tiled-fill mesh with a tiled border', () => {
     const tscn = `[gd_scene load_steps=4 format=3]
 
-[ext_resource type="Texture2D" path="res://textures/water.png" id="1_fill"]
-[ext_resource type="Texture2D" path="res://textures/foam.png" id="2_border"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/foam.tres" id="2_border"]
 [ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="3_poly"]
 
 [node name="Root" type="Node2D"]
@@ -412,15 +412,15 @@ border_width = 6.0
 border_texture_scale = 0.5
 `;
     const geo = parseGeometryTscn(tscn, {
-      fill: { godotPath: 'res://textures/water.png', type: 'Texture2D', pixiFrame: 'textures/water' },
-      border: { godotPath: 'res://textures/foam.png', type: 'Texture2D', pixiFrame: 'textures/foam' },
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
+      border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0' },
     });
     expect(geo.background!.meshes).toHaveLength(1);
     const mesh = geo.background!.meshes[0];
-    expect(mesh.pixiFrame).toBe('textures/water');
+    expect(mesh.pixiFrame).toBe('water#0');
     expect(mesh.tileFill).toBe(true);
     expect(mesh.border).toEqual({
-      pixiFrame: 'textures/foam',
+      pixiFrame: 'foam#0',
       width: 6,
       textureScale: 0.5,
       closed: true,
@@ -430,7 +430,7 @@ border_texture_scale = 0.5
   it('omits the border when a Box2DPolygon has no border_texture', () => {
     const tscn = `[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Texture2D" path="res://textures/water.png" id="1_fill"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
 [ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
 
 [node name="Root" type="Node2D"]
@@ -442,7 +442,7 @@ polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
 tile_fill = false
 `;
     const geo = parseGeometryTscn(tscn, {
-      fill: { godotPath: 'res://textures/water.png', type: 'Texture2D', pixiFrame: 'textures/water' },
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
     });
     const mesh = geo.background!.meshes[0];
     expect(mesh.border).toBeUndefined();
@@ -471,7 +471,7 @@ polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
   it('skips a Box2DPolygon flagged attached = false', () => {
     const tscn = `[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Texture2D" path="res://textures/water.png" id="1_fill"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
 [ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
 
 [node name="Root" type="Node2D"]
@@ -483,7 +483,7 @@ polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
 attached = false
 `;
     const geo = parseGeometryTscn(tscn, {
-      fill: { godotPath: 'res://textures/water.png', type: 'Texture2D', pixiFrame: 'textures/water' },
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
     });
     expect(geo.background).toBeUndefined();
   });
