@@ -7,7 +7,7 @@ const GODOT_DIR = path.resolve('./godot');
 
 export interface GodotSpriteEntry {
   godotPath: string;
-  type: 'AtlasTexture' | 'SpriteFrames';
+  type: 'AtlasTexture' | 'SpriteFrames' | 'Texture2D';
   pixiFrame?: string; // single-frame sprites
   pixiAnimation?: string; // animated sprites
   frames?: string[]; // pixi frame names in order
@@ -135,12 +135,85 @@ export function generateGodotResourcesFromManifest(
     }
   }
 
+  // Standalone tileable textures: copy plain (non-atlas) images under the
+  // `textures/` alias prefix into godot/textures/ and index them so a
+  // Box2DPolygon can reference them as Texture2D for its tiled fill / rope
+  // border. These need GPU texture-repeat, which only works on a texture that
+  // owns its whole source image — hence standalone, not packed into an atlas.
+  writeGodotStandaloneTextures(manifest, publicAssetsDir);
+
   // Tilesheet metadata pass: walk every manifest (including those the packer
   // pipe already processed and we skipped above) and attach tilesheet info to
   // matching sprite-map entries. The .tres files are already there; we're
   // just enriching the index so the Box2D geometry exporter can translate
   // Godot TileMapLayer cells into Pixi tile-frame names.
   attachTilesheetsFromAllManifests(manifestPath, publicAssetsDir);
+}
+
+/**
+ * Index standalone tileable textures for Godot. A "standalone" asset is a plain
+ * image (no `.png.json` atlas sibling) whose alias lives under `textures/`.
+ *
+ * Returns the sprite-map additions (also merged into godot/sprite-map.json).
+ * Exported-shape kept pure-ish so the file copy can be skipped/tested: the
+ * actual fs writes are guarded by existence checks.
+ */
+export function collectStandaloneTextureEntries(
+  manifest: { bundles?: { assets?: { alias: string | string[]; src: string | string[] }[] }[] },
+): GodotSpriteMap {
+  const additions: GodotSpriteMap = {};
+  for (const bundle of manifest.bundles ?? []) {
+    for (const asset of bundle.assets ?? []) {
+      const alias: string = Array.isArray(asset.alias) ? asset.alias[0] : asset.alias;
+      const srcs: string[] = Array.isArray(asset.src) ? asset.src : [asset.src];
+      if (!alias || !alias.startsWith('textures/')) continue;
+      // Skip atlases (they have a JSON sidecar) — those go through the atlas path.
+      if (srcs.some((s) => s.endsWith('.json'))) continue;
+      // Prefer the full-resolution PNG (no `@Nx` suffix); fall back to any PNG.
+      const png = srcs.find((s) => s.endsWith('.png') && !s.includes('@')) ?? srcs.find((s) => s.endsWith('.png'));
+      if (!png) continue;
+      const godotRelPath = `textures/${alias.slice('textures/'.length)}.png`;
+      additions[godotRelPath] = {
+        godotPath: `res://${godotRelPath}`,
+        type: 'Texture2D',
+        pixiFrame: alias,
+      };
+      // Stash the source path so the writer can copy it without re-deriving.
+      (additions[godotRelPath] as GodotSpriteEntry & { _src?: string })._src = png;
+    }
+  }
+  return additions;
+}
+
+function writeGodotStandaloneTextures(
+  manifest: { bundles?: { assets?: { alias: string | string[]; src: string | string[] }[] }[] },
+  publicAssetsDir: string,
+): void {
+  const entries = collectStandaloneTextureEntries(manifest);
+  const clean: GodotSpriteMap = {};
+  let copied = 0;
+
+  for (const [key, entry] of Object.entries(entries)) {
+    const src = (entry as GodotSpriteEntry & { _src?: string })._src;
+    delete (entry as GodotSpriteEntry & { _src?: string })._src;
+    clean[key] = entry;
+    if (!src) continue;
+
+    const srcPath = path.join(publicAssetsDir, src);
+    if (!fs.existsSync(srcPath)) {
+      console.warn(`[Godot] Standalone texture source missing, skipping copy: ${src}`);
+      continue;
+    }
+    const destPath = path.join(GODOT_DIR, key); // key is "textures/<name>.png"
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.copyFileSync(srcPath, destPath);
+    copied++;
+  }
+
+  if (Object.keys(clean).length > 0) {
+    mergeIntoSpriteMap(clean);
+    console.log(`[Godot] Indexed ${Object.keys(clean).length} standalone texture(s); copied ${copied} → godot/textures/`);
+  }
 }
 
 function attachTilesheetsFromAllManifests(manifestPath: string, publicAssetsDir: string): void {

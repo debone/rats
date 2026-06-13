@@ -63,6 +63,7 @@ const SCRIPT_TO_JOINT_TYPE: Record<string, 'revolute' | 'prismatic' | 'distance'
 
 const BOX2D_ROOT_SCRIPT = 'res://box2d/box2d_root.gd';
 const BOX2D_NINE_SLICE_SCRIPT = 'res://box2d/box2d_nine_slice.gd';
+const BOX2D_POLYGON_SCRIPT = 'res://box2d/box2d_polygon.gd';
 
 // ---------------------------------------------------------------------------
 // Output schema (mirrored in src/lib/loadGodotGeometry.ts)
@@ -158,6 +159,28 @@ export interface MeshDef {
   z?: number;
   tint?: number;
   alpha?: number;
+  /**
+   * Tile the fill texture across the polygon (GPU texture-repeat) instead of
+   * stretching one frame over it. Only meaningful for Box2DPolygon nodes whose
+   * texture is a standalone (non-atlas) tileable texture.
+   */
+  tileFill?: boolean;
+  /** Optional tiled rope border traced along the polygon outline (`vertices`). */
+  border?: MeshBorderDef;
+}
+
+/**
+ * A strip texture tiled along a polygon's outline, rendered at runtime as a
+ * Pixi MeshRope whose `points` are the mesh `vertices`.
+ */
+export interface MeshBorderDef {
+  pixiFrame: string;
+  /** Rope thickness in pixels. 0 → fall back to the texture's height. */
+  width: number;
+  /** >0 tiles preserving aspect ratio; 0 stretches one copy across the length. */
+  textureScale: number;
+  /** Close the rope back to the first vertex so it wraps the whole shape. */
+  closed: boolean;
 }
 
 /**
@@ -1020,6 +1043,12 @@ function buildBackground(
   for (const n of nodes) {
     if (isUnderBody(n.fullPath)) continue;
     if (n.type === 'Polygon2D') {
+      // Box2DPolygon (textured fill + rope border) is also a Polygon2D; the
+      // `attached = false` flag marks it as editor-only reference art.
+      if (n.scriptResPath === BOX2D_POLYGON_SCRIPT) {
+        const attachedProp = n.props.get('attached');
+        if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      }
       const m = buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
       if (m) meshes.push(m);
     } else if (n.scriptResPath === BOX2D_NINE_SLICE_SCRIPT) {
@@ -1328,6 +1357,27 @@ function buildMeshDef(
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
+
+  // Box2DPolygon adds tiled-fill + a tiled rope border on top of a plain
+  // textured Polygon2D. Plain Polygon2D nodes keep the existing stretch behaviour.
+  if (polyNode.scriptResPath === BOX2D_POLYGON_SCRIPT) {
+    const tileFill = decodeGodotValue(polyNode.props.get('tile_fill') ?? 'true') !== false;
+    if (tileFill) out.tileFill = true;
+
+    const borderTexProp = polyNode.props.get('border_texture');
+    const borderExtId = borderTexProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+    const borderResPath = borderExtId ? extResources[borderExtId] : undefined;
+    const borderFrame = borderResPath ? godotPathToPixi[borderResPath]?.frame : undefined;
+    if (borderFrame) {
+      const width = parseFloat(unquote(polyNode.props.get('border_width') ?? '0')) || 0;
+      const rawScale = polyNode.props.get('border_texture_scale');
+      const textureScale = rawScale !== undefined ? parseFloat(unquote(rawScale)) || 0 : 1;
+      const closed = decodeGodotValue(polyNode.props.get('border_closed') ?? 'true') !== false;
+      out.border = { pixiFrame: borderFrame, width, textureScale, closed };
+    } else if (borderTexProp) {
+      console.warn(`[Godot] Box2DPolygon "${polyNode.name}" border_texture did not resolve to a frame; skipping border`);
+    }
+  }
   return out;
 }
 

@@ -42,7 +42,7 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Mesh, MeshGeometry, NineSliceSprite, Sprite, Texture } from 'pixi.js';
+import { Assets, Container, Mesh, MeshGeometry, MeshRope, NineSliceSprite, Point, Sprite, Texture } from 'pixi.js';
 import { AddSpriteToWorld, type SpriteObject } from '@/systems/physics/WorldSprites';
 
 // ---------------------------------------------------------------------------
@@ -101,6 +101,20 @@ export interface MeshDef {
   z?: number;
   tint?: number;
   alpha?: number;
+  /** Tile the fill texture across the polygon (repeat wrap) instead of stretching it. */
+  tileFill?: boolean;
+  /** Optional tiled rope border traced along the polygon outline (`vertices`). */
+  border?: MeshBorderDef;
+}
+
+export interface MeshBorderDef {
+  pixiFrame: string;
+  /** Rope thickness in pixels. 0 → fall back to the texture's height. */
+  width: number;
+  /** >0 tiles preserving aspect ratio; 0 stretches one copy across the length. */
+  textureScale: number;
+  /** Close the rope back to the first vertex so it wraps the whole shape. */
+  closed: boolean;
 }
 
 export interface BackgroundSpriteDef {
@@ -450,6 +464,13 @@ function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sin
   }
   const indices = new Uint32Array(def.indices);
 
+  // Tiled fill: repeat-wrap the texture so UVs > 1 wrap within the (standalone)
+  // texture instead of clamping. Only valid for textures that own their whole
+  // source image — atlas sub-frames would wrap into neighbouring atlas content.
+  if (def.tileFill) {
+    setRepeatWrap(texture);
+  }
+
   const geometry = new MeshGeometry({ positions, uvs, indices });
   const mesh = new Mesh({ geometry, texture });
   mesh.label = def.name;
@@ -459,7 +480,53 @@ function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sin
   if (def.tint !== undefined) mesh.tint = def.tint;
   if (def.alpha !== undefined) mesh.alpha = def.alpha;
   if (def.z !== undefined) mesh.zIndex = def.z;
+
+  // Tiled rope border traced along the polygon outline. Added as a child of the
+  // fill mesh so it shares the mesh's local space (rope points = node-local
+  // vertices) and transform.
+  if (def.border) {
+    const rope = instantiateMeshBorder(def.border, def.vertices);
+    if (rope) mesh.addChild(rope);
+  }
   return mesh;
+}
+
+/**
+ * Force a texture's source to repeat-wrap so UVs outside 0..1 tile rather than
+ * clamp. Mutates the shared source — intended only for standalone tileable
+ * textures (one sprite per source), never atlas frames.
+ */
+function setRepeatWrap(texture: Texture): void {
+  const style = texture.source?.style;
+  if (style && style.addressMode !== 'repeat') {
+    style.addressMode = 'repeat';
+  }
+}
+
+function instantiateMeshBorder(border: MeshBorderDef, vertices: V2[]): MeshRope | null {
+  if (vertices.length < 2) return null;
+  let texture: Texture;
+  try {
+    texture = Assets.get<Texture>(border.pixiFrame) ?? Texture.from(border.pixiFrame);
+  } catch {
+    console.warn(`[loadGodotGeometry] Mesh border texture not found: "${border.pixiFrame}"`);
+    return null;
+  }
+  if (!texture) return null;
+  if (border.textureScale > 0) setRepeatWrap(texture);
+
+  const points = vertices.map((v) => new Point(v.x, v.y));
+  // Close the loop so the strip wraps back to the first vertex.
+  if (border.closed) points.push(new Point(vertices[0].x, vertices[0].y));
+
+  const rope = new MeshRope({
+    texture,
+    points,
+    textureScale: border.textureScale,
+    ...(border.width > 0 ? { width: border.width } : {}),
+  });
+  rope.label = `${border.pixiFrame}-border`;
+  return rope;
 }
 
 function instantiateBackgroundSprite(
