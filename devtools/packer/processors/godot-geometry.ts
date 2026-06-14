@@ -98,6 +98,8 @@ export interface BackgroundDef {
 export interface NinePatchDef {
   name: string;
   pixiFrame: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -156,6 +158,8 @@ export interface MeshDef {
   uvs: V2[]; // Same length as vertices, in texture pixel space
   indices: number[]; // Triangle vertex indices
   pixiFrame?: string;
+  /** Atlas alias for `pixiFrame` (frame names aren't globally unique). */
+  pixiAtlas?: string;
   z?: number;
   tint?: number;
   alpha?: number;
@@ -175,6 +179,8 @@ export interface MeshDef {
  */
 export interface MeshBorderDef {
   pixiFrame: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   /** Strip thickness in pixels. 0 → fall back to the texture's height. */
   width: number;
   /** Scales the length of each repeated tile along the edge (1 = one frame width). */
@@ -183,6 +189,8 @@ export interface MeshBorderDef {
   closed: boolean;
   /** Optional frame stamped at each corner (oriented to the bisector) over the joint. */
   cornerFrame?: string;
+  /** Atlas alias for `cornerFrame`. */
+  cornerAtlas?: string;
 }
 
 /**
@@ -194,6 +202,8 @@ export interface BackgroundSpriteDef {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -245,6 +255,8 @@ export interface SpriteBinding {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   offset: V2;
   rotation: number;
   scale: V2;
@@ -621,9 +633,9 @@ export function parseGeometryTscn(
   for (const n of nodes) globalTransforms.set(n.fullPath, computeGlobalTransform(n, nodeByPath, globalTransforms));
 
   // Build sprite-map reverse lookup
-  const godotPathToPixi: Record<string, { frame?: string; anim?: string }> = {};
+  const godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }> = {};
   for (const entry of Object.values(spriteMap)) {
-    godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation };
+    godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation, atlas: entry.atlas };
   }
 
   // Identify local body nodes (Box2D-scripted OR plain Godot physics body types
@@ -806,7 +818,7 @@ function buildBodyDef(
   allNodes: NodeInfo[],
   subShapes: Record<string, SubShape>,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): Box2DBodyDef {
   const type = resolveBodyType(bodyNode)!;
@@ -969,7 +981,7 @@ function buildSpriteBinding(
   spriteNode: NodeInfo,
   bodyNode: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): SpriteBinding | null {
   const local = transformInBody(spriteNode, bodyNode, globalTransforms);
@@ -977,6 +989,7 @@ function buildSpriteBinding(
   // Resolve texture
   let pixiFrame: string | undefined;
   let pixiAnimation: string | undefined;
+  let pixiAtlas: string | undefined;
   if (spriteNode.type === 'Sprite2D') {
     const texProp = spriteNode.props.get('texture');
     const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
@@ -985,6 +998,7 @@ function buildSpriteBinding(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   } else if (spriteNode.type === 'AnimatedSprite2D') {
@@ -995,6 +1009,7 @@ function buildSpriteBinding(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   }
@@ -1037,6 +1052,7 @@ function buildSpriteBinding(
   };
   if (pixiFrame) binding.pixiFrame = pixiFrame;
   if (pixiAnimation) binding.pixiAnimation = pixiAnimation;
+  if (pixiAtlas) binding.pixiAtlas = pixiAtlas;
   if (zIndex) binding.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) binding.tint = tint;
   if (alpha !== undefined && alpha !== 1) binding.alpha = alpha;
@@ -1056,7 +1072,7 @@ function buildBackground(
   isUnderBody: (path: string) => boolean,
   extResources: Record<string, string>,
   subResections: Record<string, TscnSection>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
   spriteMap: GodotSpriteMap,
   godotRoot: string | undefined,
@@ -1343,7 +1359,7 @@ function emptyLayer(
 function buildMeshDef(
   polyNode: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): MeshDef | null {
   // Vertices in the polygon node's local space (Godot pixels).
@@ -1355,12 +1371,15 @@ function buildMeshDef(
   let uvs = parsePackedVector2Array(polyNode.props.get('uv') ?? '');
   if (uvs.length !== polygon.length) uvs = polygon;
 
-  // Texture — resolve through the sprite-map to a pixi frame key.
+  // Texture — resolve through the sprite-map to a pixi frame key + atlas.
   let pixiFrame: string | undefined;
+  let pixiAtlas: string | undefined;
   const texProp = polyNode.props.get('texture');
   const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
   if (extId && extResources[extId]) {
-    pixiFrame = godotPathToPixi[extResources[extId]]?.frame;
+    const resolved = godotPathToPixi[extResources[extId]];
+    pixiFrame = resolved?.frame;
+    pixiAtlas = resolved?.atlas;
   }
 
   // Triangulate. Fan from vertex 0 — works for convex polygons; concave needs
@@ -1397,6 +1416,7 @@ function buildMeshDef(
     indices,
   };
   if (pixiFrame) out.pixiFrame = pixiFrame;
+  if (pixiAtlas) out.pixiAtlas = pixiAtlas;
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
@@ -1410,20 +1430,24 @@ function buildMeshDef(
     const borderTexProp = polyNode.props.get('border_texture');
     const borderExtId = borderTexProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
     const borderResPath = borderExtId ? extResources[borderExtId] : undefined;
-    const borderFrame = borderResPath ? godotPathToPixi[borderResPath]?.frame : undefined;
-    if (borderFrame) {
+    const borderResolved = borderResPath ? godotPathToPixi[borderResPath] : undefined;
+    if (borderResolved?.frame) {
       const width = parseFloat(unquote(polyNode.props.get('border_width') ?? '0')) || 0;
       const rawScale = polyNode.props.get('border_texture_scale');
       const textureScale = rawScale !== undefined ? parseFloat(unquote(rawScale)) || 0 : 1;
       const closed = decodeGodotValue(polyNode.props.get('border_closed') ?? 'true') !== false;
-      out.border = { pixiFrame: borderFrame, width, textureScale, closed };
+      out.border = { pixiFrame: borderResolved.frame, width, textureScale, closed };
+      if (borderResolved.atlas) out.border.pixiAtlas = borderResolved.atlas;
 
       // Optional corner piece: a frame stamped at each polygon vertex, oriented
       // to the corner bisector, to cover the joint between adjacent edge strips.
       const cornerExtId = polyNode.props.get('border_corner_texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
       const cornerResPath = cornerExtId ? extResources[cornerExtId] : undefined;
-      const cornerFrame = cornerResPath ? godotPathToPixi[cornerResPath]?.frame : undefined;
-      if (cornerFrame) out.border.cornerFrame = cornerFrame;
+      const cornerResolved = cornerResPath ? godotPathToPixi[cornerResPath] : undefined;
+      if (cornerResolved?.frame) {
+        out.border.cornerFrame = cornerResolved.frame;
+        if (cornerResolved.atlas) out.border.cornerAtlas = cornerResolved.atlas;
+      }
     } else if (borderTexProp) {
       console.warn(`[Godot] Box2DPolygon "${polyNode.name}" border_texture did not resolve to a frame; skipping border`);
     }
@@ -1434,11 +1458,12 @@ function buildMeshDef(
 function buildBackgroundSprite(
   spriteNode: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): BackgroundSpriteDef | null {
   let pixiFrame: string | undefined;
   let pixiAnimation: string | undefined;
+  let pixiAtlas: string | undefined;
   if (spriteNode.type === 'Sprite2D') {
     const texProp = spriteNode.props.get('texture');
     const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
@@ -1447,6 +1472,7 @@ function buildBackgroundSprite(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   } else {
@@ -1457,6 +1483,7 @@ function buildBackgroundSprite(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   }
@@ -1493,6 +1520,7 @@ function buildBackgroundSprite(
   };
   if (pixiFrame) out.pixiFrame = pixiFrame;
   if (pixiAnimation) out.pixiAnimation = pixiAnimation;
+  if (pixiAtlas) out.pixiAtlas = pixiAtlas;
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
@@ -1504,14 +1532,15 @@ function buildBackgroundSprite(
 function buildNinePatch(
   node: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   godotPathToBorders: Record<string, NinePatchDef['borders']>,
   globalTransforms: Map<string, GTransform>,
 ): NinePatchDef | null {
   const texProp = node.props.get('texture');
   const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
   const texResPath = extId ? extResources[extId] : undefined;
-  const pixiFrame = texResPath ? godotPathToPixi[texResPath]?.frame : undefined;
+  const resolved = texResPath ? godotPathToPixi[texResPath] : undefined;
+  const pixiFrame = resolved?.frame;
   if (!pixiFrame) {
     console.warn(`[Godot] Box2DNineSlice "${node.name}" has no resolvable texture; skipping`);
     return null;
@@ -1557,6 +1586,7 @@ function buildNinePatch(
     size,
     borders,
   };
+  if (resolved?.atlas) out.pixiAtlas = resolved.atlas;
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;

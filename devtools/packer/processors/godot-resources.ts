@@ -12,6 +12,14 @@ export interface GodotSpriteEntry {
   pixiAnimation?: string; // animated sprites
   frames?: string[]; // pixi frame names in order
   /**
+   * Runtime atlas alias this frame belongs to (the manifest alias, e.g.
+   * `"entities/bricks.aseprite"`). Pixi frame names are NOT globally unique —
+   * the same `bricks_tile_1#0` can live in several atlases — so consumers must
+   * resolve via `Assets.get(atlas).textures[frame]` to honour the exact source
+   * the Godot scene references, rather than a name-collision in the global cache.
+   */
+  atlas?: string;
+  /**
    * Present when this entry is a grid-layout spritesheet ({ss=N} source).
    * The AtlasTexture covers the full grid; the same image has per-tile
    * frames named `${framePrefix}_${index}#0` (row-major). Used by the
@@ -57,6 +65,7 @@ export function generateGodotResources(
   metadata: SpritesheetData,
   atlasBuffer: Buffer,
   baseName: string,
+  atlasAlias?: string,
 ): void {
   const pngFileName = `${path.basename(baseName)}.png`;
   const atlasDirInGodot = path.join(path.dirname(baseName)); // preserves subdir, e.g. "entities"
@@ -77,6 +86,10 @@ export function generateGodotResources(
 
   const godotSpritesBase = `res://sprites/${baseName}`;
   const spriteMap = writeGodotSprites(metadata, godotAtlasResPath, spritesDir, godotSpritesBase);
+
+  // Tag every entry with the runtime atlas alias so geometry consumers can
+  // resolve the exact atlas (frame names aren't globally unique).
+  if (atlasAlias) for (const entry of Object.values(spriteMap)) entry.atlas = atlasAlias;
 
   mergeIntoSpriteMap(spriteMap);
 
@@ -131,7 +144,8 @@ export function generateGodotResourcesFromManifest(
       if (!fs.existsSync(pngPath)) continue;
       const atlasBuffer = fs.readFileSync(pngPath);
 
-      generateGodotResources(metadata, atlasBuffer, baseName);
+      // Runtime atlas alias = manifest alias with `{…}` tags stripped.
+      generateGodotResources(metadata, atlasBuffer, baseName, alias.replace(/\{[^}]*\}/g, ''));
     }
   }
 

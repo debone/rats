@@ -66,6 +66,8 @@ export interface BackgroundDef {
 export interface NinePatchDef {
   name: string;
   pixiFrame: string;
+  /** Atlas alias for `pixiFrame` (frame names aren't globally unique). */
+  pixiAtlas?: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -98,6 +100,8 @@ export interface MeshDef {
   uvs: V2[]; // Texture pixel space; normalized to 0..1 at runtime using texture dimensions
   indices: number[];
   pixiFrame?: string;
+  /** Atlas alias for `pixiFrame` (frame names aren't globally unique). */
+  pixiAtlas?: string;
   z?: number;
   tint?: number;
   alpha?: number;
@@ -109,6 +113,8 @@ export interface MeshDef {
 
 export interface MeshBorderDef {
   pixiFrame: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   /** Strip thickness in pixels. 0 → fall back to the texture's height. */
   width: number;
   /** Scales the length of each repeated tile along the edge (1 = one frame width). */
@@ -117,12 +123,16 @@ export interface MeshBorderDef {
   closed: boolean;
   /** Optional frame stamped at each corner (oriented to the bisector) over the joint. */
   cornerFrame?: string;
+  /** Atlas alias for `cornerFrame`. */
+  cornerAtlas?: string;
 }
 
 export interface BackgroundSpriteDef {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -174,6 +184,8 @@ export interface SpriteBinding {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   offset: V2;
   rotation: number;
   scale: V2;
@@ -448,7 +460,7 @@ function instantiateMesh(
   ta: number,
 ): Container | null {
   if (!def.pixiFrame) return null;
-  const texture = resolveFrameTexture(def.pixiFrame, `mesh "${def.name}" fill`);
+  const texture = resolveFrameTexture(def.pixiFrame, `mesh "${def.name}" fill`, def.pixiAtlas);
   if (!texture) return null;
 
   const fill = def.tileFill ? buildTiledFill(texture, def.vertices, def.tint) : buildStretchedFill(texture, def);
@@ -476,13 +488,29 @@ function instantiateMesh(
 
 /**
  * Resolve an atlas frame to a loaded Texture, warning loudly (and returning
- * null) if it isn't in the current asset bundle. We deliberately avoid the
- * `Texture.from` fallback: for an unloaded frame it can hand back an empty
- * texture, which renders nothing with no error — making a Box2DPolygon vanish
- * silently. The most common cause is the fill/border/corner frame not being in
- * the level's loaded bundle.
+ * null) if it isn't in the current asset bundle.
+ *
+ * When `atlas` is given we resolve via `Assets.get(atlas).textures[frame]` — the
+ * exact atlas the Godot scene referenced. This matters because Pixi frame names
+ * are NOT globally unique (e.g. `bricks_tile_1#0` exists in several atlases);
+ * the bare `Assets.get(frame)` returns whichever atlas was cached last, so it
+ * can render a different sprite than the one authored. We fall back to the bare
+ * lookup if the atlas is missing/unspecified (older data, or not yet loaded).
+ *
+ * We deliberately avoid the `Texture.from` fallback: for an unloaded frame it
+ * can hand back an empty texture that renders nothing with no error.
  */
-function resolveFrameTexture(frame: string, role: string): Texture | null {
+function resolveFrameTexture(frame: string, role: string, atlas?: string): Texture | null {
+  if (atlas) {
+    const sheet = Assets.get<{ textures?: Record<string, Texture> }>(atlas);
+    const fromAtlas = sheet?.textures?.[frame];
+    if (fromAtlas) return fromAtlas;
+    if (!sheet) {
+      console.warn(`[loadGodotGeometry] ${role}: atlas "${atlas}" is not loaded; falling back to global frame lookup.`);
+    } else {
+      console.warn(`[loadGodotGeometry] ${role}: frame "${frame}" not found in atlas "${atlas}"; falling back.`);
+    }
+  }
   const texture = Assets.get<Texture>(frame);
   if (!texture) {
     console.warn(
@@ -492,6 +520,26 @@ function resolveFrameTexture(frame: string, role: string): Texture | null {
     return null;
   }
   return texture;
+}
+
+/**
+ * Resolve a sprite/animation binding to a Texture. Single frames go through the
+ * atlas-aware `resolveFrameTexture`; animations keep the legacy bare lookup
+ * (they're addressed by animation name, not an atlas frame).
+ */
+function resolveBindingTexture(
+  frame: string | undefined,
+  anim: string | undefined,
+  atlas: string | undefined,
+  name: string,
+): Texture | null {
+  if (frame) return resolveFrameTexture(frame, `sprite "${name}"`, atlas);
+  if (anim) {
+    const tex = Assets.get<Texture>(anim) ?? Texture.from(anim);
+    if (!tex) console.warn(`[loadGodotGeometry] sprite "${name}": animation "${anim}" not found.`);
+    return tex ?? null;
+  }
+  return null;
 }
 
 /** Plain stretched fill: one frame mapped across the polygon (legacy Polygon2D behaviour). */
@@ -573,7 +621,7 @@ const MITRE_LIMIT = 4;
  */
 function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number): Container | null {
   if (vertices.length < 2) return null;
-  const texture = resolveFrameTexture(border.pixiFrame, 'mesh border');
+  const texture = resolveFrameTexture(border.pixiFrame, 'mesh border', border.pixiAtlas);
   if (!texture) return null;
 
   const frameW = texture.width || 1;
@@ -647,7 +695,8 @@ function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number):
   group.label = `${border.pixiFrame}-border`;
   group.addChild(strip);
 
-  if (border.cornerFrame) addCornerPieces(group, border.cornerFrame, vertices, border.closed, width, tint);
+  if (border.cornerFrame)
+    addCornerPieces(group, border.cornerFrame, border.cornerAtlas, vertices, border.closed, width, tint);
   return group;
 }
 
@@ -703,12 +752,13 @@ function unit(from: V2, other: V2, incoming: boolean): V2 {
 function addCornerPieces(
   group: Container,
   frame: string,
+  atlas: string | undefined,
   verts: V2[],
   closed: boolean,
   size: number,
   tint?: number,
 ): void {
-  const texture = resolveFrameTexture(frame, 'mesh border corner');
+  const texture = resolveFrameTexture(frame, 'mesh border corner', atlas);
   if (!texture) return;
 
   const n = verts.length;
@@ -737,15 +787,7 @@ function instantiateBackgroundSprite(
   sinT: number,
   ta: number,
 ): Sprite | null {
-  const key = def.pixiFrame ?? def.pixiAnimation;
-  if (!key) return null;
-  let texture: Texture | undefined;
-  try {
-    texture = Assets.get<Texture>(key) ?? Texture.from(key);
-  } catch {
-    console.warn(`[loadGodotGeometry] Background sprite texture not found: "${key}"`);
-    return null;
-  }
+  const texture = resolveBindingTexture(def.pixiFrame, def.pixiAnimation, def.pixiAtlas, def.name);
   if (!texture) return null;
   const sprite = new Sprite({ texture });
   sprite.label = def.name;
@@ -772,13 +814,7 @@ function instantiateNinePatch(
   sinT: number,
   ta: number,
 ): NineSliceSprite | null {
-  let texture: Texture | undefined;
-  try {
-    texture = Assets.get<Texture>(def.pixiFrame) ?? Texture.from(def.pixiFrame);
-  } catch {
-    console.warn(`[loadGodotGeometry] Nine-slice texture not found: "${def.pixiFrame}"`);
-    return null;
-  }
+  const texture = resolveFrameTexture(def.pixiFrame, `nine-slice "${def.name}"`, def.pixiAtlas);
   if (!texture) return null;
 
   const sprite = new NineSliceSprite({
@@ -939,15 +975,7 @@ function setJointUserData(joint: b2JointId, jdef: Box2DJointDef): void {
 // ---------------------------------------------------------------------------
 
 function instantiateSprite(binding: SpriteBinding): Sprite | null {
-  let texture: Texture | undefined;
-  const key = binding.pixiFrame ?? binding.pixiAnimation;
-  if (!key) return null;
-  try {
-    texture = Assets.get<Texture>(key) ?? Texture.from(key);
-  } catch {
-    console.warn(`[loadGodotGeometry] Texture not found: "${key}"`);
-    return null;
-  }
+  const texture = resolveBindingTexture(binding.pixiFrame, binding.pixiAnimation, binding.pixiAtlas, binding.name);
   if (!texture) return null;
   const sprite = new Sprite({ texture });
   sprite.label = binding.name;

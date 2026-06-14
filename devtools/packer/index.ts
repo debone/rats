@@ -210,7 +210,15 @@ async function processFile(asset: Asset, options: PackerOptions): Promise<Asset[
   // Generate Godot resources from the full-resolution atlas buffer.
   // This is a side-effect write to godot/ -- not an assetpack output asset.
   const fullResMetadata = atlas.metadata(`${path.basename(baseName)}.png`);
-  generateGodotResources(fullResMetadata, atlasBuffer, baseName);
+  // Runtime atlas alias = the source path relative to the `assets/` entry, with
+  // the `{…}` config tags stripped — this matches the assetpack manifest alias
+  // (e.g. `entities/bricks.aseprite`, `prototype{ss=32}.aseprite` →
+  // `prototype.aseprite`) that the runtime passes to `Assets.get(...)`.
+  const marker = `${path.sep}assets${path.sep}`;
+  const markerIdx = asset.path.lastIndexOf(marker);
+  const relSource = markerIdx >= 0 ? asset.path.slice(markerIdx + marker.length) : asset.filename;
+  const atlasAlias = relSource.replace(/\{[^}]*\}/g, '');
+  generateGodotResources(fullResMetadata, atlasBuffer, baseName, atlasAlias);
 
   return assets;
 }

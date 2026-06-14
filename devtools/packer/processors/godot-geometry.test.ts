@@ -414,20 +414,23 @@ border_width = 6.0
 border_texture_scale = 0.5
 `;
     const geo = parseGeometryTscn(tscn, {
-      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
-      border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0' },
-      corner: { godotPath: 'res://sprites/lvl/foam_corner.tres', type: 'AtlasTexture', pixiFrame: 'foam_corner#0' },
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0', atlas: 'levels/lvl.aseprite' },
+      border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0', atlas: 'levels/lvl.aseprite' },
+      corner: { godotPath: 'res://sprites/lvl/foam_corner.tres', type: 'AtlasTexture', pixiFrame: 'foam_corner#0', atlas: 'fx/foam.aseprite' },
     });
     expect(geo.background!.meshes).toHaveLength(1);
     const mesh = geo.background!.meshes[0];
     expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.pixiAtlas).toBe('levels/lvl.aseprite');
     expect(mesh.tileFill).toBe(true);
     expect(mesh.border).toEqual({
       pixiFrame: 'foam#0',
+      pixiAtlas: 'levels/lvl.aseprite',
       width: 6,
       textureScale: 0.5,
       closed: true,
       cornerFrame: 'foam_corner#0',
+      cornerAtlas: 'fx/foam.aseprite',
     });
   });
 
