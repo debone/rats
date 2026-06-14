@@ -121,6 +121,16 @@ These node types are supported today:
   seamless fill/border art with no transparent edges so the packer doesn't trim
   the frame (trimmed frames tile with seams).
 
+  Set **`mask_children = true`** to turn the shape into a clip mask instead: it
+  renders no fill of its own, and any child `TileMapLayer` is confined to the
+  outline at runtime — so you can paint an arbitrary, varied tilemap and clip it
+  to any polygon (or curve) shape. A `border_texture` is still tiled along the
+  outline to frame the masked region. Two editor previews help while authoring:
+  the `@tool` script traces a rough outline + border band, and setting Godot's
+  **native** `clip_children = 1` (CLIP_CHILDREN_ONLY) makes the editor clip the
+  child tilemap to the polygon too, matching the runtime. (`mask_children` is our
+  export; `clip_children` is the built-in `CanvasItem` enum — they're separate.)
+
 - **Standalone `Sprite2D` / `AnimatedSprite2D` / `Box2DAnimatedSprite`** —
   any sprite that *isn't* a child of a body becomes a free-standing
   background sprite at its authored world position. Use for one-off

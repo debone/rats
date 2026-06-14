@@ -1130,7 +1130,24 @@ function buildBackground(
 
   for (const n of nodes) {
     if (isUnderBody(n.fullPath)) continue;
-    if (clipShapesWorld.has(n.fullPath)) continue; // clip-only shapes render no mesh
+    if (clipShapesWorld.has(n.fullPath)) {
+      // A clip mask renders no fill of its own — the masked child TileMapLayer is
+      // the fill. But it can still carry a tiled `border_texture` to frame the
+      // masked region, so emit a border-only mesh (fill stripped) when present.
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const isCurveClip = n.scriptResPath === BOX2D_CURVE_SCRIPT;
+      const m = isCurveClip
+        ? buildCurveMesh(n, extResources, godotPathToPixi, subResections, globalTransforms)
+        : buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
+      if (m?.border) {
+        delete m.pixiFrame;
+        delete m.pixiAtlas;
+        delete m.tileFill;
+        meshes.push(m);
+      }
+      continue; // the clip polygon itself is projected onto the child layer below
+    }
     if (n.type === 'Polygon2D') {
       // Box2DPolygon (tiled fill + tiled border) is also a Polygon2D; the
       // `attached = false` flag marks it as editor-only reference art.

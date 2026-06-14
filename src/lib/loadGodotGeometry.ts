@@ -471,15 +471,19 @@ function instantiateMesh(
   sinT: number,
   ta: number,
 ): Container | null {
-  if (!def.pixiFrame) return null;
-  const texture = resolveFrameTexture(def.pixiFrame, `mesh "${def.name}" fill`, def.pixiAtlas);
-  if (!texture) return null;
-
-  const fill = def.tileFill ? buildTiledFill(texture, def.vertices, def.tint) : buildStretchedFill(texture, def);
+  // A clip mask emits a border-only mesh (no fill frame) — its masked child
+  // TileMapLayer supplies the fill — so render the border without a fill.
+  if (!def.pixiFrame && !def.border) return null;
 
   const container = new Container();
   container.label = def.name;
-  container.addChild(fill);
+
+  if (def.pixiFrame) {
+    const texture = resolveFrameTexture(def.pixiFrame, `mesh "${def.name}" fill`, def.pixiAtlas);
+    if (!texture) return null;
+    const fill = def.tileFill ? buildTiledFill(texture, def.vertices, def.tint) : buildStretchedFill(texture, def);
+    container.addChild(fill);
+  }
 
   if (def.border) {
     const border = buildBorderStrip(def.border, def.vertices, def.tint);

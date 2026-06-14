@@ -764,6 +764,69 @@ tile_map_data = PackedByteArray("${blob}")
     ]);
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   });
+
+  it('emits a border-only mesh (no fill) for a mask_children shape with a border_texture', () => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-clipborder-'));
+    fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, 'tileset.tres'),
+      `[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/sheet.tres" id="1_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_0"]
+texture = ExtResource("1_tex")
+texture_region_size = Vector2i(32, 32)
+
+[resource]
+sources/0 = SubResource("atlas_0")
+tile_size = Vector2i(32, 32)
+`,
+    );
+
+    const blob = makeBlob([[0, 0, 0, 0, 0, 0]]);
+    const tscn = `[gd_scene load_steps=4 format=3]
+
+[ext_resource type="TileSet" path="res://tileset.tres" id="1_ts"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+[ext_resource type="Texture2D" path="res://sprites/border.tres" id="3_border"]
+
+[node name="Root" type="Node2D"]
+
+[node name="clip" type="Polygon2D" parent="."]
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 64, 0, 64, 64, 0, 64)
+mask_children = true
+border_texture = ExtResource("3_border")
+border_width = 8.0
+
+[node name="tiles" type="TileMapLayer" parent="clip"]
+tile_set = ExtResource("1_ts")
+tile_map_data = PackedByteArray("${blob}")
+`;
+    const geo = parseGeometryTscn(
+      tscn,
+      {
+        sheet: {
+          godotPath: 'res://sprites/sheet.tres',
+          type: 'AtlasTexture',
+          pixiFrame: 'sheet#0',
+          tilesheet: { framePrefix: 'tiles', cols: 10, rows: 10, tileSize: 32 },
+        },
+        border: { godotPath: 'res://sprites/border.tres', type: 'AtlasTexture', pixiFrame: 'border#0' },
+      },
+      { godotRoot: tmpRoot },
+    );
+    // The mask still projects its clip polygon onto the child layer...
+    expect(geo.background!.tileLayers[0].clip).toHaveLength(4);
+    // ...and now also emits a border-only mesh: a border, but no fill frame/tiling.
+    expect(geo.background!.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.pixiFrame).toBeUndefined();
+    expect(mesh.tileFill).toBeUndefined();
+    expect(mesh.border).toMatchObject({ pixiFrame: 'border#0', width: 8 });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
 });
 
 describe('parseGeometryTscn — Box2DRoot', () => {
