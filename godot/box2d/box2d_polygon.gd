@@ -18,14 +18,11 @@ class_name Box2DPolygon
 ##
 ## `attached = false` marks the node as editor-only reference art; the exporter
 ## skips it entirely (same as Box2DSprite).
-
-func _ready() -> void:
-	# Editor-only nicety: Godot's native Polygon2D otherwise stretches the single
-	# fill frame across the shape (it knows nothing about the runtime tiling), so
-	# enable texture repeat to preview the tiled fill roughly. Has no effect on
-	# the export — the runtime renderer ignores it. The border/corner pieces are
-	# runtime-only and still won't show in the editor.
-	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+##
+## Note: the Godot editor draws this with its native Polygon2D renderer, which
+## just stretches the single fill frame across the shape — it can't preview the
+## runtime tiled fill / border / corners. (texture_repeat isn't used because it
+## bleeds neighbouring frames out of the atlas page.)
 
 ## Repeat the fill texture across the polygon instead of stretching one copy.
 @export var tile_fill: bool = true

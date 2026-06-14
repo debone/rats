@@ -448,13 +448,7 @@ function instantiateMesh(
   ta: number,
 ): Container | null {
   if (!def.pixiFrame) return null;
-  let texture: Texture;
-  try {
-    texture = Assets.get<Texture>(def.pixiFrame) ?? Texture.from(def.pixiFrame);
-  } catch {
-    console.warn(`[loadGodotGeometry] Mesh texture not found: "${def.pixiFrame}"`);
-    return null;
-  }
+  const texture = resolveFrameTexture(def.pixiFrame, `mesh "${def.name}" fill`);
   if (!texture) return null;
 
   const fill = def.tileFill ? buildTiledFill(texture, def.vertices, def.tint) : buildStretchedFill(texture, def);
@@ -478,6 +472,26 @@ function instantiateMesh(
   if (def.alpha !== undefined) container.alpha = def.alpha;
   if (def.z !== undefined) container.zIndex = def.z;
   return container;
+}
+
+/**
+ * Resolve an atlas frame to a loaded Texture, warning loudly (and returning
+ * null) if it isn't in the current asset bundle. We deliberately avoid the
+ * `Texture.from` fallback: for an unloaded frame it can hand back an empty
+ * texture, which renders nothing with no error — making a Box2DPolygon vanish
+ * silently. The most common cause is the fill/border/corner frame not being in
+ * the level's loaded bundle.
+ */
+function resolveFrameTexture(frame: string, role: string): Texture | null {
+  const texture = Assets.get<Texture>(frame);
+  if (!texture) {
+    console.warn(
+      `[loadGodotGeometry] ${role}: atlas frame "${frame}" is not loaded — ` +
+        `is it included in this level's asset bundle? Skipping.`,
+    );
+    return null;
+  }
+  return texture;
 }
 
 /** Plain stretched fill: one frame mapped across the polygon (legacy Polygon2D behaviour). */
@@ -559,13 +573,7 @@ const MITRE_LIMIT = 4;
  */
 function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number): Container | null {
   if (vertices.length < 2) return null;
-  let texture: Texture;
-  try {
-    texture = Assets.get<Texture>(border.pixiFrame) ?? Texture.from(border.pixiFrame);
-  } catch {
-    console.warn(`[loadGodotGeometry] Mesh border texture not found: "${border.pixiFrame}"`);
-    return null;
-  }
+  const texture = resolveFrameTexture(border.pixiFrame, 'mesh border');
   if (!texture) return null;
 
   const frameW = texture.width || 1;
@@ -700,13 +708,7 @@ function addCornerPieces(
   size: number,
   tint?: number,
 ): void {
-  let texture: Texture;
-  try {
-    texture = Assets.get<Texture>(frame) ?? Texture.from(frame);
-  } catch {
-    console.warn(`[loadGodotGeometry] Mesh border corner texture not found: "${frame}"`);
-    return;
-  }
+  const texture = resolveFrameTexture(frame, 'mesh border corner');
   if (!texture) return;
 
   const n = verts.length;
