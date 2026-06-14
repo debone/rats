@@ -11,9 +11,10 @@ gravity = Vector2(0, -10)
 ; A Box2DNineSlice (a Sprite2D with the nine-slice script). Assign a texture
 ; whose aseprite source had a `-slices` layer — the non-stretching borders
 ; (here 15/16/16/16) are baked into the atlas metadata and threaded through to
-; the runtime NineSliceSprite, so you only set `size` (the stretched target).
-; Corners stay fixed; edges + center stretch to fill the 192×128 box.
+; the runtime NineSliceSprite. Size it by SCALING the node (no `size` export):
+; runtime size = natural texture size × scale, with the corners staying fixed
+; and only the edges + center stretching.
 [node name="panel" type="Sprite2D" parent="."]
 texture = ExtResource("3_bg")
 script = ExtResource("2_nine")
-size = Vector2(192, 128)
+scale = Vector2(4, 3)

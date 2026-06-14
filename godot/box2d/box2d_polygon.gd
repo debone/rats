@@ -45,6 +45,12 @@ class_name Box2DPolygon
 ## 0 stamps every vertex; raise it so shallow turns (e.g. a tessellated curve)
 ## skip the corner and only genuinely sharp corners get one.
 @export_range(0.0, 180.0) var border_corner_min_angle: float = 0.0
+## Corner size as a multiple of the strip width (1 = same size as the border).
+@export_range(0.0, 8.0, 0.05) var border_corner_scale: float = 1.0
+## How each corner piece is rotated: Free = aligned to the joint bisector (current
+## behaviour), Snap 90° = bisector rounded to the nearest 0/90/180/270, None = the
+## frame is left upright (axis-aligned).
+@export_enum("Free", "Snap 90°", "None") var border_corner_orientation: int = 0
 
 @export_group("Export")
 ## false = editor-only reference art; the exporter skips it.

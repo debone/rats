@@ -115,6 +115,9 @@ These node types are supported today:
   tile, 1 = one frame width), `border_closed`, and `tile_fill`. At runtime the
   fill is a grid of tile sprites clipped to the polygon by a mask, and the border
   is a tiled quad-strip mesh (mitred at corners, with optional corner pieces).
+  Corner pieces take `border_corner_scale` (size as a multiple of the strip
+  width) and `border_corner_orientation` (Free = aligned to the joint bisector,
+  Snap 90° = nearest 0/90/180/270, None = upright).
   Both tile atlas frames correctly — each tile/quad is its own draw with a 0..1
   UV, so no GPU texture-repeat is involved.
   `attached = false` marks it editor-only, same as `Box2DSprite`. Tip: author
@@ -155,14 +158,16 @@ These node types are supported today:
 - **`Box2DNineSlice`** (extends `Sprite2D`) — a stretchable nine-slice
   panel for frames/backgrounds that need to resize without distorting
   their corners. Assign the sliced texture (an atlas frame whose aseprite
-  source had a `-slices` layer) and set `size` to the stretched
-  dimensions. The non-stretching borders (`left/top/right/bottom`) are NOT
-  re-entered here — they're authored once in the aseprite slice layer,
-  baked into the atlas metadata, and threaded through `sprite-map.json` →
-  geometry JSON → the runtime's Pixi `NineSliceSprite`. In the editor the
-  source texture shows at its natural size; `size` only affects the
-  runtime stretch. `attached = false` marks it editor-only, same as
-  `Box2DSprite`.
+  source had a `-slices` layer) and **size it by scaling the node** — there's
+  no `size` export. At runtime the stretched dimensions are the natural
+  texture size × the node's scale, but the corners keep their natural pixel
+  size (only edges/center stretch). The non-stretching borders
+  (`left/top/right/bottom`) are NOT re-entered here — they're authored once in
+  the aseprite slice layer, baked into the atlas metadata, and threaded through
+  `sprite-map.json` → geometry JSON → the runtime's Pixi `NineSliceSprite`.
+  (Editor caveat: a scaled Sprite2D stretches the corners in-editor, so the
+  preview won't perfectly match the runtime pinning.) `attached = false` marks
+  it editor-only, same as `Box2DSprite`.
 
 The exporter walks the whole tree, so background nodes can live at the
 scene root, inside logical group nodes, or inside an instanced subscene

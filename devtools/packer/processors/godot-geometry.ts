@@ -105,8 +105,6 @@ export interface NinePatchDef {
   rotation: number;
   scale: V2;
   anchor: V2;
-  /** Stretched size in pixels (Godot's exported `size`). */
-  size: V2;
   /** Non-stretching border widths in texture pixels. */
   borders: { left: number; top: number; right: number; bottom: number };
   z?: number;
@@ -178,6 +176,8 @@ export interface MeshDef {
   tileFill?: boolean;
   /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
   border?: MeshBorderDef;
+  /** Render after tile layers (e.g. a mask_children border that frames its tilemap). */
+  overlay?: boolean;
 }
 
 /**
@@ -200,6 +200,10 @@ export interface MeshBorderDef {
   cornerAtlas?: string;
   /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
   cornerMinAngle?: number;
+  /** Corner size multiplier relative to the strip width (1 = same as the border). */
+  cornerScale?: number;
+  /** Corner rotation: 'free' = bisector tangent (default), 'snap' = nearest 90°, 'none' = unrotated. */
+  cornerOrientation?: 'free' | 'snap' | 'none';
 }
 
 /**
@@ -1144,6 +1148,7 @@ function buildBackground(
         delete m.pixiFrame;
         delete m.pixiAtlas;
         delete m.tileFill;
+        m.overlay = true; // draw the border on top of the masked tilemap, not under it
         meshes.push(m);
       }
       continue; // the clip polygon itself is projected onto the child layer below
@@ -1534,6 +1539,12 @@ function buildMeshBorder(
     if (cornerResolved.atlas) border.cornerAtlas = cornerResolved.atlas;
     const minAngle = parseFloat(unquote(node.props.get('border_corner_min_angle') ?? '0')) || 0;
     if (minAngle > 0) border.cornerMinAngle = minAngle;
+    const cornerScale = parseFloat(unquote(node.props.get('border_corner_scale') ?? '1'));
+    if (cornerScale > 0 && cornerScale !== 1) border.cornerScale = cornerScale;
+    // border_corner_orientation enum: 0 = Free (bisector), 1 = Snap 90°, 2 = None.
+    const orient = parseInt(unquote(node.props.get('border_corner_orientation') ?? '0'), 10) || 0;
+    if (orient === 1) border.cornerOrientation = 'snap';
+    else if (orient === 2) border.cornerOrientation = 'none';
   }
   return border;
 }
@@ -1753,7 +1764,6 @@ function buildNinePatch(
     console.warn(`[Godot] Box2DNineSlice "${node.name}" texture has no slice borders; rendering as a plain stretch`);
   }
 
-  const size = parseVector2(node.props.get('size') ?? '') ?? { x: 48, y: 48 };
   const centeredRaw = node.props.get('centered');
   const centered = centeredRaw === undefined ? true : decodeGodotValue(centeredRaw) === true;
   const offset = parseVector2(node.props.get('offset') ?? '') ?? { x: 0, y: 0 };
@@ -1782,7 +1792,6 @@ function buildNinePatch(
     rotation: gt.rotation,
     scale: gt.scale,
     anchor: centered ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 },
-    size,
     borders,
   };
   if (resolved?.atlas) out.pixiAtlas = resolved.atlas;

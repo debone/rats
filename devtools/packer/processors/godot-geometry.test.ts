@@ -328,9 +328,9 @@ texture = ExtResource("1_tex")
 
 [node name="panel" type="Sprite2D" parent="."]
 position = Vector2(100, 50)
+scale = Vector2(2, 1.5)
 texture = ExtResource("1_tex")
 script = ExtResource("2_ns")
-size = Vector2(120, 80)
 `;
     const geo = parseGeometryTscn(tscn, {
       bg: {
@@ -345,7 +345,8 @@ size = Vector2(120, 80)
     expect(geo.background!.ninePatches).toHaveLength(1);
     const np = geo.background!.ninePatches[0];
     expect(np.pixiFrame).toBe('bg#0');
-    expect(np.size).toEqual({ x: 120, y: 80 });
+    // No `size` export — the node's scale drives the runtime stretch instead.
+    expect(np.scale).toEqual({ x: 2, y: 1.5 });
     expect(np.borders).toEqual({ left: 15, top: 16, right: 16, bottom: 16 });
     expect(np.position).toEqual({ x: 100, y: 50 });
     // Sprite2D defaults to centered → anchor (0.5, 0.5).
@@ -431,6 +432,35 @@ border_texture_scale = 0.5
       closed: true,
       cornerFrame: 'foam_corner#0',
       cornerAtlas: 'fx/foam.aseprite',
+    });
+  });
+
+  it('reads border_corner_scale and border_corner_orientation onto the border def', () => {
+    const tscn = `[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://b.tres" id="1_border"]
+[ext_resource type="Texture2D" path="res://c.tres" id="2_corner"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="3_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="p" type="Polygon2D" parent="."]
+script = ExtResource("3_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+border_texture = ExtResource("1_border")
+border_corner_texture = ExtResource("2_corner")
+border_width = 6.0
+border_corner_scale = 2.5
+border_corner_orientation = 1
+`;
+    const geo = parseGeometryTscn(tscn, {
+      b: { godotPath: 'res://b.tres', type: 'AtlasTexture', pixiFrame: 'b#0' },
+      c: { godotPath: 'res://c.tres', type: 'AtlasTexture', pixiFrame: 'c#0' },
+    });
+    expect(geo.background!.meshes[0].border).toMatchObject({
+      cornerFrame: 'c#0',
+      cornerScale: 2.5,
+      cornerOrientation: 'snap',
     });
   });
 

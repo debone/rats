@@ -72,8 +72,6 @@ export interface NinePatchDef {
   rotation: number;
   scale: V2;
   anchor: V2;
-  /** Stretched size in pixels. */
-  size: V2;
   /** Non-stretching border widths in texture pixels. */
   borders: { left: number; top: number; right: number; bottom: number };
   z?: number;
@@ -111,6 +109,8 @@ export interface MeshDef {
   tileFill?: boolean;
   /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
   border?: MeshBorderDef;
+  /** Render after tile layers (e.g. a mask_children border that frames its tilemap). */
+  overlay?: boolean;
 }
 
 export interface MeshBorderDef {
@@ -129,6 +129,10 @@ export interface MeshBorderDef {
   cornerAtlas?: string;
   /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
   cornerMinAngle?: number;
+  /** Corner size multiplier relative to the strip width (1 = same as the border). */
+  cornerScale?: number;
+  /** Corner rotation: 'free' = bisector tangent (default), 'snap' = nearest 90°, 'none' = unrotated. */
+  cornerOrientation?: 'free' | 'snap' | 'none';
 }
 
 export interface BackgroundSpriteDef {
@@ -349,7 +353,11 @@ export function loadGodotGeometry(
   const bgTileLayers: Container[] = [];
   const bgNinePatches: NineSliceSprite[] = [];
   if (spritesEnabled && geo.background && options.container) {
+    // Non-overlay meshes draw under everything else; overlay meshes (e.g. a
+    // mask_children border framing its tilemap) are deferred until after the
+    // tile layers so they sit on top of the tiles they frame.
     for (const m of geo.background.meshes) {
+      if (m.overlay) continue;
       const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
       if (mesh) {
         options.container.addChild(mesh);
@@ -368,6 +376,15 @@ export function loadGodotGeometry(
       if (container) {
         options.container.addChild(container);
         bgTileLayers.push(container);
+      }
+    }
+    // Deferred overlay meshes — drawn after the tile layers they frame.
+    for (const m of geo.background.meshes) {
+      if (!m.overlay) continue;
+      const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
+      if (mesh) {
+        options.container.addChild(mesh);
+        bgMeshes.push(mesh);
       }
     }
     // `?? []` keeps older geometry blobs (emitted before nine-slice support)
@@ -718,8 +735,9 @@ function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number):
       border.cornerAtlas,
       vertices,
       border.closed,
-      width,
+      width * (border.cornerScale && border.cornerScale > 0 ? border.cornerScale : 1),
       border.cornerMinAngle ?? 0,
+      border.cornerOrientation ?? 'free',
       tint,
     );
   return group;
@@ -773,7 +791,7 @@ function unit(from: V2, other: V2, incoming: boolean): V2 {
   return { x: dx / l, y: dy / l };
 }
 
-/** Stamp a corner frame at each joint, sized to the strip width and rotated to the bisector tangent. */
+/** Stamp a corner frame at each joint, sized to `size` and rotated per `orientation`. */
 function addCornerPieces(
   group: Container,
   frame: string,
@@ -782,6 +800,7 @@ function addCornerPieces(
   closed: boolean,
   size: number,
   minAngle: number,
+  orientation: 'free' | 'snap' | 'none',
   tint?: number,
 ): void {
   const texture = resolveFrameTexture(frame, 'mesh border corner', atlas);
@@ -805,7 +824,11 @@ function addCornerPieces(
     sprite.width = size;
     sprite.height = size;
     sprite.position.set(verts[i].x, verts[i].y);
-    sprite.rotation = Math.atan2(din.y + dout.y, din.x + dout.x); // bisector tangent
+    // 'free' = bisector tangent; 'snap' = that angle rounded to the nearest 90°;
+    // 'none' = axis-aligned (unrotated).
+    const bisector = Math.atan2(din.y + dout.y, din.x + dout.x);
+    sprite.rotation =
+      orientation === 'none' ? 0 : orientation === 'snap' ? Math.round(bisector / (Math.PI / 2)) * (Math.PI / 2) : bisector;
     if (tint !== undefined) sprite.tint = tint;
     group.addChild(sprite);
   }
@@ -849,20 +872,25 @@ function instantiateNinePatch(
   const texture = resolveFrameTexture(def.pixiFrame, `nine-slice "${def.name}"`, def.pixiAtlas);
   if (!texture) return null;
 
+  // The node's Scale drives the stretched size (natural texture size × scale) so
+  // a Box2DNineSlice resizes by scaling the node in Godot. The corners stay at
+  // their natural pixel size — we bake scale into width/height and leave the
+  // sprite's own scale at 1, otherwise the corners would stretch too.
+  const width = (texture.width || 1) * def.scale.x;
+  const height = (texture.height || 1) * def.scale.y;
   const sprite = new NineSliceSprite({
     texture,
     leftWidth: def.borders.left,
     topHeight: def.borders.top,
     rightWidth: def.borders.right,
     bottomHeight: def.borders.bottom,
-    width: def.size.x,
-    height: def.size.y,
+    width,
+    height,
   });
   sprite.label = def.name;
   // NineSliceSprite draws from its top-left; honour Godot's `centered` anchor by
   // pivoting so position/rotation pivot around the same point a Sprite2D would.
-  sprite.pivot.set(def.anchor.x * def.size.x, def.anchor.y * def.size.y);
-  sprite.scale.set(def.scale.x, def.scale.y);
+  sprite.pivot.set(def.anchor.x * width, def.anchor.y * height);
   if (def.tint !== undefined) sprite.tint = def.tint;
   if (def.alpha !== undefined) sprite.alpha = def.alpha;
   if (def.z !== undefined) sprite.zIndex = def.z;
