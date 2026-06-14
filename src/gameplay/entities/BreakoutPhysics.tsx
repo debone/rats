@@ -80,6 +80,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
   ]) {
     visual.x += MIN_WIDTH / 2;
     visual.y += MIN_HEIGHT / 2;
+    visual.zIndex = -1;
   }
 
   const particles = withChildren(() => ({

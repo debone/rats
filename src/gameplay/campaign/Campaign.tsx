@@ -19,8 +19,8 @@ export const Campaign = defineEntity(({ levels }: CampaignProps) => {
   const campaign = state<['initial', 'shop', 'next-level']>(
     {
       initial: () => {
-        execute(LevelTransitionCommand, { nextLevelId: 'level-1' });
-        //execute(LevelTransitionCommand, { nextLevelId: 'shop-level-0' });
+        //execute(LevelTransitionCommand, { nextLevelId: 'level-1' });
+        execute(LevelTransitionCommand, { nextLevelId: 'shop-level-0' });
         return 'shop';
       },
       shop: () => {

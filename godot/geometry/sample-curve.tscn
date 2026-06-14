@@ -1,33 +1,25 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://d0k8uup6b6pvj"]
 
-[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
-[ext_resource type="Script" path="res://box2d/box2d_curve.gd" id="2_curve"]
-[ext_resource type="Texture2D" path="res://sprites/background/aa_tile_1.tres" id="3_fill"]
-[ext_resource type="Texture2D" path="res://sprites/bricks/bricks_tile_1.tres" id="4_border"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://d2bxku6q6ehkh" path="res://box2d/box2d_curve.gd" id="2_curve"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/badges_tile_8.tres" id="3_ib8gr"]
+[ext_resource type="Texture2D" uid="uid://bmw2nx1efce3o" path="res://sprites/bricks/bricks_tile_1.tres" id="4_border"]
 
-; A closed bezier loop approximating a circle (r≈64, handle k≈35). Each control
-; point is (in, out, pos); the last point repeats the first to close the loop.
 [sub_resource type="Curve2D" id="Curve2D_1"]
 _data = {
-"points": PackedVector2Array(0, -35, 0, 35, 64, 0, 35, 0, -35, 0, 0, 64, 0, 35, 0, -35, -64, 0, -35, 0, 35, 0, 0, -64, 0, -35, 0, 35, 64, 0)
+"points": PackedVector2Array(64.11258, -34.5877, -64.11258, 34.5877, 64, 0, 35, 0, -35, 0, -1, 156, 63.08183, 33.96925, -63.08183, -33.96925, -64, 0, -35, 0, 35, 0, 0, -64, 0, -35, 0, 35, 64, 0)
 }
 point_count = 5
 
-[node name="Geometry" type="Node2D"]
+[node name="Geometry" type="Node2D" unique_id=509125079]
 script = ExtResource("1_root")
-gravity = Vector2(0, -10)
 
-; Box2DCurve: the bezier outline is tessellated (curve_samples per segment) and
-; rendered with a masked tiled fill + tiled border, just like Box2DPolygon. No
-; corner texture here — a smooth curve has only shallow turns, so corner pieces
-; would be suppressed by border_corner_min_angle anyway.
-[node name="curve-blob" type="Path2D" parent="."]
-script = ExtResource("2_curve")
-texture = ExtResource("3_fill")
+[node name="curve-blob" type="Path2D" parent="." unique_id=1495734239]
 curve = SubResource("Curve2D_1")
+script = ExtResource("2_curve")
+texture = ExtResource("3_ib8gr")
 curve_samples = 12
-tile_fill = true
 border_texture = ExtResource("4_border")
 border_width = 12.0
 border_texture_scale = 0.5
-border_closed = true
+border_closed = false

@@ -1,21 +1,19 @@
 import { ASSETS } from '@/assets';
+import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { sfx } from '@/core/audio/audio';
-import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { EventEmitter } from '@/core/game/EventEmitter';
+import { getGameContext } from '@/data/game-context';
+import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
 import { useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
+import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
+import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { vfx } from '@/systems/vfx/vfx';
-import { b2Body_GetTransform, type b2BodyId } from 'phaser-box2d';
-import { brickBreak } from '../vfx/burst/brickBreak';
-import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
-import { Assets } from 'pixi.js';
-import { getGameContext } from '@/data/game-context';
-import { LacfreeCrewMember } from '@/entities/crew/Lacfree';
-import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
-import { TEXT_STYLE_DEFAULT } from '@/consts';
 import type { LayoutContainer } from '@pixi/layout/components';
-import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
+import { type b2BodyId } from 'phaser-box2d';
+import { Assets } from 'pixi.js';
+import { brickBreak } from '../vfx/burst/brickBreak';
 
 export type ShopBrickEvents = {
   hit: void;

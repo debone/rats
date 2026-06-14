@@ -1,10 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=4 uid="uid://c34m81bn5glh5"]
 
-[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_root"]
 [ext_resource type="Texture2D" path="res://sprites/level-1{ss=32}/level-1_spritesheet.tres" id="2_sheet"]
 
-; TileSet wrapping the level-1 spritesheet ({ss=32} → 10×10 grid of 32px tiles).
-; Only the tiles we actually paint need declaring (atlas coords X:Y/0 = 0).
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1"]
 texture = ExtResource("2_sheet")
 texture_region_size = Vector2i(32, 32)
@@ -15,14 +13,9 @@ texture_region_size = Vector2i(32, 32)
 tile_size = Vector2i(32, 32)
 sources/1 = SubResource("TileSetAtlasSource_1")
 
-[node name="Geometry" type="Node2D"]
+[node name="Geometry" type="Node2D" unique_id=2098946407]
 script = ExtResource("1_root")
-gravity = Vector2(0, -10)
 
-; A painted TileMapLayer. The exporter flattens `tile_map_data` to per-cell
-; sprite placements (frame = "<sheet>_<row*cols+col>#0"), so the runtime just
-; stamps one Sprite per cell — no atlas-slicing at runtime. Repaint in Godot to
-; change it; the base64 below is a 6×3 block (surface row of tile 3, fill of tile 2).
-[node name="ground" type="TileMapLayer" parent="."]
+[node name="ground" type="TileMapLayer" parent="." unique_id=2073734162]
 tile_map_data = PackedByteArray("AAAAAAAAAQADAAAAAAAAAAEAAQACAAAAAAAAAAIAAQACAAAAAAABAAAAAQADAAAAAAABAAEAAQACAAAAAAABAAIAAQACAAAAAAACAAAAAQADAAAAAAACAAEAAQACAAAAAAACAAIAAQACAAAAAAADAAAAAQADAAAAAAADAAEAAQACAAAAAAADAAIAAQACAAAAAAAEAAAAAQADAAAAAAAEAAEAAQACAAAAAAAEAAIAAQACAAAAAAAFAAAAAQADAAAAAAAFAAEAAQACAAAAAAAFAAIAAQACAAAAAAA=")
 tile_set = SubResource("TileSet_1")

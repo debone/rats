@@ -20,7 +20,7 @@ export const Level1 = defineEntity(() => {
   setLevelState({ id: 'level-1', name: t.dict['level-1.name'] });
 
   withChildren(() => {
-    //    Background({ tiledMap: TILED_MAPS.backgrounds_level_1 });
+    Background({ tiledMap: TILED_MAPS.backgrounds_level_1 });
 
     LivesBallRules({
       onLose,

@@ -1,27 +1,21 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://cvoud25rf70lr"]
 
-[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
-[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://h012lgqlm3k6" path="res://box2d/box2d_polygon.gd" id="2_poly"]
 [ext_resource type="Texture2D" path="res://sprites/background/aa_tile_1.tres" id="3_fill"]
 [ext_resource type="Texture2D" path="res://sprites/bricks/bricks_tile_1.tres" id="4_border"]
 [ext_resource type="Texture2D" path="res://sprites/bricks/bricks_tile_2.tres" id="5_corner"]
 
-[node name="Geometry" type="Node2D"]
+[node name="Geometry" type="Node2D" unique_id=473335224]
 script = ExtResource("1_root")
-gravity = Vector2(0, -10)
 
-; A Box2DPolygon showcasing all three features:
-;  - tile_fill: the aa_tile_1 frame is tiled across the polygon (masked tilemap)
-;  - border_texture: bricks_tile_1 tiled along the outline as a mitred quad-strip
-;  - border_corner_texture: bricks_tile_2 stamped over each mitred corner joint
-[node name="water-pool" type="Polygon2D" parent="."]
-position = Vector2(0, 0)
+[node name="water-pool" type="Polygon2D" parent="." unique_id=167234318]
 texture = ExtResource("3_fill")
-script = ExtResource("2_poly")
 polygon = PackedVector2Array(-96, -64, 96, -64, 96, 64, 0, 112, -96, 64)
-tile_fill = true
+script = ExtResource("2_poly")
 border_texture = ExtResource("4_border")
-border_corner_texture = ExtResource("5_corner")
 border_width = 16.0
 border_texture_scale = 0.5
-border_closed = true
+border_corner_texture = ExtResource("5_corner")
+border_corner_size = Vector2(32, 16)
+border_corner_orientation = 1

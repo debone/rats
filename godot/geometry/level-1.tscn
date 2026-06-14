@@ -5,8 +5,6 @@
 [ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="3_b2d"]
 [ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="4_b2d"]
 [ext_resource type="Script" uid="uid://cnhmcyfwdovrq" path="res://box2d/box2d_prismatic_joint.gd" id="5_b2d"]
-[ext_resource type="PackedScene" path="res://geometry/sample-polygon.tscn" id="6_jlxxw"]
-[ext_resource type="PackedScene" uid="uid://d1o4h4p5gkrw7" path="res://geometry/bricks/shop-brick.tscn" id="7_2ai1f"]
 
 [node name="Geometry" type="Node2D" unique_id=1105854131]
 script = ExtResource("1_b2d")
@@ -764,9 +762,3 @@ body_b = NodePath("paddle-joint-temp")
 enable_limit = true
 lower_limit = -160.0
 upper_limit = 160.0
-
-[node name="Geometry" parent="." unique_id=49188402 instance=ExtResource("6_jlxxw")]
-position = Vector2(5, 116)
-
-[node name="ShopBrick" parent="." unique_id=1276501009 instance=ExtResource("7_2ai1f")]
-position = Vector2(143, 131)
