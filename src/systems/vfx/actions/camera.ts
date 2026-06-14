@@ -1,5 +1,6 @@
-import type { EasingParam, Timeline } from 'animejs';
 import { CameraEasing, type Camera } from '@/core/camera/camera';
+import { animate, type EasingParam, type Timeline } from 'animejs';
+import type { TimelineLike } from '../timeline/compile';
 
 /**
  * Timeline-native camera effects.
@@ -35,13 +36,12 @@ export interface ShakeOptions {
 }
 
 /**
- * Add a camera shake to a timeline, starting at `at` ms.
+ * Animate a camera shake
  *
  * Models the shake as a keyframe array so it is a single tween:
  * `frequency` equally-spaced steps of pseudo-random offset, decaying to zero.
- * Because it's a `tl.add`, it honors `timeline.speed` and scrubs correctly.
  */
-export function addShake(tl: Timeline, camera: Camera, options: ShakeOptions = {}, at = 0): void {
+export function addShake(camera: Camera, options: ShakeOptions = {}): void {
   const { intensity = 5, duration = 500, frequency = 10, decay = true, direction = 'both' } = options;
 
   const xs: number[] = [];
@@ -58,7 +58,7 @@ export function addShake(tl: Timeline, camera: Camera, options: ShakeOptions = {
   xs.push(0);
   ys.push(0);
 
-  tl.add(camera, { offsetX: xs, offsetY: ys, duration, ease: 'linear' }, at);
+  animate(camera, { offsetX: xs, offsetY: ys, duration, ease: 'linear' });
 }
 
 // ---------------------------------------------------------------------------

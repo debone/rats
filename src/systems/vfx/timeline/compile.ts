@@ -40,7 +40,8 @@ function resolve(actor: object, property: string): { target: object; prop: strin
  * Dotted properties resolve to nested targets (`actor.scale.x`). `tint` values stay
  * strings so anime color-interpolates.
  *
- * Per cue: `tl.call(hooks[cue.hook], frameMs)` — a fire-once beat, muted on scrub.
+ * Per cue track: for each key, `tl.call(() => hook(key.value), frameMs)` — a fire-once
+ * beat that hands the key's authored value to the hook, muted on scrub.
  */
 export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: TimelineLike): void {
   for (const track of doc.tracks) {
@@ -81,12 +82,21 @@ export function compile(doc: TimelineDoc, stage: Stage, hooks: Hooks, tl: Timeli
     }
   }
 
-  for (const cue of doc.cues) {
-    const hook = hooks[cue.hook];
+  for (const cueTrack of doc.cues) {
+    const hook = hooks[cueTrack.hook];
     if (!hook) {
-      console.warn(`[timeline:${doc.id}] cue references unknown hook "${cue.hook}"`);
+      console.warn(`[timeline:${doc.id}] cue references unknown hook "${cueTrack.hook}"`);
       continue;
     }
-    tl.call(hook, framesToMs(cue.time));
+    for (const key of cueTrack.keys) {
+      tl.call(() => hook(tl, key), framesToMs(key.time));
+    }
+  }
+
+  // Anchor the timeline's end to the authored duration so that a sequence whose
+  // last keyframe is before `doc.duration` still runs for its full length.
+  // Without this, anime.js ends the timeline at the last tween/cue endpoint.
+  if (doc.duration > 0) {
+    tl.call(() => {}, framesToMs(doc.duration));
   }
 }

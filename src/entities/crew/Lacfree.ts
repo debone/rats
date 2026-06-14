@@ -1,11 +1,13 @@
 import { t } from '@/i18n/i18n';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 export const LacfreeCrewMember: CrewMemberDef = {
   type: 'lacfree',
   name: t.dict['crew.lacfree.name'],
   textureName: 'avatars-new_tile_9#0',
   hiringCost: 12,
+  rarity: CREW_RARITIES.uncommon,
   activeAbility: {
     name: t.dict['crew.lacfree.active.name'],
     cost: 1,

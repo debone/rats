@@ -1,12 +1,14 @@
 import { GameEvent } from '@/data/events';
 import { t } from '@/i18n/i18n';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 export const SplitterCrewMember: CrewMemberDef = {
   type: 'splitter',
   name: t.dict['crew.splitter.name'],
   textureName: 'avatars-new_tile_5#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.rare,
   activeAbility: {
     name: t.dict['crew.splitter.active.name'],
     cost: 3,

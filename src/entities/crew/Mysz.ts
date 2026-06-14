@@ -1,12 +1,14 @@
 import { GameEvent } from '@/data/events';
 import { t } from '@/i18n/i18n';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 export const MyszCrewMember: CrewMemberDef = {
   type: 'mysz',
   name: t.dict['crew.mysz.name'],
   textureName: 'avatars-new_tile_10#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.uncommon,
   activeAbility: {
     name: t.dict['crew.mysz.active.name'],
     cost: 1,

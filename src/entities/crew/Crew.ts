@@ -19,6 +19,7 @@ import { RatfatherCrewMember } from './Ratfather';
 import { RatoulieCrewMember } from './Ratoulie';
 import { SplitterCrewMember } from './Splitter';
 import { TwoEarsCrewMember } from './TwoEars';
+import { type CrewRarity, RARITY_WEIGHTS } from './types';
 
 export interface Ability {
   readonly name: string;
@@ -66,6 +67,7 @@ export interface CrewMemberDef {
   readonly description?: string;
   readonly type: CrewMemberDefKey;
   readonly textureName: string;
+  readonly rarity: CrewRarity;
   readonly activeAbility: ActiveAbility;
   readonly passiveAbility: PassiveAbility;
 
@@ -82,4 +84,24 @@ export class CrewMemberInstance {
 export function pickRandomCrewMember(): CrewMemberDef {
   const crewMembers = Object.values(CREW_DEFS).filter((member) => member.type !== 'empty');
   return crewMembers[Math.floor(Math.random() * crewMembers.length)];
+}
+
+export function pickRandomCrewMemberSet(count: number): CrewMemberDef[] {
+  const crewMembers = Object.values(CREW_DEFS).filter((member) => member.type !== 'empty');
+  const selectedCrewMembers: CrewMemberDef[] = [];
+
+  for (let i = 0; i < count && crewMembers.length > 0; i++) {
+    const totalWeight = crewMembers.reduce((sum, m) => sum + RARITY_WEIGHTS[m.rarity], 0);
+    let roll = Math.random() * totalWeight;
+    const pickedIndex = crewMembers.findIndex((m) => {
+      roll -= RARITY_WEIGHTS[m.rarity];
+      return roll <= 0;
+    });
+
+    const idx = pickedIndex === -1 ? crewMembers.length - 1 : pickedIndex;
+    selectedCrewMembers.push(crewMembers[idx]);
+    crewMembers.splice(idx, 1);
+  }
+
+  return selectedCrewMembers;
 }

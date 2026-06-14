@@ -1,3 +1,4 @@
+import { migrateDoc } from '../migrate';
 import type { TimelineDoc } from '../types';
 
 /**
@@ -65,6 +66,8 @@ export function loadDraft(id: string, store: DraftStore = defaultStore(), now = 
       clearDraft(id, store);
       return null;
     }
+    // Normalize an older-schema draft (flat cues) before it reaches the editor.
+    migrateDoc(draft.doc);
     return draft;
   } catch {
     return null;

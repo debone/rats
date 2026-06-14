@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://b2a4di67lsw4c"]
+
+[ext_resource type="Script" uid="uid://doniiw8eblphn" path="res://box2d/box2d_static_body.gd" id="1_8b32g"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_f4fsr"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="2_f4fsr"]
+[ext_resource type="Texture2D" uid="uid://b3bcqdxortjsl" path="res://sprites/prototype{ss=32}/bricks_tile_1.tres" id="3_8dg0i"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="4_dqoiy"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_2.tres" id="5_4ej1x"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/avatars-new_tile_13.tres" id="6_18b25"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/badges_tile_4.tres" id="7_f347r"]
+
+[node name="ShopBrickRoot" type="Node2D" unique_id=1585926002]
+script = ExtResource("1_f4fsr")
+metadata/_custom_type_script = "uid://dn4fg76x5vhho"
+
+[node name="ShopBrick" type="StaticBody2D" parent="." unique_id=1179592842]
+script = ExtResource("1_8b32g")
+type = "shop-brick"
+metadata/_custom_type_script = "uid://doniiw8eblphn"
+
+[node name="shape" type="CollisionPolygon2D" parent="ShopBrick" unique_id=1948829005]
+modulate = Color(1, 1, 1, 100)
+rotation = 1.5718223
+polygon = PackedVector2Array(-16, -8, 16, -8, 16, 8, -16, 8)
+script = ExtResource("2_f4fsr")
+
+[node name="BricksTile1" type="Sprite2D" parent="ShopBrick" unique_id=1937237771]
+texture = ExtResource("3_8dg0i")
+script = ExtResource("4_dqoiy")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="BricksTile2" type="Sprite2D" parent="ShopBrick" unique_id=1579977749]
+position = Vector2(0, -10)
+texture = ExtResource("5_4ej1x")
+script = ExtResource("4_dqoiy")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="AvatarsNewTile13" type="Sprite2D" parent="ShopBrick" unique_id=1109223133]
+position = Vector2(0, -31)
+rotation = 1.5707964
+texture = ExtResource("6_18b25")
+script = ExtResource("4_dqoiy")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="BadgesTile4" type="Sprite2D" parent="ShopBrick" unique_id=513696018]
+position = Vector2(0, -3)
+texture = ExtResource("7_f347r")
+script = ExtResource("4_dqoiy")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"

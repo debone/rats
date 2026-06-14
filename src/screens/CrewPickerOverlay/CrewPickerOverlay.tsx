@@ -15,7 +15,6 @@ import { CREW_PICKER_CTX, type HoveredCrewMember } from './context';
 import { CrewSection } from './sections/CrewSection';
 import { Footer } from './sections/Footer';
 import { Header } from './sections/Header';
-import { ShopSection } from './sections/ShopSection';
 
 export class CrewPickerOverlay extends Container implements AppScreen {
   static readonly SCREEN_ID = 'crew-picker';
@@ -93,7 +92,6 @@ export class CrewPickerOverlay extends Container implements AppScreen {
           }, 500);
         }}
       />
-      <ShopSection />
       <CrewSection surface={this} />
       <Footer />
     </mount>;

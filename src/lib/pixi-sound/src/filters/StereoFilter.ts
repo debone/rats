@@ -48,7 +48,9 @@ class StereoFilter extends Filter {
     if (this._stereo) {
       WebAudioUtils.setParamValue(this._stereo.pan, value);
     } else if (this._panner) {
-      this._panner.setPosition(value, 0, 1 - Math.abs(value));
+      WebAudioUtils.setParamValue(this._panner.positionX, value);
+      WebAudioUtils.setParamValue(this._panner.positionY, 0);
+      WebAudioUtils.setParamValue(this._panner.positionZ, 1 - Math.abs(value));
     }
   }
   get pan(): number {
