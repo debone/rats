@@ -647,8 +647,10 @@ export function parseGeometryTscn(
   //   - apply the instance's global transform to each subscene body's position/angle
   //   - prefix subscene body names with "<instance>/" to keep them unique
   //   - shift joint bodyA/bodyB indices by the current bodies array length
+  //   - merge the subscene's background visuals, transformed into parent space
   // Subscene NodePaths are already resolved internally (during the recursive
   // parseGeometryTscn call), so we don't need to re-rewrite them.
+  const subBackground: BackgroundDef = { meshes: [], sprites: [], tileLayers: [], ninePatches: [] };
   const instanceNodes = nodes.filter((n) => n.instanceResPath !== undefined);
   for (const instNode of instanceNodes) {
     const subPath = resolveResPath(instNode.instanceResPath!, options.godotRoot);
@@ -706,6 +708,28 @@ export function parseGeometryTscn(
         bodyB: subJoint.bodyB + baseIndex,
       } as Box2DJointDef);
     }
+
+    // Background visuals stay in Godot pixel space (no PXM / Y-flip), so compose
+    // the instance's global transform directly with each item's local transform.
+    if (subGeo.background) {
+      const cosI = Math.cos(instGT.rotation);
+      const sinI = Math.sin(instGT.rotation);
+      const place = <T extends { name: string; position: V2; rotation: number; scale: V2 }>(item: T): T => {
+        const lx = item.position.x * instGT.scale.x;
+        const ly = item.position.y * instGT.scale.y;
+        return {
+          ...item,
+          name: `${instNode.name}/${item.name}`,
+          position: { x: instGT.origin.x + cosI * lx - sinI * ly, y: instGT.origin.y + sinI * lx + cosI * ly },
+          rotation: item.rotation + instGT.rotation,
+          scale: { x: item.scale.x * instGT.scale.x, y: item.scale.y * instGT.scale.y },
+        };
+      };
+      for (const m of subGeo.background.meshes) subBackground.meshes.push(place(m));
+      for (const s of subGeo.background.sprites) subBackground.sprites.push(place(s));
+      for (const t of subGeo.background.tileLayers) subBackground.tileLayers.push(place(t));
+      for (const np of subGeo.background.ninePatches) subBackground.ninePatches.push(place(np));
+    }
   }
 
   // Build local joint defs (after subscene merge so indices are stable)
@@ -742,7 +766,7 @@ export function parseGeometryTscn(
     return false;
   };
 
-  const background = buildBackground(
+  const ownBackground = buildBackground(
     nodes,
     isUnderBody,
     extResources,
@@ -752,6 +776,23 @@ export function parseGeometryTscn(
     spriteMap,
     options.godotRoot,
   );
+
+  // Combine this scene's own background visuals with those merged in from
+  // instanced subscenes (e.g. a Box2DPolygon authored in a reusable .tscn).
+  const hasSubBackground =
+    subBackground.meshes.length > 0 ||
+    subBackground.sprites.length > 0 ||
+    subBackground.tileLayers.length > 0 ||
+    subBackground.ninePatches.length > 0;
+  let background: BackgroundDef | null | undefined = ownBackground;
+  if (hasSubBackground) {
+    background = {
+      meshes: [...(ownBackground?.meshes ?? []), ...subBackground.meshes],
+      sprites: [...(ownBackground?.sprites ?? []), ...subBackground.sprites],
+      tileLayers: [...(ownBackground?.tileLayers ?? []), ...subBackground.tileLayers],
+      ninePatches: [...(ownBackground?.ninePatches ?? []), ...subBackground.ninePatches],
+    };
+  }
 
   return { gravity, bodies, joints, ...(background ? { background } : {}) };
 }

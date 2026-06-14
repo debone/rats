@@ -696,4 +696,47 @@ position = Vector2(160, 0)
     expect(geo.bodies[0].position.y).toBeCloseTo(0, 5);
     expect(geo.bodies[0].userData).toEqual({ type: 'cat-body' });
   });
+
+  it('merges a subscene background mesh into the parent, transformed into parent space', () => {
+    // Subscene with a Box2DPolygon (background visual, no body)
+    fs.writeFileSync(
+      path.join(tmpRoot, 'geometry', 'pool.tscn'),
+      `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+
+[node name="PoolRoot" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+position = Vector2(10, 0)
+texture = ExtResource("1_fill")
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+`,
+    );
+
+    const outerTscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://geometry/pool.tscn" id="1_pool"]
+
+[node name="Stage" type="Node2D"]
+
+[node name="Pool" type="Node2D" parent="." instance=ExtResource("1_pool")]
+position = Vector2(160, 0)
+`;
+    const geo = parseGeometryTscn(
+      outerTscn,
+      { fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' } },
+      { godotRoot: tmpRoot, subsceneCache: new Map() },
+    );
+    expect(geo.background?.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.name).toBe('Pool/water');
+    expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.tileFill).toBe(true);
+    // water node at (10, 0) inside pool.tscn, instance at (160, 0) → (170, 0).
+    expect(mesh.position.x).toBeCloseTo(170, 5);
+    expect(mesh.position.y).toBeCloseTo(0, 5);
+  });
 });
