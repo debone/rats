@@ -52,13 +52,13 @@ class_name Box2DPolygon
 ## When true this polygon renders NO fill/border of its own — its outline becomes
 ## a clip mask for any child TileMapLayer (lets you paint an arbitrary tilemap and
 ## confine it to this shape at runtime).
-@export var clip_children: bool = false
+@export var mask_children: bool = false
 
 
 # --- Editor-only preview -----------------------------------------------------
 # The runtime fill/border/corners are Pixi-side, so Godot can't show them. Draw a
 # rough outline (plus a faint band where the border strip runs) so the shape and
-# border path stay visible while authoring — including clip_children masks.
+# border path stay visible while authoring — including mask_children masks.
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		queue_redraw()
@@ -71,7 +71,7 @@ func _draw() -> void:
 	if border_texture != null:
 		var w: float = border_width if border_width > 0.0 else 8.0
 		draw_polyline(outline, Color(1.0, 1.0, 1.0, 0.35), w, true)
-	if clip_children:
+	if mask_children:
 		draw_colored_polygon(polygon, Color(1.0, 0.5, 0.2, 0.12))
 		draw_polyline(outline, Color(1.0, 0.5, 0.2, 0.9), 2.0, true)
 	else:

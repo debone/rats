@@ -701,7 +701,7 @@ tile_map_data = PackedByteArray("${blob}")
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   });
 
-  it('clips a child TileMapLayer to a clip_children Box2DPolygon (no mesh, clip projected to layer-local)', () => {
+  it('clips a child TileMapLayer to a mask_children Box2DPolygon (no mesh, clip projected to layer-local)', () => {
     const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-clip-'));
     fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
     fs.writeFileSync(
@@ -732,7 +732,7 @@ tile_size = Vector2i(32, 32)
 position = Vector2(10, 20)
 script = ExtResource("2_poly")
 polygon = PackedVector2Array(0, 0, 64, 0, 64, 64, 0, 64)
-clip_children = true
+mask_children = true
 
 [node name="tiles" type="TileMapLayer" parent="clip"]
 position = Vector2(5, 5)

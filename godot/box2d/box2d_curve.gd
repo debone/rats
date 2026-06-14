@@ -50,13 +50,13 @@ class_name Box2DCurve
 @export var attached: bool = true
 ## When true this curve renders NO fill/border of its own — its tessellated
 ## outline becomes a clip mask for any child TileMapLayer.
-@export var clip_children: bool = false
+@export var mask_children: bool = false
 
 
 # --- Editor-only preview -----------------------------------------------------
 # Path2D only shows the bare curve line, so draw the tessellated outline (plus a
 # faint band where the border strip runs) to keep the shape/border visible while
-# authoring — including clip_children masks.
+# authoring — including mask_children masks.
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		queue_redraw()
@@ -68,12 +68,12 @@ func _draw() -> void:
 	if pts.size() < 2:
 		return
 	var outline := PackedVector2Array(pts)
-	if border_closed or clip_children:
+	if border_closed or mask_children:
 		outline.append(pts[0])
 	if border_texture != null:
 		var w: float = border_width if border_width > 0.0 else 8.0
 		draw_polyline(outline, Color(1.0, 1.0, 1.0, 0.35), w, true)
-	if clip_children:
+	if mask_children:
 		draw_colored_polygon(pts, Color(1.0, 0.5, 0.2, 0.12))
 		draw_polyline(outline, Color(1.0, 0.5, 0.2, 0.9), 2.0, true)
 	else:

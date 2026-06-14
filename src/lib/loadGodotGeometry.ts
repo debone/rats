@@ -440,7 +440,7 @@ function instantiateTileLayer(
     container.addChild(sprite);
   }
   // Clip the tiles to the parent shape's outline (Box2DPolygon/Box2DCurve with
-  // clip_children). The clip polygon is already in this layer's local space.
+  // mask_children). The clip polygon is already in this layer's local space.
   if (def.clip && def.clip.length >= 3) {
     const mask = new Graphics();
     mask.poly(def.clip.flatMap((v) => [v.x, v.y])).fill(0xffffff);

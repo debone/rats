@@ -130,7 +130,7 @@ export interface TileLayerDef {
   tiles: TilePlacement[];
   /**
    * Optional clip polygon (this layer's local pixel space). Present when the
-   * layer is a child of a Box2DPolygon/Box2DCurve with `clip_children = true`;
+   * layer is a child of a Box2DPolygon/Box2DCurve with `mask_children = true`;
    * the runtime masks the tile container to this outline.
    */
   clip?: V2[];
@@ -1109,7 +1109,7 @@ function buildBackground(
   };
 
   // Pre-pass: collect clip shapes. A Box2DPolygon/Box2DCurve with
-  // `clip_children = true` is a mask for its child TileMapLayers — it renders no
+  // `mask_children = true` is a mask for its child TileMapLayers — it renders no
   // mesh of its own. Vertices are kept in world (scene) space here, then mapped
   // into each child layer's local space when the layer is built.
   const clipShapesWorld = new Map<string, V2[]>();
@@ -1118,7 +1118,7 @@ function buildBackground(
     const isPoly = n.type === 'Polygon2D' && n.scriptResPath === BOX2D_POLYGON_SCRIPT;
     const isCurve = n.scriptResPath === BOX2D_CURVE_SCRIPT;
     if (!isPoly && !isCurve) continue;
-    if (decodeGodotValue(n.props.get('clip_children') ?? 'false') !== true) continue;
+    if (decodeGodotValue(n.props.get('mask_children') ?? 'false') !== true) continue;
     const localVerts = isPoly ? parsePackedVector2Array(n.props.get('polygon') ?? '') : curveVertices(n, subResections);
     if (localVerts.length < 3) continue;
     const gt = globalTransforms.get(n.fullPath)!;

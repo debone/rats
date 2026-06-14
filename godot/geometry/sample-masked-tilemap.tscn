@@ -20,14 +20,14 @@ sources/1 = SubResource("TileSetAtlasSource_1")
 script = ExtResource("1_root")
 gravity = Vector2(0, -10)
 
-; A Box2DPolygon with clip_children = true renders NO mesh of its own — its
+; A Box2DPolygon with mask_children = true renders NO mesh of its own — its
 ; outline (this diamond) becomes a runtime mask for its child TileMapLayer. So
 ; you can paint an arbitrary, varied tilemap and confine it to any polygon shape.
-; (A Box2DCurve with clip_children works the same for a bezier mask.)
+; (A Box2DCurve with mask_children works the same for a bezier mask.)
 [node name="clip-diamond" type="Polygon2D" parent="."]
 script = ExtResource("2_poly")
 polygon = PackedVector2Array(96, 0, 192, 64, 96, 128, 0, 64)
-clip_children = true
+mask_children = true
 
 ; The painted tilemap (6×4 cells of mixed tiles 2–5). It's a direct child of the
 ; clip shape, so the exporter projects the diamond into this layer's space and
