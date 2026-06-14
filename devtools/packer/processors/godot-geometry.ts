@@ -161,8 +161,8 @@ export interface MeshDef {
   alpha?: number;
   /**
    * Tile the fill texture across the polygon instead of stretching one frame
-   * over it. Rendered at runtime as a CompositeTilemap clipped to the polygon
-   * by a mask, so ordinary atlas frames tile correctly.
+   * over it. Rendered at runtime as a grid of tile sprites clipped to the
+   * polygon by a mask, so ordinary atlas frames tile correctly.
    */
   tileFill?: boolean;
   /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */

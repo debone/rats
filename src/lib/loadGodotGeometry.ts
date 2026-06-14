@@ -14,7 +14,6 @@
  */
 
 import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
-import { CompositeTilemap } from '@pixi/tilemap';
 import {
   b2Body_SetUserData,
   b2BodyId,
@@ -102,7 +101,7 @@ export interface MeshDef {
   z?: number;
   tint?: number;
   alpha?: number;
-  /** Tile the fill texture across the polygon (masked tilemap) instead of stretching it. */
+  /** Tile the fill texture across the polygon (masked sprite grid) instead of stretching it. */
   tileFill?: boolean;
   /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
   border?: MeshBorderDef;
@@ -435,8 +434,8 @@ function instantiateTileLayer(
 
 /**
  * A textured background polygon. Returns a Container holding the fill (a
- * polygon-masked CompositeTilemap when `tileFill`, otherwise a stretched Mesh)
- * and, optionally, a tiled quad-strip border traced along the outline. Both the
+ * polygon-masked grid of tile Sprites when `tileFill`, otherwise a stretched
+ * Mesh) and, optionally, a tiled quad-strip border traced along the outline. Both the
  * fill tiling and the border tile atlas frames correctly — no GPU texture-repeat
  * is used, so the fill/border textures stay regular atlas frames.
  */
@@ -458,8 +457,7 @@ function instantiateMesh(
   }
   if (!texture) return null;
 
-  const fill = def.tileFill ? buildTiledFill(texture, def.vertices) : buildStretchedFill(texture, def);
-  if (def.tint !== undefined && 'tint' in fill) (fill as Mesh).tint = def.tint;
+  const fill = def.tileFill ? buildTiledFill(texture, def.vertices, def.tint) : buildStretchedFill(texture, def);
 
   const container = new Container();
   container.label = def.name;
@@ -500,15 +498,18 @@ function buildStretchedFill(texture: Texture, def: MeshDef): Mesh {
   const geometry = new MeshGeometry({ positions, uvs, indices: new Uint32Array(def.indices) });
   const mesh = new Mesh({ geometry, texture });
   mesh.label = 'fill';
+  if (def.tint !== undefined) mesh.tint = def.tint;
   return mesh;
 }
 
 /**
- * Tiled fill: a CompositeTilemap covering the polygon's bounding box, clipped to
- * the polygon by a Graphics mask. The frame tiles within the atlas correctly
- * because each cell is its own quad (no GPU wrap).
+ * Tiled fill: the frame is stamped across the polygon's bounding box as a grid
+ * of Sprites, clipped to the polygon by a Graphics mask. Since every cell is the
+ * same atlas frame, the sprites batch into ~one draw call; masking a plain Sprite
+ * container is fully supported (unlike a custom-pipe tilemap), so the fill clips
+ * reliably to the shape.
  */
-function buildTiledFill(texture: Texture, vertices: V2[]): Container {
+function buildTiledFill(texture: Texture, vertices: V2[], tint?: number): Container {
   const group = new Container();
   group.label = 'fill';
 
@@ -525,21 +526,24 @@ function buildTiledFill(texture: Texture, vertices: V2[]): Container {
 
   const tw = texture.width || 1;
   const th = texture.height || 1;
-  const tilemap = new CompositeTilemap();
+  const tiles = new Container();
   // Snap the tiling origin to the grid so cells line up regardless of bbox edges.
   const startX = Math.floor(minX / tw) * tw;
   const startY = Math.floor(minY / th) * th;
   for (let y = startY; y < maxY; y += th) {
     for (let x = startX; x < maxX; x += tw) {
-      tilemap.tile(texture, x, y);
+      const tile = new Sprite(texture);
+      tile.position.set(x, y);
+      if (tint !== undefined) tile.tint = tint;
+      tiles.addChild(tile);
     }
   }
 
   const mask = new Graphics();
   mask.poly(vertices.flatMap((v) => [v.x, v.y])).fill(0xffffff);
+  group.addChild(tiles);
   group.addChild(mask);
-  group.addChild(tilemap);
-  tilemap.mask = mask;
+  tiles.mask = mask;
   return group;
 }
 

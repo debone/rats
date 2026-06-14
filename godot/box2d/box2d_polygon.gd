@@ -9,8 +9,8 @@ class_name Box2DPolygon
 ## sprite-map.json like any other sprite — seamless tile art works best with no
 ## transparent edges so the packer doesn't trim it).
 ##
-## At runtime the fill is a Pixi CompositeTilemap clipped to the polygon by a
-## mask, so the frame tiles across the shape. The border is a tiled quad-strip
+## At runtime the fill is a grid of Pixi tile sprites clipped to the polygon by
+## a mask, so the frame tiles across the shape. The border is a tiled quad-strip
 ## mesh: the `border_texture` frame is repeated along the polygon edges, with
 ## mitred joints at each corner and an optional `border_corner_texture` stamped
 ## over each joint. Both fill and border tile atlas frames correctly (no GPU
@@ -18,6 +18,14 @@ class_name Box2DPolygon
 ##
 ## `attached = false` marks the node as editor-only reference art; the exporter
 ## skips it entirely (same as Box2DSprite).
+
+func _ready() -> void:
+	# Editor-only nicety: Godot's native Polygon2D otherwise stretches the single
+	# fill frame across the shape (it knows nothing about the runtime tiling), so
+	# enable texture repeat to preview the tiled fill roughly. Has no effect on
+	# the export — the runtime renderer ignores it. The border/corner pieces are
+	# runtime-only and still won't show in the editor.
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 
 ## Repeat the fill texture across the polygon instead of stretching one copy.
 @export var tile_fill: bool = true

@@ -68,12 +68,19 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
     sprites: true,
   });
 
-  // TODO: for whatever reason I do this for physics sprites, but never moved the camera.
-  background.tileLayers.forEach((layer) => {
-    layer.x += MIN_WIDTH / 2;
-    layer.y += MIN_HEIGHT / 2;
-    layer.zIndex = -1;
-  });
+  // Static background visuals are authored in raw Godot pixel coords, but body
+  // sprites render at WorldOrigin (MIN_WIDTH/2, MIN_HEIGHT/2) + godotPos — the
+  // export's ÷PXM + Y-flip and WorldToScreen's ×PXM + Y-flip cancel out. So every
+  // static visual needs the same origin offset to line up with the bodies.
+  for (const visual of [
+    ...background.tileLayers,
+    ...background.meshes,
+    ...background.sprites,
+    ...background.ninePatches,
+  ]) {
+    visual.x += MIN_WIDTH / 2;
+    visual.y += MIN_HEIGHT / 2;
+  }
 
   const particles = withChildren(() => ({
     brickDebris: BrickDebrisParticles(),
