@@ -435,7 +435,7 @@ border_texture_scale = 0.5
     });
   });
 
-  it('reads border_corner_scale and border_corner_orientation onto the border def', () => {
+  it('reads border_corner_size and border_corner_orientation onto the border def', () => {
     const tscn = `[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Texture2D" path="res://b.tres" id="1_border"]
@@ -450,7 +450,7 @@ polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
 border_texture = ExtResource("1_border")
 border_corner_texture = ExtResource("2_corner")
 border_width = 6.0
-border_corner_scale = 2.5
+border_corner_size = Vector2(20, 12)
 border_corner_orientation = 1
 `;
     const geo = parseGeometryTscn(tscn, {
@@ -459,7 +459,7 @@ border_corner_orientation = 1
     });
     expect(geo.background!.meshes[0].border).toMatchObject({
       cornerFrame: 'c#0',
-      cornerScale: 2.5,
+      cornerSize: { x: 20, y: 12 },
       cornerOrientation: 'snap',
     });
   });

@@ -200,8 +200,8 @@ export interface MeshBorderDef {
   cornerAtlas?: string;
   /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
   cornerMinAngle?: number;
-  /** Corner size multiplier relative to the strip width (1 = same as the border). */
-  cornerScale?: number;
+  /** Corner size in px (x = along the outline, y = across). Each axis falls back to the strip width when ≤ 0. */
+  cornerSize?: V2;
   /** Corner rotation: 'free' = bisector tangent (default), 'snap' = nearest 90°, 'none' = unrotated. */
   cornerOrientation?: 'free' | 'snap' | 'none';
 }
@@ -1539,8 +1539,8 @@ function buildMeshBorder(
     if (cornerResolved.atlas) border.cornerAtlas = cornerResolved.atlas;
     const minAngle = parseFloat(unquote(node.props.get('border_corner_min_angle') ?? '0')) || 0;
     if (minAngle > 0) border.cornerMinAngle = minAngle;
-    const cornerScale = parseFloat(unquote(node.props.get('border_corner_scale') ?? '1'));
-    if (cornerScale > 0 && cornerScale !== 1) border.cornerScale = cornerScale;
+    const cornerSize = parseVector2(node.props.get('border_corner_size') ?? '');
+    if (cornerSize && (cornerSize.x > 0 || cornerSize.y > 0)) border.cornerSize = cornerSize;
     // border_corner_orientation enum: 0 = Free (bisector), 1 = Snap 90°, 2 = None.
     const orient = parseInt(unquote(node.props.get('border_corner_orientation') ?? '0'), 10) || 0;
     if (orient === 1) border.cornerOrientation = 'snap';

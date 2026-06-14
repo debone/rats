@@ -129,8 +129,8 @@ export interface MeshBorderDef {
   cornerAtlas?: string;
   /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
   cornerMinAngle?: number;
-  /** Corner size multiplier relative to the strip width (1 = same as the border). */
-  cornerScale?: number;
+  /** Corner size in px (x = along the outline, y = across). Each axis falls back to the strip width when ≤ 0. */
+  cornerSize?: V2;
   /** Corner rotation: 'free' = bisector tangent (default), 'snap' = nearest 90°, 'none' = unrotated. */
   cornerOrientation?: 'free' | 'snap' | 'none';
 }
@@ -728,18 +728,23 @@ function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number):
   group.label = `${border.pixiFrame}-border`;
   group.addChild(strip);
 
-  if (border.cornerFrame)
+  if (border.cornerFrame) {
+    // Per-axis corner size, each axis falling back to the strip width when unset.
+    const cornerW = border.cornerSize && border.cornerSize.x > 0 ? border.cornerSize.x : width;
+    const cornerH = border.cornerSize && border.cornerSize.y > 0 ? border.cornerSize.y : width;
     addCornerPieces(
       group,
       border.cornerFrame,
       border.cornerAtlas,
       vertices,
       border.closed,
-      width * (border.cornerScale && border.cornerScale > 0 ? border.cornerScale : 1),
+      cornerW,
+      cornerH,
       border.cornerMinAngle ?? 0,
       border.cornerOrientation ?? 'free',
       tint,
     );
+  }
   return group;
 }
 
@@ -791,14 +796,15 @@ function unit(from: V2, other: V2, incoming: boolean): V2 {
   return { x: dx / l, y: dy / l };
 }
 
-/** Stamp a corner frame at each joint, sized to `size` and rotated per `orientation`. */
+/** Stamp a corner frame at each joint, sized `sizeX`×`sizeY` and rotated per `orientation`. */
 function addCornerPieces(
   group: Container,
   frame: string,
   atlas: string | undefined,
   verts: V2[],
   closed: boolean,
-  size: number,
+  sizeX: number,
+  sizeY: number,
   minAngle: number,
   orientation: 'free' | 'snap' | 'none',
   tint?: number,
@@ -821,8 +827,8 @@ function addCornerPieces(
     if (minCos <= 1 && din.x * dout.x + din.y * dout.y > minCos) continue;
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5);
-    sprite.width = size;
-    sprite.height = size;
+    sprite.width = sizeX;
+    sprite.height = sizeY;
     sprite.position.set(verts[i].x, verts[i].y);
     // 'free' = bisector tangent; 'snap' = that angle rounded to the nearest 90°;
     // 'none' = axis-aligned (unrotated).

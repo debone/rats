@@ -45,8 +45,11 @@ class_name Box2DPolygon
 ## 0 stamps every vertex; raise it so shallow turns (e.g. a tessellated curve)
 ## skip the corner and only genuinely sharp corners get one.
 @export_range(0.0, 180.0) var border_corner_min_angle: float = 0.0
-## Corner size as a multiple of the strip width (1 = same size as the border).
-@export_range(0.0, 8.0, 0.05) var border_corner_scale: float = 1.0
+## Corner size in pixels — x = along the outline, y = across it. Leave an axis at
+## 0 to fall back to the border width for that axis, so (0, 0) keeps the old
+## square-at-border-width sizing. Use this to size the corner independently of the
+## border thickness and to match non-square corner art without squashing it.
+@export var border_corner_size: Vector2 = Vector2.ZERO
 ## How each corner piece is rotated: Free = aligned to the joint bisector (current
 ## behaviour), Snap 90° = bisector rounded to the nearest 0/90/180/270, None = the
 ## frame is left upright (axis-aligned).

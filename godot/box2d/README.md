@@ -115,8 +115,10 @@ These node types are supported today:
   tile, 1 = one frame width), `border_closed`, and `tile_fill`. At runtime the
   fill is a grid of tile sprites clipped to the polygon by a mask, and the border
   is a tiled quad-strip mesh (mitred at corners, with optional corner pieces).
-  Corner pieces take `border_corner_scale` (size as a multiple of the strip
-  width) and `border_corner_orientation` (Free = aligned to the joint bisector,
+  Corner pieces take `border_corner_size` (px, per-axis — x along the outline,
+  y across; each axis falls back to the border width when 0, so the corner can be
+  sized independently of the border thickness and non-square art isn't squashed)
+  and `border_corner_orientation` (Free = aligned to the joint bisector,
   Snap 90° = nearest 0/90/180/270, None = upright).
   Both tile atlas frames correctly — each tile/quad is its own draw with a 0..1
   UV, so no GPU texture-repeat is involved.
