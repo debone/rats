@@ -1,11 +1,13 @@
 import { t } from '@/i18n/i18n';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 export const EmptyCrewMember: CrewMemberDef = {
   type: 'empty',
   name: t.dict['crew.empty.name'],
   description: 'no ability',
   textureName: 'avatars-new_tile_1#0',
+  rarity: CREW_RARITIES.common,
 
   hiringCost: 0,
 

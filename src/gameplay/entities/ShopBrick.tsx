@@ -15,6 +15,7 @@ import { LacfreeCrewMember } from '@/entities/crew/Lacfree';
 import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
 import { TEXT_STYLE_DEFAULT } from '@/consts';
 import type { LayoutContainer } from '@pixi/layout/components';
+import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
 
 export type ShopBrickEvents = {
   hit: void;
@@ -48,24 +49,26 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
   const bodyId = bodies[0];
 
   const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite');
+  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-sprite');
 
-  avatarSprite!.texture = getCrewTexture(LacfreeCrewMember.type);
+  const randomCrewMember = pickRandomCrewMemberSet(1);
+
+  avatarSprite!.texture = getCrewTexture(randomCrewMember[0].type);
 
   // damn it works
-  /*
+
   let boxRef!: LayoutContainer;
 
-  <mount target={avatarSprite!}>
-    <box ref={(ref) => (boxRef = ref)} layout={{ backgroundColor: 0x000000 }} alpha={0.5}>
-      <text text={'20 -> 2'} style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} />
+  <mount target={badgeSprite!}>
+    <box ref={(ref) => (boxRef = ref)}>
+      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} />
     </box>
   </mount>;
 
   boxRef.layout = {
     marginLeft: -boxRef.width / 2,
-    marginTop: 40,
+    marginTop: -boxRef.height / 1.8,
   };
-  */
 
   useCollisionHandler(bodyId, () => ({
     tag: 'shop-brick',

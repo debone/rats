@@ -1,12 +1,14 @@
 import { addBallToRun } from '@/data/game-state';
 import { t } from '@/i18n/i18n';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 export const PiRatCrewMember: CrewMemberDef = {
   type: 'pirat',
   name: t.dict['crew.pirat.name'],
   textureName: 'avatars-new_tile_18#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.common,
   activeAbility: {
     name: t.dict['crew.pirat.active.name'],
     cost: 1,

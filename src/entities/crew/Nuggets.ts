@@ -1,11 +1,12 @@
 import { t } from '@/i18n/i18n';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 export const NuggetsCrewMember: CrewMemberDef = {
   type: 'nuggets',
   name: t.dict['crew.nuggets.name'],
   textureName: 'avatars-new_tile_6#0',
-
+  rarity: CREW_RARITIES.common,
   hiringCost: 6,
 
   activeAbility: {

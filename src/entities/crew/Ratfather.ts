@@ -1,6 +1,7 @@
 import { t } from '@/i18n/i18n';
 import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 const RATFATHER_GHOST_BALLS_DURATION = 2_000;
 
@@ -9,6 +10,7 @@ export const RatfatherCrewMember: CrewMemberDef = {
   name: t.dict['crew.ratfather.name'],
   textureName: 'avatars-new_tile_4#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.common,
   activeAbility: {
     name: t.dict['crew.ratfather.active.name'],
     cost: 5,
