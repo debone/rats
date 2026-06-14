@@ -113,9 +113,10 @@ These node types are supported today:
   fill `texture` and, optionally, a `border_texture` (both ordinary atlas
   frames); tune `border_width`, `border_texture_scale` (length of each repeated
   tile, 1 = one frame width), `border_closed`, and `tile_fill`. At runtime the
-  fill is a `CompositeTilemap` clipped to the polygon by a mask, and the border
-  is a tiled quad-strip mesh. Both tile atlas frames correctly — each tile/quad
-  is its own draw with a 0..1 UV, so no GPU texture-repeat is involved.
+  fill is a grid of tile sprites clipped to the polygon by a mask, and the border
+  is a tiled quad-strip mesh (mitred at corners, with optional corner pieces).
+  Both tile atlas frames correctly — each tile/quad is its own draw with a 0..1
+  UV, so no GPU texture-repeat is involved.
   `attached = false` marks it editor-only, same as `Box2DSprite`. Tip: author
   seamless fill/border art with no transparent edges so the packer doesn't trim
   the frame (trimmed frames tile with seams).
