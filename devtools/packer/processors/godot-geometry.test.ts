@@ -229,6 +229,34 @@ should_rotate = false
     expect(geo.bodies[0].sprites[0].shouldRotate).toBe(false);
   });
 
+  it('binds a Box2DNineSlice under a body as a nine-slice sprite with borders', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://panel.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="3_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="StaticBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="panel" type="Sprite2D" parent="body"]
+scale = Vector2(4, 3)
+texture = ExtResource("1_tex")
+script = ExtResource("3_ns")
+`;
+    const geo = parseGeometryTscn(tscn, {
+      panel: { godotPath: 'res://panel.tres', type: 'AtlasTexture', pixiFrame: 'panel#0', borders: { left: 8, top: 8, right: 8, bottom: 8 } },
+    });
+    const binding = geo.bodies[0].sprites[0];
+    expect(binding.nineSlice).toBe(true);
+    expect(binding.borders).toEqual({ left: 8, top: 8, right: 8, bottom: 8 });
+    // The node scale is preserved so the runtime can stretch by it (corners pinned).
+    expect(binding.scale).toEqual({ x: 4, y: 3 });
+    expect(binding.pixiFrame).toBe('panel#0');
+  });
+
   it('skips export when `attached = false` (editor-only reference art)', () => {
     const tscn = `[gd_scene load_steps=3 format=3]
 

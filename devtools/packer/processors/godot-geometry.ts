@@ -281,6 +281,10 @@ export interface SpriteBinding {
   flipV?: boolean;
   /** If false, the sprite stays axis-aligned regardless of body rotation. */
   shouldRotate?: boolean;
+  /** Render as a NineSliceSprite stretched by `scale` (Box2DNineSlice under a body). */
+  nineSlice?: boolean;
+  /** Nine-slice border widths in texture px (only meaningful with `nineSlice`). */
+  borders?: { left: number; top: number; right: number; bottom: number };
 }
 
 export type Box2DJointDef =
@@ -651,6 +655,14 @@ export function parseGeometryTscn(
     godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation, atlas: entry.atlas };
   }
 
+  // Reverse lookup: texture .tres path → 9-slice borders (from the aseprite slice
+  // layer, threaded through sprite-map.json). Used by both body-attached and
+  // background Box2DNineSlice nodes.
+  const godotPathToBorders: Record<string, NinePatchDef['borders']> = {};
+  for (const entry of Object.values(spriteMap)) {
+    if (entry.borders) godotPathToBorders[entry.godotPath] = entry.borders;
+  }
+
   // Identify local body nodes (Box2D-scripted OR plain Godot physics body types
   // whose script isn't one of the marker scripts, e.g. custom prefab scripts
   // that extend StaticBody2D / RigidBody2D / CharacterBody2D).
@@ -658,7 +670,7 @@ export function parseGeometryTscn(
 
   // Build local body defs
   const bodies: Box2DBodyDef[] = bodyNodes.map((bodyNode) =>
-    buildBodyDef(bodyNode, nodes, subShapes, extResources, godotPathToPixi, globalTransforms),
+    buildBodyDef(bodyNode, nodes, subShapes, extResources, godotPathToPixi, godotPathToBorders, globalTransforms),
   );
 
   // Map from local body fullPath → body index in output bodies array
@@ -832,6 +844,7 @@ function buildBodyDef(
   subShapes: Record<string, SubShape>,
   extResources: Record<string, string>,
   godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  godotPathToBorders: Record<string, NinePatchDef['borders']>,
   globalTransforms: Map<string, GTransform>,
 ): Box2DBodyDef {
   const type = resolveBodyType(bodyNode)!;
@@ -854,7 +867,7 @@ function buildBodyDef(
       // art (silhouettes you're tracing); the exporter skips it entirely.
       const attachedProp = child.props.get('attached');
       if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
-      const binding = buildSpriteBinding(child, bodyNode, extResources, godotPathToPixi, globalTransforms);
+      const binding = buildSpriteBinding(child, bodyNode, extResources, godotPathToPixi, godotPathToBorders, globalTransforms);
       if (binding) sprites.push(binding);
     }
   }
@@ -995,6 +1008,7 @@ function buildSpriteBinding(
   bodyNode: NodeInfo,
   extResources: Record<string, string>,
   godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  godotPathToBorders: Record<string, NinePatchDef['borders']>,
   globalTransforms: Map<string, GTransform>,
 ): SpriteBinding | null {
   const local = transformInBody(spriteNode, bodyNode, globalTransforms);
@@ -1003,11 +1017,13 @@ function buildSpriteBinding(
   let pixiFrame: string | undefined;
   let pixiAnimation: string | undefined;
   let pixiAtlas: string | undefined;
+  let texResPath: string | undefined;
   if (spriteNode.type === 'Sprite2D') {
     const texProp = spriteNode.props.get('texture');
     const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
     if (extId && extResources[extId]) {
-      const resolved = godotPathToPixi[extResources[extId]];
+      texResPath = extResources[extId];
+      const resolved = godotPathToPixi[texResPath];
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
@@ -1072,6 +1088,19 @@ function buildSpriteBinding(
   if (flipH) binding.flipH = true;
   if (flipV) binding.flipV = true;
   if (!shouldRotate) binding.shouldRotate = false;
+
+  // Box2DNineSlice under a body: render as a NineSliceSprite stretched by the
+  // node's scale (corners pinned), same as a standalone nine-slice but bound to
+  // the body. Borders come from the aseprite slice layer via the sprite-map.
+  if (spriteNode.scriptResPath === BOX2D_NINE_SLICE_SCRIPT) {
+    binding.nineSlice = true;
+    binding.borders = (texResPath ? godotPathToBorders[texResPath] : undefined) ?? {
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+    };
+  }
 
   return binding;
 }

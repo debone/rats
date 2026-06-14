@@ -204,6 +204,10 @@ export interface SpriteBinding {
   flipH?: boolean;
   flipV?: boolean;
   shouldRotate?: boolean;
+  /** Render as a NineSliceSprite stretched by `scale` (Box2DNineSlice under a body). */
+  nineSlice?: boolean;
+  /** Nine-slice border widths in texture px (only meaningful with `nineSlice`). */
+  borders?: { left: number; top: number; right: number; bottom: number };
 }
 
 type CommonJoint = {
@@ -258,8 +262,8 @@ export interface LoadGodotGeometryResult {
   joints: b2JointId[];
   bodiesByName: Map<string, b2BodyId>;
   jointsByName: Map<string, b2JointId>;
-  /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
-  sprites: Sprite[];
+  /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. (NineSliceSprite for Box2DNineSlice.) */
+  sprites: Container[];
   /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
   background: { meshes: Container[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
 }
@@ -278,7 +282,7 @@ export function loadGodotGeometry(
 
   const bodies: b2BodyId[] = [];
   const bodiesByName = new Map<string, b2BodyId>();
-  const sprites: Sprite[] = [];
+  const sprites: Container[] = [];
 
   for (const def of geo.bodies) {
     const bd = b2DefaultBodyDef();
@@ -1040,9 +1044,36 @@ function setJointUserData(joint: b2JointId, jdef: Box2DJointDef): void {
 // Sprite instantiation
 // ---------------------------------------------------------------------------
 
-function instantiateSprite(binding: SpriteBinding): Sprite | null {
+function instantiateSprite(binding: SpriteBinding): Container | null {
   const texture = resolveBindingTexture(binding.pixiFrame, binding.pixiAnimation, binding.pixiAtlas, binding.name);
   if (!texture) return null;
+
+  // Box2DNineSlice bound to a body: a NineSliceSprite stretched by the node's
+  // scale, corners pinned (scale is baked into width/height, not applied to the
+  // sprite). Flips become a ±1 scale around the pivot.
+  if (binding.nineSlice) {
+    const w = (texture.width || 1) * Math.abs(binding.scale.x);
+    const h = (texture.height || 1) * Math.abs(binding.scale.y);
+    const b = binding.borders ?? { left: 0, top: 0, right: 0, bottom: 0 };
+    const ns = new NineSliceSprite({
+      texture,
+      leftWidth: b.left,
+      topHeight: b.top,
+      rightWidth: b.right,
+      bottomHeight: b.bottom,
+      width: w,
+      height: h,
+    });
+    ns.label = binding.name;
+    ns.pivot.set(binding.anchor.x * w, binding.anchor.y * h);
+    ns.scale.set(binding.flipH ? -1 : 1, binding.flipV ? -1 : 1);
+    if (binding.tint !== undefined) ns.tint = binding.tint;
+    if (binding.alpha !== undefined) ns.alpha = binding.alpha;
+    if (binding.z !== undefined) ns.zIndex = binding.z;
+    if (binding.shouldRotate === false) (ns as Container & { shouldRotate?: boolean }).shouldRotate = false;
+    return ns;
+  }
+
   const sprite = new Sprite({ texture });
   sprite.label = binding.name;
   sprite.anchor.set(binding.anchor.x, binding.anchor.y);
