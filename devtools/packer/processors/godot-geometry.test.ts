@@ -392,28 +392,31 @@ attached = false
     expect(geo.background).toBeUndefined();
   });
 
-  it('extracts a Box2DPolygon as a tiled-fill mesh with a tiled border', () => {
-    const tscn = `[gd_scene load_steps=4 format=3]
+  it('extracts a Box2DPolygon as a tiled-fill mesh with a tiled border and corner piece', () => {
+    const tscn = `[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
 [ext_resource type="Texture2D" path="res://sprites/lvl/foam.tres" id="2_border"]
-[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="3_poly"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/foam_corner.tres" id="3_corner"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="4_poly"]
 
 [node name="Root" type="Node2D"]
 
 [node name="water" type="Polygon2D" parent="."]
 position = Vector2(10, 20)
 texture = ExtResource("1_fill")
-script = ExtResource("3_poly")
+script = ExtResource("4_poly")
 polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
 uv = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
 border_texture = ExtResource("2_border")
+border_corner_texture = ExtResource("3_corner")
 border_width = 6.0
 border_texture_scale = 0.5
 `;
     const geo = parseGeometryTscn(tscn, {
       fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
       border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0' },
+      corner: { godotPath: 'res://sprites/lvl/foam_corner.tres', type: 'AtlasTexture', pixiFrame: 'foam_corner#0' },
     });
     expect(geo.background!.meshes).toHaveLength(1);
     const mesh = geo.background!.meshes[0];
@@ -424,6 +427,7 @@ border_texture_scale = 0.5
       width: 6,
       textureScale: 0.5,
       closed: true,
+      cornerFrame: 'foam_corner#0',
     });
   });
 

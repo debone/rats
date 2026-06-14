@@ -181,6 +181,8 @@ export interface MeshBorderDef {
   textureScale: number;
   /** Close the strip back to the first vertex so it wraps the whole shape. */
   closed: boolean;
+  /** Optional frame stamped at each corner (oriented to the bisector) over the joint. */
+  cornerFrame?: string;
 }
 
 /**
@@ -1374,6 +1376,13 @@ function buildMeshDef(
       const textureScale = rawScale !== undefined ? parseFloat(unquote(rawScale)) || 0 : 1;
       const closed = decodeGodotValue(polyNode.props.get('border_closed') ?? 'true') !== false;
       out.border = { pixiFrame: borderFrame, width, textureScale, closed };
+
+      // Optional corner piece: a frame stamped at each polygon vertex, oriented
+      // to the corner bisector, to cover the joint between adjacent edge strips.
+      const cornerExtId = polyNode.props.get('border_corner_texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+      const cornerResPath = cornerExtId ? extResources[cornerExtId] : undefined;
+      const cornerFrame = cornerResPath ? godotPathToPixi[cornerResPath]?.frame : undefined;
+      if (cornerFrame) out.border.cornerFrame = cornerFrame;
     } else if (borderTexProp) {
       console.warn(`[Godot] Box2DPolygon "${polyNode.name}" border_texture did not resolve to a frame; skipping border`);
     }

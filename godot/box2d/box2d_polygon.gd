@@ -11,8 +11,10 @@ class_name Box2DPolygon
 ##
 ## At runtime the fill is a Pixi CompositeTilemap clipped to the polygon by a
 ## mask, so the frame tiles across the shape. The border is a tiled quad-strip
-## mesh: the `border_texture` frame is repeated along the polygon edges. Both
-## tile atlas frames correctly (no GPU texture-repeat involved).
+## mesh: the `border_texture` frame is repeated along the polygon edges, with
+## mitred joints at each corner and an optional `border_corner_texture` stamped
+## over each joint. Both fill and border tile atlas frames correctly (no GPU
+## texture-repeat involved).
 ##
 ## `attached = false` marks the node as editor-only reference art; the exporter
 ## skips it entirely (same as Box2DSprite).
@@ -23,13 +25,17 @@ class_name Box2DPolygon
 @export_group("Border")
 ## Strip texture tiled along the outline. Leave empty for no border.
 @export var border_texture: Texture2D
-## Rope thickness in pixels. 0 falls back to the border texture's height.
+## Strip thickness in pixels. 0 falls back to the border texture's height.
 @export var border_width: float = 0.0
 ## Length of each repeated tile along the edge, as a multiple of the border
 ## frame width (1.0 = one frame per repeat; 0.5 = half-width tiles, etc).
 @export var border_texture_scale: float = 1.0
 ## Close the strip back to the first vertex so the border wraps the whole shape.
 @export var border_closed: bool = true
+## Optional frame stamped at each corner (sized to the strip width, oriented to
+## the bisector) to cover the joint between adjacent edge strips. Leave empty
+## to rely on the mitred joints alone.
+@export var border_corner_texture: Texture2D
 
 @export_group("Export")
 ## false = editor-only reference art; the exporter skips it.

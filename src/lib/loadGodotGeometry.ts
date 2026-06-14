@@ -116,6 +116,8 @@ export interface MeshBorderDef {
   textureScale: number;
   /** Close the strip back to the first vertex so it wraps the whole shape. */
   closed: boolean;
+  /** Optional frame stamped at each corner (oriented to the bisector) over the joint. */
+  cornerFrame?: string;
 }
 
 export interface BackgroundSpriteDef {
@@ -464,11 +466,8 @@ function instantiateMesh(
   container.addChild(fill);
 
   if (def.border) {
-    const border = buildBorderStrip(def.border, def.vertices);
-    if (border) {
-      if (def.tint !== undefined) border.tint = def.tint;
-      container.addChild(border);
-    }
+    const border = buildBorderStrip(def.border, def.vertices, def.tint);
+    if (border) container.addChild(border);
   }
 
   // The fill/border geometry stays in node-local space; the container carries
@@ -544,12 +543,17 @@ function buildTiledFill(texture: Texture, vertices: V2[]): Container {
   return group;
 }
 
+/** Mitre limit: cap how far a sharp corner's joint can spike before it would explode. */
+const MITRE_LIMIT = 4;
+
 /**
  * Tiled quad-strip border traced along the polygon edges. Each repeat is a
  * discrete quad mapping the frame's full 0..1 UV, so it tiles an atlas frame
- * without any GPU texture-repeat. The strip is centred on each edge.
+ * without any GPU texture-repeat. Adjacent edges share a mitred joint at each
+ * vertex (no gap/overlap), and an optional corner frame is stamped over each
+ * joint. Returns a Container holding the strip mesh plus any corner sprites.
  */
-function buildBorderStrip(border: MeshBorderDef, vertices: V2[]): Mesh | null {
+function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number): Container | null {
   if (vertices.length < 2) return null;
   let texture: Texture;
   try {
@@ -562,44 +566,55 @@ function buildBorderStrip(border: MeshBorderDef, vertices: V2[]): Mesh | null {
 
   const frameW = texture.width || 1;
   const frameH = texture.height || 1;
-  const halfWidth = (border.width > 0 ? border.width : frameH) / 2;
+  const width = border.width > 0 ? border.width : frameH;
+  const halfWidth = width / 2;
   const tileLen = Math.max(1, frameW * (border.textureScale > 0 ? border.textureScale : 1));
 
-  const ring = border.closed ? [...vertices, vertices[0]] : vertices;
+  const n = vertices.length;
+  // Per-vertex mitre offset: add for the outer edge of the strip, subtract for inner.
+  const offsets = computeMitreOffsets(vertices, border.closed, halfWidth);
+
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
   let vi = 0;
 
-  for (let i = 0; i < ring.length - 1; i++) {
-    const a = ring[i];
-    const b = ring[i + 1];
+  const edgeCount = border.closed ? n : n - 1;
+  for (let i = 0; i < edgeCount; i++) {
+    const a = vertices[i];
+    const b = vertices[(i + 1) % n];
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const len = Math.hypot(dx, dy);
     if (len < 1e-3) continue;
-    const ax = dx / len; // along-edge unit
-    const ay = dy / len;
-    const nx = -ay; // edge normal
-    const ny = ax;
+    const ex = dx / len; // along-edge unit
+    const ey = dy / len;
+    const px = -ey * halfWidth; // perpendicular offset for interior tile boundaries
+    const py = ex * halfWidth;
+    const oa = offsets[i];
+    const ob = offsets[(i + 1) % n];
 
-    for (let dist = 0; dist < len - 1e-3; dist += tileLen) {
-      const seg = Math.min(tileLen, len - dist);
-      const u = seg / tileLen; // partial quad → clip the U end
-      const p0x = a.x + ax * dist;
-      const p0y = a.y + ay * dist;
-      const p1x = a.x + ax * (dist + seg);
-      const p1y = a.y + ay * (dist + seg);
-      positions.push(
-        p0x + nx * halfWidth,
-        p0y + ny * halfWidth, // u=0, v=0
-        p1x + nx * halfWidth,
-        p1y + ny * halfWidth, // u,   v=0
-        p1x - nx * halfWidth,
-        p1y - ny * halfWidth, // u,   v=1
-        p0x - nx * halfWidth,
-        p0y - ny * halfWidth, // u=0, v=1
-      );
+    // Tile boundary distances along the edge: 0, tileLen, 2·tileLen, …, len.
+    const dists = [0];
+    for (let d = tileLen; d < len - 1e-3; d += tileLen) dists.push(d);
+    dists.push(len);
+
+    // Cross-section (outer/inner points) at each boundary. The two ends use the
+    // shared mitre offset so neighbouring edges join cleanly; interior boundaries
+    // use the plain perpendicular offset.
+    const cross = dists.map((d) => {
+      if (d <= 1e-3) return { ox: a.x + oa.x, oy: a.y + oa.y, ix: a.x - oa.x, iy: a.y - oa.y };
+      if (d >= len - 1e-3) return { ox: b.x + ob.x, oy: b.y + ob.y, ix: b.x - ob.x, iy: b.y - ob.y };
+      const cx = a.x + ex * d;
+      const cy = a.y + ey * d;
+      return { ox: cx + px, oy: cy + py, ix: cx - px, iy: cy - py };
+    });
+
+    for (let k = 0; k < dists.length - 1; k++) {
+      const u = (dists[k + 1] - dists[k]) / tileLen; // partial quad → clip the U end
+      const c0 = cross[k];
+      const c1 = cross[k + 1];
+      positions.push(c0.ox, c0.oy, c1.ox, c1.oy, c1.ix, c1.iy, c0.ix, c0.iy);
       uvs.push(0, 0, u, 0, u, 1, 0, 1);
       indices.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
       vi += 4;
@@ -612,9 +627,100 @@ function buildBorderStrip(border: MeshBorderDef, vertices: V2[]): Mesh | null {
     uvs: new Float32Array(uvs),
     indices: new Uint32Array(indices),
   });
-  const mesh = new Mesh({ geometry, texture });
-  mesh.label = `${border.pixiFrame}-border`;
-  return mesh;
+  const strip = new Mesh({ geometry, texture });
+  strip.label = `${border.pixiFrame}-strip`;
+  if (tint !== undefined) strip.tint = tint;
+
+  const group = new Container();
+  group.label = `${border.pixiFrame}-border`;
+  group.addChild(strip);
+
+  if (border.cornerFrame) addCornerPieces(group, border.cornerFrame, vertices, border.closed, width, tint);
+  return group;
+}
+
+/**
+ * Per-vertex mitre offset vectors. At a joint the offset is the angle bisector
+ * of the two edge normals, scaled by 1/cos(half-angle) so the strip's outer and
+ * inner edges stay `halfWidth` from the centreline (capped by MITRE_LIMIT).
+ * Open-path endpoints fall back to a plain perpendicular offset.
+ */
+function computeMitreOffsets(verts: V2[], closed: boolean, halfWidth: number): V2[] {
+  const n = verts.length;
+  const out: V2[] = [];
+  for (let i = 0; i < n; i++) {
+    const din = closed || i > 0 ? unit(verts[i], verts[(i - 1 + n) % n], true) : null;
+    const dout = closed || i < n - 1 ? unit(verts[i], verts[(i + 1) % n], false) : null;
+    if (din && dout) {
+      const nIx = -din.y;
+      const nIy = din.x;
+      const nOx = -dout.y;
+      const nOy = dout.x;
+      let bx = nIx + nOx;
+      let by = nIy + nOy;
+      const bl = Math.hypot(bx, by);
+      if (bl < 1e-4) {
+        out.push({ x: nOx * halfWidth, y: nOy * halfWidth }); // straight reversal
+        continue;
+      }
+      bx /= bl;
+      by /= bl;
+      const cos = bx * nOx + by * nOy;
+      const factor = cos > 1e-3 ? Math.min(1 / cos, MITRE_LIMIT) : MITRE_LIMIT;
+      out.push({ x: bx * halfWidth * factor, y: by * halfWidth * factor });
+    } else if (dout) {
+      out.push({ x: -dout.y * halfWidth, y: dout.x * halfWidth });
+    } else if (din) {
+      out.push({ x: -din.y * halfWidth, y: din.x * halfWidth });
+    } else {
+      out.push({ x: 0, y: 0 });
+    }
+  }
+  return out;
+}
+
+/** Unit direction into/out of vertex `from` toward `other` (reversed when `incoming`). */
+function unit(from: V2, other: V2, incoming: boolean): V2 {
+  const dx = incoming ? from.x - other.x : other.x - from.x;
+  const dy = incoming ? from.y - other.y : other.y - from.y;
+  const l = Math.hypot(dx, dy) || 1;
+  return { x: dx / l, y: dy / l };
+}
+
+/** Stamp a corner frame at each joint, sized to the strip width and rotated to the bisector tangent. */
+function addCornerPieces(
+  group: Container,
+  frame: string,
+  verts: V2[],
+  closed: boolean,
+  size: number,
+  tint?: number,
+): void {
+  let texture: Texture;
+  try {
+    texture = Assets.get<Texture>(frame) ?? Texture.from(frame);
+  } catch {
+    console.warn(`[loadGodotGeometry] Mesh border corner texture not found: "${frame}"`);
+    return;
+  }
+  if (!texture) return;
+
+  const n = verts.length;
+  // Closed: a corner at every vertex. Open: only interior joints (skip endpoints).
+  const start = closed ? 0 : 1;
+  const end = closed ? n : n - 1;
+  for (let i = start; i < end; i++) {
+    const din = unit(verts[i], verts[(i - 1 + n) % n], true);
+    const dout = unit(verts[i], verts[(i + 1) % n], false);
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5);
+    sprite.width = size;
+    sprite.height = size;
+    sprite.position.set(verts[i].x, verts[i].y);
+    sprite.rotation = Math.atan2(din.y + dout.y, din.x + dout.x); // bisector tangent
+    if (tint !== undefined) sprite.tint = tint;
+    group.addChild(sprite);
+  }
 }
 
 function instantiateBackgroundSprite(
