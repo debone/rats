@@ -89,6 +89,8 @@ export interface TileLayerDef {
   tileSize: V2;
   z?: number;
   tiles: { x: number; y: number; pixiFrame: string; transform?: number }[];
+  /** Optional clip polygon (layer-local pixels); the runtime masks the tiles to it. */
+  clip?: V2[];
 }
 
 export interface MeshDef {
@@ -436,6 +438,14 @@ function instantiateTileLayer(
     sprite.rotation = t.r;
     sprite.position.set((tile.x + t.dx) * sw, (tile.y + t.dy) * sh);
     container.addChild(sprite);
+  }
+  // Clip the tiles to the parent shape's outline (Box2DPolygon/Box2DCurve with
+  // clip_children). The clip polygon is already in this layer's local space.
+  if (def.clip && def.clip.length >= 3) {
+    const mask = new Graphics();
+    mask.poly(def.clip.flatMap((v) => [v.x, v.y])).fill(0xffffff);
+    container.addChild(mask);
+    container.mask = mask;
   }
   const localX = def.position.x;
   const localY = def.position.y;

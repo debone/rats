@@ -700,6 +700,70 @@ tile_map_data = PackedByteArray("${blob}")
     ]);
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   });
+
+  it('clips a child TileMapLayer to a clip_children Box2DPolygon (no mesh, clip projected to layer-local)', () => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-clip-'));
+    fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, 'tileset.tres'),
+      `[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/sheet.tres" id="1_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_0"]
+texture = ExtResource("1_tex")
+texture_region_size = Vector2i(32, 32)
+
+[resource]
+sources/0 = SubResource("atlas_0")
+tile_size = Vector2i(32, 32)
+`,
+    );
+
+    const blob = makeBlob([[0, 0, 0, 0, 0, 0]]);
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="TileSet" path="res://tileset.tres" id="1_ts"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="clip" type="Polygon2D" parent="."]
+position = Vector2(10, 20)
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 64, 0, 64, 64, 0, 64)
+clip_children = true
+
+[node name="tiles" type="TileMapLayer" parent="clip"]
+position = Vector2(5, 5)
+tile_set = ExtResource("1_ts")
+tile_map_data = PackedByteArray("${blob}")
+`;
+    const geo = parseGeometryTscn(
+      tscn,
+      {
+        sheet: {
+          godotPath: 'res://sprites/sheet.tres',
+          type: 'AtlasTexture',
+          pixiFrame: 'sheet#0',
+          tilesheet: { framePrefix: 'tiles', cols: 10, rows: 10, tileSize: 32 },
+        },
+      },
+      { godotRoot: tmpRoot },
+    );
+    // The clip polygon renders no mesh of its own.
+    expect(geo.background!.meshes).toHaveLength(0);
+    expect(geo.background!.tileLayers).toHaveLength(1);
+    // clip = polygon world verts (poly + (10,20)) mapped into the layer's local
+    // space (layer global = (15,25)), i.e. each polygon vertex shifted by (-5,-5).
+    expect(geo.background!.tileLayers[0].clip).toEqual([
+      { x: -5, y: -5 },
+      { x: 59, y: -5 },
+      { x: 59, y: 59 },
+      { x: -5, y: 59 },
+    ]);
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
 });
 
 describe('parseGeometryTscn — Box2DRoot', () => {

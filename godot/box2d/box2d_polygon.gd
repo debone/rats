@@ -49,3 +49,7 @@ class_name Box2DPolygon
 @export_group("Export")
 ## false = editor-only reference art; the exporter skips it.
 @export var attached: bool = true
+## When true this polygon renders NO fill/border of its own — its outline becomes
+## a clip mask for any child TileMapLayer (lets you paint an arbitrary tilemap and
+## confine it to this shape at runtime).
+@export var clip_children: bool = false

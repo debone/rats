@@ -48,3 +48,6 @@ class_name Box2DCurve
 @export_group("Export")
 ## false = editor-only reference art; the exporter skips it.
 @export var attached: bool = true
+## When true this curve renders NO fill/border of its own — its tessellated
+## outline becomes a clip mask for any child TileMapLayer.
+@export var clip_children: bool = false

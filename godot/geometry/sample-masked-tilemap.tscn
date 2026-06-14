@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+[ext_resource type="Texture2D" path="res://sprites/level-1{ss=32}/level-1_spritesheet.tres" id="3_sheet"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1"]
+texture = ExtResource("3_sheet")
+texture_region_size = Vector2i(32, 32)
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_1"]
+tile_size = Vector2i(32, 32)
+sources/1 = SubResource("TileSetAtlasSource_1")
+
+[node name="Geometry" type="Node2D"]
+script = ExtResource("1_root")
+gravity = Vector2(0, -10)
+
+; A Box2DPolygon with clip_children = true renders NO mesh of its own — its
+; outline (this diamond) becomes a runtime mask for its child TileMapLayer. So
+; you can paint an arbitrary, varied tilemap and confine it to any polygon shape.
+; (A Box2DCurve with clip_children works the same for a bezier mask.)
+[node name="clip-diamond" type="Polygon2D" parent="."]
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(96, 0, 192, 64, 96, 128, 0, 64)
+clip_children = true
+
+; The painted tilemap (6×4 cells of mixed tiles 2–5). It's a direct child of the
+; clip shape, so the exporter projects the diamond into this layer's space and
+; the runtime masks the tile sprites to it.
+[node name="tiles" type="TileMapLayer" parent="clip-diamond"]
+tile_map_data = PackedByteArray("AAAAAAAAAQACAAAAAAABAAAAAQADAAAAAAACAAAAAQAEAAAAAAADAAAAAQAFAAAAAAAEAAAAAQACAAAAAAAFAAAAAQADAAAAAAAAAAEAAQADAAAAAAABAAEAAQAEAAAAAAACAAEAAQAFAAAAAAADAAEAAQACAAAAAAAEAAEAAQADAAAAAAAFAAEAAQAEAAAAAAAAAAIAAQAEAAAAAAABAAIAAQAFAAAAAAACAAIAAQACAAAAAAADAAIAAQADAAAAAAAEAAIAAQAEAAAAAAAFAAIAAQAFAAAAAAAAAAMAAQAFAAAAAAABAAMAAQACAAAAAAACAAMAAQADAAAAAAADAAMAAQAEAAAAAAAEAAMAAQAFAAAAAAAFAAMAAQACAAAAAAA=")
+tile_set = SubResource("TileSet_1")

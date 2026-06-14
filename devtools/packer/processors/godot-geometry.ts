@@ -128,6 +128,12 @@ export interface TileLayerDef {
   tileSize: V2;
   z?: number;
   tiles: TilePlacement[];
+  /**
+   * Optional clip polygon (this layer's local pixel space). Present when the
+   * layer is a child of a Box2DPolygon/Box2DCurve with `clip_children = true`;
+   * the runtime masks the tile container to this outline.
+   */
+  clip?: V2[];
 }
 
 export interface TilePlacement {
@@ -1102,8 +1108,29 @@ function buildBackground(
     return info;
   };
 
+  // Pre-pass: collect clip shapes. A Box2DPolygon/Box2DCurve with
+  // `clip_children = true` is a mask for its child TileMapLayers — it renders no
+  // mesh of its own. Vertices are kept in world (scene) space here, then mapped
+  // into each child layer's local space when the layer is built.
+  const clipShapesWorld = new Map<string, V2[]>();
   for (const n of nodes) {
     if (isUnderBody(n.fullPath)) continue;
+    const isPoly = n.type === 'Polygon2D' && n.scriptResPath === BOX2D_POLYGON_SCRIPT;
+    const isCurve = n.scriptResPath === BOX2D_CURVE_SCRIPT;
+    if (!isPoly && !isCurve) continue;
+    if (decodeGodotValue(n.props.get('clip_children') ?? 'false') !== true) continue;
+    const localVerts = isPoly ? parsePackedVector2Array(n.props.get('polygon') ?? '') : curveVertices(n, subResections);
+    if (localVerts.length < 3) continue;
+    const gt = globalTransforms.get(n.fullPath)!;
+    clipShapesWorld.set(
+      n.fullPath,
+      localVerts.map((v) => applyGTransform(gt, v)),
+    );
+  }
+
+  for (const n of nodes) {
+    if (isUnderBody(n.fullPath)) continue;
+    if (clipShapesWorld.has(n.fullPath)) continue; // clip-only shapes render no mesh
     if (n.type === 'Polygon2D') {
       // Box2DPolygon (tiled fill + tiled border) is also a Polygon2D; the
       // `attached = false` flag marks it as editor-only reference art.
@@ -1135,7 +1162,16 @@ function buildBackground(
       if (s) sprites.push(s);
     } else if (n.type === 'TileMapLayer') {
       const layer = buildTileLayer(n, extResources, subResections, globalTransforms, spriteMap, resolveTileSet);
-      if (layer) tileLayers.push(layer);
+      if (layer) {
+        // If this layer is a child of a clip shape, project the clip polygon into
+        // the layer's local space so the runtime can mask the tile container.
+        const clipWorld = clipShapesWorld.get(n.parentPath);
+        if (clipWorld) {
+          const layerGT = globalTransforms.get(n.fullPath)!;
+          layer.clip = clipWorld.map((w) => applyInverseGTransform(layerGT, w));
+        }
+        tileLayers.push(layer);
+      }
     }
   }
 
@@ -1499,16 +1535,11 @@ function buildCurveMesh(
   globalTransforms: Map<string, GTransform>,
 ): MeshDef | null {
   const curveId = node.props.get('curve')?.match(/SubResource\("([^"]+)"\)/)?.[1];
-  const curveSection = curveId ? subResections[curveId] : undefined;
-  if (!curveSection) {
+  if (!curveId || !subResections[curveId]) {
     console.warn(`[Godot] Box2DCurve "${node.name}" has no curve resource; skipping`);
     return null;
   }
-  // Godot Curve2D `_data.points` is a flat PackedVector2Array of (in, out, pos)
-  // triples per control point (handles are offsets relative to the position).
-  const rawPoints = parsePackedVector2Array(curveSection.props.get('_data') ?? '');
-  const samples = Math.max(1, Math.round(parseFloat(unquote(node.props.get('curve_samples') ?? '8')) || 8));
-  const vertices = tessellateCurve2D(rawPoints, samples);
+  const vertices = curveVertices(node, subResections);
   if (vertices.length < 3) {
     console.warn(`[Godot] Box2DCurve "${node.name}" tessellated to <3 points; skipping`);
     return null;
@@ -1543,6 +1574,36 @@ function buildCurveMesh(
   const border = buildMeshBorder(node, extResources, godotPathToPixi);
   if (border) out.border = border;
   return out;
+}
+
+/** Apply a global transform (translate + rotate + scale) to a local-space point. */
+function applyGTransform(gt: GTransform, v: V2): V2 {
+  const sx = v.x * gt.scale.x;
+  const sy = v.y * gt.scale.y;
+  const c = Math.cos(gt.rotation);
+  const s = Math.sin(gt.rotation);
+  return { x: gt.origin.x + c * sx - s * sy, y: gt.origin.y + s * sx + c * sy };
+}
+
+/** Inverse of applyGTransform: map a world-space point into the transform's local space. */
+function applyInverseGTransform(gt: GTransform, w: V2): V2 {
+  const dx = w.x - gt.origin.x;
+  const dy = w.y - gt.origin.y;
+  const c = Math.cos(gt.rotation);
+  const s = Math.sin(gt.rotation);
+  return { x: (c * dx + s * dy) / (gt.scale.x || 1), y: (-s * dx + c * dy) / (gt.scale.y || 1) };
+}
+
+/** Resolve a Box2DCurve node's Curve2D sub-resource and tessellate it into local-space vertices. */
+function curveVertices(node: NodeInfo, subResections: Record<string, TscnSection>): V2[] {
+  const curveId = node.props.get('curve')?.match(/SubResource\("([^"]+)"\)/)?.[1];
+  const curveSection = curveId ? subResections[curveId] : undefined;
+  if (!curveSection) return [];
+  // Godot Curve2D `_data.points` is a flat PackedVector2Array of (in, out, pos)
+  // triples per control point (handles are offsets relative to the position).
+  const rawPoints = parsePackedVector2Array(curveSection.props.get('_data') ?? '');
+  const samples = Math.max(1, Math.round(parseFloat(unquote(node.props.get('curve_samples') ?? '8')) || 8));
+  return tessellateCurve2D(rawPoints, samples);
 }
 
 /**
