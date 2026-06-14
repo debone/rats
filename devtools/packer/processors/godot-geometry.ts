@@ -64,6 +64,7 @@ const SCRIPT_TO_JOINT_TYPE: Record<string, 'revolute' | 'prismatic' | 'distance'
 const BOX2D_ROOT_SCRIPT = 'res://box2d/box2d_root.gd';
 const BOX2D_NINE_SLICE_SCRIPT = 'res://box2d/box2d_nine_slice.gd';
 const BOX2D_POLYGON_SCRIPT = 'res://box2d/box2d_polygon.gd';
+const BOX2D_CURVE_SCRIPT = 'res://box2d/box2d_curve.gd';
 
 // ---------------------------------------------------------------------------
 // Output schema (mirrored in src/lib/loadGodotGeometry.ts)
@@ -191,6 +192,8 @@ export interface MeshBorderDef {
   cornerFrame?: string;
   /** Atlas alias for `cornerFrame`. */
   cornerAtlas?: string;
+  /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
+  cornerMinAngle?: number;
 }
 
 /**
@@ -1110,6 +1113,13 @@ function buildBackground(
       }
       const m = buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
       if (m) meshes.push(m);
+    } else if (n.scriptResPath === BOX2D_CURVE_SCRIPT) {
+      // Box2DCurve is a Path2D whose bezier curve is tessellated into the mesh
+      // vertices, then rendered with the same masked fill + quad-strip border.
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const m = buildCurveMesh(n, extResources, godotPathToPixi, subResections, globalTransforms);
+      if (m) meshes.push(m);
     } else if (n.scriptResPath === BOX2D_NINE_SLICE_SCRIPT) {
       // Box2DNineSlice is a Sprite2D subclass, so this must be checked before
       // the plain Sprite2D branch below or it would be exported twice.
@@ -1426,33 +1436,144 @@ function buildMeshDef(
   if (polyNode.scriptResPath === BOX2D_POLYGON_SCRIPT) {
     const tileFill = decodeGodotValue(polyNode.props.get('tile_fill') ?? 'true') !== false;
     if (tileFill) out.tileFill = true;
-
-    const borderTexProp = polyNode.props.get('border_texture');
-    const borderExtId = borderTexProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
-    const borderResPath = borderExtId ? extResources[borderExtId] : undefined;
-    const borderResolved = borderResPath ? godotPathToPixi[borderResPath] : undefined;
-    if (borderResolved?.frame) {
-      const width = parseFloat(unquote(polyNode.props.get('border_width') ?? '0')) || 0;
-      const rawScale = polyNode.props.get('border_texture_scale');
-      const textureScale = rawScale !== undefined ? parseFloat(unquote(rawScale)) || 0 : 1;
-      const closed = decodeGodotValue(polyNode.props.get('border_closed') ?? 'true') !== false;
-      out.border = { pixiFrame: borderResolved.frame, width, textureScale, closed };
-      if (borderResolved.atlas) out.border.pixiAtlas = borderResolved.atlas;
-
-      // Optional corner piece: a frame stamped at each polygon vertex, oriented
-      // to the corner bisector, to cover the joint between adjacent edge strips.
-      const cornerExtId = polyNode.props.get('border_corner_texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
-      const cornerResPath = cornerExtId ? extResources[cornerExtId] : undefined;
-      const cornerResolved = cornerResPath ? godotPathToPixi[cornerResPath] : undefined;
-      if (cornerResolved?.frame) {
-        out.border.cornerFrame = cornerResolved.frame;
-        if (cornerResolved.atlas) out.border.cornerAtlas = cornerResolved.atlas;
-      }
-    } else if (borderTexProp) {
-      console.warn(`[Godot] Box2DPolygon "${polyNode.name}" border_texture did not resolve to a frame; skipping border`);
-    }
+    const border = buildMeshBorder(polyNode, extResources, godotPathToPixi);
+    if (border) out.border = border;
   }
   return out;
+}
+
+/**
+ * Parse the shared `border_*` exports (used by Box2DPolygon and Box2DCurve) into
+ * a MeshBorderDef, resolving the strip + optional corner frame through the
+ * sprite-map. Returns undefined when there's no resolvable border texture.
+ */
+function buildMeshBorder(
+  node: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+): MeshBorderDef | undefined {
+  const borderTexProp = node.props.get('border_texture');
+  const borderExtId = borderTexProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const borderResPath = borderExtId ? extResources[borderExtId] : undefined;
+  const borderResolved = borderResPath ? godotPathToPixi[borderResPath] : undefined;
+  if (!borderResolved?.frame) {
+    if (borderTexProp) {
+      console.warn(`[Godot] "${node.name}" border_texture did not resolve to a frame; skipping border`);
+    }
+    return undefined;
+  }
+
+  const width = parseFloat(unquote(node.props.get('border_width') ?? '0')) || 0;
+  const rawScale = node.props.get('border_texture_scale');
+  const textureScale = rawScale !== undefined ? parseFloat(unquote(rawScale)) || 0 : 1;
+  const closed = decodeGodotValue(node.props.get('border_closed') ?? 'true') !== false;
+  const border: MeshBorderDef = { pixiFrame: borderResolved.frame, width, textureScale, closed };
+  if (borderResolved.atlas) border.pixiAtlas = borderResolved.atlas;
+
+  // Optional corner piece stamped over each joint. `border_corner_min_angle`
+  // (degrees) suppresses corners on shallow turns — so a finely-tessellated
+  // curve only gets corner pieces at genuinely sharp vertices.
+  const cornerExtId = node.props.get('border_corner_texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const cornerResPath = cornerExtId ? extResources[cornerExtId] : undefined;
+  const cornerResolved = cornerResPath ? godotPathToPixi[cornerResPath] : undefined;
+  if (cornerResolved?.frame) {
+    border.cornerFrame = cornerResolved.frame;
+    if (cornerResolved.atlas) border.cornerAtlas = cornerResolved.atlas;
+    const minAngle = parseFloat(unquote(node.props.get('border_corner_min_angle') ?? '0')) || 0;
+    if (minAngle > 0) border.cornerMinAngle = minAngle;
+  }
+  return border;
+}
+
+/**
+ * Box2DCurve — a Path2D whose bezier Curve2D is tessellated into mesh vertices,
+ * then rendered with the same masked tiled fill + quad-strip border as a
+ * Box2DPolygon. The masked fill earcuts its polygon mask, so concave/curved
+ * outlines render correctly (use `tile_fill`, not the stretched mesh).
+ */
+function buildCurveMesh(
+  node: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  subResections: Record<string, TscnSection>,
+  globalTransforms: Map<string, GTransform>,
+): MeshDef | null {
+  const curveId = node.props.get('curve')?.match(/SubResource\("([^"]+)"\)/)?.[1];
+  const curveSection = curveId ? subResections[curveId] : undefined;
+  if (!curveSection) {
+    console.warn(`[Godot] Box2DCurve "${node.name}" has no curve resource; skipping`);
+    return null;
+  }
+  // Godot Curve2D `_data.points` is a flat PackedVector2Array of (in, out, pos)
+  // triples per control point (handles are offsets relative to the position).
+  const rawPoints = parsePackedVector2Array(curveSection.props.get('_data') ?? '');
+  const samples = Math.max(1, Math.round(parseFloat(unquote(node.props.get('curve_samples') ?? '8')) || 8));
+  const vertices = tessellateCurve2D(rawPoints, samples);
+  if (vertices.length < 3) {
+    console.warn(`[Godot] Box2DCurve "${node.name}" tessellated to <3 points; skipping`);
+    return null;
+  }
+
+  // Path2D has no `texture`, so Box2DCurve adds its own fill texture export.
+  const texExtId = node.props.get('texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const resolved = texExtId && extResources[texExtId] ? godotPathToPixi[extResources[texExtId]] : undefined;
+
+  // Fan triangulation is only consumed by the non-tiled stretched fill; the tiled
+  // fill clips with an earcut polygon mask, so concave curves are fine there.
+  const indices: number[] = [];
+  for (let i = 1; i < vertices.length - 1; i++) indices.push(0, i, i + 1);
+
+  const gt = globalTransforms.get(node.fullPath)!;
+  const out: MeshDef = {
+    name: node.name,
+    position: gt.origin,
+    rotation: gt.rotation,
+    scale: gt.scale,
+    vertices,
+    uvs: vertices,
+    indices,
+  };
+  if (resolved?.frame) out.pixiFrame = resolved.frame;
+  if (resolved?.atlas) out.pixiAtlas = resolved.atlas;
+  const zIndex = parseInt(unquote(node.props.get('z_index') ?? '0'), 10) || undefined;
+  if (zIndex) out.z = zIndex;
+
+  const tileFill = decodeGodotValue(node.props.get('tile_fill') ?? 'true') !== false;
+  if (tileFill) out.tileFill = true;
+  const border = buildMeshBorder(node, extResources, godotPathToPixi);
+  if (border) out.border = border;
+  return out;
+}
+
+/**
+ * Tessellate a Godot Curve2D into a polyline. `points` are the (in, out, pos)
+ * triples; each segment between consecutive points is a cubic bezier
+ * (P0=pos_i, P1=pos_i+out_i, P2=pos_{i+1}+in_{i+1}, P3=pos_{i+1}) sampled at
+ * `samples` steps. Shared segment endpoints are emitted once.
+ */
+function tessellateCurve2D(points: V2[], samples: number): V2[] {
+  const count = Math.floor(points.length / 3);
+  if (count < 2) return [];
+  const pos = (i: number) => points[i * 3 + 2];
+  const outH = (i: number) => points[i * 3 + 1];
+  const inH = (i: number) => points[i * 3 + 0];
+
+  const result: V2[] = [pos(0)];
+  for (let i = 0; i < count - 1; i++) {
+    const p0 = pos(i);
+    const p1 = { x: p0.x + outH(i).x, y: p0.y + outH(i).y };
+    const p3 = pos(i + 1);
+    const p2 = { x: p3.x + inH(i + 1).x, y: p3.y + inH(i + 1).y };
+    for (let s = 1; s <= samples; s++) {
+      const t = s / samples;
+      const u = 1 - t;
+      result.push({
+        x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
+        y: u * u * u * p0.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * p3.y,
+      });
+    }
+  }
+  return result;
 }
 
 function buildBackgroundSprite(

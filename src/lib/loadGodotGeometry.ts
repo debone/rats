@@ -125,6 +125,8 @@ export interface MeshBorderDef {
   cornerFrame?: string;
   /** Atlas alias for `cornerFrame`. */
   cornerAtlas?: string;
+  /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
+  cornerMinAngle?: number;
 }
 
 export interface BackgroundSpriteDef {
@@ -696,7 +698,16 @@ function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number):
   group.addChild(strip);
 
   if (border.cornerFrame)
-    addCornerPieces(group, border.cornerFrame, border.cornerAtlas, vertices, border.closed, width, tint);
+    addCornerPieces(
+      group,
+      border.cornerFrame,
+      border.cornerAtlas,
+      vertices,
+      border.closed,
+      width,
+      border.cornerMinAngle ?? 0,
+      tint,
+    );
   return group;
 }
 
@@ -756,11 +767,15 @@ function addCornerPieces(
   verts: V2[],
   closed: boolean,
   size: number,
+  minAngle: number,
   tint?: number,
 ): void {
   const texture = resolveFrameTexture(frame, 'mesh border corner', atlas);
   if (!texture) return;
 
+  // Suppress corners on shallow turns when a minimum angle is set (e.g. so a
+  // tessellated curve only gets corners at genuinely sharp vertices).
+  const minCos = minAngle > 0 ? Math.cos((minAngle * Math.PI) / 180) : 2; // 2 ⇒ never skip
   const n = verts.length;
   // Closed: a corner at every vertex. Open: only interior joints (skip endpoints).
   const start = closed ? 0 : 1;
@@ -768,6 +783,9 @@ function addCornerPieces(
   for (let i = start; i < end; i++) {
     const din = unit(verts[i], verts[(i - 1 + n) % n], true);
     const dout = unit(verts[i], verts[(i + 1) % n], false);
+    // Turn deviation: dot(din,dout) = 1 when straight, −1 on a full reversal.
+    // Stamp only when the turn is sharp enough (deviation ≥ minAngle).
+    if (minCos <= 1 && din.x * dout.x + din.y * dout.y > minCos) continue;
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5);
     sprite.width = size;

@@ -494,6 +494,75 @@ attached = false
     });
     expect(geo.background).toBeUndefined();
   });
+
+  it('tessellates a Box2DCurve into a mesh with a tiled fill + border', () => {
+    // 3-point Curve2D with zero handles → straight segments; curve_samples=1
+    // collapses each segment to its end point, so the vertices are the corners.
+    const tscn = `[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/foam.tres" id="2_border"]
+[ext_resource type="Script" path="res://box2d/box2d_curve.gd" id="3_curve"]
+
+[sub_resource type="Curve2D" id="Curve2D_1"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 50, 100)
+}
+point_count = 3
+
+[node name="Root" type="Node2D"]
+
+[node name="blob" type="Path2D" parent="."]
+texture = ExtResource("1_fill")
+script = ExtResource("3_curve")
+curve = SubResource("Curve2D_1")
+curve_samples = 1
+border_texture = ExtResource("2_border")
+border_width = 8.0
+border_corner_texture = ExtResource("2_border")
+border_corner_min_angle = 30.0
+`;
+    const geo = parseGeometryTscn(tscn, {
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0', atlas: 'levels/lvl.aseprite' },
+      border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0', atlas: 'fx/foam.aseprite' },
+    });
+    expect(geo.background!.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.name).toBe('blob');
+    expect(mesh.tileFill).toBe(true);
+    expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.pixiAtlas).toBe('levels/lvl.aseprite');
+    // curve_samples=1 → the three corner points of the curve.
+    expect(mesh.vertices).toEqual([
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 50, y: 100 },
+    ]);
+    expect(mesh.border?.pixiFrame).toBe('foam#0');
+    expect(mesh.border?.cornerFrame).toBe('foam#0');
+    expect(mesh.border?.cornerMinAngle).toBe(30);
+  });
+
+  it('skips a Box2DCurve flagged attached = false', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_curve.gd" id="1_curve"]
+
+[sub_resource type="Curve2D" id="Curve2D_1"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 50, 100)
+}
+
+[node name="Root" type="Node2D"]
+
+[node name="blob" type="Path2D" parent="."]
+script = ExtResource("1_curve")
+curve = SubResource("Curve2D_1")
+attached = false
+`;
+    const geo = parseGeometryTscn(tscn, {});
+    expect(geo.background).toBeUndefined();
+  });
 });
 
 describe('decodeTileMapData', () => {

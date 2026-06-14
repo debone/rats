@@ -41,6 +41,10 @@ class_name Box2DPolygon
 ## the bisector) to cover the joint between adjacent edge strips. Leave empty
 ## to rely on the mitred joints alone.
 @export var border_corner_texture: Texture2D
+## Only stamp a corner piece when the outline turns by at least this many degrees.
+## 0 stamps every vertex; raise it so shallow turns (e.g. a tessellated curve)
+## skip the corner and only genuinely sharp corners get one.
+@export_range(0.0, 180.0) var border_corner_min_angle: float = 0.0
 
 @export_group("Export")
 ## false = editor-only reference art; the exporter skips it.
