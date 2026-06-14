@@ -16,6 +16,8 @@ export const i18nDictEnglish = {
   'level-3.name': '3 - The hook',
   'level-4.name': '2 - Cheese is power',
 
+  'shop.name': 'The Shop',
+
   'crew-swap': 'Press "x" to swap crew for 10 scraps',
 
   'crew.apprentice.name': 'Apprentice',

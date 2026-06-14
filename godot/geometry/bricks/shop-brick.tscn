@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://d1o4h4p5gkrw7"]
+
+[ext_resource type="Script" uid="uid://doniiw8eblphn" path="res://box2d/box2d_static_body.gd" id="1_bhboa"]
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_ohdii"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="2_rypev"]
+[ext_resource type="Texture2D" uid="uid://2xvhpcpmc4ov" path="res://sprites/prototype{ss=32}/bricks_tile_1.tres" id="3_np36q"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="4_bhboa"]
+[ext_resource type="Texture2D" uid="uid://c45a5kw3xo6qj" path="res://sprites/prototype{ss=32}/avatars-new_tile_13.tres" id="5_ew6x3"]
+[ext_resource type="Texture2D" uid="uid://b8pijcskasnjv" path="res://sprites/prototype{ss=32}/bricks_tile_2.tres" id="6_08hjy"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_5.tres" id="7_adt6r"]
+[ext_resource type="Texture2D" uid="uid://blmryd78djrjk" path="res://sprites/prototype{ss=32}/price-badge.tres" id="8_ohdii"]
+[ext_resource type="Texture2D" uid="uid://p38ragtevf8k" path="res://sprites/prototype{ss=32}/cheese_tile_2.tres" id="9_o45qr"]
+[ext_resource type="Texture2D" path="res://sprites/bg/bg.tres" id="11_5knts"]
+
+[node name="ShopBrick" type="Node2D" unique_id=1276501009]
+script = ExtResource("1_ohdii")
+metadata/_custom_type_script = "uid://dn4fg76x5vhho"
+
+[node name="ShopBrickBody" type="StaticBody2D" parent="." unique_id=1179592842]
+script = ExtResource("1_bhboa")
+type = "shop-brick"
+metadata/_custom_type_script = "uid://doniiw8eblphn"
+
+[node name="ShopBrickFixture" type="CollisionPolygon2D" parent="ShopBrickBody" unique_id=1948829005]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-16, -8, 16, -8, 16, 8, -16, 8)
+script = ExtResource("2_rypev")
+
+[node name="BricksTile2" type="Sprite2D" parent="ShopBrickBody" unique_id=1579977749]
+position = Vector2(-6, -10)
+texture = ExtResource("6_08hjy")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="BricksTile4" type="Sprite2D" parent="ShopBrickBody" unique_id=1176528045]
+position = Vector2(7, -10)
+texture = ExtResource("6_08hjy")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="BricksTile1" type="Sprite2D" parent="ShopBrickBody" unique_id=1937237771]
+position = Vector2(6.5, 1.5)
+texture = ExtResource("3_np36q")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="BricksTile5" type="Sprite2D" parent="ShopBrickBody" unique_id=192626841]
+position = Vector2(-7.5, 1.5)
+texture = ExtResource("7_adt6r")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="avatar-sprite" type="Sprite2D" parent="ShopBrickBody" unique_id=1109223133]
+position = Vector2(0, -31)
+texture = ExtResource("5_ew6x3")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="badge-sprite" type="Sprite2D" parent="ShopBrickBody" unique_id=1226352774]
+position = Vector2(0, -6)
+texture = ExtResource("8_ohdii")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="item-sprite" type="Sprite2D" parent="ShopBrickBody" unique_id=2088383523]
+position = Vector2(4, -7)
+texture = ExtResource("9_o45qr")
+script = ExtResource("4_bhboa")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
+
+[node name="NinePatchRect" type="NinePatchRect" parent="." unique_id=1715956365]
+offset_left = -23.0
+offset_top = 11.0
+offset_right = 67.0
+offset_bottom = 64.0
+texture = ExtResource("11_5knts")
+region_rect = Rect2(0, 0, 36, 36)
+patch_margin_left = 14
+patch_margin_top = 14
+patch_margin_right = 12
+patch_margin_bottom = 8

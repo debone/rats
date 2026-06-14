@@ -156,11 +156,11 @@ export class PhaserDebugDraw {
     const angle = Math.atan2(dy, dx);
 
     graphics.save();
-    graphics.translateCanvas(transformedP1X, transformedP1Y);
-    graphics.rotateCanvas(angle);
+    graphics.translateTransform(transformedP1X, transformedP1Y);
+    graphics.rotateTransform(angle);
 
-    graphics.fillStyle(col, 0.5);
-    graphics.lineStyle(1, col, 1);
+    graphics.fill({ color: col, alpha: 0.5 });
+    graphics.setStrokeStyle({ width: 1, color: col, alpha: 1 });
 
     graphics.beginPath();
 
@@ -208,15 +208,15 @@ export class PhaserDebugDraw {
     this.positionOffset.y = this.height / 2 - y;
   }
 
-  DrawImagePolygon(xf: b2Transform, shape: any, ctx: any) {
+  DrawImagePolygon(_xf: b2Transform, _shape: any, _ctx: any) {
     //  NOOP
   }
 
-  DrawImageCircle(xf: b2Transform, rad: number, shape: any, ctx: any) {
+  DrawImageCircle(_xf: b2Transform, _rad: number, _shape: any, _ctx: any) {
     //  NOOP
   }
 
-  DrawImageCapsule(p1: b2Vec2, p2: b2Vec2, radius: number, shape: any, ctx: any) {
+  DrawImageCapsule(_p1: b2Vec2, _p2: b2Vec2, _radius: number, _shape: any, _ctx: any) {
     //  NOOP
   }
 }

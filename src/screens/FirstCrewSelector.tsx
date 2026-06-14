@@ -30,8 +30,7 @@ export class FirstCrewSelector extends Container implements AppScreen {
 
   selectCrewMember(crewMember: CrewMemberDefKey) {
     onboardCrewMember(crewMember);
-    //execute(LevelSelectedCommand, { levelId: 'level-1' });
-    getGameContext().events.emit(GameEvent.START_NEW_RUN, { startingLevelId: 'level-1' });
+    getGameContext().events.emit(GameEvent.START_NEW_RUN);
   }
 
   async prepare() {
@@ -53,7 +52,7 @@ export class FirstCrewSelector extends Container implements AppScreen {
 
     // Screens are now children of scenes, we talk events
     // execute(LevelSelectedCommand, { levelId: 'level-1' });
-    getGameContext().events.emit(GameEvent.START_NEW_RUN, { startingLevelId: 'level-1' });
+    getGameContext().events.emit(GameEvent.START_NEW_RUN);
   }
 
   gameContainer?: LayoutContainer;

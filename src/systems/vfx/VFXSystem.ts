@@ -385,7 +385,9 @@ export class VFXSystem implements System {
     for (const s of seqDefs) options[dataDriven.has(s.id) ? `${s.id}  ✎` : s.id] = s.id;
 
     const state = { seq: seqDefs[0].id };
-    const select = folder.addBinding(state, 'seq', { label: 'sequence', options });
+
+    // Sequences select
+    folder.addBinding(state, 'seq', { label: 'sequence', options });
 
     folder.addButton({ title: 'seek ▶', label: 'play' }).on('click', () => {
       const def = byId.get(state.seq);

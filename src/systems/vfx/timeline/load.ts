@@ -3,6 +3,7 @@ import type { Timeline } from 'animejs';
 import type { SequenceContext } from '../types';
 import { compile } from './compile';
 import { consumeEdit } from './editor/editMode';
+import { migrateDoc } from './migrate';
 import type { Hooks, Stage, TimelineDoc } from './types';
 
 /**
@@ -13,7 +14,7 @@ import type { Hooks, Stage, TimelineDoc } from './types';
 export async function load(id: string): Promise<TimelineDoc> {
   const res = await fetch(`assets/timelines/${id}.json`);
   if (!res.ok) throw new Error(`[timeline] failed to load "${id}": ${res.status} ${res.statusText}`);
-  return (await res.json()) as TimelineDoc;
+  return migrateDoc((await res.json()) as TimelineDoc);
 }
 
 export interface PlayTimelineArgs {

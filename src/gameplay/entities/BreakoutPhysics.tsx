@@ -31,6 +31,7 @@ import { CatTail } from './cats/CatTail';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
+import { ShopBrick } from './ShopBrick';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
@@ -64,6 +65,7 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
     background,
   } = loadGodotGeometry(geo, ctx.worldId!, {
     container: ctx.container ?? undefined,
+    sprites: true,
   });
 
   // Static background visuals are authored in raw Godot pixel coords, but body
@@ -265,6 +267,10 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
             });
           });
         }
+      } else if (tag === 'shop-brick') {
+        const spawnPos = b2Body_GetPosition(bodyId);
+        ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
+        ShopBrick({ spawnPos });
       } else if (tag === 'cat-body') {
         CatPiece({ bodyId, texture: 'cat-body#0' });
       } else if (tag === 'cat-piece') {

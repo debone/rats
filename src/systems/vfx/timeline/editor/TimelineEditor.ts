@@ -4,14 +4,15 @@ import { GUTTER_MAX, GUTTER_MIN, loadPrefs, PANEL_MIN, ROW_MAX, ROW_MIN, savePre
 import { clearDraft, type Draft, draftDiffers, loadDraft, saveDraft } from './draft';
 import { disposeActorHighlight, hideActorHighlight, showActorHighlight } from './highlight';
 import {
-  addCue,
+  addCueKey,
   addKey,
   addTrack,
-  deleteCue,
+  deleteCueKey,
   deleteKey,
-  moveCue,
   removeTrack,
+  retimeCueKey,
   retimeKey,
+  setCueKeyValue,
   setDuration,
   setKeyEase,
   setKeyValue,
@@ -39,6 +40,9 @@ const ZOOM_MAX = 200;
 const ZOOM_STEP = 1.25;
 
 type El = HTMLElement;
+
+/** The inspector's current target: an actor-track key, or a cue key (keyed by hook). */
+type Selection = { kind: 'key'; track: number; key: number } | { kind: 'cue'; hook: string; key: number };
 
 /**
  * Document the `el()` factory creates nodes in. Defaults to the host page, but is
@@ -165,8 +169,12 @@ export class TimelineEditor {
   private readouts = new Map<Track, El>();
   /** Suppress the structural refresh during a drag so the dragged node survives. */
   private dragging = false;
-  /** Currently-selected key, for the inspector. */
-  private selected: { track: number; key: number } | null = null;
+  /**
+   * Currently-selected key, for the inspector. Either an actor track key (addressed by
+   * track index) or a cue key (addressed by hook name, since a hook's track is created
+   * lazily on its first key and re-indexes as tracks come and go).
+   */
+  private selected: Selection | null = null;
 
   /** The window/document the UI lives in — a popup when one could be opened, else the host page. */
   private readonly win: Window;
@@ -469,7 +477,7 @@ export class TimelineEditor {
     add.onclick = () =>
       this.session.edit((d) => {
         const ti = addTrack(d, actorSel.value, propSel.value);
-        this.selected = { track: ti, key: 0 };
+        this.selected = { kind: 'key', track: ti, key: 0 };
       });
     return el('div', { class: 'vfx-tl-addtrack' }, ['Add track:', actorSel, propSel, add]);
   }
@@ -573,7 +581,7 @@ export class TimelineEditor {
     this.readouts.clear();
     const tracks = this.session.doc.tracks;
     for (let ti = 0; ti < tracks.length; ti++) this.rowsEl.append(this.renderTrackRow(ti));
-    this.rowsEl.append(this.renderCuesRow());
+    for (const { hook, missing } of this.cueRows()) this.rowsEl.append(this.renderCueRow(hook, missing));
     this.updateReadouts();
   }
 
@@ -629,7 +637,7 @@ export class TimelineEditor {
       const onCurve = valueAtTime(track, time);
       this.session.edit((d) => {
         const ki = addKey(d, ti, time, onCurve == null ? undefined : onCurve);
-        this.selected = { track: ti, key: ki };
+        this.selected = { kind: 'key', track: ti, key: ki };
       });
     };
     const del = el('button', { class: 'vfx-tl-mini', title: 'Remove track' }, ['🗑']);
@@ -699,7 +707,7 @@ export class TimelineEditor {
 
   private renderKey(ti: number, ki: number, range: { min: number; max: number } | null): El {
     const key = this.session.doc.tracks[ti].keys[ki];
-    const isSel = this.selected?.track === ti && this.selected?.key === ki;
+    const isSel = this.selected?.kind === 'key' && this.selected.track === ti && this.selected.key === ki;
     const diamond = el('div', { class: `vfx-tl-key${isSel ? ' sel' : ''}`, title: `f=${key.time}  v=${key.value}` });
     diamond.style.left = `${this.timeToX(key.time)}px`;
     if (typeof key.value === 'number' && range) {
@@ -714,37 +722,64 @@ export class TimelineEditor {
     return diamond;
   }
 
-  private renderCuesRow(): El {
-    const hooks = this.session.hookNames();
-    const addC = el('button', { class: 'vfx-tl-mini', title: 'Add cue at playhead' }, ['+']);
-    if (hooks.length) {
-      addC.onclick = () => {
-        const time = this.session.transport.progress * this.duration;
-        this.session.edit((d) => addCue(d, hooks[0], time));
-      };
-    } else {
-      addC.disabled = true;
+  /**
+   * The cue lanes to render, one per hook: every live hook (so an empty hook still
+   * offers a `+` to drop its first beat), plus any cue track whose hook is no longer
+   * in the live map (flagged missing, so authored beats aren't silently dropped).
+   */
+  private cueRows(): { hook: string; missing: boolean }[] {
+    const live = this.session.hookNames();
+    const rows = live.map((hook) => ({ hook, missing: false }));
+    for (const ct of this.session.doc.cues) {
+      if (!live.includes(ct.hook)) rows.push({ hook: ct.hook, missing: true });
     }
+    return rows;
+  }
+
+  /** A fire-once cue lane for one hook: ▼ markers (no value envelope), keys carry an arg. */
+  private renderCueRow(hook: string, missing: boolean): El {
+    const keys = this.session.doc.cues.find((c) => c.hook === hook)?.keys ?? [];
+
+    const addC = el('button', { class: 'vfx-tl-mini', title: 'Add cue at playhead' }, ['+']);
+    addC.onclick = () => {
+      const time = this.session.transport.progress * this.duration;
+      this.session.edit((d) => {
+        const ki = addCueKey(d, hook, time);
+        this.selected = { kind: 'cue', hook, key: ki };
+      });
+    };
     const label = el('div', { class: 'vfx-tl-label' }, [
       el('div', { class: 'vfx-tl-labeltext' }, [
-        el('span', { class: 'vfx-tl-actor' }, ['Cues']),
-        el('span', { class: 'vfx-tl-prop' }, ['fire-once']),
+        el('span', { class: 'vfx-tl-actor', title: missing ? `${hook} — not in hooks (won't fire)` : hook }, [
+          missing ? `⚠ ${hook}` : hook,
+        ]),
+        el('span', { class: 'vfx-tl-prop' }, ['cue']),
       ]),
       el('div', { class: 'vfx-tl-actions' }, [addC]),
     ]);
 
     const lane = el('div', { class: 'vfx-tl-lane vfx-tl-cuelane' });
-    for (let ci = 0; ci < this.session.doc.cues.length; ci++) {
-      const cue = this.session.doc.cues[ci];
-      const marker = el('div', { class: 'vfx-tl-cue', title: `${cue.hook} @ ${cue.time}ms (double-click to delete)` }, [
-        '▼',
-      ]);
-      marker.style.left = `${this.timeToX(cue.time)}px`;
-      marker.onpointerdown = (e) => this.beginDragCue(e, ci, marker);
-      marker.ondblclick = () => this.session.edit((d) => deleteCue(d, ci));
-      lane.append(marker);
-    }
-    return el('div', { class: 'vfx-tl-row vfx-tl-cuerow' }, [label, lane]);
+    for (let ki = 0; ki < keys.length; ki++) lane.append(this.renderCueKey(hook, ki));
+
+    return el('div', { class: `vfx-tl-row vfx-tl-cuerow${missing ? ' missing' : ''}` }, [label, lane]);
+  }
+
+  private renderCueKey(hook: string, ki: number): El {
+    const key = this.session.doc.cues.find((c) => c.hook === hook)?.keys[ki];
+    if (!key) return el('div');
+    const isSel = this.selected?.kind === 'cue' && this.selected.hook === hook && this.selected.key === ki;
+    const marker = el(
+      'div',
+      { class: `vfx-tl-cue${isSel ? ' sel' : ''}`, title: `${hook}  f=${key.time}  v=${fmtValue(key.value ?? null)}` },
+      ['▼'],
+    );
+    marker.style.left = `${this.timeToX(key.time)}px`;
+    marker.onpointerdown = (e) => this.beginDragCueKey(e, hook, ki, marker);
+    marker.ondblclick = () => {
+      this.selected = null;
+      this.session.edit((d) => deleteCueKey(d, hook, ki));
+    };
+    return marker;
   }
 
   private renderInspector(): void {
@@ -753,21 +788,20 @@ export class TimelineEditor {
     if (!this.selected) {
       this.inspectorEl.append(
         el('span', { class: 'vfx-tl-hint' }, [
-          'Select a key to edit its time, value & easing — hover a row to find its actor on screen.',
+          'Select a key or cue to edit its time & value — hover a row to find its actor on screen.',
         ]),
       );
       return;
     }
-    const { track: ti, key: ki } = this.selected;
-    const track = this.session.doc.tracks[ti];
-    const key = track?.keys[ki];
-    if (!key) {
-      this.selected = null;
-      this.inspectorEl.append(el('span', { class: 'vfx-tl-hint' }, ['Select a key to edit it.']));
-      return;
-    }
+    if (this.selected.kind === 'cue') this.renderCueInspector(this.selected.hook, this.selected.key);
+    else this.renderKeyInspector(this.selected.track, this.selected.key);
+  }
 
-    // Precise time field, in frames (E5). Arrows nudge ±1 frame; Shift+arrow ±10.
+  /**
+   * The frame-time field shared by the key and cue inspectors: arrows nudge ±1 frame,
+   * Shift+arrow ±${COARSE_STEP}; every change commits via {@link commitKeyTime}.
+   */
+  private makeTimeField(time: number): HTMLInputElement {
     const timeInput = el('input', {
       class: 'vfx-tl-num',
       type: 'number',
@@ -775,7 +809,7 @@ export class TimelineEditor {
       min: '0',
       max: String(this.duration),
     }) as HTMLInputElement;
-    timeInput.value = String(key.time);
+    timeInput.value = String(time);
     timeInput.onchange = () => this.commitKeyTime(Number(timeInput.value));
     timeInput.onkeydown = (ev) => {
       if (ev.key === 'Enter') {
@@ -788,6 +822,19 @@ export class TimelineEditor {
       }
     };
     this.timeInput = timeInput;
+    return timeInput;
+  }
+
+  private renderKeyInspector(ti: number, ki: number): void {
+    const track = this.session.doc.tracks[ti];
+    const key = track?.keys[ki];
+    if (!key) {
+      this.selected = null;
+      this.inspectorEl.append(el('span', { class: 'vfx-tl-hint' }, ['Select a key to edit it.']));
+      return;
+    }
+
+    const timeInput = this.makeTimeField(key.time);
 
     // Value field: number input (step 0.1 — most values are 0..1) or text for tint.
     const isString = typeof key.value === 'string';
@@ -799,7 +846,7 @@ export class TimelineEditor {
     valInput.value = String(key.value);
     valInput.onchange = () => {
       const sel = this.selected;
-      if (!sel) return;
+      if (sel?.kind !== 'key') return;
       const v = isString ? valInput.value : Number(valInput.value);
       this.session.edit((d) => setKeyValue(d, sel.track, sel.key, v));
     };
@@ -831,6 +878,52 @@ export class TimelineEditor {
     );
   }
 
+  /**
+   * Cue inspector: a fire-once beat has just a **time** and an arbitrary **value**
+   * handed to the hook (no easing — nothing is interpolated). The value is parsed as a
+   * number when numeric, kept as text otherwise, and cleared to "no argument" when blank.
+   */
+  private renderCueInspector(hook: string, ki: number): void {
+    const key = this.session.doc.cues.find((c) => c.hook === hook)?.keys[ki];
+    if (!key) {
+      this.selected = null;
+      this.inspectorEl.append(el('span', { class: 'vfx-tl-hint' }, ['Select a cue to edit it.']));
+      return;
+    }
+
+    const timeInput = this.makeTimeField(key.time);
+
+    const valInput = el('input', {
+      class: 'vfx-tl-num wide',
+      type: 'text',
+      placeholder: '(none)',
+      title: 'Passed to the hook when it fires; blank = no argument',
+    }) as HTMLInputElement;
+    valInput.value = key.value == null ? '' : String(key.value);
+    valInput.onchange = () => {
+      const sel = this.selected;
+      if (sel?.kind !== 'cue') return;
+      const raw = valInput.value.trim();
+      // Numeric text becomes a number (so hooks get `2`, not `"2"`); other text stays a string.
+      const v = raw === '' ? undefined : Number.isNaN(Number(raw)) ? raw : Number(raw);
+      this.session.edit((d) => setCueKeyValue(d, sel.hook, sel.key, v));
+    };
+    this.blurOnEnter(valInput);
+
+    const del = el('button', { class: 'vfx-tl-btn', title: 'Delete cue (Del)' }, ['Delete cue']);
+    del.onclick = () => {
+      this.selected = null;
+      this.session.edit((d) => deleteCueKey(d, hook, ki));
+    };
+
+    this.inspectorEl.append(
+      el('span', { class: 'vfx-tl-hint' }, [`${hook} (cue)`]),
+      el('label', { class: 'vfx-tl-field' }, ['time(f)', timeInput]),
+      el('label', { class: 'vfx-tl-field' }, ['value', valInput]),
+      del,
+    );
+  }
+
   /** Enter in a field commits it and returns focus to the window so shortcuts resume. */
   private blurOnEnter(input: HTMLElement): void {
     input.addEventListener('keydown', (e) => {
@@ -838,17 +931,30 @@ export class TimelineEditor {
     });
   }
 
-  /** Retime the selected key (resolved by identity, so re-sorts keep the selection). */
+  /** Retime the selected key/cue (resolved by identity, so re-sorts keep the selection). */
   private commitKeyTime(time: number): void {
     const sel = this.selected;
     if (!sel) return;
+    if (sel.kind === 'cue') {
+      const track = this.session.doc.cues.find((c) => c.hook === sel.hook);
+      const keyRef = track?.keys[sel.key];
+      if (!track || !keyRef) return;
+      this.session.edit((d) => {
+        const dt = d.cues.find((c) => c.hook === sel.hook);
+        if (!dt) return;
+        retimeCueKey(d, sel.hook, dt.keys.indexOf(keyRef), time);
+        const idx = dt.keys.indexOf(keyRef);
+        if (idx >= 0) this.selected = { kind: 'cue', hook: sel.hook, key: idx };
+      });
+      return;
+    }
     const keyRef = this.session.doc.tracks[sel.track]?.keys[sel.key];
     if (!keyRef) return;
     this.session.edit((d) => {
       const idx0 = d.tracks[sel.track].keys.indexOf(keyRef);
       retimeKey(d, sel.track, idx0, time);
       const idx1 = d.tracks[sel.track].keys.indexOf(keyRef);
-      if (idx1 >= 0) this.selected = { track: sel.track, key: idx1 };
+      if (idx1 >= 0) this.selected = { kind: 'key', track: sel.track, key: idx1 };
     });
   }
 
@@ -890,12 +996,44 @@ export class TimelineEditor {
       e.stopImmediatePropagation();
       const t = this.session.transport;
       t.isPlaying ? t.pause() : t.play();
+      // Left/right keys: nudge selected key or playhead by 1 frame (shift = coarse step)
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const step = e.shiftKey ? COARSE_STEP : 1;
+      const dir = e.key === 'ArrowLeft' ? -1 : 1;
+      if (this.selected && this.selected.kind === 'key') {
+        // Nudge selected key in time
+        const { track, key } = this.selected;
+        this.session.edit((d) => {
+          const keys = d.tracks[track].keys;
+          if (!keys[key]) return;
+          keys[key].time = Math.max(0, Math.round(keys[key].time + dir * step));
+        });
+      } else if (this.selected && this.selected.kind === 'cue') {
+        // Nudge selected cue in time
+        const { hook, key } = this.selected;
+        this.session.edit((d) => {
+          const cue = d.cues.find((c) => c.hook === hook);
+          if (!cue) return;
+          const time = cue.keys[key].time;
+          const newTime = Math.max(0, Math.round(time + dir * step));
+          cue.keys[key].time = newTime;
+        });
+      } else {
+        // Nudge playhead
+        const t = this.session.transport;
+        const time = t.progress * this.duration;
+        const newTime = Math.max(0, Math.min(this.duration, Math.round(time + dir * step)));
+        t.seek(this.duration > 0 ? newTime / this.duration : 0);
+      }
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selected) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      const { track, key } = this.selected;
+      const sel = this.selected;
       this.selected = null;
-      this.session.edit((d) => deleteKey(d, track, key));
+      if (sel.kind === 'cue') this.session.edit((d) => deleteCueKey(d, sel.hook, sel.key));
+      else this.session.edit((d) => deleteKey(d, sel.track, sel.key));
     }
   };
 
@@ -923,7 +1061,7 @@ export class TimelineEditor {
   private beginDragKey(e: PointerEvent, ti: number, ki: number, diamond: El): void {
     e.preventDefault();
     e.stopPropagation();
-    this.selected = { track: ti, key: ki };
+    this.selected = { kind: 'key', track: ti, key: ki };
     this.dragging = true;
     const laneRect = (diamond.parentElement as El).getBoundingClientRect();
     let currentKi = ki;
@@ -942,7 +1080,7 @@ export class TimelineEditor {
       this.session.edit((d) => {
         retimeKey(d, ti, currentKi, time);
         currentKi = d.tracks[ti].keys.indexOf(keyRef);
-        this.selected = { track: ti, key: currentKi };
+        this.selected = { kind: 'key', track: ti, key: currentKi };
       });
       diamond.style.left = `${this.timeToX(time)}px`;
       if (this.timeInput) this.timeInput.value = String(Math.round(time));
@@ -957,12 +1095,14 @@ export class TimelineEditor {
     this.win.addEventListener('pointerup', up);
   }
 
-  /** Drag a cue marker → move live (snapped, Alt disables). */
-  private beginDragCue(e: PointerEvent, ci: number, marker: El): void {
+  /** Drag a cue marker → retime live (snapped, Alt disables); click selects. */
+  private beginDragCueKey(e: PointerEvent, hook: string, ki: number, marker: El): void {
     e.preventDefault();
     e.stopPropagation();
+    this.selected = { kind: 'cue', hook, key: ki };
     this.dragging = true;
     const laneRect = (marker.parentElement as El).getBoundingClientRect();
+    let currentKi = ki;
     const move = (ev: PointerEvent) => {
       const raw = (ev.clientX - laneRect.left) / this.pxPerFrame;
       const time = Math.max(
@@ -971,11 +1111,22 @@ export class TimelineEditor {
           this.duration,
           ev.altKey
             ? Math.round(raw)
-            : snapTime(raw, { grid: SNAP_GRID, targets: this.snapTargets(-1, -1), thresholdMs: SNAP_THRESHOLD }),
+            : snapTime(raw, {
+                grid: SNAP_GRID,
+                targets: this.cueSnapTargets(hook, currentKi),
+                thresholdMs: SNAP_THRESHOLD,
+              }),
         ),
       );
-      this.session.edit((d) => moveCue(d, ci, time));
+      const keyRef = this.session.doc.cues.find((c) => c.hook === hook)?.keys[currentKi];
+      this.session.edit((d) => {
+        retimeCueKey(d, hook, currentKi, time);
+        const track = d.cues.find((c) => c.hook === hook);
+        if (track && keyRef) currentKi = track.keys.indexOf(keyRef);
+        this.selected = { kind: 'cue', hook, key: currentKi };
+      });
       marker.style.left = `${this.timeToX(time)}px`;
+      if (this.timeInput) this.timeInput.value = String(Math.round(time));
     };
     const up = () => {
       this.win.removeEventListener('pointermove', move);
@@ -987,18 +1138,28 @@ export class TimelineEditor {
     this.win.addEventListener('pointerup', up);
   }
 
-  /** Times of other keys (excluding the dragged one) and all cues, for snap-to. */
-  private snapTargets(exclTrack: number, exclKey: number): number[] {
+  /** Times of all keys/cues, for snap-to. `exclude` drops the one being dragged. */
+  private allTimes(exclude?: (time: number, ref: object) => boolean): number[] {
     const out: number[] = [];
-    const tracks = this.session.doc.tracks;
-    for (let ti = 0; ti < tracks.length; ti++) {
-      for (let ki = 0; ki < tracks[ti].keys.length; ki++) {
-        if (ti === exclTrack && ki === exclKey) continue;
-        out.push(tracks[ti].keys[ki].time);
-      }
+    for (const track of this.session.doc.tracks) {
+      for (const k of track.keys) if (!exclude?.(k.time, k)) out.push(k.time);
     }
-    for (const c of this.session.doc.cues) out.push(c.time);
+    for (const ct of this.session.doc.cues) {
+      for (const k of ct.keys) if (!exclude?.(k.time, k)) out.push(k.time);
+    }
     return out;
+  }
+
+  /** Snap targets for an actor key drag — every other key/cue. */
+  private snapTargets(exclTrack: number, exclKey: number): number[] {
+    const dragged = this.session.doc.tracks[exclTrack]?.keys[exclKey];
+    return this.allTimes((_t, ref) => ref === dragged);
+  }
+
+  /** Snap targets for a cue key drag — every other key/cue. */
+  private cueSnapTargets(hook: string, exclKey: number): number[] {
+    const dragged = this.session.doc.cues.find((c) => c.hook === hook)?.keys[exclKey];
+    return this.allTimes((_t, ref) => ref === dragged);
   }
 
   // ---- resize handles ----------------------------------------------------
@@ -1060,13 +1221,15 @@ export class TimelineEditor {
         <li>Inspector: <b>time</b> nudges ±1 frame (<b>Shift</b> ±${COARSE_STEP}); <b>value</b> nudges ±0.1</li>
         <li>Drag the top edge to grow the panel; drag the label divider to widen it</li>
         <li>Row <b>👁</b> mutes a track to isolate others; <b>+</b> adds a key at the playhead</li>
+        <li>Each <b>cue</b> hook has its own ▼ lane; <b>+</b> drops a beat at the playhead. A cue key has a <b>time</b> and an arbitrary <b>value</b> (handed to the hook) — no easing, since nothing is interpolated</li>
         <li>Keys sit at their value (high=top, low=bottom); the filled curve follows the easing and holds flat past the ends. Tint keys show their colour</li>
         <li>Vertical gridlines mark the ruler ticks for alignment</li>
         <li>Hover a row label to outline its actor on the canvas</li>
       </ul>
       <h4>Code vs. data</h4>
       <p>Actors (Graphics/Containers) and array/camera tweens stay in <code>build()</code>;
-      this editor edits the JSON <b>tracks</b> (keyframes) and <b>cues</b> (fire-once beats).
+      this editor edits the JSON <b>tracks</b> (keyframes) and <b>cues</b> (fire-once beats,
+      one lane per hook, each key passing its value to that hook).
       Cues are muted while scrubbing and fire only on real Play.</p>
       <p>See <code>docs/timeline-authoring.md</code> to add a track or a brand-new sequence.</p>`;
     this.root.append(this.helpEl);

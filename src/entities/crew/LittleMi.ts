@@ -1,6 +1,7 @@
 import { t } from '@/i18n/i18n';
 import { ScheduleSystem } from '@/systems/app/ScheduleSystem';
-import type { CrewMemberDef } from './Crew';
+import { type CrewMemberDef } from './Crew';
+import { CREW_RARITIES } from './types';
 
 const LITTLEMI_EVERYTHING_FLOATS_DURATION = 15_000;
 
@@ -9,6 +10,7 @@ export const LittleMiCrewMember: CrewMemberDef = {
   name: t.dict['crew.littlemi.name'],
   textureName: 'avatars-new_tile_15#0',
   hiringCost: 10,
+  rarity: CREW_RARITIES.uncommon,
   activeAbility: {
     name: t.dict['crew.littlemi.active.name'],
     cost: 1,

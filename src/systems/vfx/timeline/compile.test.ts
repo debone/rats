@@ -134,14 +134,23 @@ describe('compile', () => {
     expect(tl.add.mock.calls).toEqual([[flash, { tint: '#ffffff', duration: 1 }, 0]]);
   });
 
-  it('compiles cues into tl.call with the resolved hook', () => {
+  it('compiles each cue key into a tl.call that fires the hook with the key value', () => {
     const tl = makeTl();
     const boom = vi.fn();
-    const doc: TimelineDoc = { id: 't', duration: 10, tracks: [], cues: [{ time: 5, hook: 'boom' }] };
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 10,
+      tracks: [],
+      cues: [{ hook: 'boom', keys: [{ time: 5, value: 2 }, { time: 8 }] }],
+    };
 
     compile(doc, {}, { boom }, tl);
 
-    expect(tl.call.mock.calls).toEqual([[boom, framesToMs(5)]]);
+    // Two beats → two calls at the right positions; the wrapped fn passes the key value.
+    expect(tl.call.mock.calls.map((c) => c[1])).toEqual([framesToMs(5), framesToMs(8)]);
+    (tl.call.mock.calls[0][0] as () => void)();
+    (tl.call.mock.calls[1][0] as () => void)();
+    expect(boom.mock.calls).toEqual([[2], [undefined]]);
   });
 
   it('skips (and warns about) unknown actors and hooks instead of throwing', () => {
@@ -151,7 +160,7 @@ describe('compile', () => {
       id: 't',
       duration: 10,
       tracks: [{ actor: 'missing', property: 'x', keys: [{ time: 0, value: 1 }] }],
-      cues: [{ time: 0, hook: 'missing' }],
+      cues: [{ hook: 'missing', keys: [{ time: 0 }] }],
     };
 
     expect(() => compile(doc, {}, {}, tl)).not.toThrow();

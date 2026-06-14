@@ -11,16 +11,15 @@ import { LevelSystem } from '@/systems/level/system';
 import { ShowScreenCommand } from '@/systems/navigation/commands/ShowScreenCommand';
 import { EntityCollisionSystem } from '@/systems/physics/EntityCollisionSystem';
 import { PhysicsSystem } from '@/systems/physics/system';
-import { GameScene } from './GameScene';
 import { VFXSystem } from '@/systems/vfx/VFXSystem';
+import { GameScene } from './GameScene';
 
 export const HomeScene = defineEntity(() => {
   const destroy = getUnmount();
 
-  useGameEvent(GameEvent.START_NEW_RUN, ({ startingLevelId }) => {
+  useGameEvent(GameEvent.START_NEW_RUN, () => {
     destroy();
     GameScene({
-      startingLevelId,
       onEnd: () => {
         HomeScene();
       },

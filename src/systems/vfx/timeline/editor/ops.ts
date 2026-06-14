@@ -1,4 +1,4 @@
-import type { Cue, Key, TimelineDoc, Track } from '../types';
+import type { CueKey, CueTrack, Key, TimelineDoc, Track } from '../types';
 
 /**
  * Pure mutation ops on a `TimelineDoc`. The editor calls these on every edit and
@@ -17,6 +17,20 @@ const sortKeys = (track: Track): void => {
   track.keys.sort((a, b) => a.time - b.time);
 };
 
+const sortCueKeys = (track: CueTrack): void => {
+  track.keys.sort((a, b) => a.time - b.time);
+};
+
+/** Find the cue track for `hook`, creating an empty one if none exists yet. */
+function ensureCueTrack(doc: TimelineDoc, hook: string): CueTrack {
+  let track = doc.cues.find((c) => c.hook === hook);
+  if (!track) {
+    track = { hook, keys: [] };
+    doc.cues.push(track);
+  }
+  return track;
+}
+
 export function setDuration(doc: TimelineDoc, duration: number): TimelineDoc {
   doc.duration = Math.max(1, Math.round(duration));
   // Pull any keys/cues that now sit past the end back onto it.
@@ -24,7 +38,10 @@ export function setDuration(doc: TimelineDoc, duration: number): TimelineDoc {
     for (const key of track.keys) key.time = Math.min(key.time, doc.duration);
     sortKeys(track);
   }
-  for (const cue of doc.cues) cue.time = Math.min(cue.time, doc.duration);
+  for (const cueTrack of doc.cues) {
+    for (const key of cueTrack.keys) key.time = Math.min(key.time, doc.duration);
+    sortCueKeys(cueTrack);
+  }
   return doc;
 }
 
@@ -97,20 +114,48 @@ export function removeTrack(doc: TimelineDoc, trackIndex: number): TimelineDoc {
   return doc;
 }
 
-export function moveCue(doc: TimelineDoc, cueIndex: number, time: number): TimelineDoc {
-  const cue = doc.cues[cueIndex];
-  if (cue) cue.time = clampTime(doc, time);
+/**
+ * Insert a cue key for `hook` at `time` (creating the hook's track on first use).
+ * Returns the inserted key's index after sorting. `value` is the argument handed to
+ * the hook when it fires — left `undefined` for hooks that take no argument.
+ */
+export function addCueKey(doc: TimelineDoc, hook: string, time: number, value?: number | string): number {
+  const track = ensureCueTrack(doc, hook);
+  const key: CueKey = { time: clampTime(doc, time) };
+  if (value !== undefined) key.value = value;
+  track.keys.push(key);
+  sortCueKeys(track);
+  return track.keys.indexOf(key);
+}
+
+export function retimeCueKey(doc: TimelineDoc, hook: string, keyIndex: number, time: number): TimelineDoc {
+  const track = doc.cues.find((c) => c.hook === hook);
+  const key = track?.keys[keyIndex];
+  if (!track || !key) return doc;
+  key.time = clampTime(doc, time);
+  sortCueKeys(track);
   return doc;
 }
 
-export function addCue(doc: TimelineDoc, hook: string, time: number): number {
-  const cue: Cue = { time: clampTime(doc, time), hook };
-  doc.cues.push(cue);
-  return doc.cues.length - 1;
+export function setCueKeyValue(
+  doc: TimelineDoc,
+  hook: string,
+  keyIndex: number,
+  value: number | string | undefined,
+): TimelineDoc {
+  const key = doc.cues.find((c) => c.hook === hook)?.keys[keyIndex];
+  if (!key) return doc;
+  if (value === undefined || value === '') delete key.value;
+  else key.value = value;
+  return doc;
 }
 
-export function deleteCue(doc: TimelineDoc, cueIndex: number): TimelineDoc {
-  doc.cues.splice(cueIndex, 1);
+/** Remove a cue key; drops the hook's track entirely once its last key is gone. */
+export function deleteCueKey(doc: TimelineDoc, hook: string, keyIndex: number): TimelineDoc {
+  const ti = doc.cues.findIndex((c) => c.hook === hook);
+  if (ti < 0) return doc;
+  doc.cues[ti].keys.splice(keyIndex, 1);
+  if (doc.cues[ti].keys.length === 0) doc.cues.splice(ti, 1);
   return doc;
 }
 

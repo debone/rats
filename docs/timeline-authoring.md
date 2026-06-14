@@ -51,7 +51,7 @@ interface TimelineDoc {
   id: string;
   duration: number;
   tracks: Track[];
-  cues: Cue[];
+  cues: CueTrack[];
 }
 interface Track {
   actor: string;
@@ -63,11 +63,19 @@ interface Key {
   value: number | string;
   ease?: string;
 }
-interface Cue {
-  time: number;
+interface CueTrack {
   hook: string;
+  keys: CueKey[];
+}
+interface CueKey {
+  time: number;
+  value?: number | string; // arbitrary arg handed to the hook; uninterpolated
 }
 ```
+
+- **Cues mirror tracks**: one `CueTrack` per hook (its own lane), each key a fire-once
+  beat. A cue key has a `time` and an optional `value` passed to the hook when it fires
+  — but no `ease`, since a beat is instantaneous (nothing is interpolated between keys).
 
 - `time` / `duration` are in **frames** (a 60fps reference, see
   [`time.ts`](../src/core/vfx/timeline/time.ts)). The compiler converts frames→ms,
@@ -177,17 +185,26 @@ yet exposed, add it to the `stage` object in the sequence's `build()` first.
 A **cue** fires a named **hook** — a fire-once closure the sequence exposes in
 `build()` (sfx, a particle burst, debris). Cues compile to `tl.call(...)`, so they are
 **muted while scrubbing** and fire **only on real Play** — the same contract as a
-hand-written `tl.call`. In the editor, the **Cues** row's **+** drops a cue at the
-playhead (using the first hook); drag it to retime, double-click to delete.
+hand-written `tl.call`.
 
-To offer a new beat, add a closure to the `hooks` map in `build()`:
+Each hook gets **its own lane** (just like an actor track), shown with `▼` markers.
+The lane's **+** drops a beat at the playhead; select a `▼` to edit its **time** and
+**value** in the inspector, drag it to retime (snaps like a key; **Alt** for free),
+double-click or `Del` to remove it. A lane with no beats is still shown so you can add
+the first one. There's no easing and no value graph — a cue is an instantaneous beat.
+
+The key's **value** is handed to the hook as its argument (a number when numeric, else
+a string; blank = no argument), so one hook can do different things at different beats:
 
 ```ts
 const hooks = {
   clunk: () => sound.play('clunk'),
-  debris: () => vfx.play(brickBreak, { x, y, count: 12 }),
+  // Receives the firing cue key's value — e.g. a burst whose size is set per beat.
+  debris: (count?: number) => vfx.play(brickBreak, { x, y, count: Number(count) || 12 }),
 };
 ```
+
+Hooks that take no argument simply ignore the value, so existing cues keep working.
 
 ---
 

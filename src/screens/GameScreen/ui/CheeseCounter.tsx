@@ -27,7 +27,7 @@ export class CheeseCounter extends LayoutContainer {
     let activeCheese!: LayoutContainer;
     let slotCheese!: LayoutContainer;
 
-    const cheeseTexture = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'];
+    // const cheeseTexture = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['cheese_tile_1#0'];
 
     <mount target={this}>
       <box

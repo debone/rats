@@ -13,6 +13,7 @@
  * gameplay does `joints.find(j => j.name === 'paddle-joint')`.
  */
 
+import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
 import {
   b2Body_SetUserData,
   b2BodyId,
@@ -43,7 +44,6 @@ import {
   type b2WorldId,
 } from 'phaser-box2d';
 import { Assets, Container, Graphics, Mesh, MeshGeometry, NineSliceSprite, Sprite, Texture } from 'pixi.js';
-import { AddSpriteToWorld, type SpriteObject } from '@/systems/physics/WorldSprites';
 
 // ---------------------------------------------------------------------------
 // Schema (kept in sync with devtools/packer/processors/godot-geometry.ts)
@@ -239,7 +239,7 @@ export interface LoadGodotGeometryResult {
   bodiesByName: Map<string, b2BodyId>;
   jointsByName: Map<string, b2JointId>;
   /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
-  sprites: SpriteObject[];
+  sprites: Sprite[];
   /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
   background: { meshes: Container[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
 }
@@ -258,7 +258,7 @@ export function loadGodotGeometry(
 
   const bodies: b2BodyId[] = [];
   const bodiesByName = new Map<string, b2BodyId>();
-  const sprites: SpriteObject[] = [];
+  const sprites: Sprite[] = [];
 
   for (const def of geo.bodies) {
     const bd = b2DefaultBodyDef();

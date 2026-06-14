@@ -1,0 +1,39 @@
+{
+  "id": "doorOpen",
+  "duration": 100,
+  "tracks": [],
+  "cues": [
+    {
+      "hook": "settle",
+      "keys": [
+        {
+          "time": 0
+        }
+      ]
+    },
+    {
+      "hook": "clunk",
+      "keys": [
+        {
+          "time": 50
+        }
+      ]
+    },
+    {
+      "hook": "shake",
+      "keys": [
+        {
+          "time": 25
+        }
+      ]
+    },
+    {
+      "hook": "openDoor",
+      "keys": [
+        {
+          "time": 38
+        }
+      ]
+    }
+  ]
+}

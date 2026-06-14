@@ -117,7 +117,6 @@ export interface ScreenDef extends BaseDef {
   pin?: boolean;
 }
 
-// TODO: ¿qué?
 export function defineScreen(def: ScreenDef): ScreenDef {
   return def;
 }
