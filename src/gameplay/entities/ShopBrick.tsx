@@ -47,7 +47,8 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
   const bodyId = bodies[0];
 
   const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite');
-  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-sprite');
+  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-bg');
+  const itemSprite = sprites.find((sprite) => sprite.label === 'item-sprite');
 
   const randomCrewMember = pickRandomCrewMemberSet(1);
 
@@ -59,13 +60,13 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
 
   <mount target={badgeSprite!}>
     <box ref={(ref) => (boxRef = ref)}>
-      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} />
+      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT }} />
     </box>
   </mount>;
 
-  boxRef.layout = {
-    marginLeft: -boxRef.width / 2,
-    marginTop: -boxRef.height / 1.8,
+  boxRef!.layout = {
+    marginLeft: itemSprite!.width + 4,
+    marginTop: 2,
   };
 
   useCollisionHandler(bodyId, () => ({
