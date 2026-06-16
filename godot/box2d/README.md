@@ -167,9 +167,12 @@ These node types are supported today:
   (`left/top/right/bottom`) are NOT re-entered here — they're authored once in
   the aseprite slice layer, baked into the atlas metadata, and threaded through
   `sprite-map.json` → geometry JSON → the runtime's Pixi `NineSliceSprite`.
-  (Editor caveat: a scaled Sprite2D stretches the corners in-editor, so the
-  preview won't perfectly match the runtime pinning.) `attached = false` marks
-  it editor-only, same as `Box2DSprite`.
+  Tick **`tile_center`** to repeat the center region at its natural size instead
+  of stretching it (corners stay pinned, edges still stretch along their run) —
+  handy for patterned fills. (Editor caveat: a scaled Sprite2D stretches the
+  corners *and* the center in-editor, so the preview won't perfectly match the
+  runtime pinning/tiling.) `attached = false` marks it editor-only, same as
+  `Box2DSprite`. Works both standalone and parented to a body.
 
 The exporter walks the whole tree, so background nodes can live at the
 scene root, inside logical group nodes, or inside an instanced subscene

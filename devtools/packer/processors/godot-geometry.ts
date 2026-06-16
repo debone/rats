@@ -107,6 +107,8 @@ export interface NinePatchDef {
   anchor: V2;
   /** Non-stretching border widths in texture pixels. */
   borders: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the center region instead of stretching it. */
+  tileCenter?: boolean;
   z?: number;
   tint?: number;
   alpha?: number;
@@ -285,6 +287,8 @@ export interface SpriteBinding {
   nineSlice?: boolean;
   /** Nine-slice border widths in texture px (only meaningful with `nineSlice`). */
   borders?: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the nine-slice center instead of stretching it. */
+  tileCenter?: boolean;
 }
 
 export type Box2DJointDef =
@@ -1100,6 +1104,7 @@ function buildSpriteBinding(
       right: 0,
       bottom: 0,
     };
+    if (decodeGodotValue(spriteNode.props.get('tile_center') ?? 'false') === true) binding.tileCenter = true;
   }
 
   return binding;
@@ -1823,6 +1828,7 @@ function buildNinePatch(
     anchor: centered ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 },
     borders,
   };
+  if (decodeGodotValue(node.props.get('tile_center') ?? 'false') === true) out.tileCenter = true;
   if (resolved?.atlas) out.pixiAtlas = resolved.atlas;
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;

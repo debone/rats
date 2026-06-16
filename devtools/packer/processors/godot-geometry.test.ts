@@ -245,6 +245,7 @@ script = ExtResource("2_body")
 scale = Vector2(4, 3)
 texture = ExtResource("1_tex")
 script = ExtResource("3_ns")
+tile_center = true
 `;
     const geo = parseGeometryTscn(tscn, {
       panel: { godotPath: 'res://panel.tres', type: 'AtlasTexture', pixiFrame: 'panel#0', borders: { left: 8, top: 8, right: 8, bottom: 8 } },
@@ -252,6 +253,7 @@ script = ExtResource("3_ns")
     const binding = geo.bodies[0].sprites[0];
     expect(binding.nineSlice).toBe(true);
     expect(binding.borders).toEqual({ left: 8, top: 8, right: 8, bottom: 8 });
+    expect(binding.tileCenter).toBe(true);
     // The node scale is preserved so the runtime can stretch by it (corners pinned).
     expect(binding.scale).toEqual({ x: 4, y: 3 });
     expect(binding.pixiFrame).toBe('panel#0');
@@ -379,6 +381,27 @@ script = ExtResource("2_ns")
     expect(np.position).toEqual({ x: 100, y: 50 });
     // Sprite2D defaults to centered → anchor (0.5, 0.5).
     expect(np.anchor).toEqual({ x: 0.5, y: 0.5 });
+    // tile_center defaults off, so the flag is omitted.
+    expect(np.tileCenter).toBeUndefined();
+  });
+
+  it('sets tileCenter on a background nine-patch with tile_center = true', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+tile_center = true
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: { godotPath: 'res://bg.tres', type: 'AtlasTexture', pixiFrame: 'bg#0', borders: { left: 8, top: 8, right: 8, bottom: 8 } },
+    });
+    expect(geo.background!.ninePatches[0].tileCenter).toBe(true);
   });
 
   it('defaults nine-patch borders to zero when the texture has no slice metadata', () => {

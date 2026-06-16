@@ -43,7 +43,7 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Graphics, Mesh, MeshGeometry, NineSliceSprite, Sprite, Texture } from 'pixi.js';
+import { Assets, Container, Graphics, Mesh, MeshGeometry, NineSliceSprite, Rectangle, Sprite, Texture, TilingSprite } from 'pixi.js';
 
 // ---------------------------------------------------------------------------
 // Schema (kept in sync with devtools/packer/processors/godot-geometry.ts)
@@ -74,6 +74,8 @@ export interface NinePatchDef {
   anchor: V2;
   /** Non-stretching border widths in texture pixels. */
   borders: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the center region instead of stretching it. */
+  tileCenter?: boolean;
   z?: number;
   tint?: number;
   alpha?: number;
@@ -208,6 +210,8 @@ export interface SpriteBinding {
   nineSlice?: boolean;
   /** Nine-slice border widths in texture px (only meaningful with `nineSlice`). */
   borders?: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the nine-slice center instead of stretching it. */
+  tileCenter?: boolean;
 }
 
 type CommonJoint = {
@@ -904,12 +908,46 @@ function instantiateNinePatch(
   if (def.tint !== undefined) sprite.tint = def.tint;
   if (def.alpha !== undefined) sprite.alpha = def.alpha;
   if (def.z !== undefined) sprite.zIndex = def.z;
+  if (def.tileCenter) addTiledCenter(sprite, texture, def.borders, width, height, def.tint);
 
   const localX = def.position.x;
   const localY = def.position.y;
   sprite.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
   sprite.rotation = def.rotation + ta;
   return sprite;
+}
+
+/**
+ * Overlay a TilingSprite on a nine-slice's center region so the center repeats
+ * instead of stretching. NineSliceSprite is a Container, so the tile is added as
+ * a child in its top-left-origin local space; the stretched center it draws
+ * underneath is fully covered by the (opaque) tiled fill.
+ */
+function addTiledCenter(
+  ns: NineSliceSprite,
+  texture: Texture,
+  borders: { left: number; top: number; right: number; bottom: number },
+  width: number,
+  height: number,
+  tint?: number,
+): void {
+  const centerW = width - borders.left - borders.right;
+  const centerH = height - borders.top - borders.bottom;
+  if (centerW <= 0 || centerH <= 0) return;
+
+  // Sub-rect of the texture's center region, in the base source's pixel space.
+  const f = texture.frame;
+  const innerW = f.width - borders.left - borders.right;
+  const innerH = f.height - borders.top - borders.bottom;
+  if (innerW <= 0 || innerH <= 0) return;
+  const innerFrame = new Rectangle(f.x + borders.left, f.y + borders.top, innerW, innerH);
+  const centerTexture = new Texture({ source: texture.source, frame: innerFrame });
+
+  const tile = new TilingSprite({ texture: centerTexture, width: centerW, height: centerH });
+  tile.label = 'tiled-center';
+  tile.position.set(borders.left, borders.top);
+  if (tint !== undefined) tile.tint = tint;
+  ns.addChild(tile);
 }
 
 // ---------------------------------------------------------------------------
@@ -1071,6 +1109,7 @@ function instantiateSprite(binding: SpriteBinding): Container | null {
     if (binding.alpha !== undefined) ns.alpha = binding.alpha;
     if (binding.z !== undefined) ns.zIndex = binding.z;
     if (binding.shouldRotate === false) (ns as Container & { shouldRotate?: boolean }).shouldRotate = false;
+    if (binding.tileCenter) addTiledCenter(ns, texture, b, w, h, binding.tint);
     return ns;
   }
 

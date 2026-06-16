@@ -23,5 +23,10 @@ class_name Box2DNineSlice
 ## `attached` — true (default) means the node is exported and rendered at
 ## runtime. false makes it editor-only reference art that the exporter skips.
 
+## When true the center region repeats (tiles) at its natural size instead of
+## stretching to fill. Corners stay pinned and the edges still stretch along their
+## run. (Editor preview still stretches — the tiling is applied at runtime.)
+@export var tile_center: bool = false
+
 ## When false, the exporter skips this node (editor-only reference art).
 @export var attached: bool = true
