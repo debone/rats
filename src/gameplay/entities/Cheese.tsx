@@ -1,7 +1,7 @@
 import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
-import { addBallToRun, changeCheese, getRunState } from '@/data/game-state';
+import { addBallToRun, changeBlueCheese, changeCheese, changeGreenCheese, getRunState } from '@/data/game-state';
 import { CHEESE_DEFS, type CheeseType } from '@/entities/cheese/Cheese';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { PhysicsLayer, PICKUP_MASK, setBodyFilter } from '@/systems/physics/PhysicsLayers';
@@ -119,7 +119,7 @@ export const BlueCheese = ({ pos, vel, onCollected, onLost }: TypeCheeseProps): 
     vel,
     type: 'blue',
     onCollected: (cheese) => {
-      changeCheese(1);
+      changeBlueCheese(1);
       onCollected?.(cheese);
       /*
       execute(ShowOverlayCommand, { overlay: CrewPickerOverlay, waitForCompletion: true }).then(() => {
@@ -149,7 +149,10 @@ export const GreenCheese = ({ pos, vel, onCollected, onLost }: TypeCheeseProps):
     pos,
     vel,
     type: 'green',
-    onCollected,
+    onCollected: (cheese) => {
+      changeGreenCheese(1);
+      onCollected?.(cheese);
+    },
     onLost,
   });
 };

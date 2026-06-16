@@ -14,7 +14,10 @@ export const AresCapCrewMember: CrewMemberDef = {
     cost: 1,
     effect: (runState) => {
       // lol it costs cheese to make it work?
-      if (runState.ballsRemaining.get() === 0 || runState.cheeseCounter.get() === runState.maxCheeseStorage.get()) {
+      if (
+        runState.ballsRemaining.get() === 0 ||
+        runState.yellowCheeseCounter.get() === runState.maxCheeseStorage.get()
+      ) {
         return;
       }
 

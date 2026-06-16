@@ -20,7 +20,7 @@ export class CheeseCounter extends LayoutContainer {
       borderWidth: 1,
       borderRadius: 2,
       padding: 5,
-      width: 132,
+      width: 44,
       minHeight: 42,
     };
 
@@ -34,6 +34,7 @@ export class CheeseCounter extends LayoutContainer {
         layout={{
           padding: 5,
           position: 'absolute',
+          flexDirection: 'column-reverse',
         }}
         ref={(ref) => (slotCheese = ref)}
       ></box>
@@ -41,7 +42,7 @@ export class CheeseCounter extends LayoutContainer {
         layout={{
           padding: 5,
           width: 128,
-          flexDirection: 'row',
+          flexDirection: 'column-reverse',
         }}
         ref={(ref) => (activeCheese = ref)}
       ></box>
@@ -81,7 +82,7 @@ export class CheeseCounter extends LayoutContainer {
         };
         return cheeseSprite;
       },
-      size: getRunState().cheeseCounter,
+      size: getRunState().yellowCheeseCounter,
       parent: activeCheese,
       strategy: slideInStrategy,
     });
@@ -177,7 +178,7 @@ export class CheeseCounter2 extends LayoutContainer {
 
     this.addChild(cheeseCountText);
 
-    this.cheeseSubscription = getRunState().cheeseCounter.subscribe((cheeseCount) => {
+    this.cheeseSubscription = getRunState().yellowCheeseCounter.subscribe((cheeseCount) => {
       cheeseCountText.text = cheeseCount.toString();
     });
   }

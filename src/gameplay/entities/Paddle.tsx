@@ -168,7 +168,7 @@ export const Paddle = defineEntity(({ jointConfig, spawnPos, size = 'normal' }: 
   useGameEvent(GameEvent.CREW_DROP_ALL_BOAT_CHEESE, () => {
     const paddlePosition = b2Body_GetPosition(paddle.bodyId);
     // Read how many cheese is there
-    const cheeseCount = getRunState().cheeseCounter.get();
+    const cheeseCount = getRunState().yellowCheeseCounter.get();
     changeCheese(-cheeseCount);
     for (let i = 0; i < cheeseCount; i++) {
       YellowCheese({

@@ -1,24 +1,26 @@
 import { ASSETS } from '@/assets';
-import type { Levels_level_1Textures } from '@/assets/frames';
+import type { Levels_level_1Textures, PrototypeTextures } from '@/assets/frames';
 import { MIN_HEIGHT, MIN_WIDTH, TEXT_STYLE_DEFAULT } from '@/consts';
 import { typedAssets } from '@/core/assets/typed-assets';
+import { execute } from '@/core/game/Command';
 import { navigation } from '@/core/window/navigation';
 import { LAYER_NAMES, type AppScreen } from '@/core/window/types';
 import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext, type GamePhase } from '@/data/game-context';
+import { getRunState } from '@/data/game-state';
+import { CHEESE_DEFS } from '@/entities/cheese/Cheese';
+import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
 import { Button } from '@pixi/ui';
 import { DropShadowFilter } from 'pixi-filters';
-import { Color, Container, Text, Ticker, TilingSprite } from 'pixi.js';
+import { Assets, Color, Container, Text, Ticker, TilingSprite } from 'pixi.js';
+import { OptionsOverlay } from '../OptionsOverlay';
 import { BallCounter } from './ui/BallCounter';
 import { CheeseCounter } from './ui/CheeseCounter';
 import { CrewIndicator } from './ui/CrewIndicator';
+import { ItemCounter } from './ui/ItemCounter';
 import { LevelIndicator } from './ui/LevelIndicator';
-import { ScrapCounter } from './ui/ScrapCounter';
-import { OptionsOverlay } from '../OptionsOverlay';
-import { execute } from '@/core/game/Command';
-import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -118,21 +120,6 @@ export class GameScreen extends Container implements AppScreen {
     indicatorContainer.addChild(new LevelIndicator());
     indicatorContainer.addChild(new CrewIndicator());
 
-    const countersContainer = new LayoutContainer({
-      layout: {
-        gap: 10,
-        padding: 10,
-        paddingTop: 35,
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-      },
-    });
-    uiLayer.addChild(countersContainer);
-
-    countersContainer.addChild(new BallCounter());
-    countersContainer.addChild(new CheeseCounter());
-    countersContainer.addChild(new ScrapCounter());
-
     const optionsBtnBg = new LayoutContainer({
       layout: {
         paddingTop: 4,
@@ -155,7 +142,35 @@ export class GameScreen extends Container implements AppScreen {
     optionsBtn.onPress.connect(() => {
       execute(ShowOverlayCommand, { overlay: OptionsOverlay });
     });
+
+    const countersContainer = new LayoutContainer({
+      layout: {
+        gap: 10,
+        padding: 10,
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+      },
+    });
+    uiLayer.addChild(countersContainer);
+
     countersContainer.addChild(optionsBtnBg);
+    countersContainer.addChild(new BallCounter());
+    countersContainer.addChild(
+      new ItemCounter(
+        typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures['scraps#0'],
+        getRunState().scrapsCounter,
+      ),
+    );
+    countersContainer.addChild(
+      new ItemCounter(Assets.get(ASSETS.prototype).textures[CHEESE_DEFS.blue.texture], getRunState().blueCheeseCounter),
+    );
+    countersContainer.addChild(
+      new ItemCounter(
+        Assets.get(ASSETS.prototype).textures[CHEESE_DEFS.green.texture],
+        getRunState().greenCheeseCounter,
+      ),
+    );
+    countersContainer.addChild(new CheeseCounter());
 
     const popupLayer = new LayoutContainer({
       layout: {
