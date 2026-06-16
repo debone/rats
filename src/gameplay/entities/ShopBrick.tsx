@@ -1,21 +1,19 @@
 import { ASSETS } from '@/assets';
+import { TEXT_STYLE_DEFAULT } from '@/consts';
 import { sfx } from '@/core/audio/audio';
-import { assert } from '@/core/common/assert';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { EventEmitter } from '@/core/game/EventEmitter';
+import { getGameContext } from '@/data/game-context';
+import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
 import { useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
+import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
+import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { vfx } from '@/systems/vfx/vfx';
-import { b2Body_GetTransform, type b2BodyId } from 'phaser-box2d';
-import { brickBreak } from '../vfx/burst/brickBreak';
-import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
-import { Assets } from 'pixi.js';
-import { getGameContext } from '@/data/game-context';
-import { LacfreeCrewMember } from '@/entities/crew/Lacfree';
-import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
-import { TEXT_STYLE_DEFAULT } from '@/consts';
 import type { LayoutContainer } from '@pixi/layout/components';
-import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
+import { type b2BodyId } from 'phaser-box2d';
+import { Assets } from 'pixi.js';
+import { brickBreak } from '../vfx/burst/brickBreak';
 
 export type ShopBrickEvents = {
   hit: void;
@@ -49,7 +47,8 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
   const bodyId = bodies[0];
 
   const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite');
-  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-sprite');
+  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-bg');
+  const itemSprite = sprites.find((sprite) => sprite.label === 'item-sprite');
 
   const randomCrewMember = pickRandomCrewMemberSet(1);
 
@@ -61,13 +60,13 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
 
   <mount target={badgeSprite!}>
     <box ref={(ref) => (boxRef = ref)}>
-      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} />
+      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT }} />
     </box>
   </mount>;
 
-  boxRef.layout = {
-    marginLeft: -boxRef.width / 2,
-    marginTop: -boxRef.height / 1.8,
+  boxRef!.layout = {
+    marginLeft: itemSprite!.width + 4,
+    marginTop: 2,
   };
 
   useCollisionHandler(bodyId, () => ({

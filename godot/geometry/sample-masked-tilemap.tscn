@@ -1,0 +1,38 @@
+[gd_scene format=4 uid="uid://cybsyd80s6a74"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://h012lgqlm3k6" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_1.tres" id="3_b3yhb"]
+[ext_resource type="Texture2D" path="res://sprites/level-1{ss=32}/level-1_spritesheet.tres" id="3_sheet"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/avatars-new_tile_4.tres" id="4_b3yhb"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1"]
+texture = ExtResource("3_sheet")
+texture_region_size = Vector2i(32, 32)
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+0:1/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_1"]
+tile_size = Vector2i(32, 32)
+sources/1 = SubResource("TileSetAtlasSource_1")
+
+[node name="Geometry2" type="Node2D" unique_id=353763577]
+script = ExtResource("1_root")
+
+[node name="clip-diamond" type="Polygon2D" parent="." unique_id=399543813]
+clip_children = 1
+polygon = PackedVector2Array(96, 0, 192, 64, 96, 128, 72, 64, 19, 64, 19, 0)
+script = ExtResource("2_poly")
+border_texture = ExtResource("3_b3yhb")
+border_width = 16.0
+border_corner_texture = ExtResource("4_b3yhb")
+border_corner_size = Vector2(36, 36)
+border_corner_orientation = 2
+mask_children = true
+
+[node name="tiles" type="TileMapLayer" parent="clip-diamond" unique_id=61043154]
+tile_map_data = PackedByteArray("AAAAAAAAAQAAAAEAAAABAAAAAQAAAAEAAAACAAAAAQAAAAEAAAADAAAAAQAAAAEAAAAEAAAAAQAAAAEAAAAFAAAAAQAAAAEAAAAAAAEAAQAAAAEAAAABAAEAAQAAAAEAAAACAAEAAQAAAAEAAAADAAEAAQAAAAEAAAAEAAEAAQAAAAEAAAAFAAEAAQAAAAEAAAAAAAIAAQAAAAEAAAABAAIAAQAAAAEAAAACAAIAAQAAAAEAAAADAAIAAQAAAAEAAAAEAAIAAQAAAAEAAAAFAAIAAQAAAAEAAAAAAAMAAQAAAAEAAAABAAMAAQAAAAEAAAACAAMAAQAAAAEAAAADAAMAAQAAAAEAAAAEAAMAAQAAAAEAAAAFAAMAAQAAAAEAAAA=")
+tile_set = SubResource("TileSet_1")

@@ -229,6 +229,36 @@ should_rotate = false
     expect(geo.bodies[0].sprites[0].shouldRotate).toBe(false);
   });
 
+  it('binds a Box2DNineSlice under a body as a nine-slice sprite with borders', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://panel.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_static_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="3_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="body" type="StaticBody2D" parent="."]
+script = ExtResource("2_body")
+
+[node name="panel" type="Sprite2D" parent="body"]
+scale = Vector2(4, 3)
+texture = ExtResource("1_tex")
+script = ExtResource("3_ns")
+tile_center = true
+`;
+    const geo = parseGeometryTscn(tscn, {
+      panel: { godotPath: 'res://panel.tres', type: 'AtlasTexture', pixiFrame: 'panel#0', borders: { left: 8, top: 8, right: 8, bottom: 8 } },
+    });
+    const binding = geo.bodies[0].sprites[0];
+    expect(binding.nineSlice).toBe(true);
+    expect(binding.borders).toEqual({ left: 8, top: 8, right: 8, bottom: 8 });
+    expect(binding.tileCenter).toBe(true);
+    // The node scale is preserved so the runtime can stretch by it (corners pinned).
+    expect(binding.scale).toEqual({ x: 4, y: 3 });
+    expect(binding.pixiFrame).toBe('panel#0');
+  });
+
   it('skips export when `attached = false` (editor-only reference art)', () => {
     const tscn = `[gd_scene load_steps=3 format=3]
 
@@ -316,6 +346,303 @@ texture = ExtResource("1_tex")
     expect(geo.background!.sprites).toHaveLength(1);
     expect(geo.background!.sprites[0].position).toEqual({ x: 64, y: 96 });
     expect(geo.background!.sprites[0].pixiFrame).toBe('prop#0');
+  });
+
+  it('extracts a Box2DNineSlice as a nine-patch with borders from the sprite-map', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+position = Vector2(100, 50)
+scale = Vector2(2, 1.5)
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: {
+        godotPath: 'res://bg.tres',
+        type: 'AtlasTexture',
+        pixiFrame: 'bg#0',
+        borders: { left: 15, top: 16, right: 16, bottom: 16 },
+      },
+    });
+    // It must NOT also leak into the plain Sprite2D background bucket.
+    expect(geo.background!.sprites).toHaveLength(0);
+    expect(geo.background!.ninePatches).toHaveLength(1);
+    const np = geo.background!.ninePatches[0];
+    expect(np.pixiFrame).toBe('bg#0');
+    // No `size` export — the node's scale drives the runtime stretch instead.
+    expect(np.scale).toEqual({ x: 2, y: 1.5 });
+    expect(np.borders).toEqual({ left: 15, top: 16, right: 16, bottom: 16 });
+    expect(np.position).toEqual({ x: 100, y: 50 });
+    // Sprite2D defaults to centered → anchor (0.5, 0.5).
+    expect(np.anchor).toEqual({ x: 0.5, y: 0.5 });
+    // tile_center defaults off, so the flag is omitted.
+    expect(np.tileCenter).toBeUndefined();
+  });
+
+  it('sets tileCenter on a background nine-patch with tile_center = true', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+tile_center = true
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: { godotPath: 'res://bg.tres', type: 'AtlasTexture', pixiFrame: 'bg#0', borders: { left: 8, top: 8, right: 8, bottom: 8 } },
+    });
+    expect(geo.background!.ninePatches[0].tileCenter).toBe(true);
+  });
+
+  it('defaults nine-patch borders to zero when the texture has no slice metadata', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+size = Vector2(64, 64)
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: { godotPath: 'res://bg.tres', type: 'AtlasTexture', pixiFrame: 'bg#0' },
+    });
+    expect(geo.background!.ninePatches).toHaveLength(1);
+    expect(geo.background!.ninePatches[0].borders).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
+  });
+
+  it('skips a Box2DNineSlice flagged attached = false (editor-only reference art)', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://bg.tres" id="1_tex"]
+[ext_resource type="Script" path="res://box2d/box2d_nine_slice.gd" id="2_ns"]
+
+[node name="Root" type="Node2D"]
+
+[node name="panel" type="Sprite2D" parent="."]
+texture = ExtResource("1_tex")
+script = ExtResource("2_ns")
+size = Vector2(64, 64)
+attached = false
+`;
+    const geo = parseGeometryTscn(tscn, {
+      bg: { godotPath: 'res://bg.tres', type: 'AtlasTexture', pixiFrame: 'bg#0' },
+    });
+    expect(geo.background).toBeUndefined();
+  });
+
+  it('extracts a Box2DPolygon as a tiled-fill mesh with a tiled border and corner piece', () => {
+    const tscn = `[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/foam.tres" id="2_border"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/foam_corner.tres" id="3_corner"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="4_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+position = Vector2(10, 20)
+texture = ExtResource("1_fill")
+script = ExtResource("4_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+uv = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+border_texture = ExtResource("2_border")
+border_corner_texture = ExtResource("3_corner")
+border_width = 6.0
+border_texture_scale = 0.5
+`;
+    const geo = parseGeometryTscn(tscn, {
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0', atlas: 'levels/lvl.aseprite' },
+      border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0', atlas: 'levels/lvl.aseprite' },
+      corner: { godotPath: 'res://sprites/lvl/foam_corner.tres', type: 'AtlasTexture', pixiFrame: 'foam_corner#0', atlas: 'fx/foam.aseprite' },
+    });
+    expect(geo.background!.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.pixiAtlas).toBe('levels/lvl.aseprite');
+    expect(mesh.tileFill).toBe(true);
+    expect(mesh.border).toEqual({
+      pixiFrame: 'foam#0',
+      pixiAtlas: 'levels/lvl.aseprite',
+      width: 6,
+      textureScale: 0.5,
+      closed: true,
+      cornerFrame: 'foam_corner#0',
+      cornerAtlas: 'fx/foam.aseprite',
+    });
+  });
+
+  it('reads border_corner_size and border_corner_orientation onto the border def', () => {
+    const tscn = `[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://b.tres" id="1_border"]
+[ext_resource type="Texture2D" path="res://c.tres" id="2_corner"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="3_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="p" type="Polygon2D" parent="."]
+script = ExtResource("3_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+border_texture = ExtResource("1_border")
+border_corner_texture = ExtResource("2_corner")
+border_width = 6.0
+border_corner_size = Vector2(20, 12)
+border_corner_orientation = 1
+`;
+    const geo = parseGeometryTscn(tscn, {
+      b: { godotPath: 'res://b.tres', type: 'AtlasTexture', pixiFrame: 'b#0' },
+      c: { godotPath: 'res://c.tres', type: 'AtlasTexture', pixiFrame: 'c#0' },
+    });
+    expect(geo.background!.meshes[0].border).toMatchObject({
+      cornerFrame: 'c#0',
+      cornerSize: { x: 20, y: 12 },
+      cornerOrientation: 'snap',
+    });
+  });
+
+  it('omits the border when a Box2DPolygon has no border_texture', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+texture = ExtResource("1_fill")
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
+tile_fill = false
+`;
+    const geo = parseGeometryTscn(tscn, {
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
+    });
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.border).toBeUndefined();
+    expect(mesh.tileFill).toBeUndefined(); // tile_fill = false → flag omitted
+  });
+
+  it('leaves plain Polygon2D meshes free of nine-slice/border fields', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://water.tres" id="1_tex"]
+
+[node name="Root" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+texture = ExtResource("1_tex")
+polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
+`;
+    const geo = parseGeometryTscn(tscn, {
+      water: { godotPath: 'res://water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
+    });
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.tileFill).toBeUndefined();
+    expect(mesh.border).toBeUndefined();
+  });
+
+  it('skips a Box2DPolygon flagged attached = false', () => {
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+texture = ExtResource("1_fill")
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 16, 32)
+attached = false
+`;
+    const geo = parseGeometryTscn(tscn, {
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' },
+    });
+    expect(geo.background).toBeUndefined();
+  });
+
+  it('tessellates a Box2DCurve into a mesh with a tiled fill + border', () => {
+    // 3-point Curve2D with zero handles → straight segments; curve_samples=1
+    // collapses each segment to its end point, so the vertices are the corners.
+    const tscn = `[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Texture2D" path="res://sprites/lvl/foam.tres" id="2_border"]
+[ext_resource type="Script" path="res://box2d/box2d_curve.gd" id="3_curve"]
+
+[sub_resource type="Curve2D" id="Curve2D_1"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 50, 100)
+}
+point_count = 3
+
+[node name="Root" type="Node2D"]
+
+[node name="blob" type="Path2D" parent="."]
+texture = ExtResource("1_fill")
+script = ExtResource("3_curve")
+curve = SubResource("Curve2D_1")
+curve_samples = 1
+border_texture = ExtResource("2_border")
+border_width = 8.0
+border_corner_texture = ExtResource("2_border")
+border_corner_min_angle = 30.0
+`;
+    const geo = parseGeometryTscn(tscn, {
+      fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0', atlas: 'levels/lvl.aseprite' },
+      border: { godotPath: 'res://sprites/lvl/foam.tres', type: 'AtlasTexture', pixiFrame: 'foam#0', atlas: 'fx/foam.aseprite' },
+    });
+    expect(geo.background!.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.name).toBe('blob');
+    expect(mesh.tileFill).toBe(true);
+    expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.pixiAtlas).toBe('levels/lvl.aseprite');
+    // curve_samples=1 → the three corner points of the curve.
+    expect(mesh.vertices).toEqual([
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 50, y: 100 },
+    ]);
+    expect(mesh.border?.pixiFrame).toBe('foam#0');
+    expect(mesh.border?.cornerFrame).toBe('foam#0');
+    expect(mesh.border?.cornerMinAngle).toBe(30);
+  });
+
+  it('skips a Box2DCurve flagged attached = false', () => {
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://box2d/box2d_curve.gd" id="1_curve"]
+
+[sub_resource type="Curve2D" id="Curve2D_1"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 50, 100)
+}
+
+[node name="Root" type="Node2D"]
+
+[node name="blob" type="Path2D" parent="."]
+script = ExtResource("1_curve")
+curve = SubResource("Curve2D_1")
+attached = false
+`;
+    const geo = parseGeometryTscn(tscn, {});
+    expect(geo.background).toBeUndefined();
   });
 });
 
@@ -454,6 +781,133 @@ tile_map_data = PackedByteArray("${blob}")
     ]);
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   });
+
+  it('clips a child TileMapLayer to a mask_children Box2DPolygon (no mesh, clip projected to layer-local)', () => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-clip-'));
+    fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, 'tileset.tres'),
+      `[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/sheet.tres" id="1_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_0"]
+texture = ExtResource("1_tex")
+texture_region_size = Vector2i(32, 32)
+
+[resource]
+sources/0 = SubResource("atlas_0")
+tile_size = Vector2i(32, 32)
+`,
+    );
+
+    const blob = makeBlob([[0, 0, 0, 0, 0, 0]]);
+    const tscn = `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="TileSet" path="res://tileset.tres" id="1_ts"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+
+[node name="Root" type="Node2D"]
+
+[node name="clip" type="Polygon2D" parent="."]
+position = Vector2(10, 20)
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 64, 0, 64, 64, 0, 64)
+mask_children = true
+
+[node name="tiles" type="TileMapLayer" parent="clip"]
+position = Vector2(5, 5)
+tile_set = ExtResource("1_ts")
+tile_map_data = PackedByteArray("${blob}")
+`;
+    const geo = parseGeometryTscn(
+      tscn,
+      {
+        sheet: {
+          godotPath: 'res://sprites/sheet.tres',
+          type: 'AtlasTexture',
+          pixiFrame: 'sheet#0',
+          tilesheet: { framePrefix: 'tiles', cols: 10, rows: 10, tileSize: 32 },
+        },
+      },
+      { godotRoot: tmpRoot },
+    );
+    // The clip polygon renders no mesh of its own.
+    expect(geo.background!.meshes).toHaveLength(0);
+    expect(geo.background!.tileLayers).toHaveLength(1);
+    // clip = polygon world verts (poly + (10,20)) mapped into the layer's local
+    // space (layer global = (15,25)), i.e. each polygon vertex shifted by (-5,-5).
+    expect(geo.background!.tileLayers[0].clip).toEqual([
+      { x: -5, y: -5 },
+      { x: 59, y: -5 },
+      { x: 59, y: 59 },
+      { x: -5, y: 59 },
+    ]);
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('emits a border-only mesh (no fill) for a mask_children shape with a border_texture', () => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-clipborder-'));
+    fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, 'tileset.tres'),
+      `[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/sheet.tres" id="1_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_0"]
+texture = ExtResource("1_tex")
+texture_region_size = Vector2i(32, 32)
+
+[resource]
+sources/0 = SubResource("atlas_0")
+tile_size = Vector2i(32, 32)
+`,
+    );
+
+    const blob = makeBlob([[0, 0, 0, 0, 0, 0]]);
+    const tscn = `[gd_scene load_steps=4 format=3]
+
+[ext_resource type="TileSet" path="res://tileset.tres" id="1_ts"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+[ext_resource type="Texture2D" path="res://sprites/border.tres" id="3_border"]
+
+[node name="Root" type="Node2D"]
+
+[node name="clip" type="Polygon2D" parent="."]
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 64, 0, 64, 64, 0, 64)
+mask_children = true
+border_texture = ExtResource("3_border")
+border_width = 8.0
+
+[node name="tiles" type="TileMapLayer" parent="clip"]
+tile_set = ExtResource("1_ts")
+tile_map_data = PackedByteArray("${blob}")
+`;
+    const geo = parseGeometryTscn(
+      tscn,
+      {
+        sheet: {
+          godotPath: 'res://sprites/sheet.tres',
+          type: 'AtlasTexture',
+          pixiFrame: 'sheet#0',
+          tilesheet: { framePrefix: 'tiles', cols: 10, rows: 10, tileSize: 32 },
+        },
+        border: { godotPath: 'res://sprites/border.tres', type: 'AtlasTexture', pixiFrame: 'border#0' },
+      },
+      { godotRoot: tmpRoot },
+    );
+    // The mask still projects its clip polygon onto the child layer...
+    expect(geo.background!.tileLayers[0].clip).toHaveLength(4);
+    // ...and now also emits a border-only mesh: a border, but no fill frame/tiling.
+    expect(geo.background!.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.pixiFrame).toBeUndefined();
+    expect(mesh.tileFill).toBeUndefined();
+    expect(mesh.border).toMatchObject({ pixiFrame: 'border#0', width: 8 });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
 });
 
 describe('parseGeometryTscn — Box2DRoot', () => {
@@ -521,5 +975,48 @@ position = Vector2(160, 0)
     expect(geo.bodies[0].position.x).toBeCloseTo(11, 5);
     expect(geo.bodies[0].position.y).toBeCloseTo(0, 5);
     expect(geo.bodies[0].userData).toEqual({ type: 'cat-body' });
+  });
+
+  it('merges a subscene background mesh into the parent, transformed into parent space', () => {
+    // Subscene with a Box2DPolygon (background visual, no body)
+    fs.writeFileSync(
+      path.join(tmpRoot, 'geometry', 'pool.tscn'),
+      `[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/lvl/water.tres" id="1_fill"]
+[ext_resource type="Script" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+
+[node name="PoolRoot" type="Node2D"]
+
+[node name="water" type="Polygon2D" parent="."]
+position = Vector2(10, 0)
+texture = ExtResource("1_fill")
+script = ExtResource("2_poly")
+polygon = PackedVector2Array(0, 0, 32, 0, 32, 32, 0, 32)
+`,
+    );
+
+    const outerTscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://geometry/pool.tscn" id="1_pool"]
+
+[node name="Stage" type="Node2D"]
+
+[node name="Pool" type="Node2D" parent="." instance=ExtResource("1_pool")]
+position = Vector2(160, 0)
+`;
+    const geo = parseGeometryTscn(
+      outerTscn,
+      { fill: { godotPath: 'res://sprites/lvl/water.tres', type: 'AtlasTexture', pixiFrame: 'water#0' } },
+      { godotRoot: tmpRoot, subsceneCache: new Map() },
+    );
+    expect(geo.background?.meshes).toHaveLength(1);
+    const mesh = geo.background!.meshes[0];
+    expect(mesh.name).toBe('Pool/water');
+    expect(mesh.pixiFrame).toBe('water#0');
+    expect(mesh.tileFill).toBe(true);
+    // water node at (10, 0) inside pool.tscn, instance at (160, 0) → (170, 0).
+    expect(mesh.position.x).toBeCloseTo(170, 5);
+    expect(mesh.position.y).toBeCloseTo(0, 5);
   });
 });

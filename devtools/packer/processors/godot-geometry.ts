@@ -62,6 +62,9 @@ const SCRIPT_TO_JOINT_TYPE: Record<string, 'revolute' | 'prismatic' | 'distance'
 };
 
 const BOX2D_ROOT_SCRIPT = 'res://box2d/box2d_root.gd';
+const BOX2D_NINE_SLICE_SCRIPT = 'res://box2d/box2d_nine_slice.gd';
+const BOX2D_POLYGON_SCRIPT = 'res://box2d/box2d_polygon.gd';
+const BOX2D_CURVE_SCRIPT = 'res://box2d/box2d_curve.gd';
 
 // ---------------------------------------------------------------------------
 // Output schema (mirrored in src/lib/loadGodotGeometry.ts)
@@ -82,6 +85,33 @@ export interface BackgroundDef {
   sprites: BackgroundSpriteDef[];
   /** TileMapLayer nodes, flattened to per-cell sprite placements. */
   tileLayers: TileLayerDef[];
+  /** Box2DNineSlice nodes, rendered as Pixi NineSliceSprites. */
+  ninePatches: NinePatchDef[];
+}
+
+/**
+ * A stretchable nine-slice authored as a Box2DNineSlice node (a Sprite2D with
+ * the box2d_nine_slice.gd script). The texture resolves to a Pixi frame and the
+ * non-stretching `borders` come from the aseprite slice layer (threaded through
+ * sprite-map.json). `size` is the stretched target; the runtime instantiates a
+ * NineSliceSprite at that size with the corners pinned by `borders`.
+ */
+export interface NinePatchDef {
+  name: string;
+  pixiFrame: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  anchor: V2;
+  /** Non-stretching border widths in texture pixels. */
+  borders: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the center region instead of stretching it. */
+  tileCenter?: boolean;
+  z?: number;
+  tint?: number;
+  alpha?: number;
 }
 
 /**
@@ -98,6 +128,12 @@ export interface TileLayerDef {
   tileSize: V2;
   z?: number;
   tiles: TilePlacement[];
+  /**
+   * Optional clip polygon (this layer's local pixel space). Present when the
+   * layer is a child of a Box2DPolygon/Box2DCurve with `mask_children = true`;
+   * the runtime masks the tile container to this outline.
+   */
+  clip?: V2[];
 }
 
 export interface TilePlacement {
@@ -129,9 +165,47 @@ export interface MeshDef {
   uvs: V2[]; // Same length as vertices, in texture pixel space
   indices: number[]; // Triangle vertex indices
   pixiFrame?: string;
+  /** Atlas alias for `pixiFrame` (frame names aren't globally unique). */
+  pixiAtlas?: string;
   z?: number;
   tint?: number;
   alpha?: number;
+  /**
+   * Tile the fill texture across the polygon instead of stretching one frame
+   * over it. Rendered at runtime as a grid of tile sprites clipped to the
+   * polygon by a mask, so ordinary atlas frames tile correctly.
+   */
+  tileFill?: boolean;
+  /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
+  border?: MeshBorderDef;
+  /** Render after tile layers (e.g. a mask_children border that frames its tilemap). */
+  overlay?: boolean;
+}
+
+/**
+ * A strip texture tiled along a polygon's outline, rendered at runtime as a
+ * tiled quad-strip mesh whose path is the mesh `vertices`.
+ */
+export interface MeshBorderDef {
+  pixiFrame: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
+  /** Strip thickness in pixels. 0 → fall back to the texture's height. */
+  width: number;
+  /** Scales the length of each repeated tile along the edge (1 = one frame width). */
+  textureScale: number;
+  /** Close the strip back to the first vertex so it wraps the whole shape. */
+  closed: boolean;
+  /** Optional frame stamped at each corner (oriented to the bisector) over the joint. */
+  cornerFrame?: string;
+  /** Atlas alias for `cornerFrame`. */
+  cornerAtlas?: string;
+  /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
+  cornerMinAngle?: number;
+  /** Corner size in px (x = along the outline, y = across). Each axis falls back to the strip width when ≤ 0. */
+  cornerSize?: V2;
+  /** Corner rotation: 'free' = bisector tangent (default), 'snap' = nearest 90°, 'none' = unrotated. */
+  cornerOrientation?: 'free' | 'snap' | 'none';
 }
 
 /**
@@ -143,6 +217,8 @@ export interface BackgroundSpriteDef {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -194,6 +270,8 @@ export interface SpriteBinding {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   offset: V2;
   rotation: number;
   scale: V2;
@@ -205,6 +283,12 @@ export interface SpriteBinding {
   flipV?: boolean;
   /** If false, the sprite stays axis-aligned regardless of body rotation. */
   shouldRotate?: boolean;
+  /** Render as a NineSliceSprite stretched by `scale` (Box2DNineSlice under a body). */
+  nineSlice?: boolean;
+  /** Nine-slice border widths in texture px (only meaningful with `nineSlice`). */
+  borders?: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the nine-slice center instead of stretching it. */
+  tileCenter?: boolean;
 }
 
 export type Box2DJointDef =
@@ -570,9 +654,17 @@ export function parseGeometryTscn(
   for (const n of nodes) globalTransforms.set(n.fullPath, computeGlobalTransform(n, nodeByPath, globalTransforms));
 
   // Build sprite-map reverse lookup
-  const godotPathToPixi: Record<string, { frame?: string; anim?: string }> = {};
+  const godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }> = {};
   for (const entry of Object.values(spriteMap)) {
-    godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation };
+    godotPathToPixi[entry.godotPath] = { frame: entry.pixiFrame, anim: entry.pixiAnimation, atlas: entry.atlas };
+  }
+
+  // Reverse lookup: texture .tres path → 9-slice borders (from the aseprite slice
+  // layer, threaded through sprite-map.json). Used by both body-attached and
+  // background Box2DNineSlice nodes.
+  const godotPathToBorders: Record<string, NinePatchDef['borders']> = {};
+  for (const entry of Object.values(spriteMap)) {
+    if (entry.borders) godotPathToBorders[entry.godotPath] = entry.borders;
   }
 
   // Identify local body nodes (Box2D-scripted OR plain Godot physics body types
@@ -582,7 +674,7 @@ export function parseGeometryTscn(
 
   // Build local body defs
   const bodies: Box2DBodyDef[] = bodyNodes.map((bodyNode) =>
-    buildBodyDef(bodyNode, nodes, subShapes, extResources, godotPathToPixi, globalTransforms),
+    buildBodyDef(bodyNode, nodes, subShapes, extResources, godotPathToPixi, godotPathToBorders, globalTransforms),
   );
 
   // Map from local body fullPath → body index in output bodies array
@@ -596,8 +688,10 @@ export function parseGeometryTscn(
   //   - apply the instance's global transform to each subscene body's position/angle
   //   - prefix subscene body names with "<instance>/" to keep them unique
   //   - shift joint bodyA/bodyB indices by the current bodies array length
+  //   - merge the subscene's background visuals, transformed into parent space
   // Subscene NodePaths are already resolved internally (during the recursive
   // parseGeometryTscn call), so we don't need to re-rewrite them.
+  const subBackground: BackgroundDef = { meshes: [], sprites: [], tileLayers: [], ninePatches: [] };
   const instanceNodes = nodes.filter((n) => n.instanceResPath !== undefined);
   for (const instNode of instanceNodes) {
     const subPath = resolveResPath(instNode.instanceResPath!, options.godotRoot);
@@ -655,6 +749,28 @@ export function parseGeometryTscn(
         bodyB: subJoint.bodyB + baseIndex,
       } as Box2DJointDef);
     }
+
+    // Background visuals stay in Godot pixel space (no PXM / Y-flip), so compose
+    // the instance's global transform directly with each item's local transform.
+    if (subGeo.background) {
+      const cosI = Math.cos(instGT.rotation);
+      const sinI = Math.sin(instGT.rotation);
+      const place = <T extends { name: string; position: V2; rotation: number; scale: V2 }>(item: T): T => {
+        const lx = item.position.x * instGT.scale.x;
+        const ly = item.position.y * instGT.scale.y;
+        return {
+          ...item,
+          name: `${instNode.name}/${item.name}`,
+          position: { x: instGT.origin.x + cosI * lx - sinI * ly, y: instGT.origin.y + sinI * lx + cosI * ly },
+          rotation: item.rotation + instGT.rotation,
+          scale: { x: item.scale.x * instGT.scale.x, y: item.scale.y * instGT.scale.y },
+        };
+      };
+      for (const m of subGeo.background.meshes) subBackground.meshes.push(place(m));
+      for (const s of subGeo.background.sprites) subBackground.sprites.push(place(s));
+      for (const t of subGeo.background.tileLayers) subBackground.tileLayers.push(place(t));
+      for (const np of subGeo.background.ninePatches) subBackground.ninePatches.push(place(np));
+    }
   }
 
   // Build local joint defs (after subscene merge so indices are stable)
@@ -691,7 +807,7 @@ export function parseGeometryTscn(
     return false;
   };
 
-  const background = buildBackground(
+  const ownBackground = buildBackground(
     nodes,
     isUnderBody,
     extResources,
@@ -701,6 +817,23 @@ export function parseGeometryTscn(
     spriteMap,
     options.godotRoot,
   );
+
+  // Combine this scene's own background visuals with those merged in from
+  // instanced subscenes (e.g. a Box2DPolygon authored in a reusable .tscn).
+  const hasSubBackground =
+    subBackground.meshes.length > 0 ||
+    subBackground.sprites.length > 0 ||
+    subBackground.tileLayers.length > 0 ||
+    subBackground.ninePatches.length > 0;
+  let background: BackgroundDef | null | undefined = ownBackground;
+  if (hasSubBackground) {
+    background = {
+      meshes: [...(ownBackground?.meshes ?? []), ...subBackground.meshes],
+      sprites: [...(ownBackground?.sprites ?? []), ...subBackground.sprites],
+      tileLayers: [...(ownBackground?.tileLayers ?? []), ...subBackground.tileLayers],
+      ninePatches: [...(ownBackground?.ninePatches ?? []), ...subBackground.ninePatches],
+    };
+  }
 
   return { gravity, bodies, joints, ...(background ? { background } : {}) };
 }
@@ -714,7 +847,8 @@ function buildBodyDef(
   allNodes: NodeInfo[],
   subShapes: Record<string, SubShape>,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  godotPathToBorders: Record<string, NinePatchDef['borders']>,
   globalTransforms: Map<string, GTransform>,
 ): Box2DBodyDef {
   const type = resolveBodyType(bodyNode)!;
@@ -737,7 +871,7 @@ function buildBodyDef(
       // art (silhouettes you're tracing); the exporter skips it entirely.
       const attachedProp = child.props.get('attached');
       if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
-      const binding = buildSpriteBinding(child, bodyNode, extResources, godotPathToPixi, globalTransforms);
+      const binding = buildSpriteBinding(child, bodyNode, extResources, godotPathToPixi, godotPathToBorders, globalTransforms);
       if (binding) sprites.push(binding);
     }
   }
@@ -877,7 +1011,8 @@ function buildSpriteBinding(
   spriteNode: NodeInfo,
   bodyNode: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  godotPathToBorders: Record<string, NinePatchDef['borders']>,
   globalTransforms: Map<string, GTransform>,
 ): SpriteBinding | null {
   const local = transformInBody(spriteNode, bodyNode, globalTransforms);
@@ -885,14 +1020,18 @@ function buildSpriteBinding(
   // Resolve texture
   let pixiFrame: string | undefined;
   let pixiAnimation: string | undefined;
+  let pixiAtlas: string | undefined;
+  let texResPath: string | undefined;
   if (spriteNode.type === 'Sprite2D') {
     const texProp = spriteNode.props.get('texture');
     const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
     if (extId && extResources[extId]) {
-      const resolved = godotPathToPixi[extResources[extId]];
+      texResPath = extResources[extId];
+      const resolved = godotPathToPixi[texResPath];
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   } else if (spriteNode.type === 'AnimatedSprite2D') {
@@ -903,6 +1042,7 @@ function buildSpriteBinding(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   }
@@ -945,12 +1085,27 @@ function buildSpriteBinding(
   };
   if (pixiFrame) binding.pixiFrame = pixiFrame;
   if (pixiAnimation) binding.pixiAnimation = pixiAnimation;
+  if (pixiAtlas) binding.pixiAtlas = pixiAtlas;
   if (zIndex) binding.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) binding.tint = tint;
   if (alpha !== undefined && alpha !== 1) binding.alpha = alpha;
   if (flipH) binding.flipH = true;
   if (flipV) binding.flipV = true;
   if (!shouldRotate) binding.shouldRotate = false;
+
+  // Box2DNineSlice under a body: render as a NineSliceSprite stretched by the
+  // node's scale (corners pinned), same as a standalone nine-slice but bound to
+  // the body. Borders come from the aseprite slice layer via the sprite-map.
+  if (spriteNode.scriptResPath === BOX2D_NINE_SLICE_SCRIPT) {
+    binding.nineSlice = true;
+    binding.borders = (texResPath ? godotPathToBorders[texResPath] : undefined) ?? {
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+    };
+    if (decodeGodotValue(spriteNode.props.get('tile_center') ?? 'false') === true) binding.tileCenter = true;
+  }
 
   return binding;
 }
@@ -964,7 +1119,7 @@ function buildBackground(
   isUnderBody: (path: string) => boolean,
   extResources: Record<string, string>,
   subResections: Record<string, TscnSection>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
   spriteMap: GodotSpriteMap,
   godotRoot: string | undefined,
@@ -972,6 +1127,14 @@ function buildBackground(
   const meshes: MeshDef[] = [];
   const sprites: BackgroundSpriteDef[] = [];
   const tileLayers: TileLayerDef[] = [];
+  const ninePatches: NinePatchDef[] = [];
+
+  // Reverse lookup: texture .tres path → 9-slice borders (from the aseprite
+  // slice layer, threaded through sprite-map.json by generateGodotResources).
+  const godotPathToBorders: Record<string, NinePatchDef['borders']> = {};
+  for (const entry of Object.values(spriteMap)) {
+    if (entry.borders) godotPathToBorders[entry.godotPath] = entry.borders;
+  }
 
   // Cache parsed TileSet .tres files — one TileSet is usually shared by many
   // TileMapLayer nodes in the same scene.
@@ -983,11 +1146,70 @@ function buildBackground(
     return info;
   };
 
+  // Pre-pass: collect clip shapes. A Box2DPolygon/Box2DCurve with
+  // `mask_children = true` is a mask for its child TileMapLayers — it renders no
+  // mesh of its own. Vertices are kept in world (scene) space here, then mapped
+  // into each child layer's local space when the layer is built.
+  const clipShapesWorld = new Map<string, V2[]>();
   for (const n of nodes) {
     if (isUnderBody(n.fullPath)) continue;
+    const isPoly = n.type === 'Polygon2D' && n.scriptResPath === BOX2D_POLYGON_SCRIPT;
+    const isCurve = n.scriptResPath === BOX2D_CURVE_SCRIPT;
+    if (!isPoly && !isCurve) continue;
+    if (decodeGodotValue(n.props.get('mask_children') ?? 'false') !== true) continue;
+    const localVerts = isPoly ? parsePackedVector2Array(n.props.get('polygon') ?? '') : curveVertices(n, subResections);
+    if (localVerts.length < 3) continue;
+    const gt = globalTransforms.get(n.fullPath)!;
+    clipShapesWorld.set(
+      n.fullPath,
+      localVerts.map((v) => applyGTransform(gt, v)),
+    );
+  }
+
+  for (const n of nodes) {
+    if (isUnderBody(n.fullPath)) continue;
+    if (clipShapesWorld.has(n.fullPath)) {
+      // A clip mask renders no fill of its own — the masked child TileMapLayer is
+      // the fill. But it can still carry a tiled `border_texture` to frame the
+      // masked region, so emit a border-only mesh (fill stripped) when present.
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const isCurveClip = n.scriptResPath === BOX2D_CURVE_SCRIPT;
+      const m = isCurveClip
+        ? buildCurveMesh(n, extResources, godotPathToPixi, subResections, globalTransforms)
+        : buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
+      if (m?.border) {
+        delete m.pixiFrame;
+        delete m.pixiAtlas;
+        delete m.tileFill;
+        m.overlay = true; // draw the border on top of the masked tilemap, not under it
+        meshes.push(m);
+      }
+      continue; // the clip polygon itself is projected onto the child layer below
+    }
     if (n.type === 'Polygon2D') {
+      // Box2DPolygon (tiled fill + tiled border) is also a Polygon2D; the
+      // `attached = false` flag marks it as editor-only reference art.
+      if (n.scriptResPath === BOX2D_POLYGON_SCRIPT) {
+        const attachedProp = n.props.get('attached');
+        if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      }
       const m = buildMeshDef(n, extResources, godotPathToPixi, globalTransforms);
       if (m) meshes.push(m);
+    } else if (n.scriptResPath === BOX2D_CURVE_SCRIPT) {
+      // Box2DCurve is a Path2D whose bezier curve is tessellated into the mesh
+      // vertices, then rendered with the same masked fill + quad-strip border.
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const m = buildCurveMesh(n, extResources, godotPathToPixi, subResections, globalTransforms);
+      if (m) meshes.push(m);
+    } else if (n.scriptResPath === BOX2D_NINE_SLICE_SCRIPT) {
+      // Box2DNineSlice is a Sprite2D subclass, so this must be checked before
+      // the plain Sprite2D branch below or it would be exported twice.
+      const attachedProp = n.props.get('attached');
+      if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
+      const np = buildNinePatch(n, extResources, godotPathToPixi, godotPathToBorders, globalTransforms);
+      if (np) ninePatches.push(np);
     } else if (n.type === 'Sprite2D' || n.type === 'AnimatedSprite2D') {
       // Respect Box2DSprite's `attached = false` (editor-only reference art).
       const attachedProp = n.props.get('attached');
@@ -996,12 +1218,28 @@ function buildBackground(
       if (s) sprites.push(s);
     } else if (n.type === 'TileMapLayer') {
       const layer = buildTileLayer(n, extResources, subResections, globalTransforms, spriteMap, resolveTileSet);
-      if (layer) tileLayers.push(layer);
+      if (layer) {
+        // If this layer is a child of a clip shape, project the clip polygon into
+        // the layer's local space so the runtime can mask the tile container.
+        const clipWorld = clipShapesWorld.get(n.parentPath);
+        if (clipWorld) {
+          const layerGT = globalTransforms.get(n.fullPath)!;
+          layer.clip = clipWorld.map((w) => applyInverseGTransform(layerGT, w));
+        }
+        tileLayers.push(layer);
+      }
     }
   }
 
-  if (meshes.length === 0 && sprites.length === 0 && tileLayers.length === 0) return null;
-  return { meshes, sprites, tileLayers };
+  if (
+    meshes.length === 0 &&
+    sprites.length === 0 &&
+    tileLayers.length === 0 &&
+    ninePatches.length === 0
+  ) {
+    return null;
+  }
+  return { meshes, sprites, tileLayers, ninePatches };
 }
 
 // ---------------------------------------------------------------------------
@@ -1223,7 +1461,7 @@ function emptyLayer(
 function buildMeshDef(
   polyNode: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): MeshDef | null {
   // Vertices in the polygon node's local space (Godot pixels).
@@ -1235,12 +1473,15 @@ function buildMeshDef(
   let uvs = parsePackedVector2Array(polyNode.props.get('uv') ?? '');
   if (uvs.length !== polygon.length) uvs = polygon;
 
-  // Texture — resolve through the sprite-map to a pixi frame key.
+  // Texture — resolve through the sprite-map to a pixi frame key + atlas.
   let pixiFrame: string | undefined;
+  let pixiAtlas: string | undefined;
   const texProp = polyNode.props.get('texture');
   const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
   if (extId && extResources[extId]) {
-    pixiFrame = godotPathToPixi[extResources[extId]]?.frame;
+    const resolved = godotPathToPixi[extResources[extId]];
+    pixiFrame = resolved?.frame;
+    pixiAtlas = resolved?.atlas;
   }
 
   // Triangulate. Fan from vertex 0 — works for convex polygons; concave needs
@@ -1277,20 +1518,196 @@ function buildMeshDef(
     indices,
   };
   if (pixiFrame) out.pixiFrame = pixiFrame;
+  if (pixiAtlas) out.pixiAtlas = pixiAtlas;
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
+
+  // Box2DPolygon adds tiled-fill + a tiled quad-strip border on top of a plain
+  // textured Polygon2D. Plain Polygon2D nodes keep the existing stretch behaviour.
+  if (polyNode.scriptResPath === BOX2D_POLYGON_SCRIPT) {
+    const tileFill = decodeGodotValue(polyNode.props.get('tile_fill') ?? 'true') !== false;
+    if (tileFill) out.tileFill = true;
+    const border = buildMeshBorder(polyNode, extResources, godotPathToPixi);
+    if (border) out.border = border;
+  }
   return out;
+}
+
+/**
+ * Parse the shared `border_*` exports (used by Box2DPolygon and Box2DCurve) into
+ * a MeshBorderDef, resolving the strip + optional corner frame through the
+ * sprite-map. Returns undefined when there's no resolvable border texture.
+ */
+function buildMeshBorder(
+  node: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+): MeshBorderDef | undefined {
+  const borderTexProp = node.props.get('border_texture');
+  const borderExtId = borderTexProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const borderResPath = borderExtId ? extResources[borderExtId] : undefined;
+  const borderResolved = borderResPath ? godotPathToPixi[borderResPath] : undefined;
+  if (!borderResolved?.frame) {
+    if (borderTexProp) {
+      console.warn(`[Godot] "${node.name}" border_texture did not resolve to a frame; skipping border`);
+    }
+    return undefined;
+  }
+
+  const width = parseFloat(unquote(node.props.get('border_width') ?? '0')) || 0;
+  const rawScale = node.props.get('border_texture_scale');
+  const textureScale = rawScale !== undefined ? parseFloat(unquote(rawScale)) || 0 : 1;
+  const closed = decodeGodotValue(node.props.get('border_closed') ?? 'true') !== false;
+  const border: MeshBorderDef = { pixiFrame: borderResolved.frame, width, textureScale, closed };
+  if (borderResolved.atlas) border.pixiAtlas = borderResolved.atlas;
+
+  // Optional corner piece stamped over each joint. `border_corner_min_angle`
+  // (degrees) suppresses corners on shallow turns — so a finely-tessellated
+  // curve only gets corner pieces at genuinely sharp vertices.
+  const cornerExtId = node.props.get('border_corner_texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const cornerResPath = cornerExtId ? extResources[cornerExtId] : undefined;
+  const cornerResolved = cornerResPath ? godotPathToPixi[cornerResPath] : undefined;
+  if (cornerResolved?.frame) {
+    border.cornerFrame = cornerResolved.frame;
+    if (cornerResolved.atlas) border.cornerAtlas = cornerResolved.atlas;
+    const minAngle = parseFloat(unquote(node.props.get('border_corner_min_angle') ?? '0')) || 0;
+    if (minAngle > 0) border.cornerMinAngle = minAngle;
+    const cornerSize = parseVector2(node.props.get('border_corner_size') ?? '');
+    if (cornerSize && (cornerSize.x > 0 || cornerSize.y > 0)) border.cornerSize = cornerSize;
+    // border_corner_orientation enum: 0 = Free (bisector), 1 = Snap 90°, 2 = None.
+    const orient = parseInt(unquote(node.props.get('border_corner_orientation') ?? '0'), 10) || 0;
+    if (orient === 1) border.cornerOrientation = 'snap';
+    else if (orient === 2) border.cornerOrientation = 'none';
+  }
+  return border;
+}
+
+/**
+ * Box2DCurve — a Path2D whose bezier Curve2D is tessellated into mesh vertices,
+ * then rendered with the same masked tiled fill + quad-strip border as a
+ * Box2DPolygon. The masked fill earcuts its polygon mask, so concave/curved
+ * outlines render correctly (use `tile_fill`, not the stretched mesh).
+ */
+function buildCurveMesh(
+  node: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  subResections: Record<string, TscnSection>,
+  globalTransforms: Map<string, GTransform>,
+): MeshDef | null {
+  const curveId = node.props.get('curve')?.match(/SubResource\("([^"]+)"\)/)?.[1];
+  if (!curveId || !subResections[curveId]) {
+    console.warn(`[Godot] Box2DCurve "${node.name}" has no curve resource; skipping`);
+    return null;
+  }
+  const vertices = curveVertices(node, subResections);
+  if (vertices.length < 3) {
+    console.warn(`[Godot] Box2DCurve "${node.name}" tessellated to <3 points; skipping`);
+    return null;
+  }
+
+  // Path2D has no `texture`, so Box2DCurve adds its own fill texture export.
+  const texExtId = node.props.get('texture')?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const resolved = texExtId && extResources[texExtId] ? godotPathToPixi[extResources[texExtId]] : undefined;
+
+  // Fan triangulation is only consumed by the non-tiled stretched fill; the tiled
+  // fill clips with an earcut polygon mask, so concave curves are fine there.
+  const indices: number[] = [];
+  for (let i = 1; i < vertices.length - 1; i++) indices.push(0, i, i + 1);
+
+  const gt = globalTransforms.get(node.fullPath)!;
+  const out: MeshDef = {
+    name: node.name,
+    position: gt.origin,
+    rotation: gt.rotation,
+    scale: gt.scale,
+    vertices,
+    uvs: vertices,
+    indices,
+  };
+  if (resolved?.frame) out.pixiFrame = resolved.frame;
+  if (resolved?.atlas) out.pixiAtlas = resolved.atlas;
+  const zIndex = parseInt(unquote(node.props.get('z_index') ?? '0'), 10) || undefined;
+  if (zIndex) out.z = zIndex;
+
+  const tileFill = decodeGodotValue(node.props.get('tile_fill') ?? 'true') !== false;
+  if (tileFill) out.tileFill = true;
+  const border = buildMeshBorder(node, extResources, godotPathToPixi);
+  if (border) out.border = border;
+  return out;
+}
+
+/** Apply a global transform (translate + rotate + scale) to a local-space point. */
+function applyGTransform(gt: GTransform, v: V2): V2 {
+  const sx = v.x * gt.scale.x;
+  const sy = v.y * gt.scale.y;
+  const c = Math.cos(gt.rotation);
+  const s = Math.sin(gt.rotation);
+  return { x: gt.origin.x + c * sx - s * sy, y: gt.origin.y + s * sx + c * sy };
+}
+
+/** Inverse of applyGTransform: map a world-space point into the transform's local space. */
+function applyInverseGTransform(gt: GTransform, w: V2): V2 {
+  const dx = w.x - gt.origin.x;
+  const dy = w.y - gt.origin.y;
+  const c = Math.cos(gt.rotation);
+  const s = Math.sin(gt.rotation);
+  return { x: (c * dx + s * dy) / (gt.scale.x || 1), y: (-s * dx + c * dy) / (gt.scale.y || 1) };
+}
+
+/** Resolve a Box2DCurve node's Curve2D sub-resource and tessellate it into local-space vertices. */
+function curveVertices(node: NodeInfo, subResections: Record<string, TscnSection>): V2[] {
+  const curveId = node.props.get('curve')?.match(/SubResource\("([^"]+)"\)/)?.[1];
+  const curveSection = curveId ? subResections[curveId] : undefined;
+  if (!curveSection) return [];
+  // Godot Curve2D `_data.points` is a flat PackedVector2Array of (in, out, pos)
+  // triples per control point (handles are offsets relative to the position).
+  const rawPoints = parsePackedVector2Array(curveSection.props.get('_data') ?? '');
+  const samples = Math.max(1, Math.round(parseFloat(unquote(node.props.get('curve_samples') ?? '8')) || 8));
+  return tessellateCurve2D(rawPoints, samples);
+}
+
+/**
+ * Tessellate a Godot Curve2D into a polyline. `points` are the (in, out, pos)
+ * triples; each segment between consecutive points is a cubic bezier
+ * (P0=pos_i, P1=pos_i+out_i, P2=pos_{i+1}+in_{i+1}, P3=pos_{i+1}) sampled at
+ * `samples` steps. Shared segment endpoints are emitted once.
+ */
+function tessellateCurve2D(points: V2[], samples: number): V2[] {
+  const count = Math.floor(points.length / 3);
+  if (count < 2) return [];
+  const pos = (i: number) => points[i * 3 + 2];
+  const outH = (i: number) => points[i * 3 + 1];
+  const inH = (i: number) => points[i * 3 + 0];
+
+  const result: V2[] = [pos(0)];
+  for (let i = 0; i < count - 1; i++) {
+    const p0 = pos(i);
+    const p1 = { x: p0.x + outH(i).x, y: p0.y + outH(i).y };
+    const p3 = pos(i + 1);
+    const p2 = { x: p3.x + inH(i + 1).x, y: p3.y + inH(i + 1).y };
+    for (let s = 1; s <= samples; s++) {
+      const t = s / samples;
+      const u = 1 - t;
+      result.push({
+        x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
+        y: u * u * u * p0.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * p3.y,
+      });
+    }
+  }
+  return result;
 }
 
 function buildBackgroundSprite(
   spriteNode: NodeInfo,
   extResources: Record<string, string>,
-  godotPathToPixi: Record<string, { frame?: string; anim?: string }>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
 ): BackgroundSpriteDef | null {
   let pixiFrame: string | undefined;
   let pixiAnimation: string | undefined;
+  let pixiAtlas: string | undefined;
   if (spriteNode.type === 'Sprite2D') {
     const texProp = spriteNode.props.get('texture');
     const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
@@ -1299,6 +1716,7 @@ function buildBackgroundSprite(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   } else {
@@ -1309,6 +1727,7 @@ function buildBackgroundSprite(
       if (resolved) {
         pixiFrame = resolved.frame;
         pixiAnimation = resolved.anim;
+        pixiAtlas = resolved.atlas;
       }
     }
   }
@@ -1345,11 +1764,75 @@ function buildBackgroundSprite(
   };
   if (pixiFrame) out.pixiFrame = pixiFrame;
   if (pixiAnimation) out.pixiAnimation = pixiAnimation;
+  if (pixiAtlas) out.pixiAtlas = pixiAtlas;
   if (zIndex) out.z = zIndex;
   if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
   if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
   if (flipH) out.flipH = true;
   if (flipV) out.flipV = true;
+  return out;
+}
+
+function buildNinePatch(
+  node: NodeInfo,
+  extResources: Record<string, string>,
+  godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
+  godotPathToBorders: Record<string, NinePatchDef['borders']>,
+  globalTransforms: Map<string, GTransform>,
+): NinePatchDef | null {
+  const texProp = node.props.get('texture');
+  const extId = texProp?.match(/ExtResource\("([^"]+)"\)/)?.[1];
+  const texResPath = extId ? extResources[extId] : undefined;
+  const resolved = texResPath ? godotPathToPixi[texResPath] : undefined;
+  const pixiFrame = resolved?.frame;
+  if (!pixiFrame) {
+    console.warn(`[Godot] Box2DNineSlice "${node.name}" has no resolvable texture; skipping`);
+    return null;
+  }
+
+  // Borders are authored in the aseprite slice layer and threaded through the
+  // sprite-map. Falling back to zero just makes the runtime stretch uniformly.
+  const resolvedBorders = texResPath ? godotPathToBorders[texResPath] : undefined;
+  const borders = resolvedBorders ?? { left: 0, top: 0, right: 0, bottom: 0 };
+  if (!resolvedBorders) {
+    console.warn(`[Godot] Box2DNineSlice "${node.name}" texture has no slice borders; rendering as a plain stretch`);
+  }
+
+  const centeredRaw = node.props.get('centered');
+  const centered = centeredRaw === undefined ? true : decodeGodotValue(centeredRaw) === true;
+  const offset = parseVector2(node.props.get('offset') ?? '') ?? { x: 0, y: 0 };
+  const zIndex = parseInt(unquote(node.props.get('z_index') ?? '0'), 10) || undefined;
+
+  const modulate = node.props.get('modulate');
+  let tint: number | undefined;
+  let alpha: number | undefined;
+  if (modulate) {
+    const colorMatch = modulate.match(/Color\(([^)]+)\)/);
+    if (colorMatch) {
+      const parts = colorMatch[1].split(',').map((s) => parseFloat(s.trim()));
+      const r = Math.round((parts[0] ?? 1) * 255);
+      const g = Math.round((parts[1] ?? 1) * 255);
+      const b = Math.round((parts[2] ?? 1) * 255);
+      tint = (r << 16) | (g << 8) | b;
+      if (parts.length > 3) alpha = parts[3];
+    }
+  }
+
+  const gt = globalTransforms.get(node.fullPath)!;
+  const out: NinePatchDef = {
+    name: node.name,
+    pixiFrame,
+    position: { x: gt.origin.x + offset.x, y: gt.origin.y + offset.y },
+    rotation: gt.rotation,
+    scale: gt.scale,
+    anchor: centered ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 },
+    borders,
+  };
+  if (decodeGodotValue(node.props.get('tile_center') ?? 'false') === true) out.tileCenter = true;
+  if (resolved?.atlas) out.pixiAtlas = resolved.atlas;
+  if (zIndex) out.z = zIndex;
+  if (tint !== undefined && tint !== 0xffffff) out.tint = tint;
+  if (alpha !== undefined && alpha !== 1) out.alpha = alpha;
   return out;
 }
 

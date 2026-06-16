@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://cvoud25rf70lr"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://h012lgqlm3k6" path="res://box2d/box2d_polygon.gd" id="2_poly"]
+[ext_resource type="Texture2D" path="res://sprites/background/aa_tile_1.tres" id="3_fill"]
+[ext_resource type="Texture2D" path="res://sprites/bricks/bricks_tile_1.tres" id="4_border"]
+[ext_resource type="Texture2D" path="res://sprites/bricks/bricks_tile_2.tres" id="5_corner"]
+
+[node name="Geometry" type="Node2D" unique_id=473335224]
+script = ExtResource("1_root")
+
+[node name="water-pool" type="Polygon2D" parent="." unique_id=167234318]
+texture = ExtResource("3_fill")
+polygon = PackedVector2Array(-96, -64, 96, -64, 96, 64, 0, 112, -96, 64)
+script = ExtResource("2_poly")
+border_texture = ExtResource("4_border")
+border_width = 16.0
+border_texture_scale = 0.5
+border_corner_texture = ExtResource("5_corner")
+border_corner_size = Vector2(32, 16)
+border_corner_orientation = 1

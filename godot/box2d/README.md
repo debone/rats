@@ -97,15 +97,44 @@ the runtime renders behind/in front of the physics. The point is to
 author the level's background art in the same scene as the physics so
 brick placements line up exactly with the painted environment.
 
-Two node types are supported today:
+These node types are supported today:
 
 - **`Polygon2D` with `texture`** — free-form textured polygons. Author the
   shape with Godot's polygon editor, assign a texture (atlas-resolved
   through `sprite-map.json` just like sprites), and the exporter emits a
-  triangulated mesh that the runtime renders as a Pixi `Mesh`. Use this
-  for big filled regions: water, sky, terrain fills, anything that
-  isn't grid-aligned. **Currently convex polygons only** — concave will
-  need an earcut pass; we'll add that the first time an author hits it.
+  triangulated mesh that the runtime renders as a Pixi `Mesh`. The frame is
+  stretched across the polygon. Use this for big filled regions: water, sky,
+  terrain fills, anything that isn't grid-aligned. **Currently convex
+  polygons only** — concave will need an earcut pass; we'll add that the
+  first time an author hits it.
+
+- **`Box2DPolygon`** (extends `Polygon2D`) — a textured polygon with a **tiled
+  fill** and an optional **tiled border** traced along the outline. Assign the
+  fill `texture` and, optionally, a `border_texture` (both ordinary atlas
+  frames); tune `border_width`, `border_texture_scale` (length of each repeated
+  tile, 1 = one frame width), `border_closed`, and `tile_fill`. At runtime the
+  fill is a grid of tile sprites clipped to the polygon by a mask, and the border
+  is a tiled quad-strip mesh (mitred at corners, with optional corner pieces).
+  Corner pieces take `border_corner_size` (px, per-axis — x along the outline,
+  y across; each axis falls back to the border width when 0, so the corner can be
+  sized independently of the border thickness and non-square art isn't squashed)
+  and `border_corner_orientation` (Free = aligned to the joint bisector,
+  Snap 90° = nearest 0/90/180/270, None = upright).
+  Both tile atlas frames correctly — each tile/quad is its own draw with a 0..1
+  UV, so no GPU texture-repeat is involved.
+  `attached = false` marks it editor-only, same as `Box2DSprite`. Tip: author
+  seamless fill/border art with no transparent edges so the packer doesn't trim
+  the frame (trimmed frames tile with seams).
+
+  Set **`mask_children = true`** to turn the shape into a clip mask instead: it
+  renders no fill of its own, and any child `TileMapLayer` is confined to the
+  outline at runtime — so you can paint an arbitrary, varied tilemap and clip it
+  to any polygon (or curve) shape. A `border_texture` is still tiled along the
+  outline to frame the masked region. Two editor previews help while authoring:
+  the `@tool` script traces a rough outline + border band, and setting Godot's
+  **native** `clip_children = 1` (CLIP_CHILDREN_ONLY) makes the editor clip the
+  child tilemap to the polygon too, matching the runtime. (`mask_children` is our
+  export; `clip_children` is the built-in `CanvasItem` enum — they're separate.)
 
 - **Standalone `Sprite2D` / `AnimatedSprite2D` / `Box2DAnimatedSprite`** —
   any sprite that *isn't* a child of a body becomes a free-standing
@@ -127,6 +156,23 @@ Two node types are supported today:
   instantiates as Pixi `Sprite`s in a `Container` per layer. v1: no
   autotile / alternative tiles / animated tiles / tile-collisions
   (collision still goes through `Box2DPolygonFixture`).
+
+- **`Box2DNineSlice`** (extends `Sprite2D`) — a stretchable nine-slice
+  panel for frames/backgrounds that need to resize without distorting
+  their corners. Assign the sliced texture (an atlas frame whose aseprite
+  source had a `-slices` layer) and **size it by scaling the node** — there's
+  no `size` export. At runtime the stretched dimensions are the natural
+  texture size × the node's scale, but the corners keep their natural pixel
+  size (only edges/center stretch). The non-stretching borders
+  (`left/top/right/bottom`) are NOT re-entered here — they're authored once in
+  the aseprite slice layer, baked into the atlas metadata, and threaded through
+  `sprite-map.json` → geometry JSON → the runtime's Pixi `NineSliceSprite`.
+  Tick **`tile_center`** to repeat the center region at its natural size instead
+  of stretching it (corners stay pinned, edges still stretch along their run) —
+  handy for patterned fills. (Editor caveat: a scaled Sprite2D stretches the
+  corners *and* the center in-editor, so the preview won't perfectly match the
+  runtime pinning/tiling.) `attached = false` marks it editor-only, same as
+  `Box2DSprite`. Works both standalone and parented to a body.
 
 The exporter walks the whole tree, so background nodes can live at the
 scene root, inside logical group nodes, or inside an instanced subscene

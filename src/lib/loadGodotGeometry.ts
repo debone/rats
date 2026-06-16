@@ -13,6 +13,7 @@
  * gameplay does `joints.find(j => j.name === 'paddle-joint')`.
  */
 
+import { AddSpriteToWorld } from '@/systems/physics/WorldSprites';
 import {
   b2Body_SetUserData,
   b2BodyId,
@@ -42,8 +43,7 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Mesh, MeshGeometry, Sprite, Texture } from 'pixi.js';
-import { AddSpriteToWorld, type SpriteObject } from '@/systems/physics/WorldSprites';
+import { Assets, Container, Graphics, Mesh, MeshGeometry, NineSliceSprite, Rectangle, Sprite, Texture, TilingSprite } from 'pixi.js';
 
 // ---------------------------------------------------------------------------
 // Schema (kept in sync with devtools/packer/processors/godot-geometry.ts)
@@ -60,6 +60,25 @@ export interface BackgroundDef {
   meshes: MeshDef[];
   sprites: BackgroundSpriteDef[];
   tileLayers: TileLayerDef[];
+  ninePatches: NinePatchDef[];
+}
+
+export interface NinePatchDef {
+  name: string;
+  pixiFrame: string;
+  /** Atlas alias for `pixiFrame` (frame names aren't globally unique). */
+  pixiAtlas?: string;
+  position: V2;
+  rotation: number;
+  scale: V2;
+  anchor: V2;
+  /** Non-stretching border widths in texture pixels. */
+  borders: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the center region instead of stretching it. */
+  tileCenter?: boolean;
+  z?: number;
+  tint?: number;
+  alpha?: number;
 }
 
 export interface TileLayerDef {
@@ -70,6 +89,8 @@ export interface TileLayerDef {
   tileSize: V2;
   z?: number;
   tiles: { x: number; y: number; pixiFrame: string; transform?: number }[];
+  /** Optional clip polygon (layer-local pixels); the runtime masks the tiles to it. */
+  clip?: V2[];
 }
 
 export interface MeshDef {
@@ -81,15 +102,47 @@ export interface MeshDef {
   uvs: V2[]; // Texture pixel space; normalized to 0..1 at runtime using texture dimensions
   indices: number[];
   pixiFrame?: string;
+  /** Atlas alias for `pixiFrame` (frame names aren't globally unique). */
+  pixiAtlas?: string;
   z?: number;
   tint?: number;
   alpha?: number;
+  /** Tile the fill texture across the polygon (masked sprite grid) instead of stretching it. */
+  tileFill?: boolean;
+  /** Optional tiled quad-strip border traced along the polygon outline (`vertices`). */
+  border?: MeshBorderDef;
+  /** Render after tile layers (e.g. a mask_children border that frames its tilemap). */
+  overlay?: boolean;
+}
+
+export interface MeshBorderDef {
+  pixiFrame: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
+  /** Strip thickness in pixels. 0 → fall back to the texture's height. */
+  width: number;
+  /** Scales the length of each repeated tile along the edge (1 = one frame width). */
+  textureScale: number;
+  /** Close the strip back to the first vertex so it wraps the whole shape. */
+  closed: boolean;
+  /** Optional frame stamped at each corner (oriented to the bisector) over the joint. */
+  cornerFrame?: string;
+  /** Atlas alias for `cornerFrame`. */
+  cornerAtlas?: string;
+  /** Only stamp a corner piece when the turn deviates by ≥ this many degrees (0 = always). */
+  cornerMinAngle?: number;
+  /** Corner size in px (x = along the outline, y = across). Each axis falls back to the strip width when ≤ 0. */
+  cornerSize?: V2;
+  /** Corner rotation: 'free' = bisector tangent (default), 'snap' = nearest 90°, 'none' = unrotated. */
+  cornerOrientation?: 'free' | 'snap' | 'none';
 }
 
 export interface BackgroundSpriteDef {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   position: V2;
   rotation: number;
   scale: V2;
@@ -141,6 +194,8 @@ export interface SpriteBinding {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
+  /** Atlas alias for `pixiFrame`. */
+  pixiAtlas?: string;
   offset: V2;
   rotation: number;
   scale: V2;
@@ -151,6 +206,12 @@ export interface SpriteBinding {
   flipH?: boolean;
   flipV?: boolean;
   shouldRotate?: boolean;
+  /** Render as a NineSliceSprite stretched by `scale` (Box2DNineSlice under a body). */
+  nineSlice?: boolean;
+  /** Nine-slice border widths in texture px (only meaningful with `nineSlice`). */
+  borders?: { left: number; top: number; right: number; bottom: number };
+  /** Tile (repeat) the nine-slice center instead of stretching it. */
+  tileCenter?: boolean;
 }
 
 type CommonJoint = {
@@ -205,10 +266,10 @@ export interface LoadGodotGeometryResult {
   joints: b2JointId[];
   bodiesByName: Map<string, b2BodyId>;
   jointsByName: Map<string, b2JointId>;
-  /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. */
-  sprites: Sprite[];
-  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers). */
-  background: { meshes: Mesh[]; sprites: Sprite[]; tileLayers: Container[] };
+  /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. (NineSliceSprite for Box2DNineSlice.) */
+  sprites: Container[];
+  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
+  background: { meshes: Container[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
 }
 
 export function loadGodotGeometry(
@@ -225,7 +286,7 @@ export function loadGodotGeometry(
 
   const bodies: b2BodyId[] = [];
   const bodiesByName = new Map<string, b2BodyId>();
-  const sprites: Sprite[] = [];
+  const sprites: Container[] = [];
 
   for (const def of geo.bodies) {
     const bd = b2DefaultBodyDef();
@@ -295,11 +356,16 @@ export function loadGodotGeometry(
   }
 
   // Background visuals — Polygon2D meshes, standalone Sprite2D, TileMapLayers
-  const bgMeshes: Mesh[] = [];
+  const bgMeshes: Container[] = [];
   const bgSprites: Sprite[] = [];
   const bgTileLayers: Container[] = [];
+  const bgNinePatches: NineSliceSprite[] = [];
   if (spritesEnabled && geo.background && options.container) {
+    // Non-overlay meshes draw under everything else; overlay meshes (e.g. a
+    // mask_children border framing its tilemap) are deferred until after the
+    // tile layers so they sit on top of the tiles they frame.
     for (const m of geo.background.meshes) {
+      if (m.overlay) continue;
       const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
       if (mesh) {
         options.container.addChild(mesh);
@@ -320,6 +386,24 @@ export function loadGodotGeometry(
         bgTileLayers.push(container);
       }
     }
+    // Deferred overlay meshes — drawn after the tile layers they frame.
+    for (const m of geo.background.meshes) {
+      if (!m.overlay) continue;
+      const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
+      if (mesh) {
+        options.container.addChild(mesh);
+        bgMeshes.push(mesh);
+      }
+    }
+    // `?? []` keeps older geometry blobs (emitted before nine-slice support)
+    // loadable — they simply have no `ninePatches` array.
+    for (const np of geo.background.ninePatches ?? []) {
+      const sprite = instantiateNinePatch(np, tx, ty, cosT, sinT, ta);
+      if (sprite) {
+        options.container.addChild(sprite);
+        bgNinePatches.push(sprite);
+      }
+    }
   }
 
   return {
@@ -328,7 +412,7 @@ export function loadGodotGeometry(
     bodiesByName,
     jointsByName,
     sprites,
-    background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers },
+    background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers, ninePatches: bgNinePatches },
   };
 }
 
@@ -380,6 +464,14 @@ function instantiateTileLayer(
     sprite.position.set((tile.x + t.dx) * sw, (tile.y + t.dy) * sh);
     container.addChild(sprite);
   }
+  // Clip the tiles to the parent shape's outline (Box2DPolygon/Box2DCurve with
+  // mask_children). The clip polygon is already in this layer's local space.
+  if (def.clip && def.clip.length >= 3) {
+    const mask = new Graphics();
+    mask.poly(def.clip.flatMap((v) => [v.x, v.y])).fill(0xffffff);
+    container.addChild(mask);
+    container.mask = mask;
+  }
   const localX = def.position.x;
   const localY = def.position.y;
   container.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
@@ -389,25 +481,110 @@ function instantiateTileLayer(
   return container;
 }
 
-function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sinT: number, ta: number): Mesh | null {
-  if (!def.pixiFrame) return null;
-  let texture: Texture;
-  try {
-    texture = Assets.get<Texture>(def.pixiFrame) ?? Texture.from(def.pixiFrame);
-  } catch {
-    console.warn(`[loadGodotGeometry] Mesh texture not found: "${def.pixiFrame}"`);
-    return null;
-  }
-  if (!texture) return null;
+/**
+ * A textured background polygon. Returns a Container holding the fill (a
+ * polygon-masked grid of tile Sprites when `tileFill`, otherwise a stretched
+ * Mesh) and, optionally, a tiled quad-strip border traced along the outline. Both the
+ * fill tiling and the border tile atlas frames correctly — no GPU texture-repeat
+ * is used, so the fill/border textures stay regular atlas frames.
+ */
+function instantiateMesh(
+  def: MeshDef,
+  tx: number,
+  ty: number,
+  cosT: number,
+  sinT: number,
+  ta: number,
+): Container | null {
+  // A clip mask emits a border-only mesh (no fill frame) — its masked child
+  // TileMapLayer supplies the fill — so render the border without a fill.
+  if (!def.pixiFrame && !def.border) return null;
 
-  // Position: apply the spawn transform (rotation + translation) to the mesh
-  // node's authored position. The mesh's own vertices stay in node-local space
-  // and the Mesh's transform handles the rotation/scale.
+  const container = new Container();
+  container.label = def.name;
+
+  if (def.pixiFrame) {
+    const texture = resolveFrameTexture(def.pixiFrame, `mesh "${def.name}" fill`, def.pixiAtlas);
+    if (!texture) return null;
+    const fill = def.tileFill ? buildTiledFill(texture, def.vertices, def.tint) : buildStretchedFill(texture, def);
+    container.addChild(fill);
+  }
+
+  if (def.border) {
+    const border = buildBorderStrip(def.border, def.vertices, def.tint);
+    if (border) container.addChild(border);
+  }
+
+  // The fill/border geometry stays in node-local space; the container carries
+  // the node's spawn transform (translation + rotation + scale).
   const localX = def.position.x;
   const localY = def.position.y;
-  const worldX = cosT * localX - sinT * localY + tx;
-  const worldY = sinT * localX + cosT * localY + ty;
+  container.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
+  container.rotation = def.rotation + ta;
+  container.scale.set(def.scale.x, def.scale.y);
+  if (def.alpha !== undefined) container.alpha = def.alpha;
+  if (def.z !== undefined) container.zIndex = def.z;
+  return container;
+}
 
+/**
+ * Resolve an atlas frame to a loaded Texture, warning loudly (and returning
+ * null) if it isn't in the current asset bundle.
+ *
+ * When `atlas` is given we resolve via `Assets.get(atlas).textures[frame]` — the
+ * exact atlas the Godot scene referenced. This matters because Pixi frame names
+ * are NOT globally unique (e.g. `bricks_tile_1#0` exists in several atlases);
+ * the bare `Assets.get(frame)` returns whichever atlas was cached last, so it
+ * can render a different sprite than the one authored. We fall back to the bare
+ * lookup if the atlas is missing/unspecified (older data, or not yet loaded).
+ *
+ * We deliberately avoid the `Texture.from` fallback: for an unloaded frame it
+ * can hand back an empty texture that renders nothing with no error.
+ */
+function resolveFrameTexture(frame: string, role: string, atlas?: string): Texture | null {
+  if (atlas) {
+    const sheet = Assets.get<{ textures?: Record<string, Texture> }>(atlas);
+    const fromAtlas = sheet?.textures?.[frame];
+    if (fromAtlas) return fromAtlas;
+    if (!sheet) {
+      console.warn(`[loadGodotGeometry] ${role}: atlas "${atlas}" is not loaded; falling back to global frame lookup.`);
+    } else {
+      console.warn(`[loadGodotGeometry] ${role}: frame "${frame}" not found in atlas "${atlas}"; falling back.`);
+    }
+  }
+  const texture = Assets.get<Texture>(frame);
+  if (!texture) {
+    console.warn(
+      `[loadGodotGeometry] ${role}: atlas frame "${frame}" is not loaded — ` +
+        `is it included in this level's asset bundle? Skipping.`,
+    );
+    return null;
+  }
+  return texture;
+}
+
+/**
+ * Resolve a sprite/animation binding to a Texture. Single frames go through the
+ * atlas-aware `resolveFrameTexture`; animations keep the legacy bare lookup
+ * (they're addressed by animation name, not an atlas frame).
+ */
+function resolveBindingTexture(
+  frame: string | undefined,
+  anim: string | undefined,
+  atlas: string | undefined,
+  name: string,
+): Texture | null {
+  if (frame) return resolveFrameTexture(frame, `sprite "${name}"`, atlas);
+  if (anim) {
+    const tex = Assets.get<Texture>(anim) ?? Texture.from(anim);
+    if (!tex) console.warn(`[loadGodotGeometry] sprite "${name}": animation "${anim}" not found.`);
+    return tex ?? null;
+  }
+  return null;
+}
+
+/** Plain stretched fill: one frame mapped across the polygon (legacy Polygon2D behaviour). */
+function buildStretchedFill(texture: Texture, def: MeshDef): Mesh {
   const positions = new Float32Array(def.vertices.length * 2);
   for (let i = 0; i < def.vertices.length; i++) {
     positions[i * 2] = def.vertices[i].x;
@@ -421,18 +598,254 @@ function instantiateMesh(def: MeshDef, tx: number, ty: number, cosT: number, sin
     uvs[i * 2] = def.uvs[i].x / tw;
     uvs[i * 2 + 1] = def.uvs[i].y / th;
   }
-  const indices = new Uint32Array(def.indices);
-
-  const geometry = new MeshGeometry({ positions, uvs, indices });
+  const geometry = new MeshGeometry({ positions, uvs, indices: new Uint32Array(def.indices) });
   const mesh = new Mesh({ geometry, texture });
-  mesh.label = def.name;
-  mesh.position.set(worldX, worldY);
-  mesh.rotation = def.rotation + ta;
-  mesh.scale.set(def.scale.x, def.scale.y);
+  mesh.label = 'fill';
   if (def.tint !== undefined) mesh.tint = def.tint;
-  if (def.alpha !== undefined) mesh.alpha = def.alpha;
-  if (def.z !== undefined) mesh.zIndex = def.z;
   return mesh;
+}
+
+/**
+ * Tiled fill: the frame is stamped across the polygon's bounding box as a grid
+ * of Sprites, clipped to the polygon by a Graphics mask. Since every cell is the
+ * same atlas frame, the sprites batch into ~one draw call; masking a plain Sprite
+ * container is fully supported (unlike a custom-pipe tilemap), so the fill clips
+ * reliably to the shape.
+ */
+function buildTiledFill(texture: Texture, vertices: V2[], tint?: number): Container {
+  const group = new Container();
+  group.label = 'fill';
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const v of vertices) {
+    minX = Math.min(minX, v.x);
+    minY = Math.min(minY, v.y);
+    maxX = Math.max(maxX, v.x);
+    maxY = Math.max(maxY, v.y);
+  }
+
+  const tw = texture.width || 1;
+  const th = texture.height || 1;
+  const tiles = new Container();
+  // Snap the tiling origin to the grid so cells line up regardless of bbox edges.
+  const startX = Math.floor(minX / tw) * tw;
+  const startY = Math.floor(minY / th) * th;
+  for (let y = startY; y < maxY; y += th) {
+    for (let x = startX; x < maxX; x += tw) {
+      const tile = new Sprite(texture);
+      tile.position.set(x, y);
+      if (tint !== undefined) tile.tint = tint;
+      tiles.addChild(tile);
+    }
+  }
+
+  const mask = new Graphics();
+  mask.poly(vertices.flatMap((v) => [v.x, v.y])).fill(0xffffff);
+  group.addChild(tiles);
+  group.addChild(mask);
+  tiles.mask = mask;
+  return group;
+}
+
+/** Mitre limit: cap how far a sharp corner's joint can spike before it would explode. */
+const MITRE_LIMIT = 4;
+
+/**
+ * Tiled quad-strip border traced along the polygon edges. Each repeat is a
+ * discrete quad mapping the frame's full 0..1 UV, so it tiles an atlas frame
+ * without any GPU texture-repeat. Adjacent edges share a mitred joint at each
+ * vertex (no gap/overlap), and an optional corner frame is stamped over each
+ * joint. Returns a Container holding the strip mesh plus any corner sprites.
+ */
+function buildBorderStrip(border: MeshBorderDef, vertices: V2[], tint?: number): Container | null {
+  if (vertices.length < 2) return null;
+  const texture = resolveFrameTexture(border.pixiFrame, 'mesh border', border.pixiAtlas);
+  if (!texture) return null;
+
+  const frameW = texture.width || 1;
+  const frameH = texture.height || 1;
+  const width = border.width > 0 ? border.width : frameH;
+  const halfWidth = width / 2;
+  const tileLen = Math.max(1, frameW * (border.textureScale > 0 ? border.textureScale : 1));
+
+  const n = vertices.length;
+  // Per-vertex mitre offset: add for the outer edge of the strip, subtract for inner.
+  const offsets = computeMitreOffsets(vertices, border.closed, halfWidth);
+
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  let vi = 0;
+
+  const edgeCount = border.closed ? n : n - 1;
+  for (let i = 0; i < edgeCount; i++) {
+    const a = vertices[i];
+    const b = vertices[(i + 1) % n];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-3) continue;
+    const ex = dx / len; // along-edge unit
+    const ey = dy / len;
+    const px = -ey * halfWidth; // perpendicular offset for interior tile boundaries
+    const py = ex * halfWidth;
+    const oa = offsets[i];
+    const ob = offsets[(i + 1) % n];
+
+    // Tile boundary distances along the edge: 0, tileLen, 2·tileLen, …, len.
+    const dists = [0];
+    for (let d = tileLen; d < len - 1e-3; d += tileLen) dists.push(d);
+    dists.push(len);
+
+    // Cross-section (outer/inner points) at each boundary. The two ends use the
+    // shared mitre offset so neighbouring edges join cleanly; interior boundaries
+    // use the plain perpendicular offset.
+    const cross = dists.map((d) => {
+      if (d <= 1e-3) return { ox: a.x + oa.x, oy: a.y + oa.y, ix: a.x - oa.x, iy: a.y - oa.y };
+      if (d >= len - 1e-3) return { ox: b.x + ob.x, oy: b.y + ob.y, ix: b.x - ob.x, iy: b.y - ob.y };
+      const cx = a.x + ex * d;
+      const cy = a.y + ey * d;
+      return { ox: cx + px, oy: cy + py, ix: cx - px, iy: cy - py };
+    });
+
+    for (let k = 0; k < dists.length - 1; k++) {
+      const u = (dists[k + 1] - dists[k]) / tileLen; // partial quad → clip the U end
+      const c0 = cross[k];
+      const c1 = cross[k + 1];
+      positions.push(c0.ox, c0.oy, c1.ox, c1.oy, c1.ix, c1.iy, c0.ix, c0.iy);
+      uvs.push(0, 0, u, 0, u, 1, 0, 1);
+      indices.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
+      vi += 4;
+    }
+  }
+
+  if (indices.length === 0) return null;
+  const geometry = new MeshGeometry({
+    positions: new Float32Array(positions),
+    uvs: new Float32Array(uvs),
+    indices: new Uint32Array(indices),
+  });
+  const strip = new Mesh({ geometry, texture });
+  strip.label = `${border.pixiFrame}-strip`;
+  if (tint !== undefined) strip.tint = tint;
+
+  const group = new Container();
+  group.label = `${border.pixiFrame}-border`;
+  group.addChild(strip);
+
+  if (border.cornerFrame) {
+    // Per-axis corner size, each axis falling back to the strip width when unset.
+    const cornerW = border.cornerSize && border.cornerSize.x > 0 ? border.cornerSize.x : width;
+    const cornerH = border.cornerSize && border.cornerSize.y > 0 ? border.cornerSize.y : width;
+    addCornerPieces(
+      group,
+      border.cornerFrame,
+      border.cornerAtlas,
+      vertices,
+      border.closed,
+      cornerW,
+      cornerH,
+      border.cornerMinAngle ?? 0,
+      border.cornerOrientation ?? 'free',
+      tint,
+    );
+  }
+  return group;
+}
+
+/**
+ * Per-vertex mitre offset vectors. At a joint the offset is the angle bisector
+ * of the two edge normals, scaled by 1/cos(half-angle) so the strip's outer and
+ * inner edges stay `halfWidth` from the centreline (capped by MITRE_LIMIT).
+ * Open-path endpoints fall back to a plain perpendicular offset.
+ */
+function computeMitreOffsets(verts: V2[], closed: boolean, halfWidth: number): V2[] {
+  const n = verts.length;
+  const out: V2[] = [];
+  for (let i = 0; i < n; i++) {
+    const din = closed || i > 0 ? unit(verts[i], verts[(i - 1 + n) % n], true) : null;
+    const dout = closed || i < n - 1 ? unit(verts[i], verts[(i + 1) % n], false) : null;
+    if (din && dout) {
+      const nIx = -din.y;
+      const nIy = din.x;
+      const nOx = -dout.y;
+      const nOy = dout.x;
+      let bx = nIx + nOx;
+      let by = nIy + nOy;
+      const bl = Math.hypot(bx, by);
+      if (bl < 1e-4) {
+        out.push({ x: nOx * halfWidth, y: nOy * halfWidth }); // straight reversal
+        continue;
+      }
+      bx /= bl;
+      by /= bl;
+      const cos = bx * nOx + by * nOy;
+      const factor = cos > 1e-3 ? Math.min(1 / cos, MITRE_LIMIT) : MITRE_LIMIT;
+      out.push({ x: bx * halfWidth * factor, y: by * halfWidth * factor });
+    } else if (dout) {
+      out.push({ x: -dout.y * halfWidth, y: dout.x * halfWidth });
+    } else if (din) {
+      out.push({ x: -din.y * halfWidth, y: din.x * halfWidth });
+    } else {
+      out.push({ x: 0, y: 0 });
+    }
+  }
+  return out;
+}
+
+/** Unit direction into/out of vertex `from` toward `other` (reversed when `incoming`). */
+function unit(from: V2, other: V2, incoming: boolean): V2 {
+  const dx = incoming ? from.x - other.x : other.x - from.x;
+  const dy = incoming ? from.y - other.y : other.y - from.y;
+  const l = Math.hypot(dx, dy) || 1;
+  return { x: dx / l, y: dy / l };
+}
+
+/** Stamp a corner frame at each joint, sized `sizeX`×`sizeY` and rotated per `orientation`. */
+function addCornerPieces(
+  group: Container,
+  frame: string,
+  atlas: string | undefined,
+  verts: V2[],
+  closed: boolean,
+  sizeX: number,
+  sizeY: number,
+  minAngle: number,
+  orientation: 'free' | 'snap' | 'none',
+  tint?: number,
+): void {
+  const texture = resolveFrameTexture(frame, 'mesh border corner', atlas);
+  if (!texture) return;
+
+  // Suppress corners on shallow turns when a minimum angle is set (e.g. so a
+  // tessellated curve only gets corners at genuinely sharp vertices).
+  const minCos = minAngle > 0 ? Math.cos((minAngle * Math.PI) / 180) : 2; // 2 ⇒ never skip
+  const n = verts.length;
+  // Closed: a corner at every vertex. Open: only interior joints (skip endpoints).
+  const start = closed ? 0 : 1;
+  const end = closed ? n : n - 1;
+  for (let i = start; i < end; i++) {
+    const din = unit(verts[i], verts[(i - 1 + n) % n], true);
+    const dout = unit(verts[i], verts[(i + 1) % n], false);
+    // Turn deviation: dot(din,dout) = 1 when straight, −1 on a full reversal.
+    // Stamp only when the turn is sharp enough (deviation ≥ minAngle).
+    if (minCos <= 1 && din.x * dout.x + din.y * dout.y > minCos) continue;
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5);
+    sprite.width = sizeX;
+    sprite.height = sizeY;
+    sprite.position.set(verts[i].x, verts[i].y);
+    // 'free' = bisector tangent; 'snap' = that angle rounded to the nearest 90°;
+    // 'none' = axis-aligned (unrotated).
+    const bisector = Math.atan2(din.y + dout.y, din.x + dout.x);
+    sprite.rotation =
+      orientation === 'none' ? 0 : orientation === 'snap' ? Math.round(bisector / (Math.PI / 2)) * (Math.PI / 2) : bisector;
+    if (tint !== undefined) sprite.tint = tint;
+    group.addChild(sprite);
+  }
 }
 
 function instantiateBackgroundSprite(
@@ -443,15 +856,7 @@ function instantiateBackgroundSprite(
   sinT: number,
   ta: number,
 ): Sprite | null {
-  const key = def.pixiFrame ?? def.pixiAnimation;
-  if (!key) return null;
-  let texture: Texture | undefined;
-  try {
-    texture = Assets.get<Texture>(key) ?? Texture.from(key);
-  } catch {
-    console.warn(`[loadGodotGeometry] Background sprite texture not found: "${key}"`);
-    return null;
-  }
+  const texture = resolveBindingTexture(def.pixiFrame, def.pixiAnimation, def.pixiAtlas, def.name);
   if (!texture) return null;
   const sprite = new Sprite({ texture });
   sprite.label = def.name;
@@ -468,6 +873,81 @@ function instantiateBackgroundSprite(
   sprite.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
   sprite.rotation = def.rotation + ta;
   return sprite;
+}
+
+function instantiateNinePatch(
+  def: NinePatchDef,
+  tx: number,
+  ty: number,
+  cosT: number,
+  sinT: number,
+  ta: number,
+): NineSliceSprite | null {
+  const texture = resolveFrameTexture(def.pixiFrame, `nine-slice "${def.name}"`, def.pixiAtlas);
+  if (!texture) return null;
+
+  // The node's Scale drives the stretched size (natural texture size × scale) so
+  // a Box2DNineSlice resizes by scaling the node in Godot. The corners stay at
+  // their natural pixel size — we bake scale into width/height and leave the
+  // sprite's own scale at 1, otherwise the corners would stretch too.
+  const width = (texture.width || 1) * def.scale.x;
+  const height = (texture.height || 1) * def.scale.y;
+  const sprite = new NineSliceSprite({
+    texture,
+    leftWidth: def.borders.left,
+    topHeight: def.borders.top,
+    rightWidth: def.borders.right,
+    bottomHeight: def.borders.bottom,
+    width,
+    height,
+  });
+  sprite.label = def.name;
+  // NineSliceSprite draws from its top-left; honour Godot's `centered` anchor by
+  // pivoting so position/rotation pivot around the same point a Sprite2D would.
+  sprite.pivot.set(def.anchor.x * width, def.anchor.y * height);
+  if (def.tint !== undefined) sprite.tint = def.tint;
+  if (def.alpha !== undefined) sprite.alpha = def.alpha;
+  if (def.z !== undefined) sprite.zIndex = def.z;
+  if (def.tileCenter) addTiledCenter(sprite, texture, def.borders, width, height, def.tint);
+
+  const localX = def.position.x;
+  const localY = def.position.y;
+  sprite.position.set(cosT * localX - sinT * localY + tx, sinT * localX + cosT * localY + ty);
+  sprite.rotation = def.rotation + ta;
+  return sprite;
+}
+
+/**
+ * Overlay a TilingSprite on a nine-slice's center region so the center repeats
+ * instead of stretching. NineSliceSprite is a Container, so the tile is added as
+ * a child in its top-left-origin local space; the stretched center it draws
+ * underneath is fully covered by the (opaque) tiled fill.
+ */
+function addTiledCenter(
+  ns: NineSliceSprite,
+  texture: Texture,
+  borders: { left: number; top: number; right: number; bottom: number },
+  width: number,
+  height: number,
+  tint?: number,
+): void {
+  const centerW = width - borders.left - borders.right;
+  const centerH = height - borders.top - borders.bottom;
+  if (centerW <= 0 || centerH <= 0) return;
+
+  // Sub-rect of the texture's center region, in the base source's pixel space.
+  const f = texture.frame;
+  const innerW = f.width - borders.left - borders.right;
+  const innerH = f.height - borders.top - borders.bottom;
+  if (innerW <= 0 || innerH <= 0) return;
+  const innerFrame = new Rectangle(f.x + borders.left, f.y + borders.top, innerW, innerH);
+  const centerTexture = new Texture({ source: texture.source, frame: innerFrame });
+
+  const tile = new TilingSprite({ texture: centerTexture, width: centerW, height: centerH });
+  tile.label = 'tiled-center';
+  tile.position.set(borders.left, borders.top);
+  if (tint !== undefined) tile.tint = tint;
+  ns.addChild(tile);
 }
 
 // ---------------------------------------------------------------------------
@@ -602,17 +1082,37 @@ function setJointUserData(joint: b2JointId, jdef: Box2DJointDef): void {
 // Sprite instantiation
 // ---------------------------------------------------------------------------
 
-function instantiateSprite(binding: SpriteBinding): Sprite | null {
-  let texture: Texture | undefined;
-  const key = binding.pixiFrame ?? binding.pixiAnimation;
-  if (!key) return null;
-  try {
-    texture = Assets.get<Texture>(key) ?? Texture.from(key);
-  } catch {
-    console.warn(`[loadGodotGeometry] Texture not found: "${key}"`);
-    return null;
-  }
+function instantiateSprite(binding: SpriteBinding): Container | null {
+  const texture = resolveBindingTexture(binding.pixiFrame, binding.pixiAnimation, binding.pixiAtlas, binding.name);
   if (!texture) return null;
+
+  // Box2DNineSlice bound to a body: a NineSliceSprite stretched by the node's
+  // scale, corners pinned (scale is baked into width/height, not applied to the
+  // sprite). Flips become a ±1 scale around the pivot.
+  if (binding.nineSlice) {
+    const w = (texture.width || 1) * Math.abs(binding.scale.x);
+    const h = (texture.height || 1) * Math.abs(binding.scale.y);
+    const b = binding.borders ?? { left: 0, top: 0, right: 0, bottom: 0 };
+    const ns = new NineSliceSprite({
+      texture,
+      leftWidth: b.left,
+      topHeight: b.top,
+      rightWidth: b.right,
+      bottomHeight: b.bottom,
+      width: w,
+      height: h,
+    });
+    ns.label = binding.name;
+    ns.pivot.set(binding.anchor.x * w, binding.anchor.y * h);
+    ns.scale.set(binding.flipH ? -1 : 1, binding.flipV ? -1 : 1);
+    if (binding.tint !== undefined) ns.tint = binding.tint;
+    if (binding.alpha !== undefined) ns.alpha = binding.alpha;
+    if (binding.z !== undefined) ns.zIndex = binding.z;
+    if (binding.shouldRotate === false) (ns as Container & { shouldRotate?: boolean }).shouldRotate = false;
+    if (binding.tileCenter) addTiledCenter(ns, texture, b, w, h, binding.tint);
+    return ns;
+  }
+
   const sprite = new Sprite({ texture });
   sprite.label = binding.name;
   sprite.anchor.set(binding.anchor.x, binding.anchor.y);
