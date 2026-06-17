@@ -285,14 +285,16 @@ export function setBallsRemaining(count: number): void {
   getRunState().ballsRemaining.set(count);
 }
 
-export function onboardCrewMember(crewMember: CrewMemberDefKey, place: 'first' | 'second' = 'first'): void {
+export function onboardCrewMember(crewMember: CrewMemberDefKey, place: 'first' | 'second' | 'deck' = 'deck'): void {
   const crewMemberInstance = new CrewMemberInstance(
     crewMember,
     `crew-${crewMember}-${Math.random().toString(36).substring(2, 6)}`,
   );
   CREW_DEFS[crewMember].passiveAbility.mount(getRunState());
 
-  if (place === 'first') {
+  if (place === 'deck') {
+    getRunState().crewMembers.push(crewMemberInstance);
+  } else if (place === 'first') {
     getRunState().firstMember.set(crewMemberInstance);
   } else {
     getRunState().secondMember.set(crewMemberInstance);

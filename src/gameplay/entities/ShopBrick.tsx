@@ -7,13 +7,16 @@ import { getGameContext } from '@/data/game-context';
 import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
 import { useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
-import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
+import { buyCrewMember, getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
 import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { vfx } from '@/systems/vfx/vfx';
 import type { LayoutContainer } from '@pixi/layout/components';
 import { type b2BodyId } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
 import { brickBreak } from '../vfx/burst/brickBreak';
+import { changeBlueCheese, getRunState, onboardCrewMember } from '@/data/game-state';
+import { RARITY_COST } from '@/entities/crew/types';
+import { CHEESE_DEFS } from '@/entities/cheese/Cheese';
 
 export type ShopBrickEvents = {
   hit: void;
@@ -51,8 +54,11 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
   const itemSprite = sprites.find((sprite) => sprite.label === 'item-sprite');
 
   const randomCrewMember = pickRandomCrewMemberSet(1);
+  const cost = RARITY_COST[randomCrewMember[0].rarity];
 
   avatarSprite!.texture = getCrewTexture(randomCrewMember[0].type);
+
+  itemSprite!.texture = Assets.get(ASSETS.prototype).textures[CHEESE_DEFS['blue'].texture];
 
   // damn it works
 
@@ -60,13 +66,13 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
 
   <mount target={badgeSprite!}>
     <box ref={(ref) => (boxRef = ref)}>
-      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT }} />
+      <text text={cost.toString()} style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} />
     </box>
   </mount>;
 
   boxRef!.layout = {
-    marginLeft: itemSprite!.width + 4,
-    marginTop: 2,
+    marginLeft: itemSprite!.width + 5,
+    marginTop: -1,
   };
 
   useCollisionHandler(bodyId, () => ({
@@ -99,6 +105,11 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
       vfx.play(brickBreak, { x, y, intensity: Math.random() });
 
       events.emit('broken', { x, y });
+
+      if (getRunState().blueCheeseCounter.get() >= cost) {
+        changeBlueCheese(-cost);
+        onboardCrewMember(randomCrewMember[0].type);
+      }
 
       this.destroy();
     },
