@@ -2,12 +2,12 @@ import { ASSETS } from '@/assets';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { CHEESE_DEFS } from '@/entities/cheese/Cheese';
+import type { BrickEntity } from '@/gameplay/entities/bricks/Brick';
+import type { StrongBrickEntity } from '@/gameplay/entities/bricks/StrongBrick';
 import { useBodySprite, useCollisionHandler, usePhysics, useWorldId } from '@/hooks/hooks';
 import { CHEESE_BULLET_MASK, PhysicsLayer, setBodyFilter } from '@/systems/physics/PhysicsLayers';
 import { b2Body_SetLinearVelocity, b2Body_SetUserData, b2BodyId, b2BodyType, b2Vec2, CreateCircle } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
-import type { BrickEntity } from './Brick';
-import type { StrongBrickEntity } from './StrongBrick';
 
 export interface CheeseBulletEntity extends EntityBase {
   bodyId: b2BodyId;
