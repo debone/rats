@@ -36,6 +36,7 @@ import { WaterParticles } from './particles/WaterParticles';
 import { Scrap } from './Scrap';
 import { Wall, wallSparkOnBall } from './Wall';
 import { WaterBottom, type WaterBottomEntity } from './WaterBottom';
+import { StaticShape } from './StaticShape';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
@@ -352,6 +353,8 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
         CatPiece({ bodyId, texture: 'cat-body#0' });
       } else if (tag === 'cat-piece') {
         CatTail({ bodyId, texture: 'cat-tail#0' });
+      } else if (tag === 'static-shape') {
+        StaticShape({ bodyId });
       } else if (tag && empty_tags.includes(tag)) {
         // Ignore empty tags
       } else {

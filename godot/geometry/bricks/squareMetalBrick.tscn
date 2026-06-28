@@ -12,6 +12,7 @@ metadata/_custom_type_script = "uid://dn4fg76x5vhho"
 
 [node name="SquareMetalBrick" type="StaticBody2D" parent="." unique_id=1683855349]
 script = ExtResource("2_bp2ff")
+type = "static-shape"
 metadata/_custom_type_script = "uid://doniiw8eblphn"
 
 [node name="shape" type="CollisionPolygon2D" parent="SquareMetalBrick" unique_id=1968243397]
