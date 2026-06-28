@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://b74swr5ur6y8a"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_sxcqi"]
+[ext_resource type="Script" uid="uid://dq6as3legyd7" path="res://prefabs/nodes/brick_prefab.gd" id="2_rwoog"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="3_6xqqh"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_27.tres" id="4_sxcqi"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="5_0nxcn"]
+
+[node name="SmallBrick" type="Node2D" unique_id=1064302411]
+rotation = 0.0014128773
+script = ExtResource("1_sxcqi")
+show_collision = false
+metadata/_custom_type_script = "uid://dn4fg76x5vhho"
+
+[node name="SmallBrick" type="StaticBody2D" parent="." unique_id=1116496498]
+script = ExtResource("2_rwoog")
+type = "small-brick"
+
+[node name="shape" type="CollisionPolygon2D" parent="SmallBrick" unique_id=1358972647]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8)
+script = ExtResource("3_6xqqh")
+
+[node name="sprite" type="Sprite2D" parent="SmallBrick" unique_id=143924276]
+position = Vector2(-16.011288, -7.9773865)
+texture = ExtResource("4_sxcqi")
+centered = false
+script = ExtResource("5_0nxcn")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
