@@ -17,6 +17,7 @@ script = ExtResource("2_rwoog")
 type = "small-brick"
 
 [node name="shape" type="CollisionPolygon2D" parent="SmallBrick" unique_id=1358972647]
+visible = false
 modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8)
 script = ExtResource("3_6xqqh")

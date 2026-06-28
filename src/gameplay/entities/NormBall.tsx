@@ -67,7 +67,10 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     position: new b2Vec2(x, y),
     radius: 0.25,
     density: 10,
-    friction: 0.5,
+    // Zero friction so wall/brick contacts are clean reflections. Any friction
+    // damps the tangential velocity component on each hit, which the
+    // constant-speed normalize then re-amplifies into an axis (horizontal) lock.
+    friction: 0,
     restitution: 1,
   });
 
@@ -141,23 +144,18 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
     }
 
     const velocity = b2Body_GetLinearVelocity(bodyId);
-    const speed = Math.max(0.1, Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y));
-    const absVy = Math.abs(velocity.y);
+    const targetSpeed = speedRatio * normBall.baseSpeed;
 
-    const minAngleRad = (15 * Math.PI) / 180;
+    // Constant-speed tracker: keep whatever direction the ball currently has
+    // (pure vertical and horizontal included) and rescale to the target speed.
+    // If the ball is momentarily stationary, fall back to last frame's
+    // direction so it can never get stuck at zero velocity.
+    const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    const direction =
+      speed < 1e-5 ? new b2Vec2(priorVelocity.x, priorVelocity.y) : new b2Vec2(velocity.x, velocity.y);
 
-    let newVelocity = { x: velocity.x, y: velocity.y };
-
-    if (speed > 0.0001 && absVy / speed < Math.sin(minAngleRad)) {
-      const signX = Math.sign(velocity.x) || 1;
-      const signY = Math.sign(velocity.y) || 1;
-      const clampedVx = Math.cos(minAngleRad) * speed * signX;
-      const clampedVy = Math.sin(minAngleRad) * speed * signY;
-      newVelocity = { x: clampedVx, y: clampedVy };
-    } else if (Math.abs(speed - normBall.baseSpeed) > 0.01) {
-      const normalizedVelocity = b2Normalize(velocity);
-      newVelocity = b2MulSV(speedRatio * normBall.baseSpeed, normalizedVelocity);
-    }
+    const normalizedVelocity = b2Normalize(direction);
+    const newVelocity = b2MulSV(targetSpeed, normalizedVelocity);
 
     b2Body_SetLinearVelocity(bodyId, new b2Vec2(newVelocity.x, newVelocity.y));
 
