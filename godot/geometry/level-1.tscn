@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" uid="uid://bj526ag6ega07" path="res://prefabs/smallBrickRight.tscn" id="16_aioec"]
 [ext_resource type="PackedScene" uid="uid://xjltyjghei3k" path="res://prefabs/glassBrick.tscn" id="17_h1rnq"]
 [ext_resource type="PackedScene" uid="uid://cnwkaxvdvcw0g" path="res://prefabs/smallGlassBrick.tscn" id="18_qhr7n"]
+[ext_resource type="PackedScene" uid="uid://b7lkt81xnxesk" path="res://prefabs/smallWoodenBrick.tscn" id="19_b536x"]
 
 [node name="Geometry" type="Node2D" unique_id=1105854131]
 script = ExtResource("1_b2d")
@@ -796,7 +797,7 @@ position = Vector2(112.000015, 160)
 alpha = 1.0
 
 [node name="Wood5" parent="." unique_id=144198607 instance=ExtResource("10_dd058")]
-position = Vector2(30, 160)
+position = Vector2(32, 160)
 alpha = 1.0
 
 [node name="Wood2" parent="." unique_id=112038659 instance=ExtResource("11_iosq8")]
@@ -1155,3 +1156,94 @@ alpha = 1.0
 
 [node name="Brick67" parent="." unique_id=1547321693 instance=ExtResource("18_qhr7n")]
 position = Vector2(24, 192)
+
+[node name="SmallConcrete12" parent="." unique_id=1391191861 instance=ExtResource("19_b536x")]
+position = Vector2(24, 176)
+
+[node name="SmallConcrete13" parent="." unique_id=1419308449 instance=ExtResource("19_b536x")]
+position = Vector2(40, 176)
+alpha = 1.0
+
+[node name="SmallConcrete14" parent="." unique_id=1473865227 instance=ExtResource("19_b536x")]
+position = Vector2(32, 208)
+alpha = 1.0
+
+[node name="SmallConcrete15" parent="." unique_id=106020133 instance=ExtResource("19_b536x")]
+position = Vector2(15.999994, 207.99998)
+alpha = 1.0
+
+[node name="SmallConcrete16" parent="." unique_id=631102720 instance=ExtResource("19_b536x")]
+position = Vector2(1.9073486e-06, 208.00002)
+alpha = 1.0
+
+[node name="SmallConcrete17" parent="." unique_id=371505418 instance=ExtResource("19_b536x")]
+position = Vector2(-16.000004, 208)
+alpha = 1.0
+
+[node name="SmallConcrete18" parent="." unique_id=1611422952 instance=ExtResource("19_b536x")]
+position = Vector2(-32.000008, 208)
+alpha = 1.0
+
+[node name="SmallConcrete19" parent="." unique_id=1502432571 instance=ExtResource("19_b536x")]
+position = Vector2(-48, 208.00003)
+alpha = 1.0
+
+[node name="SmallConcrete20" parent="." unique_id=725046425 instance=ExtResource("19_b536x")]
+position = Vector2(-64, 208.00002)
+alpha = 1.0
+
+[node name="SmallConcrete21" parent="." unique_id=1282687472 instance=ExtResource("19_b536x")]
+position = Vector2(40, 224.00002)
+alpha = 1.0
+
+[node name="SmallConcrete22" parent="." unique_id=440651850 instance=ExtResource("19_b536x")]
+position = Vector2(23.999996, 224)
+alpha = 1.0
+
+[node name="SmallConcrete23" parent="." unique_id=1564784619 instance=ExtResource("19_b536x")]
+position = Vector2(8.000003, 224.00003)
+alpha = 1.0
+
+[node name="SmallConcrete24" parent="." unique_id=2083797416 instance=ExtResource("19_b536x")]
+position = Vector2(-8.000003, 224.00002)
+alpha = 1.0
+
+[node name="SmallConcrete25" parent="." unique_id=1139233861 instance=ExtResource("19_b536x")]
+position = Vector2(-24.000008, 224.00002)
+alpha = 1.0
+
+[node name="SmallConcrete26" parent="." unique_id=379852845 instance=ExtResource("19_b536x")]
+position = Vector2(-40, 224.00005)
+alpha = 1.0
+
+[node name="SmallConcrete27" parent="." unique_id=1365163839 instance=ExtResource("19_b536x")]
+position = Vector2(-56, 224.00003)
+alpha = 1.0
+
+[node name="SmallConcrete28" parent="." unique_id=165870331 instance=ExtResource("19_b536x")]
+position = Vector2(152.00002, 224.00002)
+alpha = 1.0
+
+[node name="SmallConcrete29" parent="." unique_id=1315753537 instance=ExtResource("19_b536x")]
+position = Vector2(136.00002, 224)
+alpha = 1.0
+
+[node name="SmallConcrete30" parent="." unique_id=2101599476 instance=ExtResource("19_b536x")]
+position = Vector2(120.000015, 224.00003)
+alpha = 1.0
+
+[node name="SmallConcrete31" parent="." unique_id=1574494809 instance=ExtResource("19_b536x")]
+position = Vector2(104.000015, 224.00002)
+alpha = 1.0
+
+[node name="SmallConcrete32" parent="." unique_id=352819215 instance=ExtResource("19_b536x")]
+position = Vector2(88.00001, 224.00002)
+alpha = 1.0
+
+[node name="SmallConcrete33" parent="." unique_id=708837108 instance=ExtResource("19_b536x")]
+position = Vector2(72.000015, 224.00005)
+alpha = 1.0
+
+[node name="SmallConcrete34" parent="." unique_id=241143492 instance=ExtResource("19_b536x")]
+position = Vector2(56.000015, 224.00003)
+alpha = 1.0

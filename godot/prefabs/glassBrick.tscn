@@ -6,23 +6,23 @@
 [ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_16.tres" id="4_6qkhb"]
 [ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="5_ti52v"]
 
-[node name="Brick" type="Node2D" unique_id=1064302411]
+[node name="GlassBrick" type="Node2D" unique_id=1064302411]
 rotation = 0.0014128773
 script = ExtResource("1_6qkhb")
 show_collision = false
 metadata/_custom_type_script = "uid://dn4fg76x5vhho"
 
-[node name="Brick" type="StaticBody2D" parent="." unique_id=1116496498]
+[node name="GlassBrick" type="StaticBody2D" parent="." unique_id=1116496498]
 script = ExtResource("2_joq1p")
 type = "glass-brick"
 
-[node name="shape" type="CollisionPolygon2D" parent="Brick" unique_id=1358972647]
+[node name="shape" type="CollisionPolygon2D" parent="GlassBrick" unique_id=1358972647]
 visible = false
 modulate = Color(1, 1, 1, 100)
 polygon = PackedVector2Array(-16, -8, 16, -8, 16, 8, -16, 8)
 script = ExtResource("3_t2o6d")
 
-[node name="sprite" type="Sprite2D" parent="Brick" unique_id=143924276]
+[node name="sprite" type="Sprite2D" parent="GlassBrick" unique_id=143924276]
 texture = ExtResource("4_6qkhb")
 script = ExtResource("5_ti52v")
 metadata/_custom_type_script = "uid://crhyslwm4b7qs"

@@ -14,7 +14,7 @@ metadata/_custom_type_script = "uid://dn4fg76x5vhho"
 
 [node name="SmallConcrete" type="StaticBody2D" parent="." unique_id=1116496498]
 script = ExtResource("2_8olyd")
-type = "concrete-brick"
+type = "wooden-brick"
 
 [node name="shape" type="CollisionPolygon2D" parent="SmallConcrete" unique_id=1358972647]
 visible = false
