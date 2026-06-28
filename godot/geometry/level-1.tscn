@@ -5,6 +5,17 @@
 [ext_resource type="Script" uid="uid://d0vrjsdstroqj" path="res://box2d/box2d_dynamic_body.gd" id="3_b2d"]
 [ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="4_b2d"]
 [ext_resource type="Script" uid="uid://cnhmcyfwdovrq" path="res://box2d/box2d_prismatic_joint.gd" id="5_b2d"]
+[ext_resource type="PackedScene" uid="uid://jv865qtlkuy5" path="res://prefabs/brick.tscn" id="6_jlxxw"]
+[ext_resource type="PackedScene" uid="uid://cva8c5f4no08e" path="res://prefabs/strongBrick.tscn" id="7_2ai1f"]
+[ext_resource type="PackedScene" uid="uid://dto2xapwqf5ck" path="res://prefabs/concreteOne.tscn" id="8_7krrm"]
+[ext_resource type="PackedScene" uid="uid://dawpmxm571lfn" path="res://prefabs/concreteTwo.tscn" id="9_62v2b"]
+[ext_resource type="PackedScene" uid="uid://ccxnkui78x545" path="res://prefabs/woodenBrickOne.tscn" id="10_dd058"]
+[ext_resource type="PackedScene" uid="uid://b1ew46t1xwfgq" path="res://prefabs/woodenBrickTwo.tscn" id="11_iosq8"]
+[ext_resource type="PackedScene" uid="uid://b5vapog8sp5lt" path="res://prefabs/smallBrick.tscn" id="12_j80us"]
+[ext_resource type="PackedScene" uid="uid://uwa367uy65mp" path="res://prefabs/smallStrongBrick.tscn" id="13_b03sf"]
+[ext_resource type="PackedScene" uid="uid://baofajl7x54wn" path="res://prefabs/smallConcrete.tscn" id="14_4nw3f"]
+[ext_resource type="PackedScene" uid="uid://b74swr5ur6y8a" path="res://prefabs/smallBrickLeft.tscn" id="15_frh4o"]
+[ext_resource type="PackedScene" uid="uid://bj526ag6ega07" path="res://prefabs/smallBrickRight.tscn" id="16_aioec"]
 
 [node name="Geometry" type="Node2D" unique_id=1105854131]
 script = ExtResource("1_b2d")
@@ -762,3 +773,324 @@ body_b = NodePath("paddle-joint-temp")
 enable_limit = true
 lower_limit = -160.0
 upper_limit = 160.0
+
+[node name="Brick" parent="." unique_id=1949646861 instance=ExtResource("6_jlxxw")]
+position = Vector2(8.000004, 128)
+
+[node name="StrongBrick" parent="." unique_id=1064302411 instance=ExtResource("7_2ai1f")]
+position = Vector2(40, 127.99999)
+
+[node name="StrongBrick2" parent="." unique_id=1648692743 instance=ExtResource("8_7krrm")]
+position = Vector2(88, 127.99999)
+
+[node name="Concrete" parent="." unique_id=89002009 instance=ExtResource("9_62v2b")]
+position = Vector2(23.999985, 112)
+
+[node name="Wood" parent="." unique_id=246767564 instance=ExtResource("10_dd058")]
+position = Vector2(31.999996, 144)
+
+[node name="Wood4" parent="." unique_id=124990017 instance=ExtResource("10_dd058")]
+position = Vector2(-3.8146973e-06, 160)
+alpha = 1.0
+
+[node name="Wood5" parent="." unique_id=144198607 instance=ExtResource("10_dd058")]
+position = Vector2(30, 160)
+alpha = 1.0
+
+[node name="Wood2" parent="." unique_id=112038659 instance=ExtResource("11_iosq8")]
+position = Vector2(64.00002, 143.99998)
+
+[node name="Wood3" parent="." unique_id=365001420 instance=ExtResource("11_iosq8")]
+position = Vector2(7.6293945e-06, 143.99998)
+alpha = 1.0
+
+[node name="Brick2" parent="." unique_id=1020082435 instance=ExtResource("12_j80us")]
+position = Vector2(-15.999996, 128.00002)
+rotation = 0.0034446057
+
+[node name="Brick4" parent="." unique_id=41409414 instance=ExtResource("12_j80us")]
+position = Vector2(1.9073486e-06, 112)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick8" parent="." unique_id=446623763 instance=ExtResource("12_j80us")]
+position = Vector2(2.9801868e-08, 95.99999)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick9" parent="." unique_id=982402594 instance=ExtResource("12_j80us")]
+position = Vector2(16.000002, 96)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick3" parent="." unique_id=535731818 instance=ExtResource("12_j80us")]
+position = Vector2(64, 127.999985)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick5" parent="." unique_id=1292821372 instance=ExtResource("13_b03sf")]
+position = Vector2(48, 96)
+
+[node name="Brick7" parent="." unique_id=1778549825 instance=ExtResource("13_b03sf")]
+position = Vector2(32, 96)
+alpha = 1.0
+
+[node name="Brick6" parent="." unique_id=1724376907 instance=ExtResource("13_b03sf")]
+position = Vector2(-16.000004, 96)
+alpha = 1.0
+
+[node name="Brick10" parent="." unique_id=1869586266 instance=ExtResource("12_j80us")]
+position = Vector2(8.000005, 80)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick11" parent="." unique_id=1599718645 instance=ExtResource("12_j80us")]
+position = Vector2(24.000008, 80.00001)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick12" parent="." unique_id=1685346457 instance=ExtResource("13_b03sf")]
+position = Vector2(56.000004, 80.00001)
+alpha = 1.0
+
+[node name="Brick13" parent="." unique_id=2098217462 instance=ExtResource("13_b03sf")]
+position = Vector2(40.000004, 80.00001)
+alpha = 1.0
+
+[node name="Brick15" parent="." unique_id=14401432 instance=ExtResource("13_b03sf")]
+position = Vector2(15.999989, 63.99999)
+alpha = 1.0
+
+[node name="Brick16" parent="." unique_id=1213919792 instance=ExtResource("13_b03sf")]
+position = Vector2(-1.1444092e-05, 63.99999)
+alpha = 1.0
+
+[node name="Brick17" parent="." unique_id=936267214 instance=ExtResource("12_j80us")]
+position = Vector2(-8.000004, 47.999996)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick18" parent="." unique_id=1206870949 instance=ExtResource("13_b03sf")]
+position = Vector2(23.999992, 47.999996)
+alpha = 1.0
+
+[node name="Brick19" parent="." unique_id=107623745 instance=ExtResource("13_b03sf")]
+position = Vector2(7.9999924, 47.999996)
+alpha = 1.0
+
+[node name="Brick14" parent="." unique_id=27674060 instance=ExtResource("13_b03sf")]
+position = Vector2(-7.999999, 80.00001)
+alpha = 1.0
+
+[node name="Brick22" parent="." unique_id=771067075 instance=ExtResource("13_b03sf")]
+position = Vector2(-32.000008, 160)
+alpha = 1.0
+
+[node name="Brick23" parent="." unique_id=780844523 instance=ExtResource("13_b03sf")]
+position = Vector2(-48.000008, 160)
+alpha = 1.0
+
+[node name="Brick27" parent="." unique_id=17649442 instance=ExtResource("13_b03sf")]
+position = Vector2(-24.000004, 144.00002)
+alpha = 1.0
+
+[node name="Brick28" parent="." unique_id=1002668595 instance=ExtResource("13_b03sf")]
+position = Vector2(-40.000004, 144.00002)
+alpha = 1.0
+
+[node name="Brick31" parent="." unique_id=537710932 instance=ExtResource("12_j80us")]
+position = Vector2(-88.000015, 112)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick34" parent="." unique_id=1381636512 instance=ExtResource("12_j80us")]
+position = Vector2(-80, 127.999985)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick32" parent="." unique_id=1444829877 instance=ExtResource("13_b03sf")]
+position = Vector2(-56.000015, 112)
+alpha = 1.0
+
+[node name="Brick33" parent="." unique_id=523179271 instance=ExtResource("13_b03sf")]
+position = Vector2(-72.000015, 112)
+alpha = 1.0
+
+[node name="Brick35" parent="." unique_id=505669197 instance=ExtResource("12_j80us")]
+position = Vector2(-79.99999, 95.99999)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick36" parent="." unique_id=746258350 instance=ExtResource("12_j80us")]
+position = Vector2(-63.999992, 95.99999)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick37" parent="." unique_id=508023124 instance=ExtResource("13_b03sf")]
+position = Vector2(-31.999992, 95.99999)
+alpha = 1.0
+
+[node name="Brick38" parent="." unique_id=665902020 instance=ExtResource("13_b03sf")]
+position = Vector2(-47.999992, 95.99999)
+alpha = 1.0
+
+[node name="Brick39" parent="." unique_id=1846924797 instance=ExtResource("13_b03sf")]
+position = Vector2(-96, 95.99999)
+alpha = 1.0
+
+[node name="Brick40" parent="." unique_id=1044025662 instance=ExtResource("12_j80us")]
+position = Vector2(-71.999985, 79.99999)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick41" parent="." unique_id=831612709 instance=ExtResource("12_j80us")]
+position = Vector2(-55.999985, 80.00001)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick42" parent="." unique_id=1702642706 instance=ExtResource("13_b03sf")]
+position = Vector2(-23.999989, 80.00001)
+alpha = 1.0
+
+[node name="Brick43" parent="." unique_id=2005476246 instance=ExtResource("13_b03sf")]
+position = Vector2(-39.99999, 80.00001)
+alpha = 1.0
+
+[node name="Brick44" parent="." unique_id=890271506 instance=ExtResource("13_b03sf")]
+position = Vector2(-64, 63.999992)
+alpha = 1.0
+
+[node name="Brick45" parent="." unique_id=1905567232 instance=ExtResource("13_b03sf")]
+position = Vector2(-80, 63.999992)
+alpha = 1.0
+
+[node name="Brick46" parent="." unique_id=1117059059 instance=ExtResource("12_j80us")]
+position = Vector2(-88, 47.999992)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick47" parent="." unique_id=1026163349 instance=ExtResource("13_b03sf")]
+position = Vector2(-56, 47.999992)
+alpha = 1.0
+
+[node name="Brick48" parent="." unique_id=1785028846 instance=ExtResource("13_b03sf")]
+position = Vector2(-72, 47.999992)
+alpha = 1.0
+
+[node name="Brick49" parent="." unique_id=984212241 instance=ExtResource("13_b03sf")]
+position = Vector2(-87.99999, 80.00001)
+alpha = 1.0
+
+[node name="Brick50" parent="." unique_id=1733590232 instance=ExtResource("12_j80us")]
+position = Vector2(64.00002, 208.00002)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick51" parent="." unique_id=109324230 instance=ExtResource("12_j80us")]
+position = Vector2(80.00002, 208.00002)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick52" parent="." unique_id=1778017490 instance=ExtResource("13_b03sf")]
+position = Vector2(112.00002, 208.00002)
+alpha = 1.0
+
+[node name="Brick53" parent="." unique_id=441677157 instance=ExtResource("13_b03sf")]
+position = Vector2(96.00002, 208.00002)
+alpha = 1.0
+
+[node name="Brick54" parent="." unique_id=1166313894 instance=ExtResource("13_b03sf")]
+position = Vector2(48.000015, 208.00002)
+alpha = 1.0
+
+[node name="Brick55" parent="." unique_id=239669871 instance=ExtResource("12_j80us")]
+position = Vector2(72.00003, 192.00002)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick56" parent="." unique_id=1060343107 instance=ExtResource("12_j80us")]
+position = Vector2(88.00003, 192.00003)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick57" parent="." unique_id=1678471918 instance=ExtResource("13_b03sf")]
+position = Vector2(120.00003, 192.00003)
+alpha = 1.0
+
+[node name="Brick58" parent="." unique_id=1875986996 instance=ExtResource("13_b03sf")]
+position = Vector2(104.00003, 192.00003)
+alpha = 1.0
+
+[node name="Brick59" parent="." unique_id=1704034251 instance=ExtResource("13_b03sf")]
+position = Vector2(80.000015, 176.00002)
+alpha = 1.0
+
+[node name="Brick60" parent="." unique_id=962243812 instance=ExtResource("13_b03sf")]
+position = Vector2(64.000015, 176.00002)
+alpha = 1.0
+
+[node name="Brick61" parent="." unique_id=2100879730 instance=ExtResource("12_j80us")]
+position = Vector2(56.000015, 160.00002)
+rotation = 0.0034446057
+alpha = 1.0
+
+[node name="Brick62" parent="." unique_id=417185689 instance=ExtResource("13_b03sf")]
+position = Vector2(88.000015, 160.00002)
+alpha = 1.0
+
+[node name="Brick63" parent="." unique_id=1251360862 instance=ExtResource("13_b03sf")]
+position = Vector2(72.000015, 160.00002)
+alpha = 1.0
+
+[node name="Brick64" parent="." unique_id=748051106 instance=ExtResource("13_b03sf")]
+position = Vector2(56.000023, 192.00003)
+alpha = 1.0
+
+[node name="SmallConcrete" parent="." unique_id=100576479 instance=ExtResource("14_4nw3f")]
+position = Vector2(-80, 176)
+
+[node name="SmallConcrete2" parent="." unique_id=252752648 instance=ExtResource("14_4nw3f")]
+position = Vector2(-47.999996, 176)
+alpha = 1.0
+
+[node name="SmallConcrete3" parent="." unique_id=1948270113 instance=ExtResource("14_4nw3f")]
+position = Vector2(-48, 192.00002)
+alpha = 1.0
+
+[node name="SmallConcrete4" parent="." unique_id=666781256 instance=ExtResource("14_4nw3f")]
+position = Vector2(-80, 192)
+alpha = 1.0
+
+[node name="SmallConcrete5" parent="." unique_id=1557268106 instance=ExtResource("14_4nw3f")]
+position = Vector2(-96, 128)
+alpha = 1.0
+
+[node name="SmallConcrete6" parent="." unique_id=1331804514 instance=ExtResource("14_4nw3f")]
+position = Vector2(-112, 192)
+alpha = 1.0
+
+[node name="SmallConcrete7" parent="." unique_id=155161027 instance=ExtResource("14_4nw3f")]
+position = Vector2(-111.99999, 176)
+alpha = 1.0
+
+[node name="SmallConcrete8" parent="." unique_id=1222157007 instance=ExtResource("14_4nw3f")]
+position = Vector2(-112, 160)
+alpha = 1.0
+
+[node name="SmallConcrete9" parent="." unique_id=319544013 instance=ExtResource("14_4nw3f")]
+position = Vector2(-111.99999, 144)
+alpha = 1.0
+
+[node name="SmallConcrete10" parent="." unique_id=815348011 instance=ExtResource("14_4nw3f")]
+position = Vector2(-112, 128)
+alpha = 1.0
+
+[node name="SmallConcrete11" parent="." unique_id=2064082791 instance=ExtResource("14_4nw3f")]
+position = Vector2(-111.99999, 112)
+alpha = 1.0
+
+[node name="SmallBrick" parent="." unique_id=1873496549 instance=ExtResource("15_frh4o")]
+position = Vector2(-64, 144)
+
+[node name="SmallBrick2" parent="." unique_id=1740114276 instance=ExtResource("16_aioec")]
+position = Vector2(-96, 144)
