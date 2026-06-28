@@ -21,6 +21,7 @@ import {
 import { Assets } from 'pixi.js';
 import { Brick } from './bricks/Brick';
 import { ConcreteBrick } from './bricks/Concrete';
+import { GlassBrick } from './bricks/GlassBrick';
 import { ShopBrick } from './bricks/ShopBrick';
 import { SmallBrick } from './bricks/SmallBrick';
 import { StrongBrick } from './bricks/StrongBrick';
@@ -315,6 +316,11 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
           useSubscribe(b.events, 'broken', ({ x, y }) => {
             dropWithRubbles(x, y);
           });
+        });
+      } else if (tag === 'glass-brick') {
+        GlassBrick({
+          bodyId,
+          debrisEmitter: particles.brickDebris.emitter,
         });
       } else if (tag === 'wooden-brick') {
         const woodenBrick = WoodenBrick({

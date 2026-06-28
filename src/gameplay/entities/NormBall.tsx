@@ -170,13 +170,32 @@ export const NormBall = defineEntity(({ x, y }: NormBallProps) => {
   useCollisionHandler(bodyId, () => ({
     tag: 'ball',
     handlers: {
+      'glass-brick': () => {
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
+      },
+      'concrete-brick': (_ball, brick) => {
+        if (!unstoppableBall) return;
+        brick.hit(100);
+        // Restore pre-step velocity: Box2D has already reflected the ball off
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
+      },
+      'wooden-brick': () => {
+        if (!unstoppableBall) return;
+        // Restore pre-step velocity: Box2D has already reflected the ball off
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
+      },
+      'small-brick': () => {
+        if (!unstoppableBall) return;
+        // Restore pre-step velocity: Box2D has already reflected the ball off
+        b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
+      },
       'strong-brick': (_ball, brick) => {
         if (!unstoppableBall) return;
         brick.hit(100);
         // Restore pre-step velocity: Box2D has already reflected the ball off
         b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));
       },
-      brick: (_ball, _brick) => {
+      brick: () => {
         if (!unstoppableBall) return;
         // Restore pre-step velocity: Box2D has already reflected the ball off
         b2Body_SetLinearVelocity(bodyId, new b2Vec2(priorVelocity.x, priorVelocity.y));

@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cnwkaxvdvcw0g"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_o2uhb"]
+[ext_resource type="Script" uid="uid://dq6as3legyd7" path="res://prefabs/nodes/brick_prefab.gd" id="2_00pfm"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="3_k887t"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_26.tres" id="4_o2uhb"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="5_pbtu2"]
+
+[node name="Brick" type="Node2D" unique_id=1064302411]
+rotation = 0.0014128773
+script = ExtResource("1_o2uhb")
+show_collision = false
+metadata/_custom_type_script = "uid://dn4fg76x5vhho"
+
+[node name="Brick" type="StaticBody2D" parent="." unique_id=1116496498]
+script = ExtResource("2_00pfm")
+type = "glass-brick"
+
+[node name="shape" type="CollisionPolygon2D" parent="Brick" unique_id=1358972647]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-8.011296, -7.98869, 7.98869, -8.011296, 8.011296, 7.98869, -7.98869, 8.011296)
+script = ExtResource("3_k887t")
+
+[node name="sprite" type="Sprite2D" parent="Brick" unique_id=825868685]
+position = Vector2(-16.011292, -7.977387)
+scale = Vector2(1.0000001, 1.0000001)
+texture = ExtResource("4_o2uhb")
+centered = false
+script = ExtResource("5_pbtu2")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"
