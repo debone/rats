@@ -1,5 +1,5 @@
-import { ASSETS, type PrototypeTextures } from '@/assets';
-import { typedAssets } from '@/core/assets/typed-assets';
+import { ASSETS } from '@/assets';
+import { getTextureMetadata, makeTextureLabel } from '@/core/assets/utils';
 import { sfx } from '@/core/audio/audio';
 import { shake } from '@/core/camera/effects/shake';
 import { assert } from '@/core/common/assert';
@@ -8,10 +8,10 @@ import type { EventEmitter } from '@/core/game/EventEmitter';
 import type { ParticleEmitter } from '@/core/particles/ParticleEmitter';
 import { getRunState } from '@/data/game-state';
 import { useBodySprite, useCamera, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
-import { BodyToScreen } from '@/systems/physics/WorldSprites';
-import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { PhysicsLayer, setBodyCategoryBits } from '@/systems/physics/PhysicsLayers';
-import { Sprite } from 'pixi.js';
+import { BodyToScreen, GetSpritesFromBody } from '@/systems/physics/WorldSprites';
+import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
+import { Assets, Sprite } from 'pixi.js';
 
 export type StrongBrickEvents = {
   broken: { x: number; y: number };
@@ -38,6 +38,7 @@ export interface StrongBrickProps {
 
 export const StrongBrick = defineEntity(
   ({ bodyId, spawnPos, debrisEmitter, initialLife = 2, onHit, onBreak }: StrongBrickProps) => {
+    const worldId = useWorldId();
     const physics = usePhysics();
     const camera = useCamera();
 
@@ -67,10 +68,18 @@ export const StrongBrick = defineEntity(
 
     const events = useEmitter<StrongBrickEvents>();
 
-    const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
-    const sprite = new Sprite(bg[`bricks_tile_3#0`]);
-    sprite.anchor.set(0.5, 0.5);
-    useBodySprite(sprite, bodyId);
+    const bg = Assets.get(ASSETS.prototype).textures;
+
+    let sprite!: Sprite;
+    const bodySprites = GetSpritesFromBody(worldId, bodyId);
+
+    if (bodySprites.length === 0) {
+      sprite = new Sprite(bg[`bricks_tile_3#0`]);
+      sprite.anchor.set(0.5, 0.5);
+      useBodySprite(sprite, bodyId);
+    } else {
+      sprite = bodySprites[0] as Sprite;
+    }
 
     let cheeseBreaksBricks = false;
     getRunState().crewBoons.aura_cheeseBreaksBricks.subscribe((value) => {
@@ -94,6 +103,9 @@ export const StrongBrick = defineEntity(
       physics.queueDestruction(bodyId);
     });
 
+    const textureMetadata = getTextureMetadata(sprite.texture);
+    const initialTile = textureMetadata.tile;
+
     const strongBrick = entity<StrongBrickEntity>({
       bodyId,
       spawnPos,
@@ -113,7 +125,14 @@ export const StrongBrick = defineEntity(
 
         if (this.life > 0) {
           b2Body_SetUserData(bodyId, { type: 'strong-brick', life: this.life });
-          sprite.texture = bg[`bricks_tile_4#0`];
+          sprite.texture =
+            bg[
+              makeTextureLabel({
+                label: textureMetadata.label,
+                tile: initialTile + 1,
+                frame: 0,
+              })
+            ];
 
           const { x, y } = BodyToScreen(this.bodyId);
           debrisEmitter.explode(2, x, y);

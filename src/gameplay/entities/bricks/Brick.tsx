@@ -6,13 +6,13 @@ import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/
 import type { EventEmitter } from '@/core/game/EventEmitter';
 import { getRunState } from '@/data/game-state';
 import { BRICK_POWER_UP_DEFS, type BrickPowerUps } from '@/entities/bricks/Brick';
+import { brickBreak } from '@/gameplay/vfx/burst/brickBreak';
 import { useBodySprite, useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { PhysicsLayer, setBodyCategoryBits } from '@/systems/physics/PhysicsLayers';
-import { BodyToScreen } from '@/systems/physics/WorldSprites';
+import { BodyToScreen, GetSpritesFromBody } from '@/systems/physics/WorldSprites';
 import { vfx } from '@/systems/vfx/vfx';
 import { b2Body_GetPosition, b2Body_SetUserData, b2BodyType, b2Vec2, CreatePolygon, type b2BodyId } from 'phaser-box2d';
 import { Sprite } from 'pixi.js';
-import { brickBreak } from '../vfx/burst/brickBreak';
 
 export type BrickEvents = {
   hit: void;
@@ -37,6 +37,7 @@ export interface BrickProps {
 
 export const Brick = defineEntity(({ bodyId, spawnPos, powerUp }: BrickProps) => {
   const physics = usePhysics();
+  const worldId = useWorldId();
 
   if (!spawnPos && !bodyId) {
     throw new Error('Spawn position or body ID is required');
@@ -64,9 +65,12 @@ export const Brick = defineEntity(({ bodyId, spawnPos, powerUp }: BrickProps) =>
   const events = useEmitter<BrickEvents>();
 
   const bg = typedAssets.get<PrototypeTextures>(ASSETS.prototype).textures;
-  const sprite = new Sprite(bg[`bricks_tile_1#0`]);
-  sprite.anchor.set(0.5, 0.5);
-  useBodySprite(sprite, bodyId);
+
+  if (GetSpritesFromBody(worldId, bodyId).length === 0) {
+    const sprite = new Sprite(bg[`bricks_tile_1#0`]);
+    sprite.anchor.set(0.5, 0.5);
+    useBodySprite(sprite, bodyId);
+  }
 
   if (powerUp) {
     const powerUpSprite = new Sprite((bg as Record<string, any>)[BRICK_POWER_UP_DEFS[powerUp].texture]);

@@ -3,7 +3,7 @@ import { attach, defineEntity, getChildrenOf } from '@/core/entity/scope';
 import { setLevelState } from '@/data/game-state';
 import { Background } from '@/gameplay/entities/Background';
 import { BreakoutPhysics } from '@/gameplay/entities/BreakoutPhysics';
-import { Brick } from '@/gameplay/entities/Brick';
+import { Brick } from '@/gameplay/entities/bricks/Brick';
 import { CrewAbilities } from '@/gameplay/entities/CrewAbilities';
 import { Door } from '@/gameplay/entities/Door';
 import { PaddleAndBall } from '@/gameplay/entities/PaddleBall';
