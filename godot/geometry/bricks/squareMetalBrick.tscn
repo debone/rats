@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://dgp8gygc3dxm"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_qhsma"]
+[ext_resource type="Script" uid="uid://doniiw8eblphn" path="res://box2d/box2d_static_body.gd" id="2_bp2ff"]
+[ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="3_n48n4"]
+[ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_18.tres" id="4_pg2lu"]
+[ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="5_0iw7f"]
+
+[node name="SquareMetalBrick" type="Node2D" unique_id=1635882746]
+script = ExtResource("1_qhsma")
+metadata/_custom_type_script = "uid://dn4fg76x5vhho"
+
+[node name="SquareMetalBrick" type="StaticBody2D" parent="." unique_id=1683855349]
+script = ExtResource("2_bp2ff")
+metadata/_custom_type_script = "uid://doniiw8eblphn"
+
+[node name="shape" type="CollisionPolygon2D" parent="SquareMetalBrick" unique_id=1968243397]
+modulate = Color(1, 1, 1, 100)
+polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+script = ExtResource("3_n48n4")
+
+[node name="sprite" type="Sprite2D" parent="SquareMetalBrick" unique_id=1479856578]
+position = Vector2(-16.011288, -7.9773865)
+texture = ExtResource("4_pg2lu")
+centered = false
+script = ExtResource("5_0iw7f")
+metadata/_custom_type_script = "uid://crhyslwm4b7qs"

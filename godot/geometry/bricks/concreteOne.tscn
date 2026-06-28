@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dto2xapwqf5ck"]
 
 [ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_lnrbh"]
-[ext_resource type="Script" uid="uid://dq6as3legyd7" path="res://prefabs/nodes/brick_prefab.gd" id="2_a0i48"]
+[ext_resource type="Script" uid="uid://dq6as3legyd7" path="res://prefabs/brick_prefab.gd" id="2_a0i48"]
 [ext_resource type="Script" uid="uid://ddvjv0ysldwkm" path="res://box2d/box2d_polygon_fixture.gd" id="3_ko5r7"]
 [ext_resource type="Texture2D" path="res://sprites/prototype{ss=32}/bricks_tile_6.tres" id="4_lnrbh"]
 [ext_resource type="Script" uid="uid://crhyslwm4b7qs" path="res://box2d/box2d_sprite.gd" id="5_wh2jh"]
