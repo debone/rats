@@ -21,6 +21,8 @@ import { CheeseCounter } from './ui/CheeseCounter';
 import { CrewIndicator } from './ui/CrewIndicator';
 import { ItemCounter } from './ui/ItemCounter';
 import { LevelIndicator } from './ui/LevelIndicator';
+import { RatTag } from '../RatTag';
+import { loadGodotGeometry } from '@/lib/loadGodotGeometry';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -119,6 +121,7 @@ export class GameScreen extends Container implements AppScreen {
 
     indicatorContainer.addChild(new LevelIndicator());
     indicatorContainer.addChild(new CrewIndicator());
+    indicatorContainer.addChild(RatTag('nuggets'));
 
     const optionsBtnBg = new LayoutContainer({
       layout: {

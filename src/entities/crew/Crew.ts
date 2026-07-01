@@ -20,6 +20,8 @@ import { RatoulieCrewMember } from './Ratoulie';
 import { SplitterCrewMember } from './Splitter';
 import { TwoEarsCrewMember } from './TwoEars';
 import { type CrewRarity, RARITY_WEIGHTS } from './types';
+import { Assets, Texture } from 'pixi.js';
+import { ASSETS } from '@/assets';
 
 export interface Ability {
   readonly name: string;
@@ -79,6 +81,10 @@ export class CrewMemberInstance {
     public readonly defKey: CrewMemberDefKey,
     public readonly key: string,
   ) {}
+}
+
+export function getCrewTexture(defKey: CrewMemberDefKey): Texture {
+  return Assets.get(ASSETS.prototype).textures[CREW_DEFS[defKey].textureName];
 }
 
 export function pickRandomCrewMember(): CrewMemberDef {

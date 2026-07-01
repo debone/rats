@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://dvq655asr213a"]
+
+[ext_resource type="Script" uid="uid://dn4fg76x5vhho" path="res://box2d/box2d_root.gd" id="1_5dll0"]
+[ext_resource type="Texture2D" uid="uid://boignwwv6cgcr" path="res://atlases/bg.png" id="2_yuco5"]
+[ext_resource type="Script" uid="uid://38bxwgyy0kt0" path="res://box2d/box2d_nine_slice.gd" id="3_fa6ls"]
+
+[node name="RatTooltip" type="Node2D" unique_id=1271502934]
+script = ExtResource("1_5dll0")
+metadata/_custom_type_script = "uid://dn4fg76x5vhho"
+
+[node name="Box2DNineSlice" type="Sprite2D" parent="." unique_id=1884651491]
+texture = ExtResource("2_yuco5")
+script = ExtResource("3_fa6ls")
+attached = false
+metadata/_custom_type_script = "uid://38bxwgyy0kt0"
