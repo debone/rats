@@ -103,7 +103,9 @@ These visuals need **no physics world** — the runtime only touches a
 sprites/nine-slices/meshes) can be loaded with `loadGodotVisuals(geo,
 container)`, which returns just the Pixi containers to drop into a
 Yoga/`@pixi/layout` tree. (`loadGodotGeometry(geo, null, …)` does the same
-and simply skips any physics.)
+and simply skips any physics.) Author standalone UI/HUD scenes under
+`godot/interface/` (compiled to the `interface/` alias namespace) — see
+`../interface/README.md`.
 
 These node types are supported today:
 

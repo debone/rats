@@ -31,10 +31,16 @@ function walkJsonFiles(dir: string, base: string = dir): string[] {
 }
 
 /**
- * Append geometry JSON files to the default bundle so they get stable aliases
- * (e.g. geometry/0-theDepths/level-0.json) and load with the default bundle.
+ * Append compiled Godot scene JSON files to the default bundle so they get stable
+ * aliases (e.g. `geometry/0-theDepths/level-0.json`, `interface/shop-card.json`)
+ * and load with the default bundle. `aliasPrefix` namespaces the aliases/src and
+ * should match the output dir's basename (e.g. 'geometry', 'interface').
  */
-export function injectGeometryAssetsIntoManifest(manifestPath: string, geometryDir: string): void {
+export function injectGeometryAssetsIntoManifest(
+  manifestPath: string,
+  geometryDir: string,
+  aliasPrefix: string = 'geometry',
+): void {
   if (!fs.existsSync(manifestPath) || !fs.existsSync(geometryDir)) return;
 
   const manifest: AssetsManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
@@ -51,9 +57,9 @@ export function injectGeometryAssetsIntoManifest(manifestPath: string, geometryD
 
   let added = false;
   for (const relFile of files) {
-    const alias = `geometry/${relFile}`;
+    const alias = `${aliasPrefix}/${relFile}`;
     if (existingAliases.has(alias)) continue;
-    const srcRel = path.posix.join('geometry', relFile);
+    const srcRel = path.posix.join(aliasPrefix, relFile);
     defaultBundle.assets.push({
       alias: [alias],
       src: [srcRel],

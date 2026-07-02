@@ -57,6 +57,7 @@ export function assetpackPlugin(): Plugin {
   let manifestWatcher: fs.FSWatcher | undefined;
   let tscnWatcher: fs.FSWatcher | undefined;
   let geometryWatcher: fs.FSWatcher | undefined;
+  let interfaceWatcher: fs.FSWatcher | undefined;
 
   /**
    * Generate all TypeScript definitions and Godot resources after assets are processed
@@ -87,6 +88,16 @@ export function assetpackPlugin(): Plugin {
       './src/assets/geometry.ts',
     );
     injectGeometryAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/geometry');
+
+    // Godot: convert authored interface scenes (physics-free Node2D visuals, loaded
+    // via loadGodotVisuals) → runtime JSON under the `interface/` alias namespace.
+    generateGeometryJsonFiles(
+      './godot/interface',
+      './public/assets/interface',
+      './godot/sprite-map.json',
+      './src/assets/interface.ts',
+    );
+    injectGeometryAssetsIntoManifest('./public/assets/assets-manifest.json', './public/assets/interface', 'interface');
 
     generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
   }
@@ -145,6 +156,28 @@ export function assetpackPlugin(): Plugin {
             }
           });
         }
+
+        // Watch godot/interface/ for .tscn changes (physics-free UI scenes)
+        const interfaceDir = './godot/interface';
+        if (fs.existsSync(interfaceDir)) {
+          interfaceWatcher = fs.watch(interfaceDir, { recursive: true }, (_, filename) => {
+            if (filename?.endsWith('.tscn')) {
+              console.log(`[Godot] ${filename} changed, regenerating interface...`);
+              generateGeometryJsonFiles(
+                interfaceDir,
+                './public/assets/interface',
+                './godot/sprite-map.json',
+                './src/assets/interface.ts',
+              );
+              injectGeometryAssetsIntoManifest(
+                './public/assets/assets-manifest.json',
+                './public/assets/interface',
+                'interface',
+              );
+              generateManifestTypes('./public/assets/assets-manifest.json', './src/assets/manifest.ts');
+            }
+          });
+        }
       } else {
         await new AssetPack(apConfig).run();
         generateTypeDefinitions();
@@ -162,6 +195,10 @@ export function assetpackPlugin(): Plugin {
       if (geometryWatcher) {
         geometryWatcher.close();
         geometryWatcher = undefined;
+      }
+      if (interfaceWatcher) {
+        interfaceWatcher.close();
+        interfaceWatcher = undefined;
       }
       if (ap) {
         await ap.stop();
