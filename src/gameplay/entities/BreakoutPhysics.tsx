@@ -62,21 +62,21 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
   const {
     bodies: loadedBodies,
     joints: loadedJoints,
-    background,
+    visuals,
   } = loadGodotGeometry(geo, ctx.worldId!, {
     container: ctx.container ?? undefined,
     sprites: true,
   });
 
-  // Static background visuals are authored in raw Godot pixel coords, but body
+  // Static visual elements are authored in raw Godot pixel coords, but body
   // sprites render at WorldOrigin (MIN_WIDTH/2, MIN_HEIGHT/2) + godotPos — the
   // export's ÷PXM + Y-flip and WorldToScreen's ×PXM + Y-flip cancel out. So every
   // static visual needs the same origin offset to line up with the bodies.
   for (const visual of [
-    ...background.tileLayers,
-    ...background.meshes,
-    ...background.sprites,
-    ...background.ninePatches,
+    ...visuals.tileLayers,
+    ...visuals.meshes,
+    ...visuals.sprites,
+    ...visuals.ninePatches,
   ]) {
     visual.x += MIN_WIDTH / 2;
     visual.y += MIN_HEIGHT / 2;

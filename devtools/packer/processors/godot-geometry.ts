@@ -74,15 +74,15 @@ export interface Box2DGeometry {
   gravity?: V2;
   bodies: Box2DBodyDef[];
   joints: Box2DJointDef[];
-  /** Visual-only background elements (Polygon2D meshes, standalone Sprite2D/AnimatedSprite2D). */
-  background?: BackgroundDef;
+  /** Visual-only visuals elements (Polygon2D meshes, standalone Sprite2D/AnimatedSprite2D). */
+  visuals?: VisualsDef;
 }
 
-export interface BackgroundDef {
+export interface VisualsDef {
   /** Polygon2D nodes (textured polygons) not under a body. Rendered as Pixi Meshes. */
   meshes: MeshDef[];
   /** Sprite2D / AnimatedSprite2D nodes not under a body. Stand-alone visual sprites. */
-  sprites: BackgroundSpriteDef[];
+  sprites: VisualSpriteDef[];
   /** TileMapLayer nodes, flattened to per-cell sprite placements. */
   tileLayers: TileLayerDef[];
   /** Box2DNineSlice nodes, rendered as Pixi NineSliceSprites. */
@@ -213,7 +213,7 @@ export interface MeshBorderDef {
  * tree but not as a child of any Box2D body. Position is in world space (Godot
  * pixels). Used for backdrop decor: signs, fish, single-instance props.
  */
-export interface BackgroundSpriteDef {
+export interface VisualSpriteDef {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
@@ -661,7 +661,7 @@ export function parseGeometryTscn(
 
   // Reverse lookup: texture .tres path → 9-slice borders (from the aseprite slice
   // layer, threaded through sprite-map.json). Used by both body-attached and
-  // background Box2DNineSlice nodes.
+  // visuals Box2DNineSlice nodes.
   const godotPathToBorders: Record<string, NinePatchDef['borders']> = {};
   for (const entry of Object.values(spriteMap)) {
     if (entry.borders) godotPathToBorders[entry.godotPath] = entry.borders;
@@ -688,10 +688,10 @@ export function parseGeometryTscn(
   //   - apply the instance's global transform to each subscene body's position/angle
   //   - prefix subscene body names with "<instance>/" to keep them unique
   //   - shift joint bodyA/bodyB indices by the current bodies array length
-  //   - merge the subscene's background visuals, transformed into parent space
+  //   - merge the subscene's visual elements, transformed into parent space
   // Subscene NodePaths are already resolved internally (during the recursive
   // parseGeometryTscn call), so we don't need to re-rewrite them.
-  const subBackground: BackgroundDef = { meshes: [], sprites: [], tileLayers: [], ninePatches: [] };
+  const subVisuals: VisualsDef = { meshes: [], sprites: [], tileLayers: [], ninePatches: [] };
   const instanceNodes = nodes.filter((n) => n.instanceResPath !== undefined);
   for (const instNode of instanceNodes) {
     const subPath = resolveResPath(instNode.instanceResPath!, options.godotRoot);
@@ -750,9 +750,9 @@ export function parseGeometryTscn(
       } as Box2DJointDef);
     }
 
-    // Background visuals stay in Godot pixel space (no PXM / Y-flip), so compose
+    // Visual elements stay in Godot pixel space (no PXM / Y-flip), so compose
     // the instance's global transform directly with each item's local transform.
-    if (subGeo.background) {
+    if (subGeo.visuals) {
       const cosI = Math.cos(instGT.rotation);
       const sinI = Math.sin(instGT.rotation);
       const place = <T extends { name: string; position: V2; rotation: number; scale: V2 }>(item: T): T => {
@@ -766,10 +766,10 @@ export function parseGeometryTscn(
           scale: { x: item.scale.x * instGT.scale.x, y: item.scale.y * instGT.scale.y },
         };
       };
-      for (const m of subGeo.background.meshes) subBackground.meshes.push(place(m));
-      for (const s of subGeo.background.sprites) subBackground.sprites.push(place(s));
-      for (const t of subGeo.background.tileLayers) subBackground.tileLayers.push(place(t));
-      for (const np of subGeo.background.ninePatches) subBackground.ninePatches.push(place(np));
+      for (const m of subGeo.visuals.meshes) subVisuals.meshes.push(place(m));
+      for (const s of subGeo.visuals.sprites) subVisuals.sprites.push(place(s));
+      for (const t of subGeo.visuals.tileLayers) subVisuals.tileLayers.push(place(t));
+      for (const np of subGeo.visuals.ninePatches) subVisuals.ninePatches.push(place(np));
     }
   }
 
@@ -793,7 +793,7 @@ export function parseGeometryTscn(
     }
   }
 
-  // Background: Polygon2D meshes + standalone Sprite2D/AnimatedSprite2D not
+  // Visuals: Polygon2D meshes + standalone Sprite2D/AnimatedSprite2D not
   // under a body. We identify "under a body" by walking up the parent chain
   // to either a body node or the root.
   const bodyPaths = new Set(bodyNodes.map((n) => n.fullPath));
@@ -807,7 +807,7 @@ export function parseGeometryTscn(
     return false;
   };
 
-  const ownBackground = buildBackground(
+  const ownVisuals = buildVisuals(
     nodes,
     isUnderBody,
     extResources,
@@ -818,24 +818,24 @@ export function parseGeometryTscn(
     options.godotRoot,
   );
 
-  // Combine this scene's own background visuals with those merged in from
+  // Combine this scene's own visual elements with those merged in from
   // instanced subscenes (e.g. a Box2DPolygon authored in a reusable .tscn).
-  const hasSubBackground =
-    subBackground.meshes.length > 0 ||
-    subBackground.sprites.length > 0 ||
-    subBackground.tileLayers.length > 0 ||
-    subBackground.ninePatches.length > 0;
-  let background: BackgroundDef | null | undefined = ownBackground;
-  if (hasSubBackground) {
-    background = {
-      meshes: [...(ownBackground?.meshes ?? []), ...subBackground.meshes],
-      sprites: [...(ownBackground?.sprites ?? []), ...subBackground.sprites],
-      tileLayers: [...(ownBackground?.tileLayers ?? []), ...subBackground.tileLayers],
-      ninePatches: [...(ownBackground?.ninePatches ?? []), ...subBackground.ninePatches],
+  const hasSubVisuals =
+    subVisuals.meshes.length > 0 ||
+    subVisuals.sprites.length > 0 ||
+    subVisuals.tileLayers.length > 0 ||
+    subVisuals.ninePatches.length > 0;
+  let visuals: VisualsDef | null | undefined = ownVisuals;
+  if (hasSubVisuals) {
+    visuals = {
+      meshes: [...(ownVisuals?.meshes ?? []), ...subVisuals.meshes],
+      sprites: [...(ownVisuals?.sprites ?? []), ...subVisuals.sprites],
+      tileLayers: [...(ownVisuals?.tileLayers ?? []), ...subVisuals.tileLayers],
+      ninePatches: [...(ownVisuals?.ninePatches ?? []), ...subVisuals.ninePatches],
     };
   }
 
-  return { gravity, bodies, joints, ...(background ? { background } : {}) };
+  return { gravity, bodies, joints, ...(visuals ? { visuals } : {}) };
 }
 
 // ---------------------------------------------------------------------------
@@ -1111,10 +1111,10 @@ function buildSpriteBinding(
 }
 
 // ---------------------------------------------------------------------------
-// Background builders — Polygon2D meshes and standalone Sprite2D
+// Visual builders — Polygon2D meshes and standalone Sprite2D
 // ---------------------------------------------------------------------------
 
-function buildBackground(
+function buildVisuals(
   nodes: NodeInfo[],
   isUnderBody: (path: string) => boolean,
   extResources: Record<string, string>,
@@ -1123,9 +1123,9 @@ function buildBackground(
   globalTransforms: Map<string, GTransform>,
   spriteMap: GodotSpriteMap,
   godotRoot: string | undefined,
-): BackgroundDef | null {
+): VisualsDef | null {
   const meshes: MeshDef[] = [];
-  const sprites: BackgroundSpriteDef[] = [];
+  const sprites: VisualSpriteDef[] = [];
   const tileLayers: TileLayerDef[] = [];
   const ninePatches: NinePatchDef[] = [];
 
@@ -1214,7 +1214,7 @@ function buildBackground(
       // Respect Box2DSprite's `attached = false` (editor-only reference art).
       const attachedProp = n.props.get('attached');
       if (attachedProp !== undefined && decodeGodotValue(attachedProp) === false) continue;
-      const s = buildBackgroundSprite(n, extResources, godotPathToPixi, globalTransforms);
+      const s = buildVisualSprite(n, extResources, godotPathToPixi, globalTransforms);
       if (s) sprites.push(s);
     } else if (n.type === 'TileMapLayer') {
       const layer = buildTileLayer(n, extResources, subResections, globalTransforms, spriteMap, resolveTileSet);
@@ -1699,12 +1699,12 @@ function tessellateCurve2D(points: V2[], samples: number): V2[] {
   return result;
 }
 
-function buildBackgroundSprite(
+function buildVisualSprite(
   spriteNode: NodeInfo,
   extResources: Record<string, string>,
   godotPathToPixi: Record<string, { frame?: string; anim?: string; atlas?: string }>,
   globalTransforms: Map<string, GTransform>,
-): BackgroundSpriteDef | null {
+): VisualSpriteDef | null {
   let pixiFrame: string | undefined;
   let pixiAnimation: string | undefined;
   let pixiAtlas: string | undefined;
@@ -1755,7 +1755,7 @@ function buildBackgroundSprite(
   const zIndex = parseInt(unquote(spriteNode.props.get('z_index') ?? '0'), 10) || undefined;
   const gt = globalTransforms.get(spriteNode.fullPath)!;
 
-  const out: BackgroundSpriteDef = {
+  const out: VisualSpriteDef = {
     name: spriteNode.name,
     position: { x: gt.origin.x + offset.x, y: gt.origin.y + offset.y },
     rotation: gt.rotation,

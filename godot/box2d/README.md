@@ -89,11 +89,11 @@ joint Node2D's global position is the anchor; the exporter resolves it into
 each body's local space. The editor gizmos draw dashed lines from the
 anchor to each connected body so you can see at a glance what's wired up.
 
-## Background visuals
+## Visuals
 
 Anything in the scene tree that isn't a Box2D body, fixture, joint, or
-body-bound sprite gets emitted as **background** — purely visual elements
-the runtime renders behind/in front of the physics. The point is to
+body-bound sprite gets emitted as **visuals** (`geo.visuals`) — purely
+visual elements the runtime renders behind/in front of the physics. The point is to
 author the level's background art in the same scene as the physics so
 brick placements line up exactly with the painted environment.
 

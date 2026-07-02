@@ -53,12 +53,12 @@ export interface Box2DGeometry {
   gravity?: V2;
   bodies: Box2DBodyDef[];
   joints: Box2DJointDef[];
-  background?: BackgroundDef;
+  visuals?: VisualsDef;
 }
 
-export interface BackgroundDef {
+export interface VisualsDef {
   meshes: MeshDef[];
-  sprites: BackgroundSpriteDef[];
+  sprites: VisualSpriteDef[];
   tileLayers: TileLayerDef[];
   ninePatches: NinePatchDef[];
 }
@@ -137,7 +137,7 @@ export interface MeshBorderDef {
   cornerOrientation?: 'free' | 'snap' | 'none';
 }
 
-export interface BackgroundSpriteDef {
+export interface VisualSpriteDef {
   name: string;
   pixiFrame?: string;
   pixiAnimation?: string;
@@ -268,8 +268,8 @@ export interface LoadGodotGeometryResult {
   jointsByName: Map<string, b2JointId>;
   /** Sprites bound to bodies; tracked by WorldSprites and updated each frame. (NineSliceSprite for Box2DNineSlice.) */
   sprites: Container[];
-  /** Standalone background visuals (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
-  background: { meshes: Container[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
+  /** Standalone visual elements (Polygon2D meshes + non-body Sprite2D + TileMapLayers + nine-slices). */
+  visuals: { meshes: Container[]; sprites: Sprite[]; tileLayers: Container[]; ninePatches: NineSliceSprite[] };
 }
 
 export function loadGodotGeometry(
@@ -291,7 +291,7 @@ export function loadGodotGeometry(
   // Physics (bodies, joints, body-attached sprites) needs a world; pure-visual
   // scenes (UI elements authored as Node2D + sprites/nine-slices/meshes) don't.
   // When there's no world we skip the physics half and still render the
-  // background visuals — but warn if a scene actually carried bodies/joints.
+  // visual elements — but warn if a scene actually carried bodies/joints.
   if (worldId === null && (geo.bodies.length > 0 || geo.joints.length > 0)) {
     console.warn(
       '[loadGodotGeometry] geometry has bodies/joints but no worldId was provided; skipping physics and rendering visuals only.',
@@ -367,16 +367,16 @@ export function loadGodotGeometry(
     if (!jointsByName.has(jdef.name)) jointsByName.set(jdef.name, jointId);
   }
 
-  // Background visuals — Polygon2D meshes, standalone Sprite2D, TileMapLayers
+  // Visual elements — Polygon2D meshes, standalone Sprite2D, TileMapLayers
   const bgMeshes: Container[] = [];
   const bgSprites: Sprite[] = [];
   const bgTileLayers: Container[] = [];
   const bgNinePatches: NineSliceSprite[] = [];
-  if (spritesEnabled && geo.background && options.container) {
+  if (spritesEnabled && geo.visuals && options.container) {
     // Non-overlay meshes draw under everything else; overlay meshes (e.g. a
     // mask_children border framing its tilemap) are deferred until after the
     // tile layers so they sit on top of the tiles they frame.
-    for (const m of geo.background.meshes) {
+    for (const m of geo.visuals.meshes) {
       if (m.overlay) continue;
       const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
       if (mesh) {
@@ -384,14 +384,14 @@ export function loadGodotGeometry(
         bgMeshes.push(mesh);
       }
     }
-    for (const s of geo.background.sprites) {
-      const sprite = instantiateBackgroundSprite(s, tx, ty, cosT, sinT, ta);
+    for (const s of geo.visuals.sprites) {
+      const sprite = instantiateVisualSprite(s, tx, ty, cosT, sinT, ta);
       if (sprite) {
         options.container.addChild(sprite);
         bgSprites.push(sprite);
       }
     }
-    for (const layer of geo.background.tileLayers) {
+    for (const layer of geo.visuals.tileLayers) {
       const container = instantiateTileLayer(layer, tx, ty, cosT, sinT, ta);
       if (container) {
         options.container.addChild(container);
@@ -399,7 +399,7 @@ export function loadGodotGeometry(
       }
     }
     // Deferred overlay meshes — drawn after the tile layers they frame.
-    for (const m of geo.background.meshes) {
+    for (const m of geo.visuals.meshes) {
       if (!m.overlay) continue;
       const mesh = instantiateMesh(m, tx, ty, cosT, sinT, ta);
       if (mesh) {
@@ -409,7 +409,7 @@ export function loadGodotGeometry(
     }
     // `?? []` keeps older geometry blobs (emitted before nine-slice support)
     // loadable — they simply have no `ninePatches` array.
-    for (const np of geo.background.ninePatches ?? []) {
+    for (const np of geo.visuals.ninePatches ?? []) {
       const sprite = instantiateNinePatch(np, tx, ty, cosT, sinT, ta);
       if (sprite) {
         options.container.addChild(sprite);
@@ -424,12 +424,12 @@ export function loadGodotGeometry(
     bodiesByName,
     jointsByName,
     sprites,
-    background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers, ninePatches: bgNinePatches },
+    visuals: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers, ninePatches: bgNinePatches },
   };
 }
 
 /**
- * Load ONLY the background visuals of a Godot scene (Polygon2D/Curve meshes,
+ * Load ONLY the visual elements of a Godot scene (Polygon2D/Curve meshes,
  * TileMapLayers, nine-slices, standalone sprites) into `container` — no physics
  * world required.
  *
@@ -443,8 +443,8 @@ export function loadGodotVisuals(
   geo: Box2DGeometry,
   container: Container,
   options: { transform?: LoadGodotGeometryOptions['transform'] } = {},
-): LoadGodotGeometryResult['background'] {
-  return loadGodotGeometry(geo, null, { transform: options.transform, container }).background;
+): LoadGodotGeometryResult['visuals'] {
+  return loadGodotGeometry(geo, null, { transform: options.transform, container }).visuals;
 }
 
 /**
@@ -513,7 +513,7 @@ function instantiateTileLayer(
 }
 
 /**
- * A textured background polygon. Returns a Container holding the fill (a
+ * A textured polygon. Returns a Container holding the fill (a
  * polygon-masked grid of tile Sprites when `tileFill`, otherwise a stretched
  * Mesh) and, optionally, a tiled quad-strip border traced along the outline. Both the
  * fill tiling and the border tile atlas frames correctly — no GPU texture-repeat
@@ -879,8 +879,8 @@ function addCornerPieces(
   }
 }
 
-function instantiateBackgroundSprite(
-  def: BackgroundSpriteDef,
+function instantiateVisualSprite(
+  def: VisualSpriteDef,
   tx: number,
   ty: number,
   cosT: number,
