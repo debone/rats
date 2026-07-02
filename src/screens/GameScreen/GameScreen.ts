@@ -9,6 +9,7 @@ import { GameEvent, type EventPayload } from '@/data/events';
 import { getGameContext, type GamePhase } from '@/data/game-context';
 import { getRunState } from '@/data/game-state';
 import { CHEESE_DEFS } from '@/entities/cheese/Cheese';
+import { loadGodotVisuals } from '@/lib/loadGodotGeometry';
 import { ShowOverlayCommand } from '@/systems/navigation/commands/ShowOverlayCommand';
 import { PhysicsSystem } from '@/systems/physics/system';
 import { LayoutContainer } from '@pixi/layout/components';
@@ -16,13 +17,12 @@ import { Button } from '@pixi/ui';
 import { DropShadowFilter } from 'pixi-filters';
 import { Assets, Color, Container, Text, Ticker, TilingSprite } from 'pixi.js';
 import { OptionsOverlay } from '../OptionsOverlay';
+import { RatTag } from '../RatTag';
 import { BallCounter } from './ui/BallCounter';
 import { CheeseCounter } from './ui/CheeseCounter';
 import { CrewIndicator } from './ui/CrewIndicator';
 import { ItemCounter } from './ui/ItemCounter';
 import { LevelIndicator } from './ui/LevelIndicator';
-import { RatTag } from '../RatTag';
-import { loadGodotGeometry } from '@/lib/loadGodotGeometry';
 
 /**
  * GameScreen is the main gameplay screen.
@@ -121,7 +121,13 @@ export class GameScreen extends Container implements AppScreen {
 
     indicatorContainer.addChild(new LevelIndicator());
     indicatorContainer.addChild(new CrewIndicator());
-    indicatorContainer.addChild(RatTag('nuggets'));
+    //indicatorContainer.addChild(RatTag('nuggets'));
+
+    const visuals = loadGodotVisuals(Assets.get('interface/ratTooltip.json'), indicatorContainer, {
+      transform: { x: 0, y: 0 },
+    });
+
+    console.log(visuals);
 
     const optionsBtnBg = new LayoutContainer({
       layout: {
