@@ -274,7 +274,7 @@ export interface LoadGodotGeometryResult {
 
 export function loadGodotGeometry(
   geo: Box2DGeometry,
-  worldId: b2WorldId,
+  worldId: b2WorldId | null,
   options: LoadGodotGeometryOptions = {},
 ): LoadGodotGeometryResult {
   const tx = options.transform?.x ?? 0;
@@ -288,7 +288,18 @@ export function loadGodotGeometry(
   const bodiesByName = new Map<string, b2BodyId>();
   const sprites: Container[] = [];
 
+  // Physics (bodies, joints, body-attached sprites) needs a world; pure-visual
+  // scenes (UI elements authored as Node2D + sprites/nine-slices/meshes) don't.
+  // When there's no world we skip the physics half and still render the
+  // background visuals — but warn if a scene actually carried bodies/joints.
+  if (worldId === null && (geo.bodies.length > 0 || geo.joints.length > 0)) {
+    console.warn(
+      '[loadGodotGeometry] geometry has bodies/joints but no worldId was provided; skipping physics and rendering visuals only.',
+    );
+  }
+
   for (const def of geo.bodies) {
+    if (worldId === null) break;
     const bd = b2DefaultBodyDef();
     bd.type =
       def.type === 'dynamic'
@@ -348,6 +359,7 @@ export function loadGodotGeometry(
   const jointsByName = new Map<string, b2JointId>();
 
   for (const jdef of geo.joints) {
+    if (worldId === null) break;
     const jointId = createJoint(jdef, worldId, bodies);
     if (!jointId) continue;
     (jointId as { name?: string }).name = jdef.name;
@@ -414,6 +426,25 @@ export function loadGodotGeometry(
     sprites,
     background: { meshes: bgMeshes, sprites: bgSprites, tileLayers: bgTileLayers, ninePatches: bgNinePatches },
   };
+}
+
+/**
+ * Load ONLY the background visuals of a Godot scene (Polygon2D/Curve meshes,
+ * TileMapLayers, nine-slices, standalone sprites) into `container` — no physics
+ * world required.
+ *
+ * Use this for UI/HUD elements authored in Godot as a plain Node2D tree of
+ * sprites/nine-slices/meshes (no bodies): the returned Pixi containers drop
+ * straight into a Yoga/@pixi/layout tree. If the scene happens to carry
+ * bodies/joints they're skipped (with a warning) — reach for `loadGodotGeometry`
+ * with a `worldId` when you actually need the physics too.
+ */
+export function loadGodotVisuals(
+  geo: Box2DGeometry,
+  container: Container,
+  options: { transform?: LoadGodotGeometryOptions['transform'] } = {},
+): LoadGodotGeometryResult['background'] {
+  return loadGodotGeometry(geo, null, { transform: options.transform, container }).background;
 }
 
 /**

@@ -97,6 +97,14 @@ the runtime renders behind/in front of the physics. The point is to
 author the level's background art in the same scene as the physics so
 brick placements line up exactly with the painted environment.
 
+These visuals need **no physics world** — the runtime only touches a
+`worldId` for bodies/joints/body-sprites. A scene that's *all* visuals
+(e.g. a HUD/UI element authored as a plain `Node2D` tree of
+sprites/nine-slices/meshes) can be loaded with `loadGodotVisuals(geo,
+container)`, which returns just the Pixi containers to drop into a
+Yoga/`@pixi/layout` tree. (`loadGodotGeometry(geo, null, …)` does the same
+and simply skips any physics.)
+
 These node types are supported today:
 
 - **`Polygon2D` with `texture`** — free-form textured polygons. Author the
