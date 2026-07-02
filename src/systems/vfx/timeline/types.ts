@@ -39,7 +39,15 @@ export function emptyTimelineDoc(id: string): TimelineDoc {
 export interface Track {
   /** Name into the `Stage` map. */
   actor: string;
-  /** Property path, dot-nested into the actor: `'x' | 'alpha' | 'tint' | 'scale.x'` … */
+  /**
+   * Property path, dot-nested into the actor: `'x' | 'alpha' | 'tint' | 'scale.x'` …
+   *
+   * The special property `'frame'` drives a Pixi `AnimatedSprite`'s frame from the
+   * playhead (values are frame indices; it maps onto `currentFrame`, which floors,
+   * so the sprite steps between whole frames and stays fully seekable). The actor
+   * must be built with `autoUpdate: false` so the timeline owns the frame — see
+   * `createAnimatedSprite`.
+   */
   property: string;
   keys: Key[];
 }

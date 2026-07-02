@@ -108,7 +108,7 @@ async function parseAsepriteFile(asset: Asset) {
   const rawBaseName = swapExt(asset.filename, '').split('/').pop() || 'sprite';
   const baseName = rawBaseName.replace(/\{[^}]*\}/g, '');
 
-  const { sprites } = await extractSprites(asepriteFile, {
+  const { sprites, animationMeta } = await extractSprites(asepriteFile, {
     spritesheetSize,
     baseName,
   });
@@ -128,7 +128,7 @@ async function parseAsepriteFile(asset: Asset) {
     console.log(`- ${spritesheetLayers.length} spritesheet composite frames (ss=${spritesheetSize})`);
   }
 
-  return sprites;
+  return { sprites, animationMeta };
 }
 
 /**
@@ -181,12 +181,13 @@ function createResolutionAssets(
  */
 async function processFile(asset: Asset, options: PackerOptions): Promise<Asset[]> {
   // Parse Aseprite and extract sprites
-  const sprites = await parseAsepriteFile(asset);
+  const { sprites, animationMeta } = await parseAsepriteFile(asset);
 
   // Build atlas
   console.log(`Adding sprites to atlas...`);
   const atlas = new Atlas();
   atlas.addSprites(sprites);
+  atlas.setAnimationMeta(animationMeta);
 
   console.log(`Generating atlas...`);
   const atlasBuffer = await atlas.buffer();

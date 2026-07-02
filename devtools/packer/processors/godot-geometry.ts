@@ -140,7 +140,7 @@ export interface TilePlacement {
   /** Cell coordinates in the layer, in tile units (not pixels). */
   x: number;
   y: number;
-  /** Pre-resolved Pixi frame name (e.g. `"level-1_spritesheet_23#0"`). */
+  /** Pre-resolved Pixi frame name (e.g. `"level-1_spritesheet_23#0"`). The base (frame 0). */
   pixiFrame: string;
   /**
    * D4 transform key (0–7) from Godot's alternativeTile bits 12–14.
@@ -148,6 +148,15 @@ export interface TilePlacement {
    * 0 means no transform (omitted from JSON when zero).
    */
   transform?: number;
+  /**
+   * Animation frame names (frame 0 first) when the tile is animated in the Godot
+   * `TileSetAtlasSource`. Present only for animated tiles; the runtime builds an
+   * `AnimatedSprite` from these instead of a static `Sprite`. `pixiFrame` stays
+   * the base frame so a non-animating renderer still shows something.
+   */
+  frames?: string[];
+  /** Per-frame duration in ms, aligned with `frames`. */
+  frameDurations?: number[];
 }
 
 /**
@@ -1261,6 +1270,93 @@ interface TileSetSourceInfo {
   cols: number;
   rows: number;
   tileSize: number;
+  /** Per-tile animations, keyed by the base tile's atlas coords `"x:y"`. */
+  animations: Map<string, TileAnimInfo>;
+}
+
+/**
+ * A Godot `TileSetAtlasSource` per-tile animation. Godot lays the animation
+ * frames out as consecutive atlas cells starting at the base tile, wrapping every
+ * `columns` cells (0 = a single row), with an optional `separation` gap.
+ */
+interface TileAnimInfo {
+  framesCount: number;
+  columns: number;
+  separation: number;
+  /** `animation_speed` (a divisor on each frame's duration in seconds). */
+  speed: number;
+  /** Per-frame duration multiplier in seconds (`animation_frame_<i>/duration`). */
+  frameDurationSeconds: number[];
+}
+
+/**
+ * Parse the per-tile animation properties out of a `TileSetAtlasSource` section.
+ * Tiles are keyed `"<atlasX>:<atlasY>"`; only tiles with `animation_frames_count`
+ * > 1 are recorded.
+ */
+function parseAtlasAnimations(props: Map<string, string>): Map<string, TileAnimInfo> {
+  const animations = new Map<string, TileAnimInfo>();
+
+  for (const [key, value] of props) {
+    const m = key.match(/^(\d+):(\d+)\/animation_frames_count$/);
+    if (!m) continue;
+    const framesCount = parseInt(value, 10);
+    if (!Number.isFinite(framesCount) || framesCount <= 1) continue;
+
+    const base = `${m[1]}:${m[2]}`;
+    const num = (suffix: string, fallback: number): number => {
+      const raw = props.get(`${base}/${suffix}`);
+      const n = raw !== undefined ? parseFloat(raw) : NaN;
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const columns = Math.trunc(num('animation_columns', 0));
+    const speed = num('animation_speed', 1) || 1;
+
+    let separation = 0;
+    const sepRaw = props.get(`${base}/animation_separation`);
+    const sepMatch = sepRaw?.match(/Vector2i?\(\s*(-?\d+)/);
+    if (sepMatch) separation = parseInt(sepMatch[1], 10);
+
+    const frameDurationSeconds: number[] = [];
+    for (let i = 0; i < framesCount; i++) {
+      frameDurationSeconds.push(num(`animation_frame_${i}/duration`, 1) || 1);
+    }
+
+    animations.set(base, { framesCount, columns, separation, speed, frameDurationSeconds });
+  }
+
+  return animations;
+}
+
+/**
+ * Resolve an animated tile to its ordered Pixi frame names + per-frame durations
+ * (ms). Godot lays frames out from the base cell, stepping `1 + separation` cells
+ * and wrapping every `columns` frames (0 ⇒ a single row). Each frame's duration is
+ * `animation_frame_<i>/duration` seconds divided by `animation_speed`. Returns
+ * `null` if any frame cell falls outside the atlas grid.
+ */
+function resolveTileAnimationFrames(
+  baseX: number,
+  baseY: number,
+  anim: TileAnimInfo,
+  src: TileSetSourceInfo,
+): { frames: string[]; durations: number[] } | null {
+  const cols = anim.columns > 0 ? anim.columns : anim.framesCount;
+  const step = 1 + Math.max(0, anim.separation);
+
+  const frames: string[] = [];
+  const durations: number[] = [];
+  for (let i = 0; i < anim.framesCount; i++) {
+    const atlasX = baseX + (i % cols) * step;
+    const atlasY = baseY + Math.floor(i / cols) * step;
+    if (atlasX < 0 || atlasX >= src.cols || atlasY < 0 || atlasY >= src.rows) return null;
+    const linearIdx = atlasY * src.cols + atlasX;
+    frames.push(`${src.framePrefix}_${linearIdx}#0`);
+    durations.push(Math.max(1, Math.round((anim.frameDurationSeconds[i] / anim.speed) * 1000)));
+  }
+
+  return { frames, durations };
 }
 
 function loadTileSet(
@@ -1323,6 +1419,7 @@ function loadTileSet(
       cols: entry.tilesheet.cols,
       rows: entry.tilesheet.rows,
       tileSize: entry.tilesheet.tileSize,
+      animations: parseAtlasAnimations(subSection.props),
     });
   }
   return { sources };
@@ -1372,6 +1469,7 @@ function parseTileSetFromSubResources(
       cols: entry.tilesheet.cols,
       rows: entry.tilesheet.rows,
       tileSize: entry.tilesheet.tileSize,
+      animations: parseAtlasAnimations(sourceSection.props),
     });
   }
   return { sources };
@@ -1431,6 +1529,21 @@ function buildTileLayer(
     const transform = (cell.alternativeTile >> 12) & 0x7;
     const placement: TilePlacement = { x: cell.coordX, y: cell.coordY, pixiFrame: `${src.framePrefix}_${linearIdx}#0` };
     if (transform !== 0) placement.transform = transform;
+
+    // Animated tile: resolve the consecutive frame cells + per-frame timing.
+    const anim = src.animations.get(`${cell.atlasX}:${cell.atlasY}`);
+    if (anim) {
+      const framesInfo = resolveTileAnimationFrames(cell.atlasX, cell.atlasY, anim, src);
+      if (framesInfo) {
+        placement.frames = framesInfo.frames;
+        placement.frameDurations = framesInfo.durations;
+      } else {
+        console.warn(
+          `[Godot] TileMapLayer "${layerNode.name}" animated tile (${cell.atlasX},${cell.atlasY}) has frames outside the atlas; rendering static.`,
+        );
+      }
+    }
+
     tiles.push(placement);
   }
 

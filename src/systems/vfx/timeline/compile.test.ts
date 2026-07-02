@@ -134,7 +134,32 @@ describe('compile', () => {
     expect(tl.add.mock.calls).toEqual([[flash, { tint: '#ffffff', duration: 1 }, 0]]);
   });
 
-  it('compiles each cue key into a tl.call that fires the hook with the key value', () => {
+  it('maps the `frame` property onto an AnimatedSprite currentFrame (scrubbable frame track)', () => {
+    const tl = makeTl();
+    const sprite = { currentFrame: 0 };
+    const doc: TimelineDoc = {
+      id: 't',
+      duration: 4,
+      tracks: [
+        {
+          actor: 'spr',
+          property: 'frame',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 4, value: 3 },
+          ],
+        },
+      ],
+      cues: [],
+    };
+
+    compile(doc, { spr: sprite }, {}, tl);
+
+    // `frame` compiles onto `currentFrame`; the playhead drives the frame index.
+    expect(tl.add.mock.calls[0]).toEqual([sprite, { currentFrame: [0, 3], duration: framesToMs(4) }, framesToMs(0)]);
+  });
+
+  it('compiles each cue key into a tl.call that fires the hook with (tl, key)', () => {
     const tl = makeTl();
     const boom = vi.fn();
     const doc: TimelineDoc = {
@@ -146,19 +171,24 @@ describe('compile', () => {
 
     compile(doc, {}, { boom }, tl);
 
-    // Two beats → two calls at the right positions; the wrapped fn passes the key value.
-    expect(tl.call.mock.calls.map((c) => c[1])).toEqual([framesToMs(5), framesToMs(8)]);
+    // Two cue beats fire at their positions (a terminal duration anchor is also added).
+    const positions = tl.call.mock.calls.map((c) => c[1]);
+    expect(positions).toContain(framesToMs(5));
+    expect(positions).toContain(framesToMs(8));
+
+    // The wrapped closures fire the hook with (tl, key); the key carries the value.
     (tl.call.mock.calls[0][0] as () => void)();
     (tl.call.mock.calls[1][0] as () => void)();
-    expect(boom.mock.calls).toEqual([[2], [undefined]]);
+    expect(boom.mock.calls.map((c) => (c[1] as { value?: number }).value)).toEqual([2, undefined]);
   });
 
   it('skips (and warns about) unknown actors and hooks instead of throwing', () => {
     const tl = makeTl();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // duration 0 → no terminal anchor call, so tl.call reflects only cues.
     const doc: TimelineDoc = {
       id: 't',
-      duration: 10,
+      duration: 0,
       tracks: [{ actor: 'missing', property: 'x', keys: [{ time: 0, value: 1 }] }],
       cues: [{ hook: 'missing', keys: [{ time: 0 }] }],
     };

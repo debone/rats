@@ -1,4 +1,5 @@
 import { ASSETS } from '@/assets';
+import { createAnimatedSprite } from '@/core/animation/animatedSprite';
 import { typedAssets } from '@/core/assets/typed-assets';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
@@ -68,8 +69,15 @@ export const Scrap = defineEntity(({ pos, onCollected }: ScrapProps): ScrapEntit
     entity: scrap,
   }));
 
-  const texture = typedAssets.get(ASSETS.prototype).textures['scraps#0'];
-  const sprite = new Sprite({ texture, scale: Math.random() * 0.3 + 0.8 });
+  // Reference adoption of the sprite-animation helper: play the `scraps` layer's
+  // animation when its Aseprite source has multiple frames (or tags), otherwise
+  // fall back to the static first frame. Drops in as an `AnimatedSprite` (a
+  // `Sprite` subclass), so body-syncing is unchanged.
+  const scale = Math.random() * 0.3 + 0.8;
+  const sprite =
+    createAnimatedSprite(ASSETS.prototype, 'scraps') ??
+    new Sprite({ texture: typedAssets.get(ASSETS.prototype).textures['scraps#0'] });
+  sprite.scale.set(scale);
   sprite.anchor.set(0.5, 0.5);
   useBodySprite(sprite, bodyId);
 

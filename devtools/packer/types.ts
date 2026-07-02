@@ -125,6 +125,8 @@ export interface SpritesheetFrameData {
   anchor?: PointData;
   /** The 9-slice borders of the texture. */
   borders?: TextureBorders;
+  /** Per-frame display duration in milliseconds (from Aseprite). */
+  duration?: number;
 }
 
 /**

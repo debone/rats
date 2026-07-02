@@ -11,8 +11,19 @@ export interface TimelineLike {
   call(fn: () => void, position?: number): unknown;
 }
 
+/**
+ * Track property that drives a Pixi `AnimatedSprite`'s frame from the playhead.
+ * Authored values are frame indices; the compiler maps it onto `currentFrame`,
+ * whose getter floors, so the sprite steps between whole frames while remaining
+ * fully seekable (the timeline, not the ticker, owns the frame — the actor must
+ * be built with `autoUpdate: false`).
+ */
+const FRAME_PROPERTY = 'frame';
+
 /** Walk a dotted property path to the object that owns the leaf property. */
 function resolve(actor: object, property: string): { target: object; prop: string } {
+  // `frame` is sugar for the AnimatedSprite `currentFrame` setter.
+  if (property === FRAME_PROPERTY) return { target: actor, prop: 'currentFrame' };
   const parts = property.split('.');
   let target = actor as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {

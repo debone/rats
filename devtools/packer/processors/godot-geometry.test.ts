@@ -782,6 +782,74 @@ tile_map_data = PackedByteArray("${blob}")
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   });
 
+  it('resolves an animated tile into frames + per-frame durations', () => {
+    // Tile (3,2) is a 3-frame animation at 4 fps; frames run horizontally →
+    // cells (3,2),(4,2),(5,2) → linear 23,24,25 on a 10-column sheet.
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-anim-tile-'));
+    fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, 'tileset.tres'),
+      `[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://sprites/sheet.tres" id="1_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_0"]
+texture = ExtResource("1_tex")
+texture_region_size = Vector2i(32, 32)
+3:2/0 = 0
+3:2/animation_columns = 0
+3:2/animation_frames_count = 3
+3:2/animation_speed = 4.0
+3:2/animation_frame_0/duration = 1.0
+3:2/animation_frame_1/duration = 1.0
+3:2/animation_frame_2/duration = 1.0
+
+[resource]
+sources/0 = SubResource("atlas_0")
+tile_size = Vector2i(32, 32)
+`,
+    );
+
+    const blob = makeBlob([
+      [0, 0, 0, 3, 2, 0],
+      [1, 0, 0, 0, 0, 0],
+    ]);
+    const tscn = `[gd_scene load_steps=2 format=3]
+
+[ext_resource type="TileSet" path="res://tileset.tres" id="1_ts"]
+
+[node name="Root" type="Node2D"]
+
+[node name="bg" type="TileMapLayer" parent="."]
+tile_set = ExtResource("1_ts")
+tile_map_data = PackedByteArray("${blob}")
+`;
+    const geo = parseGeometryTscn(
+      tscn,
+      {
+        sheet: {
+          godotPath: 'res://sprites/sheet.tres',
+          type: 'AtlasTexture',
+          pixiFrame: 'sheet#0',
+          tilesheet: { framePrefix: 'tiles', cols: 10, rows: 10, tileSize: 32 },
+        },
+      },
+      { godotRoot: tmpRoot },
+    );
+
+    const tiles = geo.background!.tileLayers[0].tiles;
+    expect(tiles[0]).toEqual({
+      x: 0,
+      y: 0,
+      pixiFrame: 'tiles_23#0',
+      frames: ['tiles_23#0', 'tiles_24#0', 'tiles_25#0'],
+      frameDurations: [250, 250, 250], // 1.0s / 4 fps = 250ms
+    });
+    // The non-animated neighbour stays a plain static placement.
+    expect(tiles[1]).toEqual({ x: 1, y: 0, pixiFrame: 'tiles_0#0' });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
   it('clips a child TileMapLayer to a mask_children Box2DPolygon (no mesh, clip projected to layer-local)', () => {
     const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'godot-clip-'));
     fs.mkdirSync(path.join(tmpRoot, 'box2d'), { recursive: true });

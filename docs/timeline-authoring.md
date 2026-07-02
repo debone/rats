@@ -85,6 +85,10 @@ interface CueKey {
   `scale.x`, `scale.y`.
 - `value` numbers lerp linearly; **`tint` carries a hex string** (e.g. `"#ffd23f"`)
   so anime.js color-interpolates (numbers lerp wrong).
+- **`frame`** drives a Pixi `AnimatedSprite`'s frame from the playhead (see
+  [Sprite animations](#sprite-animations)). Values are frame indices; it maps onto
+  `currentFrame`, which floors, so the sprite steps between whole frames and stays
+  fully seekable.
 - `ease` is the curve used to _enter_ this key from the previous one.
 
 ### The code-vs-data boundary
@@ -108,6 +112,43 @@ that writes `door.progress` onto the door pieces each frame. When there's no rea
 door (a debug/editor preview), it builds a **stand-in door** so the whole
 choreography is visible without a level — the way continuous effects preview on a
 dummy mover.
+
+### Sprite animations
+
+Spritesheet animations play from a timeline two ways — both keep the actor in code
+and the timing in JSON, the usual boundary.
+
+The `AnimatedSprite` **actor** is built in `build()` and put in the stage map, from an
+atlas the packer emits (`createAnimatedSprite(atlas, name)` from
+[`src/core/animation/animatedSprite.ts`](../src/core/animation/animatedSprite.ts);
+`name` is a layer or a `"<layer>:<tag>"` Aseprite tag):
+
+```ts
+import { createAnimatedSprite, playAnimationHook } from '@/core/animation/animatedSprite';
+
+const hero = createAnimatedSprite(ASSETS.hero, 'hero:walk', { autoUpdate: false })!;
+root.addChild(hero);
+
+await playTimeline('heroBeat', {
+  stage: { hero },
+  hooks: { heroPlay: playAnimationHook(hero) }, // cue: fire-once trigger
+  ctx,
+});
+```
+
+- **Scrubbable `frame` track** (JSON) — `autoUpdate: false` so the **timeline** owns the
+  frame; a `frame` track steps `hero.currentFrame` from the playhead, so it seeks and
+  scrubs in the visual editor like any other track:
+
+  ```json
+  { "actor": "hero", "property": "frame",
+    "keys": [ { "time": 0, "value": 0 }, { "time": 24, "value": 5 } ] }
+  ```
+
+- **Fire-once cue** (JSON `cues`) — pair with an `autoUpdate: true` actor and a
+  `playAnimationHook(actor)` hook to just _trigger_ a self-ticking animation at a beat
+  (the cue key's numeric `value` is the start frame). Muted while scrubbing, like every
+  cue.
 
 ---
 

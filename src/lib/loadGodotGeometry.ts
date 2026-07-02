@@ -43,7 +43,21 @@ import {
   b2WeldJointDef,
   type b2WorldId,
 } from 'phaser-box2d';
-import { Assets, Container, Graphics, Mesh, MeshGeometry, NineSliceSprite, Rectangle, Sprite, Texture, TilingSprite } from 'pixi.js';
+import {
+  AnimatedSprite,
+  Assets,
+  Container,
+  Graphics,
+  Mesh,
+  MeshGeometry,
+  NineSliceSprite,
+  Rectangle,
+  Sprite,
+  Texture,
+  TilingSprite,
+} from 'pixi.js';
+
+import { animatedSpriteFromClip, type TimedFrame } from '@/core/animation/animatedSprite';
 
 // ---------------------------------------------------------------------------
 // Schema (kept in sync with devtools/packer/processors/godot-geometry.ts)
@@ -88,7 +102,16 @@ export interface TileLayerDef {
   scale: V2;
   tileSize: V2;
   z?: number;
-  tiles: { x: number; y: number; pixiFrame: string; transform?: number }[];
+  tiles: {
+    x: number;
+    y: number;
+    pixiFrame: string;
+    transform?: number;
+    /** Animation frame names (frame 0 first) when the Godot tile is animated. */
+    frames?: string[];
+    /** Per-frame duration in ms, aligned with `frames`. */
+    frameDurations?: number[];
+  }[];
   /** Optional clip polygon (layer-local pixels); the runtime masks the tiles to it. */
   clip?: V2[];
 }
@@ -435,6 +458,27 @@ const TILE_TRANSFORMS: ReadonlyArray<{ r: number; sx: number; sy: number; dx: nu
   { r: Math.PI / 2, sx: -1, sy: 1, dx: 1, dy: 1 }, // 111 — transpose+H+V
 ];
 
+/**
+ * Build an `AnimatedSprite` for an animated Godot tile from its frame names +
+ * per-frame durations (ms). Uses a top-left anchor to match the static tile
+ * `Sprite`s. Returns `null` if any frame texture is missing (caller falls back to
+ * the static base frame).
+ */
+function buildAnimatedTile(frameNames: string[], durations?: number[]): AnimatedSprite | null {
+  const frames: TimedFrame[] = [];
+  for (let i = 0; i < frameNames.length; i++) {
+    let texture: Texture | undefined;
+    try {
+      texture = Assets.get<Texture>(frameNames[i]) ?? Texture.from(frameNames[i]);
+    } catch {
+      return null;
+    }
+    if (!texture) return null;
+    frames.push({ texture, time: durations?.[i] ?? 100 });
+  }
+  return animatedSpriteFromClip({ frames, direction: 'forward' }, { anchor: 0, loop: true });
+}
+
 function instantiateTileLayer(
   def: TileLayerDef,
   tx: number,
@@ -449,15 +493,24 @@ function instantiateTileLayer(
   const sw = def.tileSize.x;
   const sh = def.tileSize.y;
   for (const tile of def.tiles) {
-    let texture: Texture | undefined;
-    try {
-      texture = Assets.get<Texture>(tile.pixiFrame) ?? Texture.from(tile.pixiFrame);
-    } catch {
-      console.warn(`[loadGodotGeometry] Tile texture not found: "${tile.pixiFrame}"`);
-      continue;
+    // Animated tile (Godot TileSetAtlasSource animation) → AnimatedSprite that
+    // self-ticks on Pixi's shared ticker. Falls back to the base frame if any
+    // animation frame texture is missing.
+    const animated = tile.frames && tile.frames.length > 1 ? buildAnimatedTile(tile.frames, tile.frameDurations) : null;
+
+    let sprite: Sprite | AnimatedSprite | null = animated;
+    if (!sprite) {
+      let texture: Texture | undefined;
+      try {
+        texture = Assets.get<Texture>(tile.pixiFrame) ?? Texture.from(tile.pixiFrame);
+      } catch {
+        console.warn(`[loadGodotGeometry] Tile texture not found: "${tile.pixiFrame}"`);
+        continue;
+      }
+      if (!texture) continue;
+      sprite = new Sprite({ texture });
     }
-    if (!texture) continue;
-    const sprite = new Sprite({ texture });
+
     const t = TILE_TRANSFORMS[(tile.transform ?? 0) & 0x7];
     sprite.scale.set(t.sx, t.sy);
     sprite.rotation = t.r;
@@ -842,7 +895,11 @@ function addCornerPieces(
     // 'none' = axis-aligned (unrotated).
     const bisector = Math.atan2(din.y + dout.y, din.x + dout.x);
     sprite.rotation =
-      orientation === 'none' ? 0 : orientation === 'snap' ? Math.round(bisector / (Math.PI / 2)) * (Math.PI / 2) : bisector;
+      orientation === 'none'
+        ? 0
+        : orientation === 'snap'
+          ? Math.round(bisector / (Math.PI / 2)) * (Math.PI / 2)
+          : bisector;
     if (tint !== undefined) sprite.tint = tint;
     group.addChild(sprite);
   }

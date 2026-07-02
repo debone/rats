@@ -1,7 +1,27 @@
 import sharp from 'sharp';
 
 import type { ExtractedSprite, SpritesheetData, SpritesheetFrameData } from '../types.ts';
+import type { AnimationMeta } from './aseprite.ts';
 import { generateFrames, generateSpritesheetSlices } from './slices.ts';
+
+/**
+ * Map an Aseprite tag's `animDirection` label to the lowercase token used in the
+ * standard Aseprite atlas `meta.frameTags` format (and understood by the runtime
+ * animation helper).
+ */
+function mapDirection(animDirection: string): string {
+  switch (animDirection) {
+    case 'Reverse':
+      return 'reverse';
+    case 'Ping-pong':
+      return 'pingpong';
+    case 'Ping-pong Reverse':
+      return 'pingpong_reverse';
+    case 'Forward':
+    default:
+      return 'forward';
+  }
+}
 
 interface TrimInfo {
   left: number;
@@ -34,6 +54,15 @@ export class Atlas {
   private sprites: ExtractedSprite[] = [];
   private trimInfo: Map<string, TrimInfo> = new Map();
   private packedSprites: Map<string, Box[]> = new Map();
+  private animationMeta: AnimationMeta = { tags: [], frameDurations: [] };
+
+  /**
+   * Provide the Aseprite frame tags + per-frame durations so `metadata()` can
+   * emit the standard `meta.frameTags` block and a `duration` on each frame.
+   */
+  setAnimationMeta(meta: AnimationMeta): void {
+    this.animationMeta = meta;
+  }
 
   /**
    * Add sprites to the atlas
@@ -306,6 +335,16 @@ export class Atlas {
           },
         };
 
+        // Carry the Aseprite per-frame duration (ms) — indexed by the sprite's
+        // real animation frame index, so timing stays correct regardless of the
+        // packer's spatial ordering. Standard Aseprite atlas JSON puts `duration`
+        // on each frame; Pixi keeps it on `spritesheet.data.frames[...]`.
+        const realFrameIndex = box.sprite.frameIndex ?? 0;
+        const duration = this.animationMeta.frameDurations[realFrameIndex];
+        if (duration !== undefined) {
+          frameData.duration = duration;
+        }
+
         // If we have slices, add borders and individual slice frames
         if (sliceSprite) {
           const sliceFrames = generateFrames(box.sprite);
@@ -428,6 +467,16 @@ export class Atlas {
       }
     }
 
+    // Emit the standard Aseprite `meta.frameTags` block (named animations with a
+    // frame range + direction). The runtime helper slices a layer's frames by
+    // these ranges to build tag-scoped animations (e.g. "walk", "idle").
+    const frameTags = this.animationMeta.tags.map((tag) => ({
+      name: tag.name,
+      from: tag.from,
+      to: tag.to,
+      direction: mapDirection(tag.animDirection),
+    }));
+
     return {
       frames,
       animations,
@@ -441,6 +490,7 @@ export class Atlas {
           w: this.atlasWidth,
           h: this.atlasHeight,
         },
+        frameTags,
         related_multi_packs: [],
       },
     };

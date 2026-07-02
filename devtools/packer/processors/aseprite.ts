@@ -231,17 +231,35 @@ function createCompositeSprite(
 }
 
 /**
+ * Aseprite animation metadata carried through to the atlas: the file-global
+ * frame **tags** (named animations authored in Aseprite) and each frame's
+ * **duration** in milliseconds. Both are already parsed by `ase-parser` but were
+ * previously dropped — they drive tag-segmented, correctly-timed animations.
+ */
+export interface AnimationMeta {
+  tags: AsepriteTypes.Tag[];
+  /** Per-frame duration in ms, indexed by frame index. */
+  frameDurations: number[];
+}
+
+/**
  * Extract sprites from an Aseprite file's frames
  */
 export async function extractSprites(
   asepriteFile: Aseprite,
   options?: { spritesheetSize?: number; baseName?: string },
-): Promise<{ sprites: ExtractedSprite[]; atlasConfig: AtlasConfig }> {
+): Promise<{ sprites: ExtractedSprite[]; atlasConfig: AtlasConfig; animationMeta: AnimationMeta }> {
+  const animationMeta: AnimationMeta = {
+    tags: asepriteFile.tags ?? [],
+    frameDurations: asepriteFile.frames.map((f) => f.frameDuration),
+  };
+
   if (asepriteFile.frames.length === 0) {
     console.warn('No frames found in the Aseprite file');
     return {
       sprites: [],
       atlasConfig: {},
+      animationMeta,
     };
   }
 
@@ -407,7 +425,7 @@ export async function extractSprites(
 
   console.log(`Generated atlas with ${Object.keys(atlasConfig).length} frames`);
 
-  return { sprites: extractedSprites, atlasConfig };
+  return { sprites: extractedSprites, atlasConfig, animationMeta };
 }
 
 /**
