@@ -28,6 +28,7 @@ export const HomeScene = defineEntity(() => {
 
   onMount(() => {
     execute(StartNewRunCommand);
+    //execute(ShowScreenCommand, { screen: HomeScreen });
   });
 
   return {};

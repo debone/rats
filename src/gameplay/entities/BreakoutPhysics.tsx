@@ -19,19 +19,24 @@ import {
   type b2JointId,
 } from 'phaser-box2d';
 import { Assets } from 'pixi.js';
-import { Brick } from './Brick';
-import { BlueCheese, GreenCheese, YellowCheese } from './Cheese';
-import { Door } from './Door';
-import { Scrap } from './Scrap';
-import { StrongBrick } from './StrongBrick';
-import { Wall, wallSparkOnBall } from './Wall';
-import { WaterBottom, type WaterBottomEntity } from './WaterBottom';
+import { Brick } from './bricks/Brick';
+import { ConcreteBrick } from './bricks/Concrete';
+import { GlassBrick } from './bricks/GlassBrick';
+import { ShopBrick } from './bricks/ShopBrick';
+import { SmallBrick } from './bricks/SmallBrick';
+import { StrongBrick } from './bricks/StrongBrick';
+import { WoodenBrick } from './bricks/WoodBrick';
 import { CatPiece } from './cats/CatBody';
 import { CatTail } from './cats/CatTail';
+import { BlueCheese, GreenCheese, YellowCheese } from './Cheese';
+import { Door } from './Door';
 import { BrickDebrisParticles } from './particles/BrickDebrisParticles';
 import { WallParticles } from './particles/WallParticles';
 import { WaterParticles } from './particles/WaterParticles';
-import { ShopBrick } from './ShopBrick';
+import { Scrap } from './Scrap';
+import { Wall, wallSparkOnBall } from './Wall';
+import { WaterBottom, type WaterBottomEntity } from './WaterBottom';
+import { StaticShape } from './StaticShape';
 
 const empty_tags = ['paddle-joint-temp', 'paddle-joint-holder', 'cat-joint-holder'];
 
@@ -104,6 +109,132 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
     bricksGiveMoreCheese = value;
   });
 
+  const dropWithPowerUp = (x: number, y: number, powerUp: BrickPowerUps | undefined) => {
+    const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+    const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
+
+    if (nextCheeseIsBlue && powerUp !== undefined) {
+      getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+      powerUp = 'blue';
+    }
+
+    if (powerUp === 'blue') {
+      BlueCheese({ pos: new b2Vec2(x, y) });
+      if (doubleCheese) {
+        BlueCheese({ pos: new b2Vec2(x, y) });
+      }
+    } else if (powerUp === 'green') {
+      GreenCheese({ pos: new b2Vec2(x, y) });
+      if (doubleCheese) {
+        GreenCheese({ pos: new b2Vec2(x, y) });
+      }
+    } else if (powerUp === 'yellow') {
+      YellowCheese({ pos: new b2Vec2(x, y) });
+      if (doubleCheese) {
+        YellowCheese({ pos: new b2Vec2(x, y) });
+      }
+    } else {
+      if (micesive_nextBricksHaveMoreRubbles > 0) {
+        micesive_nextBricksHaveMoreRubbles--;
+        for (let i = 0; i < 5; i++) {
+          Scrap({ pos: new b2Vec2(x, y) });
+        }
+      } else {
+        let r = Math.random();
+
+        if (bricksGiveMoreCheese) {
+          r -= 0.1;
+        }
+
+        if (r < 0.2) {
+          if (nextCheeseIsBlue) {
+            getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+            BlueCheese({ pos: new b2Vec2(x, y) });
+            if (doubleCheese) {
+              BlueCheese({ pos: new b2Vec2(x, y) });
+            }
+          } else {
+            YellowCheese({ pos: new b2Vec2(x, y) });
+            if (doubleCheese) {
+              YellowCheese({ pos: new b2Vec2(x, y) });
+            }
+          }
+        } else if (r < 0.5) {
+          Scrap({ pos: { x: x - 0.25, y } });
+          Scrap({ pos: { x: x + 0.25, y } });
+        } else {
+          Scrap({ pos: { x, y } });
+        }
+      }
+    }
+  };
+
+  const dropWithRubbles = (x: number, y: number) => {
+    if (micesive_nextBricksHaveMoreRubbles > 0) {
+      micesive_nextBricksHaveMoreRubbles--;
+      for (let i = 0; i < 5; i++) {
+        Scrap({ pos: new b2Vec2(x, y) });
+      }
+    } else {
+      let r = Math.random();
+
+      if (bricksGiveMoreCheese) {
+        r -= 0.1;
+      }
+
+      if (r < 0.35) {
+        const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+        const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
+
+        if (nextCheeseIsBlue) {
+          getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+          BlueCheese({ pos: new b2Vec2(x, y) });
+          if (doubleCheese) {
+            BlueCheese({ pos: new b2Vec2(x, y) });
+          }
+        } else {
+          YellowCheese({ pos: new b2Vec2(x, y) });
+          if (doubleCheese) {
+            YellowCheese({ pos: new b2Vec2(x, y) });
+          }
+        }
+      } else {
+        Scrap({ pos: { x: x - 0.25, y } });
+        Scrap({ pos: { x: x + 0.25, y } });
+      }
+    }
+  };
+
+  const dropWithCheese = (x: number, y: number) => {
+    if (micesive_nextBricksHaveMoreRubbles > 0) {
+      micesive_nextBricksHaveMoreRubbles--;
+    } else {
+      let r = Math.random();
+
+      if (bricksGiveMoreCheese) {
+        r -= 0.1;
+      }
+
+      if (r < 0.15) {
+        const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
+        const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
+
+        if (nextCheeseIsBlue) {
+          getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
+          BlueCheese({ pos: new b2Vec2(x, y) });
+          if (doubleCheese) {
+            BlueCheese({ pos: new b2Vec2(x, y) });
+          }
+        } else {
+          YellowCheese({ pos: new b2Vec2(x, y) });
+          if (doubleCheese) {
+            YellowCheese({ pos: new b2Vec2(x, y) });
+          }
+        }
+      }
+    }
+  };
+
   withChildren(() => {
     loadedBodies.forEach((bodyId) => {
       if (!b2Body_IsValid(bodyId)) return;
@@ -161,113 +292,59 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
           attach(brick, (b) => {
             useSubscribe(b.events, 'broken', ({ x, y, powerUp }) => {
               console.log('broken', b);
-              const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
-              const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
-
-              if (nextCheeseIsBlue && powerUp !== undefined) {
-                getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
-                powerUp = 'blue';
-              }
-
-              if (powerUp === 'blue') {
-                BlueCheese({ pos: new b2Vec2(x, y) });
-                if (doubleCheese) {
-                  BlueCheese({ pos: new b2Vec2(x, y) });
-                }
-              } else if (powerUp === 'green') {
-                GreenCheese({ pos: new b2Vec2(x, y) });
-                if (doubleCheese) {
-                  GreenCheese({ pos: new b2Vec2(x, y) });
-                }
-              } else if (powerUp === 'yellow') {
-                YellowCheese({ pos: new b2Vec2(x, y) });
-                if (doubleCheese) {
-                  YellowCheese({ pos: new b2Vec2(x, y) });
-                }
-              } else {
-                if (micesive_nextBricksHaveMoreRubbles > 0) {
-                  micesive_nextBricksHaveMoreRubbles--;
-                  for (let i = 0; i < 5; i++) {
-                    Scrap({ pos: new b2Vec2(x, y) });
-                  }
-                } else {
-                  let r = Math.random();
-
-                  if (bricksGiveMoreCheese) {
-                    r -= 0.1;
-                  }
-
-                  if (r < 0.2) {
-                    if (nextCheeseIsBlue) {
-                      getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
-                      BlueCheese({ pos: new b2Vec2(x, y) });
-                      if (doubleCheese) {
-                        BlueCheese({ pos: new b2Vec2(x, y) });
-                      }
-                    } else {
-                      YellowCheese({ pos: new b2Vec2(x, y) });
-                      if (doubleCheese) {
-                        YellowCheese({ pos: new b2Vec2(x, y) });
-                      }
-                    }
-                  } else if (r < 0.5) {
-                    Scrap({ pos: { x: x - 0.25, y } });
-                    Scrap({ pos: { x: x + 0.25, y } });
-                  } else {
-                    Scrap({ pos: { x, y } });
-                  }
-                }
-              }
+              dropWithPowerUp(x, y, powerUp);
             });
           });
         }
       } else if (tag === 'strong-brick') {
-        const behavior = (userData as { behaviour?: string } | null)?.behaviour;
-
         const strongBrick = StrongBrick({
           bodyId,
           debrisEmitter: particles.brickDebris.emitter,
         });
 
-        if (!behavior) {
-          attach(strongBrick, (b) => {
-            useSubscribe(b.events, 'broken', ({ x, y }) => {
-              if (micesive_nextBricksHaveMoreRubbles > 0) {
-                micesive_nextBricksHaveMoreRubbles--;
-                for (let i = 0; i < 5; i++) {
-                  Scrap({ pos: new b2Vec2(x, y) });
-                }
-              } else {
-                let r = Math.random();
-
-                if (bricksGiveMoreCheese) {
-                  r -= 0.1;
-                }
-
-                if (r < 0.35) {
-                  const nextCheeseIsBlue = getRunState().crewBoons.mrblu_nextCheeseIsBlue.get();
-                  const doubleCheese = getRunState().crewBoons.twoears_doubleCheese.get();
-
-                  if (nextCheeseIsBlue) {
-                    getRunState().crewBoons.mrblu_nextCheeseIsBlue.set(false);
-                    BlueCheese({ pos: new b2Vec2(x, y) });
-                    if (doubleCheese) {
-                      BlueCheese({ pos: new b2Vec2(x, y) });
-                    }
-                  } else {
-                    YellowCheese({ pos: new b2Vec2(x, y) });
-                    if (doubleCheese) {
-                      YellowCheese({ pos: new b2Vec2(x, y) });
-                    }
-                  }
-                } else {
-                  Scrap({ pos: { x: x - 0.25, y } });
-                  Scrap({ pos: { x: x + 0.25, y } });
-                }
-              }
-            });
+        attach(strongBrick, (b) => {
+          useSubscribe(b.events, 'broken', ({ x, y }) => {
+            dropWithRubbles(x, y);
           });
-        }
+        });
+      } else if (tag === 'concrete-brick') {
+        const concreteBrick = ConcreteBrick({
+          bodyId,
+          debrisEmitter: particles.brickDebris.emitter,
+        });
+
+        attach(concreteBrick, (b) => {
+          useSubscribe(b.events, 'broken', ({ x, y }) => {
+            dropWithRubbles(x, y);
+          });
+        });
+      } else if (tag === 'glass-brick') {
+        GlassBrick({
+          bodyId,
+          debrisEmitter: particles.brickDebris.emitter,
+        });
+      } else if (tag === 'wooden-brick') {
+        const woodenBrick = WoodenBrick({
+          bodyId,
+          debrisEmitter: particles.brickDebris.emitter,
+        });
+
+        attach(woodenBrick, (b) => {
+          useSubscribe(b.events, 'broken', ({ x, y }) => {
+            dropWithCheese(x, y);
+          });
+        });
+      } else if (tag === 'small-brick') {
+        const smallBrick = SmallBrick({
+          bodyId,
+          debrisEmitter: particles.brickDebris.emitter,
+        });
+
+        attach(smallBrick, (b) => {
+          useSubscribe(b.events, 'broken', ({ x, y }) => {
+            dropWithRubbles(x, y);
+          });
+        });
       } else if (tag === 'shop-brick') {
         const spawnPos = b2Body_GetPosition(bodyId);
         ctx.systems.get(PhysicsSystem).queueDestruction(bodyId);
@@ -276,6 +353,8 @@ export const BreakoutPhysics = defineEntity(({ levelId, geometryAsset }: Breakou
         CatPiece({ bodyId, texture: 'cat-body#0' });
       } else if (tag === 'cat-piece') {
         CatTail({ bodyId, texture: 'cat-tail#0' });
+      } else if (tag === 'static-shape') {
+        StaticShape({ bodyId });
       } else if (tag && empty_tags.includes(tag)) {
         // Ignore empty tags
       } else {

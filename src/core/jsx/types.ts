@@ -149,6 +149,7 @@ export interface IntrinsicElementMap {
   text: TextElement;
   graphics: GraphicsElement;
   layoutContainer: LayoutContainerElement;
+  // Thanks victor from past for the documentation
   box: LayoutContainerElement;
   vBoxContainer: GodotBoxContainerElement;
   hBoxContainer: GodotBoxContainerElement;
@@ -160,6 +161,8 @@ export interface IntrinsicElementMap {
   panelContainer: GodotBoxContainerElement;
   scrollContainer: GodotScrollContainerElement;
   spacer: LayoutContainerElement;
+  // end of thanks
+
   button: ButtonElement;
   slider: SliderElement;
   mount: MountElement;

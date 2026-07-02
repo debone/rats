@@ -49,7 +49,10 @@ export interface RunState {
   ballsRemaining: Signal<number>;
 
   scrapsCounter: Signal<number>;
-  cheeseCounter: Signal<number>;
+  blueCheeseCounter: Signal<number>;
+  greenCheeseCounter: Signal<number>;
+  yellowCheeseCounter: Signal<number>;
+
   maxCheeseStorage: Signal<number>;
   crewMembers: SignalCollection<CrewMemberInstance>;
   firstMember: Signal<CrewMemberInstance | undefined>;
@@ -143,8 +146,10 @@ export function createGameState(): GameState {
       levelsCompleted: [],
       ballsRemaining: signal(5),
       scrapsCounter: signal(0),
-      cheeseCounter: signal(5),
       maxCheeseStorage: signal(5),
+      yellowCheeseCounter: signal(5),
+      blueCheeseCounter: signal(0),
+      greenCheeseCounter: signal(0),
       crewMembers: createKeyedCollection<CrewMemberInstance>([
         /**
          new DoublerCrewMember('doubler2'),
@@ -255,7 +260,17 @@ export function changeScraps(count: number): void {
 
 export function changeCheese(delta: number): void {
   const runState = getRunState();
-  runState.cheeseCounter.update((value) => Math.max(0, Math.min(runState.maxCheeseStorage.get(), value + delta)));
+  runState.yellowCheeseCounter.update((value) => Math.max(0, Math.min(runState.maxCheeseStorage.get(), value + delta)));
+}
+
+export function changeBlueCheese(delta: number): void {
+  const runState = getRunState();
+  runState.blueCheeseCounter.update((value) => Math.max(0, value + delta));
+}
+
+export function changeGreenCheese(delta: number): void {
+  const runState = getRunState();
+  runState.greenCheeseCounter.update((value) => Math.max(0, value + delta));
 }
 
 export function addBallToRun(count: number): void {
@@ -270,14 +285,16 @@ export function setBallsRemaining(count: number): void {
   getRunState().ballsRemaining.set(count);
 }
 
-export function onboardCrewMember(crewMember: CrewMemberDefKey, place: 'first' | 'second' = 'first'): void {
+export function onboardCrewMember(crewMember: CrewMemberDefKey, place: 'first' | 'second' | 'deck' = 'deck'): void {
   const crewMemberInstance = new CrewMemberInstance(
     crewMember,
     `crew-${crewMember}-${Math.random().toString(36).substring(2, 6)}`,
   );
   CREW_DEFS[crewMember].passiveAbility.mount(getRunState());
 
-  if (place === 'first') {
+  if (place === 'deck') {
+    getRunState().crewMembers.push(crewMemberInstance);
+  } else if (place === 'first') {
     getRunState().firstMember.set(crewMemberInstance);
   } else {
     getRunState().secondMember.set(crewMemberInstance);
@@ -306,7 +323,7 @@ export function activateCrewAbility(index: number): void {
     ? runState.ballsRemaining.get()
     : runState.crewBoons.lacfree_abilitiesConsumeRubbles.get()
       ? runState.scrapsCounter.get()
-      : runState.cheeseCounter.get();
+      : runState.yellowCheeseCounter.get();
 
   const consume = runState.crewBoons.ratoulie_abilitiesConsumeBalls.get()
     ? addBallToRun

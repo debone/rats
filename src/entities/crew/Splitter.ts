@@ -25,7 +25,7 @@ export const SplitterCrewMember: CrewMemberDef = {
     unmount: (runState) => {
       runState.crewBoons.splitter_additionalCheeseStorage.set(false);
       runState.maxCheeseStorage.update((current) => current - 2);
-      runState.cheeseCounter.update((current) => Math.min(current, runState.maxCheeseStorage.get()));
+      runState.yellowCheeseCounter.update((current) => Math.min(current, runState.maxCheeseStorage.get()));
     },
   },
 };

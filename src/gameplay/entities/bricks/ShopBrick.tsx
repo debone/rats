@@ -4,7 +4,11 @@ import { sfx } from '@/core/audio/audio';
 import { defineEntity, entity, onCleanup, type EntityBase } from '@/core/entity/scope';
 import type { EventEmitter } from '@/core/game/EventEmitter';
 import { getGameContext } from '@/data/game-context';
+import { changeBlueCheese, getRunState, onboardCrewMember } from '@/data/game-state';
+import { CHEESE_DEFS } from '@/entities/cheese/Cheese';
 import { pickRandomCrewMemberSet } from '@/entities/crew/Crew';
+import { RARITY_COST } from '@/entities/crew/types';
+import { brickBreak } from '@/gameplay/vfx/burst/brickBreak';
 import { useCollisionHandler, useEmitter, usePhysics, useWorldId } from '@/hooks/hooks';
 import { loadGodotGeometry, type Box2DGeometry } from '@/lib/loadGodotGeometry';
 import { getCrewTexture } from '@/screens/CrewPickerOverlay/actions';
@@ -13,7 +17,6 @@ import { vfx } from '@/systems/vfx/vfx';
 import type { LayoutContainer } from '@pixi/layout/components';
 import { type b2BodyId } from 'phaser-box2d';
 import { Assets, Sprite } from 'pixi.js';
-import { brickBreak } from '../vfx/burst/brickBreak';
 
 export type ShopBrickEvents = {
   hit: void;
@@ -47,14 +50,17 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
   const bodyId = bodies[0];
 
   // Body sprites are typed Container[] (a Box2DNineSlice yields a NineSliceSprite);
-  // the avatar is a plain Sprite whose texture we swap per crew member.
-  const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite') as Sprite | undefined;
-  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-bg');
-  const itemSprite = sprites.find((sprite) => sprite.label === 'item-sprite');
+  // these three are plain Sprites whose textures we swap.
+  const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite') as Sprite;
+  const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-bg') as Sprite;
+  const itemSprite = sprites.find((sprite) => sprite.label === 'item-sprite') as Sprite;
 
   const randomCrewMember = pickRandomCrewMemberSet(1);
+  const cost = RARITY_COST[randomCrewMember[0].rarity];
 
-  avatarSprite!.texture = getCrewTexture(randomCrewMember[0].type);
+  avatarSprite.texture = getCrewTexture(randomCrewMember[0].type);
+
+  itemSprite!.texture = Assets.get(ASSETS.prototype).textures[CHEESE_DEFS['blue'].texture];
 
   // damn it works
 
@@ -62,13 +68,13 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
 
   <mount target={badgeSprite!}>
     <box ref={(ref) => (boxRef = ref)}>
-      <text text={'20'} style={{ ...TEXT_STYLE_DEFAULT }} />
+      <text text={cost.toString()} style={{ ...TEXT_STYLE_DEFAULT, fontSize: 16 }} />
     </box>
   </mount>;
 
   boxRef!.layout = {
-    marginLeft: itemSprite!.width + 4,
-    marginTop: 2,
+    marginLeft: itemSprite!.width + 5,
+    marginTop: -1,
   };
 
   useCollisionHandler(bodyId, () => ({
@@ -101,6 +107,11 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
       vfx.play(brickBreak, { x, y, intensity: Math.random() });
 
       events.emit('broken', { x, y });
+
+      if (getRunState().blueCheeseCounter.get() >= cost) {
+        changeBlueCheese(-cost);
+        onboardCrewMember(randomCrewMember[0].type);
+      }
 
       this.destroy();
     },

@@ -1,6 +1,7 @@
 import { defineEntity, getUnmount, onMount } from '@/core/entity/scope';
 import { GameEvent } from '@/data/events';
 import { getGameContext } from '@/data/game-context';
+import { onboardCrewMember } from '@/data/game-state';
 import { Campaign } from '@/gameplay/campaign/Campaign';
 import { CAMPAIGN_LEVELS } from '@/gameplay/campaign/campaign-def';
 import { useGameEvent } from '@/hooks/hooks';
@@ -24,6 +25,7 @@ export const GameScene = defineEntity(({ onEnd }: GameSceneProps) => {
   });
 
   onMount(() => {
+    onboardCrewMember('nuggets', 'first');
     Campaign({ levels: CAMPAIGN_LEVELS });
   });
 

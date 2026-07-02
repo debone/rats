@@ -180,17 +180,19 @@ export function GetBodyFromSprite(worldId: b2WorldId, sprite: SpriteObject): b2B
  * @param bodyId - The body ID to look up
  * @returns The sprite, or null if not found
  */
-export function GetSpriteFromBody(worldId: b2WorldId, bodyId: b2BodyId): SpriteObject | null {
-  if (!WorldSprites.has(worldId)) return null;
+export function GetSpritesFromBody(worldId: b2WorldId, bodyId: b2BodyId): SpriteObject[] {
+  if (!WorldSprites.has(worldId)) return [];
+
+  const sprites: SpriteObject[] = [];
 
   for (const [sprite, entry] of WorldSprites.get(worldId)!) {
     // TODO: hi Victor from future, I'm sorry if this comparison is not correct
     if (entry.bodyId.index1 === bodyId.index1) {
-      return sprite;
+      sprites.push(sprite);
     }
   }
 
-  return null;
+  return sprites;
 }
 
 /**
