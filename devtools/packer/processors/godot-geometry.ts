@@ -390,9 +390,21 @@ export function generateGeometryJsonFiles(
     fs.mkdirSync(path.dirname(outFile), { recursive: true });
     fs.writeFileSync(outFile, JSON.stringify(geometry, null, 2));
     parsed.set(name, geometry);
+    const v = geometry.visuals;
+    const visualCount = v ? v.meshes.length + v.sprites.length + v.tileLayers.length + v.ninePatches.length : 0;
     console.log(
-      `[Godot] Geometry → ${name}.json (${geometry.bodies.length} body, ${geometry.joints.length} joint)`,
+      `[Godot] Geometry → ${name}.json (${geometry.bodies.length} body, ${geometry.joints.length} joint, ${visualCount} visual)`,
     );
+    // A scene that compiles to literally nothing is almost always an authoring
+    // mistake (e.g. every node flagged `attached = false`, or textures that don't
+    // resolve through the sprite-map) rather than intent — surface it loudly.
+    if (geometry.bodies.length === 0 && geometry.joints.length === 0 && visualCount === 0) {
+      console.warn(
+        `[Godot] ${name}: compiled to an EMPTY scene (no bodies/joints/visuals). ` +
+          `Check that visual nodes aren't flagged \`attached = false\` and that their textures ` +
+          `resolve through sprite-map.json (nine-slices need the sliced .tres, not a raw .png).`,
+      );
+    }
   }
 
   writeGeometryTypes(parsed, typesOutputPath);
