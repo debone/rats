@@ -12,7 +12,7 @@ import { BodyToScreen } from '@/systems/physics/WorldSprites';
 import { vfx } from '@/systems/vfx/vfx';
 import type { LayoutContainer } from '@pixi/layout/components';
 import { type b2BodyId } from 'phaser-box2d';
-import { Assets } from 'pixi.js';
+import { Assets, Sprite } from 'pixi.js';
 import { brickBreak } from '../vfx/burst/brickBreak';
 
 export type ShopBrickEvents = {
@@ -46,7 +46,9 @@ export const ShopBrick = defineEntity(({ spawnPos }: ShopBrickProps) => {
 
   const bodyId = bodies[0];
 
-  const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite');
+  // Body sprites are typed Container[] (a Box2DNineSlice yields a NineSliceSprite);
+  // the avatar is a plain Sprite whose texture we swap per crew member.
+  const avatarSprite = sprites.find((sprite) => sprite.label === 'avatar-sprite') as Sprite | undefined;
   const badgeSprite = sprites.find((sprite) => sprite.label === 'badge-bg');
   const itemSprite = sprites.find((sprite) => sprite.label === 'item-sprite');
 
